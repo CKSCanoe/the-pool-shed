@@ -1,4 +1,4 @@
-# The Pool Shed — Live V1.6 Production Package
+# The Pool Shed — Live V1.6
 
 This is the complete deployable Pool Bros operational workspace. It includes CRM, customer addresses and credit controls, products and catalogue imports, supplier profiles and catalogues, Sales Orders, Purchase Orders, Jobs / Projects, Order Requests, master-warehouse stock, vans and job bins, Goods In, quality control, putaway, transfers, Goods Notes, pick/pack/ship, returns, stock counts, accounting views, permissions, personal menu layouts, dark mode and offline recovery.
 
