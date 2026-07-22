@@ -1,0 +1,10 @@
+{
+  "name": "the-pool-shed",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "build": "bash scripts/build.sh",
+    "validate": "node scripts/validate-runtime.mjs public && node scripts/test-catalogue-health-actions.mjs",
+    "test:health": "node scripts/test-catalogue-health-actions.mjs"
+  }
+}
