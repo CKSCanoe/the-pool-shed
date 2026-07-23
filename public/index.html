@@ -1,0 +1,129 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>The Pool Shed v2.0</title>
+    <meta name="pool-shed-build" content="v2.0.0-performance-preview">
+    <link rel="stylesheet" href="./assets/css/01-legacy-01.css">
+  
+
+<link rel="stylesheet" href="./assets/css/02-live-v17-polish.css">
+
+<link rel="stylesheet" href="./assets/css/03-live-v19-brand-restoration.css">
+  <link rel="stylesheet" href="./product-images.css">
+  <link rel="stylesheet" href="./sales-order-search.css">
+  <link rel="stylesheet" href="./partial-fulfilment.css">
+  <link rel="stylesheet" href="./catalogue-intelligence.css">
+    <link rel="stylesheet" href="catalogue-health.css">
+  <link rel="stylesheet" href="./bundle-engine.css">
+
+    <link rel="preconnect" href="https://cdn.jsdelivr.net" crossorigin>
+    <link rel="dns-prefetch" href="https://cdn.jsdelivr.net">
+    <link rel="preload" href="./assets/js/01-legacy-01.js" as="script">
+    <meta name="theme-color" content="#006e8e">
+      <link rel="stylesheet" href="./assets/css/99-v2-performance.css">
+  </head>
+  <body>
+    <section class="login-screen hidden" id="loginScreen"></section>
+    <div class="app auth-hidden" id="appShell">
+      <aside class="sidebar">
+        <div class="brand">
+          <div class="brand-mark" id="brandMark">PS</div>
+          <div>
+            <strong id="brandName">The Pool Shed</strong>
+            <span id="brandSubtitle">Sales, stock, vans and POs</span>
+          </div>
+        </div>
+        <nav class="nav" id="nav"></nav>
+        <div class="side-card">
+          <strong>Stock rule</strong>
+          <p>Every item must have a location, value, status and movement history.</p>
+        </div>
+      </aside>
+
+      <main class="main">
+        <div class="topbar">
+          <div class="title">
+            <div class="breadcrumb"><span>⌂</span><span>Dashboard</span><span>›</span><span id="breadcrumbCurrent">Dashboard</span></div>
+            <h1 id="pageTitle">Dashboard</h1>
+            <p id="pageIntro">A clear live view of sales, stock, vans, purchasing, fulfilment and anything that needs action today.</p>
+            <div id="pageBackRow" class="page-back-row"></div>
+          </div>
+          <div class="top-actions">
+            <div class="search">
+              <input id="globalSearch" type="search" placeholder="Search sales orders, POs, products, customers, suppliers or barcodes">
+              
+              <div id="globalSearchResults" class="global-results hidden"></div>
+            </div>
+            <div class="top-utility-row">
+              <button class="notification-button" id="notificationButton" type="button" title="Admin notifications">🔔<span class="notification-badge" id="notificationBadge">0</span></button>
+              <button class="theme-toggle" id="themeToggle" type="button" aria-label="Toggle dark mode" title="Toggle dark mode">☾</button>
+              <button class="icon-button" type="button" data-workspace-refresh="Dashboard" title="Refresh">↻</button>
+              <div class="account-menu">
+                <button class="user-chip user-chip-button" id="userMenuButton" type="button" aria-haspopup="true" aria-expanded="false">
+                  <span class="user-avatar" id="topUserAvatar">AB</span>
+                  <span id="topUserName">Aaron Boyer</span>
+                  <span class="account-chevron">▾</span>
+                </button>
+                <div class="account-dropdown hidden" id="userMenuDropdown"></div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <section id="screen-dashboard" class="screen grid"></section>
+        <section id="screen-locations" class="screen grid hidden"></section>
+        <section id="screen-products" class="screen grid hidden"></section>
+        <section id="screen-purchase" class="screen grid hidden"></section>
+        <section id="screen-salesorders" class="screen grid hidden"></section>
+        <section id="screen-jobs" class="screen grid hidden"></section>
+        <section id="screen-engineer" class="screen grid hidden"></section>
+        <section id="screen-warehouse" class="screen grid hidden"></section>
+        <section id="screen-fulfilment" class="screen grid hidden"></section>
+        <section id="screen-crm" class="screen grid hidden"></section>
+        <section id="screen-automation" class="screen grid hidden"></section>
+        <section id="screen-analytics" class="screen grid hidden"></section>
+        <section id="screen-accounting" class="screen grid hidden"></section>
+        <section id="screen-settings" class="screen grid hidden"></section>
+        <section id="screen-barcodes" class="screen grid hidden"></section>
+      </main>
+    </div>
+    <div class="toast" id="toast"></div>
+    <div class="modal-backdrop" id="shippingModal"></div>
+    <div class="modal-backdrop" id="invoiceModal"></div>
+    <div class="modal-backdrop" id="paymentModal"></div>
+    <div class="modal-backdrop" id="goodsNoteDeleteModal"></div>
+    <div class="modal-backdrop" id="supplierProfileModal"></div>
+    <div class="modal-backdrop" id="statusEditorModal"></div>
+
+    <script src="./config.js" defer></script>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2" defer></script>
+    <script src="./assets/js/01-legacy-01.js" defer></script>
+  
+<script src="./assets/js/02-legacy-02.js" defer></script>
+
+
+<link rel="stylesheet" href="./assets/css/10-pb-import-governance-styles.css">
+<script src="./assets/js/03-pb-import-governance-v192.js" defer></script>
+
+<link rel="stylesheet" href="./assets/css/11-pb-product-profile-v196-styles.css">
+<script src="./assets/js/04-pb-product-profile-v196-fix.js" defer></script>
+
+
+<link rel="stylesheet" href="./assets/css/12-pb-v1100-inventory-product-hub-styles.css">
+<script src="./assets/js/05-pb-v1100-inventory-product-hub.js" defer></script>
+
+  <script src="./product-images.js" defer></script>
+  <script src="./sales-order-search.js" defer></script>
+  <script src="./catalogue-intelligence.js" defer></script>
+  <script src="./partial-fulfilment.js" defer></script>
+
+<link rel="stylesheet" href="./assets/css/13-pb-status-picker-v1108.css">
+
+<link rel="stylesheet" href="./assets/css/14-pb-product-title-persistence-v115-css.css">
+<script src="./assets/js/06-pb-product-title-persistence-v115-fix.js" defer></script>
+
+  <script src="./bundle-engine.js" defer></script>
+</body>
+</html>

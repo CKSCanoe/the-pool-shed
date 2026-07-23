@@ -1,0 +1,13 @@
+{
+  "name": "the-pool-shed-v2",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "build": "bash scripts/build.sh",
+    "validate": "node scripts/validate-runtime.mjs public && node scripts/test-catalogue-health-actions.mjs",
+    "test:health": "node scripts/test-catalogue-health-actions.mjs",
+    "audit": "node scripts/performance-audit.mjs"
+  },
+  "version": "2.0.0",
+  "description": "Performance-focused modular preview of The Pool Shed"
+}

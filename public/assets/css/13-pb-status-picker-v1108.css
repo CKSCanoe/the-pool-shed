@@ -1,0 +1,96 @@
+/* v1.10.8: visible-label status pickers for Sales Orders and Purchase Orders. */
+.status-picker {
+  --status-bg: #607080;
+  --status-fg: #ffffff;
+  position: relative;
+  display: inline-grid;
+  grid-template-columns: 11px minmax(0, 1fr) 10px;
+  align-items: center;
+  gap: .58rem;
+  width: 210px;
+  min-width: 180px;
+  max-width: 100%;
+  min-height: 44px;
+  padding: 0 .82rem;
+  border: 1px solid color-mix(in srgb, var(--status-bg), #0b2633 24%);
+  border-radius: 999px;
+  background: var(--status-bg);
+  color: var(--status-fg);
+  box-shadow: 0 6px 16px color-mix(in srgb, var(--status-bg), transparent 68%);
+  box-sizing: border-box;
+  vertical-align: middle;
+  isolation: isolate;
+}
+.status-picker-sales {
+  flex: 0 0 220px;
+  width: 220px;
+  min-width: 220px;
+}
+.status-picker-po {
+  width: 184px;
+  min-width: 164px;
+  min-height: 40px;
+  padding-inline: .72rem;
+  font-size: .84rem;
+}
+.status-picker-hero {
+  width: 210px;
+  min-height: 44px;
+}
+.status-picker-dot {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  background: currentColor;
+  box-shadow: 0 0 0 4px color-mix(in srgb, currentColor, transparent 84%);
+  opacity: .9;
+}
+.status-picker-label {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  color: inherit;
+  font-weight: 900;
+  line-height: 1.15;
+  letter-spacing: -.01em;
+  pointer-events: none;
+}
+.status-picker-chevron {
+  width: 8px;
+  height: 8px;
+  border-right: 2px solid currentColor;
+  border-bottom: 2px solid currentColor;
+  transform: rotate(45deg) translateY(-2px);
+  opacity: .78;
+  pointer-events: none;
+}
+.status-picker-native {
+  position: absolute;
+  inset: 0;
+  z-index: 3;
+  width: 100%;
+  height: 100%;
+  margin: 0;
+  border: 0;
+  border-radius: inherit;
+  opacity: .001;
+  cursor: pointer;
+  appearance: auto;
+  -webkit-appearance: menulist;
+}
+.status-picker:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 9px 22px color-mix(in srgb, var(--status-bg), transparent 58%);
+}
+.status-picker:focus-within {
+  outline: 3px solid color-mix(in srgb, var(--status-bg), #00a6ce 42%);
+  outline-offset: 2px;
+}
+.status-picker-native:disabled { cursor: not-allowed; }
+.status-picker:has(.status-picker-native:disabled) { opacity: .62; }
+.po-title-row .status-picker-po { flex: 0 0 auto; }
+@media (max-width: 760px) {
+  .status-picker-sales { flex: 1 1 200px; width: auto; min-width: min(200px, 100%); }
+  .status-picker-po, .status-picker-hero { width: 100%; min-width: 0; }
+}
