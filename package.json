@@ -1,0 +1,15 @@
+{
+  "name": "the-pool-shed-v2",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "build": "bash scripts/build.sh",
+    "validate": "node scripts/validate-runtime.mjs public && node scripts/test-catalogue-health-actions.mjs",
+    "test:health": "node scripts/test-catalogue-health-actions.mjs",
+    "audit": "node scripts/performance-audit.mjs",
+    "test:fulfilment": "node scripts/test-fulfilment-lifecycle.mjs",
+    "test:bundles": "node scripts/test-bundle-system-v2.mjs"
+  },
+  "version": "2.1.0",
+  "description": "Pool Shed Bundle Product System with linked catalogue SKUs and live component stock"
+}
