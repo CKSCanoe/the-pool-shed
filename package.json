@@ -1,0 +1,16 @@
+{
+  "name": "the-pool-shed-v2",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "build": "bash scripts/build.sh",
+    "validate": "node scripts/validate-runtime.mjs public && node scripts/test-catalogue-health-actions.mjs && node scripts/test-bundle-studio-v221.mjs",
+    "test:health": "node scripts/test-catalogue-health-actions.mjs",
+    "audit": "node scripts/performance-audit.mjs",
+    "test:fulfilment": "node scripts/test-fulfilment-lifecycle.mjs",
+    "test:bundles": "node scripts/test-bundle-system-v2.mjs",
+    "test:bundle-studio": "node scripts/test-bundle-studio-v221.mjs"
+  },
+  "version": "2.2.1",
+  "description": "Pool Shed Smart Bundle Studio with live catalogue SKU linking, effective stock and professional product workflows"
+}
