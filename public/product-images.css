@@ -1,0 +1,97 @@
+/* Pool Shed v1.11.4 product image system */
+.pb-product-image {
+  position: relative;
+  display: inline-grid;
+  place-items: center;
+  flex: 0 0 auto;
+  overflow: hidden;
+  border: 1px solid color-mix(in srgb, var(--border, #d7e4ea) 84%, #00a7ce 16%);
+  border-radius: 14px;
+  background: linear-gradient(145deg, var(--pb-teal, #07566d), var(--pb-cyan, #08a8cf));
+  color: #fff;
+  font-weight: 950;
+  line-height: 1;
+  box-shadow: 0 6px 18px rgba(5, 75, 98, .11);
+}
+.pb-product-image-sm { width: 38px; height: 38px; border-radius: 11px; font-size: .72rem; }
+.pb-product-image-md { width: 48px; height: 48px; border-radius: 14px; font-size: .86rem; }
+.pb-product-image-lg { width: 58px; height: 58px; border-radius: 16px; font-size: 1rem; }
+.pb-product-image-xl { width: 220px; height: 220px; border-radius: 20px; font-size: 2rem; }
+.pb-product-image img {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  display: block;
+  object-fit: contain;
+  background: #fff;
+}
+.pb-product-image-fallback { display: grid; place-items: center; width: 100%; height: 100%; }
+.pb-product-image.has-image .pb-product-image-fallback { display: none; }
+.pb-product-image.is-fallback .pb-product-image-fallback { display: grid; }
+.pb-product-image.is-fallback img { display: none; }
+.catalogue-mark.pb-product-image,
+.identity-mark.pb-product-image,
+.product-group-image.pb-product-image { padding: 0; }
+.variant-image-cell { display: flex; align-items: center; gap: .65rem; min-width: 140px; }
+.variant-image-cell > strong { min-width: 0; overflow-wrap: anywhere; }
+.product-profile-image-preview-wrap { min-height: 230px; display: grid; place-items: center; margin: .75rem 0 1rem; padding: .75rem; border: 1px dashed var(--border); border-radius: 18px; background: var(--soft); }
+.product-profile-image-preview { background: #fff; }
+.product-image-guidance { margin: .35rem 0 .8rem; padding: .7rem .8rem; border-left: 4px solid var(--pb-cyan); border-radius: 10px; background: color-mix(in srgb, var(--soft) 88%, #fff); color: var(--muted); font-size: .82rem; line-height: 1.45; }
+.ci-result-thumb,
+.so-result-thumb { align-self: center; justify-self: center; }
+.ci-selected-thumb,
+.so-selected-thumb { width: 52px; height: 52px; }
+body[data-theme="dark"] .pb-product-image img,
+body.dark .pb-product-image img { background: #f7fbfc; }
+@media (max-width: 620px) {
+  .pb-product-image-xl { width: min(190px, 60vw); height: min(190px, 60vw); }
+  .variant-image-cell { min-width: 0; }
+}
+
+/* Image-aware search and selection grids */
+.ci-search-popover button.ci-result-row.ci-offer-row {
+  grid-template-columns: 52px minmax(250px, 1.25fr) minmax(170px, .75fr) 110px 130px 38px !important;
+}
+.ci-selected-offer {
+  grid-template-columns: 52px minmax(250px, 1.3fr) repeat(3, minmax(120px, .55fr)) auto !important;
+}
+.so-selected-product {
+  grid-template-columns: 52px minmax(240px,1.25fr) repeat(3,minmax(110px,.5fr)) auto !important;
+}
+@media (max-width: 1120px) {
+  .ci-search-popover button.ci-result-row.ci-offer-row {
+    grid-template-columns: 48px minmax(220px, 1.2fr) minmax(160px, .75fr) 110px 38px !important;
+  }
+  .ci-search-popover button.ci-result-row.ci-offer-row .ci-result-metric:nth-of-type(2) { display: none; }
+  .ci-selected-offer { grid-template-columns: 48px minmax(220px, 1.2fr) repeat(2, minmax(110px, .55fr)) auto !important; }
+}
+@media (max-width: 900px) {
+  .so-selected-product { grid-template-columns: 44px 1fr 1fr !important; }
+  .so-selected-product .identity { grid-column: 2 / -1 !important; }
+  .so-selected-product .metric { grid-column: auto; }
+  .so-selected-product button { grid-column: 2 / -1; }
+}
+@media (max-width: 760px) {
+  .ci-search-popover button.ci-result-row.ci-offer-row {
+    grid-template-columns: 44px minmax(0, 1fr) 36px !important;
+  }
+  .ci-search-popover button.ci-result-row.ci-offer-row .ci-result-metric,
+  .ci-search-popover button.ci-result-row.ci-offer-row .ci-offer-badges { display: none !important; }
+  .ci-selected-offer { grid-template-columns: 44px 1fr auto !important; }
+  .ci-selected-offer .identity { min-width: 0; }
+  .ci-selected-offer .metric { display: none; }
+}
+@media (max-width: 620px) {
+  .so-search-popover .so-product-result {
+    grid-template-columns: 42px minmax(0, 1fr) !important;
+  }
+  .so-search-popover .so-result-thumb { grid-column: 1; grid-row: 1; }
+  .so-search-popover .so-search-result-main,
+  .so-search-popover .so-search-result-stock,
+  .so-search-popover .so-search-result-price { grid-column: 2; text-align: left; }
+  .so-selected-product { grid-template-columns: 42px 1fr !important; }
+  .so-selected-product .identity,
+  .so-selected-product .metric,
+  .so-selected-product button { grid-column: 2 !important; }
+}

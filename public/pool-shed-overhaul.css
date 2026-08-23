@@ -1,0 +1,162 @@
+/* Pool Shed polished production UI. Version-neutral user-facing layer. */
+:root {
+  --ps-ink:#102634;
+  --ps-muted:#61798a;
+  --ps-line:#d8e8ef;
+  --ps-soft:#f4f9fb;
+  --ps-cyan:#08a9d3;
+  --ps-teal:#007f9f;
+  --ps-navy:#07384b;
+  --ps-green:#1fa85b;
+  --ps-amber:#d99100;
+  --ps-red:#df4a45;
+  --ps-shadow:0 12px 30px rgba(11,64,84,.09);
+  --ps-radius:18px;
+}
+
+/* Prevent legacy screens flashing behind the current application while booting. */
+html.ps-booting body { overflow:hidden; }
+html.ps-booting #appShell, html.ps-booting #loginScreen { visibility:hidden !important; }
+#psBootScreen { position:fixed; inset:0; z-index:99999; display:grid; place-items:center; background:linear-gradient(135deg,#082c3b 0%,#065b72 48%,#0c94ad 100%); color:#fff; transition:opacity .22s ease,visibility .22s ease; }
+#psBootScreen.is-ready { opacity:0; visibility:hidden; pointer-events:none; }
+.ps-boot-card { width:min(430px,calc(100vw - 40px)); padding:32px; border:1px solid rgba(255,255,255,.2); border-radius:28px; background:rgba(255,255,255,.08); backdrop-filter:blur(14px); box-shadow:0 24px 70px rgba(0,0,0,.18); }
+.ps-boot-brand { display:flex; align-items:center; gap:15px; }
+.ps-boot-logo { width:58px; height:58px; display:grid; place-items:center; border-radius:18px; background:#fff; color:var(--ps-teal); font-weight:900; font-size:22px; }
+.ps-boot-brand strong { display:block; font-size:22px; }
+.ps-boot-brand span { opacity:.76; font-size:13px; }
+.ps-boot-line { height:4px; margin-top:24px; border-radius:99px; overflow:hidden; background:rgba(255,255,255,.16); }
+.ps-boot-line i { display:block; width:42%; height:100%; border-radius:inherit; background:linear-gradient(90deg,#ff3b30,#ffc928,#12b7db,#2bbd64); animation:psBoot 1.05s ease-in-out infinite alternate; }
+@keyframes psBoot { from{transform:translateX(-20%)} to{transform:translateX(155%)} }
+@media (prefers-reduced-motion:reduce){.ps-boot-line i{animation:none;width:100%}}
+
+/* Global density and consistency. */
+.main { min-width:0; }
+.screen { gap:16px !important; }
+.panel, .record-card { border-radius:var(--ps-radius) !important; box-shadow:var(--ps-shadow) !important; }
+.panel { overflow:visible; }
+.panel > header, .panel-header { padding:18px 22px !important; }
+.panel > .panel-body, .record-card-body { padding:18px 22px !important; }
+button, input, select, textarea { font:inherit; }
+button { min-height:40px; }
+button.secondary { background:#eef7fa; border-color:#d3e8ef; color:#12394a; }
+button.secondary:hover { background:#e2f1f6; transform:none; }
+
+/* Left navigation remains stable while content scrolls. */
+.sidebar { position:sticky; top:0; height:100vh; overflow:auto; }
+
+/* Sales order header: one compact sticky control surface. */
+#screen-salesorders .record-card.sales-order-compact > .record-top {
+  position:sticky; top:8px; z-index:75; display:flex; align-items:center; justify-content:space-between;
+  gap:14px; padding:12px 16px !important; margin:0 0 10px; border:1px solid rgba(161,205,220,.65);
+  background:rgba(249,253,255,.96); backdrop-filter:blur(14px); border-radius:16px; box-shadow:0 10px 28px rgba(10,63,82,.11);
+}
+[data-theme="dark"] #screen-salesorders .record-card.sales-order-compact > .record-top { background:rgba(12,38,51,.96); }
+#screen-salesorders .record-top .record-id { display:flex; flex-wrap:wrap; align-items:center; gap:8px; min-width:0; }
+#screen-salesorders .record-top .record-id > strong { font-size:clamp(1.35rem,2vw,2rem); line-height:1; white-space:nowrap; }
+#screen-salesorders .record-top .detail-actions { display:flex; flex-wrap:wrap; gap:7px; justify-content:flex-end; }
+#screen-salesorders .record-top .detail-actions button { min-height:38px; padding:8px 13px; border-radius:11px; font-size:.92rem; box-shadow:none; white-space:nowrap; }
+#screen-salesorders .record-top .so-action-save { background:var(--ps-green); border-color:var(--ps-green); }
+#screen-salesorders .record-top .so-action-invoice { background:#193d4e; border-color:#193d4e; }
+#screen-salesorders .record-top .so-action-fulfil { background:var(--ps-teal); border-color:var(--ps-teal); }
+
+/* Bigger, obviously clickable tabs without wasting vertical space. */
+#screen-salesorders .tabs-row { position:relative; display:flex; flex-wrap:wrap; gap:8px; padding:8px 0 12px; border-bottom:1px solid var(--ps-line); }
+#screen-salesorders .tab-chip { min-height:44px; padding:9px 16px; border:1px solid #cce1e9; border-radius:13px; background:#edf6f9; color:#496475; font-weight:750; box-shadow:none; }
+#screen-salesorders .tab-chip:hover { background:#dff2f7; color:#0a5e76; transform:none; }
+#screen-salesorders .tab-chip.active { background:linear-gradient(135deg,#087d9a,#0ca4bf); color:#fff; border-color:#0787a4; box-shadow:0 7px 17px rgba(0,127,159,.18); }
+
+/* Compact sales lines: readable like an ERP grid rather than oversized cards. */
+#screen-salesorders .order-lines-table { width:100%; table-layout:auto; border-collapse:separate; border-spacing:0; font-size:.91rem; }
+#screen-salesorders .order-lines-table thead th { position:sticky; top:78px; z-index:20; padding:10px 9px; white-space:nowrap; background:#eaf5f9; color:#335c6e; font-size:.75rem; letter-spacing:.045em; text-transform:uppercase; }
+#screen-salesorders .order-lines-table tbody td { padding:10px 9px; vertical-align:top; line-height:1.28; border-bottom:1px solid #e4eef2; }
+#screen-salesorders .order-lines-table tbody td strong { line-height:1.18; }
+#screen-salesorders .order-lines-table .qty-input { width:78px; min-width:64px; height:38px; padding:6px 9px; }
+#screen-salesorders .order-lines-table select.inline-edit { min-width:105px; max-width:150px; height:38px; padding:6px 28px 6px 9px; }
+#screen-salesorders .line-actions { display:flex; gap:5px; flex-wrap:wrap; }
+#screen-salesorders .line-actions button { min-height:34px; padding:6px 9px; border-radius:9px; font-size:.78rem; }
+#screen-salesorders .stock-status-cell { min-width:125px; }
+#screen-salesorders .stock-status-cell .status-reason { display:block; margin-top:5px; max-width:165px; color:var(--ps-muted); font-size:.76rem; line-height:1.24; }
+
+/* Bundle hierarchy is shown inside the sales lines, not in a giant intelligence panel. */
+.bsi-panel { display:none !important; }
+#screen-salesorders tr.bundle-line-head { background:linear-gradient(90deg,rgba(0,139,170,.09),rgba(31,168,91,.045)); }
+#screen-salesorders tr.bundle-line-head > td { border-top:2px solid rgba(0,147,181,.35); }
+#screen-salesorders tr.bundle-line-head td:nth-child(4) strong { font-size:1rem; }
+#screen-salesorders tr.bundle-line-child { background:#fbfdfe; }
+#screen-salesorders tr.bundle-line-child > td:first-child { border-left:4px solid #b9dce7; }
+#screen-salesorders tr.bundle-line-child td:nth-child(3),
+#screen-salesorders tr.bundle-line-child td:nth-child(4) { padding-left:18px; }
+#screen-salesorders tr.bundle-line-child td:nth-child(4) strong { font-size:.9rem; }
+#screen-salesorders tr.bundle-line-child .bundle-child-label { display:inline-flex; margin-bottom:4px; padding:3px 7px; border-radius:99px; background:#e6f4f8; color:#387186; font-size:.68rem; font-weight:800; }
+#screen-salesorders tr.bundle-line-child .line-type-badge { font-size:.68rem; }
+.ps-bundle-toggle { display:inline-flex; align-items:center; gap:5px; min-height:30px; margin:5px 0 0; padding:5px 9px; border:1px solid #cce4eb; border-radius:8px; background:#f1f9fb; color:#13627a; font-size:.72rem; font-weight:800; box-shadow:none; }
+tr.ps-bundle-collapsed { display:none; }
+.ps-bundle-cost-note { display:inline-flex; margin-top:4px; color:#687d89; font-size:.7rem; }
+
+/* Keep the partial-shipment summary, but compress it. */
+#screen-salesorders .order-shipment-summary { min-height:auto !important; margin:10px 0 !important; padding:10px 14px !important; border-radius:14px !important; }
+#screen-salesorders .order-shipment-summary > div:first-child strong { font-size:1rem; }
+#screen-salesorders .order-shipment-summary > div:first-child small { font-size:.76rem; }
+#screen-salesorders .order-shipment-summary button { min-height:38px; padding:7px 12px; white-space:nowrap; }
+
+/* Secondary line actions stay secondary. */
+#screen-salesorders .action-row[data-ps-secondary-actions="true"] { gap:6px; margin:.25rem 0 .65rem !important; }
+#screen-salesorders .action-row[data-ps-secondary-actions="true"] button { min-height:34px; padding:6px 10px; border-radius:9px; font-size:.77rem; }
+
+/* Connected catalogue: flatter, faster, less marketing copy. */
+#screen-salesorders .so-catalogue-picker { margin-top:12px; border:1px solid #cce6ed; border-radius:15px; box-shadow:none; overflow:visible; }
+#screen-salesorders .so-catalogue-picker-head { padding:12px 15px 6px; }
+#screen-salesorders .so-catalogue-picker-head h3 { font-size:1rem; margin:0; }
+#screen-salesorders .so-catalogue-picker-head p { margin:.25rem 0 0; font-size:.78rem; }
+#screen-salesorders .so-catalogue-picker-grid { padding:8px 15px 12px; gap:8px; }
+#screen-salesorders .so-catalogue-search-field > span, #screen-salesorders .so-catalogue-qty-field > span { font-size:.72rem; }
+#screen-salesorders .so-catalogue-search-shell input { min-height:44px; }
+#screen-salesorders .so-search-hints { display:none; }
+.so-search-popover { z-index:9998 !important; }
+
+/* Additional charges start collapsed behind one clear + button. */
+#screen-salesorders .so-line-composer { margin-top:10px; border:1px solid #d5e7ed; border-radius:14px; box-shadow:none; overflow:hidden; background:#fff; }
+#screen-salesorders .so-line-composer-head { min-height:58px; padding:11px 14px; display:flex; align-items:center; gap:12px; }
+#screen-salesorders .so-line-composer-head > div:first-child span { display:none; }
+#screen-salesorders .so-line-composer-head > div:first-child strong { font-size:.95rem; }
+#screen-salesorders .so-line-composer-head > div:first-child p { margin:2px 0 0; font-size:.76rem; }
+#screen-salesorders .so-line-composer:not(.is-open) .so-line-choice,
+#screen-salesorders .so-line-composer:not(.is-open) .so-line-form,
+#screen-salesorders .so-line-composer:not(.is-open) .so-line-assurance { display:none !important; }
+.ps-line-composer-toggle { margin-left:auto; width:38px; min-width:38px; height:38px; min-height:38px; padding:0; border-radius:11px; display:grid; place-items:center; background:#e8f6fa; color:#087c9a; border:1px solid #c7e5ed; font-size:1.35rem; box-shadow:none; }
+#screen-salesorders .so-line-composer.is-open .ps-line-composer-toggle { transform:rotate(45deg); }
+#screen-salesorders .so-line-form { padding:12px 14px 14px; gap:9px; }
+#screen-salesorders .so-line-assurance { margin:0 14px 14px; padding:9px 11px; }
+
+/* Fulfilment: make the intended sequence obvious. */
+#screen-fulfilment .panel:first-child::before { content:"PRINT  →  PICK  →  PACK  →  SHIP"; display:block; margin:0 0 12px; padding:8px 12px; border-radius:10px; background:linear-gradient(90deg,#edf8fb,#effaf4); color:#1b6279; font-size:.78rem; font-weight:900; letter-spacing:.08em; }
+
+/* Accounting/Jobs are denser and more software-like without inventing fake integrations. */
+#screen-accounting .panel, #screen-jobs .panel { border:1px solid #d7e7ed; }
+#screen-accounting table thead th, #screen-jobs table thead th { background:#eaf5f8; }
+#screen-accounting .profile-stat-grid, #screen-jobs .profile-stat-grid { gap:10px; }
+#screen-accounting .profile-stat, #screen-jobs .profile-stat { min-height:88px; border-radius:14px; }
+
+/* Dark mode readability. */
+[data-theme="dark"] #screen-salesorders .so-line-composer,
+[data-theme="dark"] #screen-salesorders tr.bundle-line-child { background:#102936; }
+[data-theme="dark"] #screen-salesorders .tab-chip { background:#173a49; color:#d8e9ef; border-color:#2f5968; }
+[data-theme="dark"] #screen-salesorders .tab-chip.active { background:linear-gradient(135deg,#087d9a,#0ca4bf); color:#fff; }
+[data-theme="dark"] #screen-salesorders .order-lines-table thead th { background:#143644; color:#dcecf2; }
+[data-theme="dark"] #screen-salesorders .order-lines-table tbody td { border-bottom-color:#274553; }
+
+@media (max-width:1180px) {
+  #screen-salesorders .record-card.sales-order-compact > .record-top { position:relative; top:auto; align-items:flex-start; }
+  #screen-salesorders .record-top .detail-actions { justify-content:flex-start; }
+  #screen-salesorders .order-lines-table { min-width:1120px; }
+  #screen-salesorders .panel:has(.order-lines-table) { overflow-x:auto; }
+}
+@media (max-width:760px) {
+  #screen-salesorders .record-card.sales-order-compact > .record-top { flex-direction:column; }
+  #screen-salesorders .record-top .detail-actions { width:100%; display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); }
+  #screen-salesorders .record-top .detail-actions button:last-child { grid-column:1/-1; }
+  #screen-salesorders .tabs-row { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); }
+  #screen-salesorders .tab-chip { width:100%; }
+  #screen-salesorders .so-catalogue-picker-grid { grid-template-columns:1fr !important; }
+  #screen-salesorders .so-catalogue-qty-field { max-width:none; }
+}
