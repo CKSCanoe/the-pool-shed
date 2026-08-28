@@ -1,0 +1,142 @@
+/* Pool Shed Sales Order customer picker */
+.so-customer-picker {
+  position: relative;
+  z-index: 18;
+  padding: 14px;
+  margin: 10px 0 14px;
+  border: 1px solid #c8e2ec;
+  border-radius: 18px;
+  background: linear-gradient(180deg, #ffffff 0%, #f8fcfe 100%);
+  box-shadow: 0 10px 24px rgba(12, 49, 68, .06);
+}
+.so-customer-picker-head,
+.so-customer-search-row,
+.so-customer-current,
+.so-customer-results-head,
+.so-customer-result,
+.so-customer-create-row {
+  display: flex;
+  align-items: center;
+}
+.so-customer-picker-head { justify-content: space-between; gap: 12px; margin-bottom: 10px; }
+.so-customer-picker-head > div { display: grid; gap: 1px; }
+.so-customer-picker-head span { color: #527181; font-size: 11px; font-weight: 800; letter-spacing: .08em; text-transform: uppercase; }
+.so-customer-picker-head strong { color: #102330; font-size: 15px; }
+.so-customer-linked-chip { padding: 6px 10px; border-radius: 999px; background: #e7f8ef; color: #12764e !important; letter-spacing: 0 !important; text-transform: none !important; white-space: nowrap; }
+.so-customer-search-row { gap: 9px; }
+.so-customer-search-field { flex: 1 1 auto; min-width: 0; height: 48px; display: flex; align-items: center; gap: 9px; padding: 0 12px; border: 1px solid #b9dce9; border-radius: 13px; background: #fff; transition: box-shadow .16s ease, border-color .16s ease; }
+.so-customer-search-field:focus-within { border-color: #12acd0; box-shadow: 0 0 0 4px rgba(18,172,208,.12); }
+.so-customer-search-field input { flex: 1; min-width: 0; height: 100%; padding: 0 !important; border: 0 !important; outline: 0 !important; box-shadow: none !important; background: transparent !important; font-size: 15px; font-weight: 700; color: #102330; }
+.so-customer-search-icon { color: #008eb1; font-size: 24px; line-height: 1; }
+.so-customer-search-field kbd { border: 1px solid #c8dce5; border-bottom-width: 2px; border-radius: 7px; padding: 2px 7px; background: #f3f8fa; color: #63808f; font: 700 11px/1.4 inherit; white-space: nowrap; }
+.so-new-customer-button { height: 48px; padding: 0 16px; border: 1px solid #0ba6c7 !important; border-radius: 13px !important; background: #e8f8fc !important; color: #007a98 !important; font-weight: 800 !important; white-space: nowrap; box-shadow: none !important; }
+.so-new-customer-button:hover { background: #d8f3f9 !important; transform: translateY(-1px); }
+.so-customer-current { gap: 9px; margin-top: 9px; padding: 8px 10px; border-radius: 11px; background: #f1f8fb; }
+.so-current-avatar, .so-customer-result-avatar { display: grid; place-items: center; flex: 0 0 auto; border-radius: 10px; background: #dff5fa; color: #007e9e; font-weight: 900; }
+.so-current-avatar { width: 34px; height: 34px; font-size: 12px; }
+.so-customer-current > div { min-width: 0; display: grid; grid-template-columns: auto minmax(0, 1fr); column-gap: 7px; align-items: baseline; }
+.so-customer-current span { color: #68818e; font-size: 11px; font-weight: 700; }
+.so-customer-current strong { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; color: #122633; font-size: 13px; }
+.so-customer-current small { grid-column: 2; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; color: #6b828e; font-size: 11px; }
+.so-customer-results { position: absolute; left: 14px; right: 14px; top: calc(100% - 5px); display: none; max-height: min(430px, 52vh); overflow: auto; border: 1px solid #b7d9e6; border-radius: 15px; background: #fff; box-shadow: 0 22px 46px rgba(13, 47, 63, .18); z-index: 1200; overscroll-behavior: contain; }
+.so-customer-results.open { display: block; }
+.so-customer-results-head { position: sticky; top: 0; z-index: 2; justify-content: space-between; gap: 10px; padding: 8px 12px; border-bottom: 1px solid #e2eef3; background: rgba(248,252,254,.97); backdrop-filter: blur(10px); }
+.so-customer-results-head span { color: #234453; font-weight: 800; font-size: 11px; }
+.so-customer-results-head small { color: #778e99; font-size: 10px; }
+.so-customer-result { width: 100%; gap: 10px; padding: 10px 12px !important; border: 0 !important; border-bottom: 1px solid #edf3f6 !important; border-radius: 0 !important; background: #fff !important; color: inherit !important; text-align: left !important; box-shadow: none !important; }
+.so-customer-result:hover, .so-customer-result.active { background: #edfaff !important; }
+.so-customer-result-avatar { width: 38px; height: 38px; font-size: 12px; }
+.so-customer-result-main { flex: 1 1 auto; min-width: 0; display: grid; gap: 2px; }
+.so-customer-result-main strong { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; color: #102330; font-size: 13px; }
+.so-customer-result-main small { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; color: #657f8c; font-size: 11px; }
+.so-customer-result-main small.address { color: #78919c; }
+.so-customer-result-code { flex: 0 0 auto; padding: 5px 8px; border-radius: 999px; background: #edf6f9; color: #2a6074; font-size: 10px; font-weight: 900; }
+.so-customer-create-row { width: 100%; gap: 10px; padding: 11px 12px !important; border: 0 !important; border-radius: 0 !important; background: #f5fbfd !important; color: inherit !important; text-align: left !important; box-shadow: none !important; }
+.so-customer-create-row > span { display: grid; place-items: center; width: 36px; height: 36px; border-radius: 10px; background: #0da7c8; color: #fff; font-size: 19px; }
+.so-customer-create-row > div { display: grid; gap: 1px; }
+.so-customer-create-row strong { color: #087e9a; font-size: 12px; }
+.so-customer-create-row small { color: #657f8c; font-size: 10px; }
+.so-customer-empty { display: flex; justify-content: space-between; align-items: center; gap: 12px; padding: 14px; }
+.so-customer-empty > div { display: grid; gap: 3px; }
+.so-customer-empty strong { color: #17303d; font-size: 13px; }
+.so-customer-empty span { color: #6d8591; font-size: 11px; }
+.so-customer-empty button { flex: 0 0 auto; }
+
+.so-customer-drawer-shell { position: fixed; inset: 0; z-index: 5000; pointer-events: none; visibility: hidden; }
+.so-customer-drawer-shell.open { pointer-events: auto; visibility: visible; }
+.so-customer-drawer-backdrop { position: absolute; inset: 0; background: rgba(5, 28, 40, .48); opacity: 0; transition: opacity .18s ease; backdrop-filter: blur(2px); }
+.so-customer-drawer-shell.open .so-customer-drawer-backdrop { opacity: 1; }
+.so-customer-drawer { position: absolute; top: 0; right: 0; bottom: 0; width: min(540px, 94vw); display: grid; grid-template-rows: auto minmax(0,1fr); background: #f6fafc; box-shadow: -24px 0 70px rgba(4,31,44,.24); transform: translateX(102%); transition: transform .22s cubic-bezier(.2,.8,.2,1); }
+.so-customer-drawer-shell.open .so-customer-drawer { transform: translateX(0); }
+.so-customer-drawer > header { display: flex; justify-content: space-between; gap: 18px; padding: 24px 24px 20px; background: linear-gradient(135deg, #07394d 0%, #067f9b 100%); color: #fff; }
+.so-customer-drawer > header > div { display: grid; gap: 4px; }
+.so-customer-drawer > header span { color: #a9ecf7; font-size: 10px; font-weight: 900; letter-spacing: .16em; }
+.so-customer-drawer > header h2 { margin: 0; color: #fff; font-size: 25px; }
+.so-customer-drawer > header p { margin: 0; color: #d7f2f7; font-size: 12px; }
+.so-drawer-close { width: 40px; height: 40px; padding: 0 !important; border: 1px solid rgba(255,255,255,.25) !important; border-radius: 12px !important; background: rgba(255,255,255,.11) !important; color: #fff !important; font-size: 24px !important; line-height: 1; }
+.so-customer-drawer form { min-height: 0; display: grid; grid-template-rows: minmax(0,1fr) auto; }
+.so-drawer-scroll { min-height: 0; overflow: auto; padding: 18px 22px 30px; }
+.so-drawer-scroll section { margin-bottom: 14px; padding: 17px; border: 1px solid #d5e7ee; border-radius: 16px; background: #fff; box-shadow: 0 8px 20px rgba(15,58,77,.04); }
+.so-drawer-section-title { display: flex; align-items: center; gap: 10px; margin-bottom: 13px; }
+.so-drawer-section-title > span { display: grid; place-items: center; width: 36px; height: 36px; border-radius: 10px; background: #e1f7fb; color: #0082a1; font-weight: 900; }
+.so-drawer-section-title > div { display: grid; gap: 1px; }
+.so-drawer-section-title strong { color: #132935; font-size: 14px; }
+.so-drawer-section-title small { color: #748995; font-size: 10px; }
+.so-customer-drawer label { display: grid; gap: 5px; margin-bottom: 10px; color: #3c5967; font-size: 11px; font-weight: 800; }
+.so-customer-drawer input, .so-customer-drawer select { width: 100%; min-width: 0; height: 43px; border: 1px solid #c6dfe8; border-radius: 10px; background: #fff; color: #122633; padding: 0 11px; font-size: 13px; font-weight: 650; }
+.so-customer-drawer input:focus, .so-customer-drawer select:focus { outline: 0; border-color: #0da6c7; box-shadow: 0 0 0 3px rgba(13,166,199,.12); }
+.so-customer-form-grid.two { display: grid; grid-template-columns: minmax(0,1fr) minmax(0,1fr); gap: 10px; }
+.so-customer-drawer footer { display: flex; justify-content: flex-end; gap: 9px; padding: 14px 20px; border-top: 1px solid #d7e7ed; background: rgba(255,255,255,.96); box-shadow: 0 -8px 22px rgba(13,47,63,.05); }
+.so-create-link-button { min-width: 190px; background: #078ba8 !important; border-color: #078ba8 !important; color: #fff !important; }
+.so-customer-duplicate { display: flex; align-items: center; justify-content: space-between; gap: 10px; padding: 10px 11px; margin-top: 4px; border: 1px solid #f0d28d; border-radius: 10px; background: #fff8e5; }
+.so-customer-duplicate[hidden] { display: none !important; }
+.so-customer-duplicate > div { display: grid; gap: 2px; }
+.so-customer-duplicate strong { color: #805b05; font-size: 11px; }
+.so-customer-duplicate span { color: #8f732f; font-size: 10px; }
+.so-customer-duplicate button { flex: 0 0 auto; padding: 7px 10px !important; border-radius: 8px !important; background: #fff !important; color: #805b05 !important; border: 1px solid #e5c46f !important; box-shadow: none !important; }
+body.so-customer-drawer-open { overflow: hidden; }
+
+@media (max-width: 900px) {
+  .so-customer-search-row { align-items: stretch; }
+  .so-new-customer-button { padding-inline: 12px; }
+  .so-customer-results { max-height: 46vh; }
+}
+@media (max-width: 650px) {
+  .so-customer-picker { padding: 10px; border-radius: 14px; }
+  .so-customer-search-row { display: grid; grid-template-columns: 1fr; }
+  .so-new-customer-button { width: 100%; }
+  .so-customer-current { align-items: flex-start; }
+  .so-customer-current > div { display: grid; grid-template-columns: 1fr; }
+  .so-customer-current small { grid-column: auto; }
+  .so-customer-results { left: 10px; right: 10px; }
+  .so-customer-results-head small { display: none; }
+  .so-customer-result-code { display: none; }
+  .so-customer-form-grid.two { grid-template-columns: 1fr; gap: 0; }
+  .so-customer-drawer { width: 100vw; }
+  .so-customer-drawer > header { padding: 18px; }
+  .so-drawer-scroll { padding: 12px; }
+  .so-customer-drawer footer { padding: 10px 12px; }
+  .so-create-link-button { flex: 1; min-width: 0; }
+}
+
+[data-theme="dark"] .so-customer-picker { border-color: #294f60; background: #102832; }
+[data-theme="dark"] .so-customer-picker-head strong,
+[data-theme="dark"] .so-customer-current strong,
+[data-theme="dark"] .so-customer-result-main strong { color: #e9f6fa; }
+[data-theme="dark"] .so-customer-search-field,
+[data-theme="dark"] .so-customer-result { background: #132f3a !important; border-color: #315767 !important; }
+[data-theme="dark"] .so-customer-search-field input { color: #f4fbfd; }
+[data-theme="dark"] .so-customer-current { background: #153542; }
+[data-theme="dark"] .so-customer-results { background: #102832; border-color: #315767; }
+[data-theme="dark"] .so-customer-result:hover,
+[data-theme="dark"] .so-customer-result.active { background: #174456 !important; }
+[data-theme="dark"] .so-customer-results-head { background: rgba(16,40,50,.97); border-color: #315767; }
+[data-theme="dark"] .so-customer-create-row { background: #12323f !important; }
+[data-theme="dark"] .so-customer-drawer { background: #0d232c; }
+[data-theme="dark"] .so-drawer-scroll section { background: #112b35; border-color: #31515f; }
+[data-theme="dark"] .so-drawer-section-title strong,
+[data-theme="dark"] .so-customer-drawer input,
+[data-theme="dark"] .so-customer-drawer select { color: #edf9fb; }
+[data-theme="dark"] .so-customer-drawer input,
+[data-theme="dark"] .so-customer-drawer select { background: #0d222b; border-color: #365867; }
+[data-theme="dark"] .so-customer-drawer footer { background: #102832; border-color: #31515f; }
