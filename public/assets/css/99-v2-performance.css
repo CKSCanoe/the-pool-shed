@@ -1,0 +1,8 @@
+
+/* v2 performance layer */
+img { content-visibility: auto; }
+[data-page], .page, main > section { contain: layout style paint; }
+.table-wrap, .panel, .card { content-visibility: auto; contain-intrinsic-size: 1px 420px; }
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after { scroll-behavior: auto !important; animation-duration: .01ms !important; animation-iteration-count: 1 !important; transition-duration: .01ms !important; }
+}
