@@ -15,6 +15,7 @@ const sources = [
   "system/31-project-workspace.css",
   "system/32-sales-workspace.css",
   "system/33-workspace-polish.css",
+  "system/34-customer-workspace.css",
   "system/40-design-system.css",
 ];
 const banner = `/*

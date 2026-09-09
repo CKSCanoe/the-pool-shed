@@ -1,4 +1,4 @@
-# Dashboard Data Fit — 1.2.3
+# Customer Account Workspace — 1.3.0
 
 
 Vercel deployment now skips npm dependency installation because the production build has no runtime npm dependencies; `@electric-sql/pglite` remains a local test-only development dependency.
