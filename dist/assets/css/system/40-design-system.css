@@ -1608,3 +1608,151 @@ table th {
   color: var(--color-action-primary);
 }
 
+/* ========================================================================
+   DASHBOARD SHELL HEADER CORRECTION — v1.2.2
+   Final cascade owner for the Dashboard command/search bar. These selectors
+   intentionally live in the last design-system module so workspace rules
+   cannot reopen the header into a two-row white block.
+   ======================================================================== */
+
+.app.dashboard-mode .main {
+  padding: 0 !important;
+  background: var(--color-surface-canvas);
+}
+
+.app.dashboard-mode .topbar,
+.app.dashboard-mode .main .topbar {
+  display: block !important;
+  min-height: 54px;
+  margin: 0 !important;
+  padding: 7px 18px !important;
+  border: 0 !important;
+  border-bottom: 1px solid #29404D !important;
+  border-radius: 0;
+  background: var(--color-brand-navy) !important;
+  box-shadow: none !important;
+}
+
+.app.dashboard-mode .topbar .title {
+  display: none !important;
+}
+
+.app.dashboard-mode .top-actions {
+  display: grid !important;
+  grid-template-columns: minmax(320px, 1fr) auto !important;
+  align-items: center !important;
+  justify-content: stretch !important;
+  gap: 12px !important;
+  width: 100% !important;
+  min-width: 0 !important;
+  max-width: none !important;
+  margin: 0 !important;
+}
+
+.app.dashboard-mode .topbar .search {
+  display: block;
+  width: 100%;
+  min-width: 0;
+}
+
+.app.dashboard-mode .topbar .search input {
+  width: 100%;
+  min-height: 38px !important;
+  height: 38px !important;
+  padding: 7px 12px !important;
+  border: 1px solid #315363 !important;
+  border-radius: 6px !important;
+  background: #173747 !important;
+  color: #FFFFFF !important;
+  font-size: 12px !important;
+  box-shadow: none !important;
+}
+
+.app.dashboard-mode .topbar .search input::placeholder {
+  color: #A7B7C0;
+  opacity: 1;
+}
+
+.app.dashboard-mode .top-utility-row {
+  display: flex !important;
+  align-items: center !important;
+  justify-content: flex-end !important;
+  flex-wrap: nowrap !important;
+  gap: 7px !important;
+  width: auto !important;
+  min-width: max-content;
+  margin: 0 !important;
+}
+
+.app.dashboard-mode #workspaceDensity {
+  display: none !important;
+}
+
+.app.dashboard-mode .notification-button,
+.app.dashboard-mode .theme-toggle,
+.app.dashboard-mode .icon-button {
+  flex: 0 0 34px;
+  width: 34px !important;
+  min-width: 34px !important;
+  height: 34px !important;
+  min-height: 34px !important;
+  padding: 0 !important;
+  border: 1px solid #315363 !important;
+  border-radius: 6px !important;
+  background: #173747 !important;
+  color: #EDF4F7 !important;
+  box-shadow: none !important;
+}
+
+.app.dashboard-mode .user-chip-button {
+  min-height: 36px !important;
+  height: 36px;
+  padding: 5px 9px 5px 6px !important;
+  border: 1px solid #315363 !important;
+  border-radius: 6px !important;
+  background: #173747 !important;
+  color: #FFFFFF !important;
+  box-shadow: none !important;
+}
+
+.app.dashboard-mode .notification-button:hover,
+.app.dashboard-mode .theme-toggle:hover,
+.app.dashboard-mode .icon-button:hover,
+.app.dashboard-mode .user-chip-button:hover,
+.app.dashboard-mode .notification-button:focus-visible,
+.app.dashboard-mode .theme-toggle:focus-visible,
+.app.dashboard-mode .icon-button:focus-visible,
+.app.dashboard-mode .user-chip-button:focus-visible {
+  border-color: var(--color-brand-aqua) !important;
+  background: #1C4354 !important;
+}
+
+@media (max-width: 760px) {
+  .app.dashboard-mode .topbar,
+  .app.dashboard-mode .main .topbar {
+    padding: 7px 10px !important;
+  }
+
+  .app.dashboard-mode .top-actions {
+    grid-template-columns: minmax(0, 1fr) auto !important;
+    gap: 7px !important;
+  }
+
+  .app.dashboard-mode .top-utility-row {
+    gap: 5px !important;
+  }
+
+  .app.dashboard-mode .user-chip-button #topUserName,
+  .app.dashboard-mode .account-chevron {
+    display: none;
+  }
+}
+
+@media (max-width: 560px) {
+  .app.dashboard-mode .notification-button,
+  .app.dashboard-mode .theme-toggle,
+  .app.dashboard-mode .icon-button {
+    display: none !important;
+  }
+}
+

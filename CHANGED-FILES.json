@@ -8,11 +8,7 @@
     "status": "modified"
   },
   {
-    "path": "dist/assets/css/system/24-product-hub.css",
-    "status": "modified"
-  },
-  {
-    "path": "dist/assets/js/01-legacy-01.js",
+    "path": "dist/assets/css/system/40-design-system.css",
     "status": "modified"
   },
   {
@@ -28,11 +24,7 @@
     "status": "modified"
   },
   {
-    "path": "public/assets/css/system/24-product-hub.css",
-    "status": "modified"
-  },
-  {
-    "path": "public/assets/js/01-legacy-01.js",
+    "path": "public/assets/css/system/40-design-system.css",
     "status": "modified"
   },
   {
@@ -40,11 +32,7 @@
     "status": "modified"
   },
   {
-    "path": "scripts/test-dashboard-commercial.mjs",
-    "status": "modified"
-  },
-  {
-    "path": "scripts/test-dashboard-polish.mjs",
+    "path": "scripts/test-dashboard-header.mjs",
     "status": "added"
   },
   {

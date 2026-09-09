@@ -1,4 +1,4 @@
-# Dashboard Professional Polish — 1.2.1
+# Dashboard Header Fix — 1.2.2
 
 
 Vercel deployment now skips npm dependency installation because the production build has no runtime npm dependencies; `@electric-sql/pglite` remains a local test-only development dependency.
