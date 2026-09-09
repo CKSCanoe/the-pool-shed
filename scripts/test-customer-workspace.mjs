@@ -3,7 +3,7 @@ const js=fs.readFileSync("public/assets/js/01-legacy-01.js","utf8");
 const css=fs.readFileSync("public/assets/css/system/34-customer-workspace.css","utf8");
 
 const required=[
-  'crm-account-workspace','Account Essentials','data-crm-profile-tab="overview"',
+  'crm-master-detail','Account Essentials','data-crm-profile-tab="overview"',
   'data-crm-profile-tab="orders"','data-crm-profile-tab="projects"',
   'data-crm-profile-tab="people"','data-crm-profile-tab="locations"',
   'data-crm-profile-tab="finance"','data-crm-profile-tab="history"',
@@ -17,7 +17,7 @@ const required=[
 ];
 for(const token of required) if(!js.includes(token)) throw new Error("Missing customer workspace hook: "+token);
 
-for(const token of [".crm-core-groups",".crm-edit-drawer",".crm-profile-tabs","@media(max-width:760px)"])
+for(const token of [".crm-core-sections",".crm-edit-drawer",".crm-profile-tabs","@media(max-width:700px)"])
   if(!css.includes(token)) throw new Error("Missing customer workspace style: "+token);
 
 if(js.includes('crm: ["All Customers", "Create Customer", "Profile Details"'))
