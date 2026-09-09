@@ -8,7 +8,7 @@
     "status": "modified"
   },
   {
-    "path": "dist/assets/css/system/40-design-system.css",
+    "path": "dist/assets/css/system/24-product-hub.css",
     "status": "modified"
   },
   {
@@ -24,7 +24,7 @@
     "status": "modified"
   },
   {
-    "path": "public/assets/css/system/40-design-system.css",
+    "path": "public/assets/css/system/24-product-hub.css",
     "status": "modified"
   },
   {
@@ -32,7 +32,7 @@
     "status": "modified"
   },
   {
-    "path": "scripts/test-dashboard-header.mjs",
+    "path": "scripts/test-dashboard-data-fit.mjs",
     "status": "added"
   },
   {

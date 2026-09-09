@@ -286,7 +286,7 @@
 
 .dashboard-final-layout {
   display: grid;
-  grid-template-columns: minmax(0, 1fr) 292px;
+  grid-template-columns: minmax(0, 1fr) 264px;
   align-items: start;
   min-width: 0;
   background: var(--color-brand-navy);
@@ -517,7 +517,7 @@
 
 .dashboard-commercial-layout {
   display: grid;
-  grid-template-columns: 214px minmax(0, 1fr);
+  grid-template-columns: 196px minmax(0, 1fr);
   min-width: 0;
 }
 
@@ -703,8 +703,8 @@
 .dashboard-commercial-chart {
   display: block;
   width: 100%;
-  min-width: 680px;
-  height: 286px;
+  min-width: 0;
+  height: 310px;
   overflow: visible;
 }
 
@@ -785,7 +785,7 @@
 /* Lower commercial cards: generous enough to scan, still compact. */
 .dashboard-commercial-insights {
   display: grid;
-  grid-template-columns: minmax(245px, .95fr) minmax(360px, 1.35fr) minmax(245px, .95fr);
+  grid-template-columns: minmax(0, .95fr) minmax(0, 1.3fr) minmax(0, .9fr);
   gap: 10px;
   min-width: 0;
   margin-top: 9px;
@@ -793,7 +793,8 @@
 
 .dashboard-insight-card {
   min-width: 0;
-  min-height: 178px;
+  min-height: 190px;
+  overflow: hidden;
   padding: 11px;
   border: 1px solid var(--color-border-default);
   border-radius: 6px;
@@ -827,7 +828,7 @@
 
 .dashboard-donut-layout {
   display: grid;
-  grid-template-columns: 142px minmax(0, 1fr);
+  grid-template-columns: 126px minmax(0, 1fr);
   align-items: center;
   gap: 11px;
   min-height: 135px;
@@ -835,14 +836,14 @@
 
 .dashboard-donut {
   position: relative;
-  width: 136px;
-  height: 136px;
+  width: 122px;
+  height: 122px;
 }
 
 .dashboard-donut svg {
   display: block;
-  width: 136px;
-  height: 136px;
+  width: 122px;
+  height: 122px;
 }
 
 .dashboard-donut > div {
@@ -911,13 +912,13 @@
 }
 
 .dashboard-mini-table {
-  min-width: 430px;
+  min-width: 0;
   font-size: 10px;
 }
 
 .dashboard-mini-table > div {
   display: grid;
-  grid-template-columns: minmax(130px, 1.35fr) repeat(4, minmax(62px, .65fr));
+  grid-template-columns: minmax(96px, 1.35fr) repeat(4, minmax(48px, .65fr));
   align-items: center;
   gap: 7px;
   min-height: 27px;
@@ -1029,8 +1030,8 @@
 
 .dashboard-project-table-wrap table {
   width: 100%;
-  min-width: 1080px;
-  table-layout: auto;
+  min-width: 0;
+  table-layout: fixed;
 }
 
 .dashboard-project-table-wrap th {
@@ -1040,11 +1041,41 @@
   white-space: nowrap;
 }
 
+.dashboard-project-table-wrap th:nth-child(1),
+.dashboard-project-table-wrap td:nth-child(1) { width: 18%; }
+.dashboard-project-table-wrap th:nth-child(2),
+.dashboard-project-table-wrap td:nth-child(2) { width: 13%; }
+.dashboard-project-table-wrap th:nth-child(3),
+.dashboard-project-table-wrap td:nth-child(3) { width: 10%; }
+.dashboard-project-table-wrap th:nth-child(4),
+.dashboard-project-table-wrap td:nth-child(4) { width: 10%; }
+.dashboard-project-table-wrap th:nth-child(5),
+.dashboard-project-table-wrap td:nth-child(5) { width: 12%; }
+.dashboard-project-table-wrap th:nth-child(6),
+.dashboard-project-table-wrap td:nth-child(6) { width: 7%; }
+.dashboard-project-table-wrap th:nth-child(7),
+.dashboard-project-table-wrap td:nth-child(7) { width: 10%; }
+.dashboard-project-table-wrap th:nth-child(8),
+.dashboard-project-table-wrap td:nth-child(8) { width: 11%; }
+.dashboard-project-table-wrap th:nth-child(9),
+.dashboard-project-table-wrap td:nth-child(9) { width: 9%; }
+
+.dashboard-project-table-wrap td:nth-child(n+3) {
+  white-space: nowrap;
+  overflow-wrap: normal;
+}
+
+.dashboard-project-table-wrap th {
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
 .dashboard-project-table-wrap td {
   padding: 7px 8px;
   font-size: 10px;
   vertical-align: middle;
-  white-space: nowrap;
+  white-space: normal;
+  overflow-wrap: anywhere;
 }
 
 .dashboard-project-link {
@@ -1068,7 +1099,7 @@
 
 .dashboard-project-progress {
   display: grid;
-  grid-template-columns: 74px 34px;
+  grid-template-columns: minmax(48px, 1fr) 30px;
   align-items: center;
   gap: 7px;
 }
@@ -1379,6 +1410,21 @@ html[data-theme="dark"] .dashboard-review-item {
 }
 
 /* Responsive strategy: stop squeezing; stack intentionally. */
+@media (max-width: 1720px) {
+  .dashboard-commercial-insights {
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  }
+
+  .dashboard-category-card {
+    grid-column: 1 / -1;
+    grid-row: 2;
+  }
+
+  .dashboard-mini-table {
+    min-width: 0;
+  }
+}
+
 @media (max-width: 1320px) {
   .app.dashboard-mode {
     grid-template-columns: 210px minmax(0, 1fr);
@@ -1429,6 +1475,10 @@ html[data-theme="dark"] .dashboard-review-item {
 }
 
 @media (max-width: 860px) {
+  .dashboard-project-table-wrap table {
+    min-width: 980px;
+  }
+
   .app.dashboard-mode {
     grid-template-columns: 1fr;
   }
