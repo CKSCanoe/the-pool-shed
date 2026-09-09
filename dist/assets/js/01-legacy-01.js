@@ -107,6 +107,7 @@ const seed = {
       let activeSubPage = {};
       let selectedSalesOrderId = "";
       let selectedJobId = "";
+      let jobCreateCustomerId = "";
       let selectedCrmCustomerId = "";
       let crmCreateStep = "details";
       let selectedSalesCreditId = "";
@@ -734,6 +735,7 @@ const seed = {
           c.email3 = c.email3 || "";
           c.mobile = c.mobile || c.phone || "";
           c.title = c.title || "";
+          c.priceList = c.priceList || "rrp";
           c.customerType = c.customerType || (c.priceList === "trade" || c.priceList === "wholesale" ? "Trade" : "Retail");
           c.status = c.status || "Active";
           c.newsletter = typeof c.newsletter === "undefined" ? "Yes" : c.newsletter;
@@ -746,6 +748,9 @@ const seed = {
           c.taxCode = c.taxCode || "T20";
           c.owner = c.owner || "Office";
           c.website = c.website || "";
+          c.companyNumber = c.companyNumber || "";
+          c.vatNumber = c.vatNumber || "";
+          c.communicationPreference = c.communicationPreference || "Email";
           c.memo = c.memo || "";
           c.leadSource = c.leadSource || (data.salesOrders.some(function(order) { return order.customerId === c.id && order.source === "WooCommerce"; }) ? "Website" : "Quotient");
           c.tags = c.tags || [c.customerType, c.priceList.toUpperCase()];
@@ -1997,7 +2002,7 @@ const seed = {
           purchase: ["Purchase Orders", "Suppliers", "Supplier Catalogues", "Supplier Backorders", "Linked Sales Orders", "Forecasting"],
           warehouse: ["Goods In", "QC Checks", "Label Printing", "Guided Putaway", "Transfers", "Returns", "Damaged", "Stock Counts"],
           fulfilment: ["Goods Notes", "Picking List", "Pick", "Pack", "Ship", "Tracking"],
-          crm: ["All Customers", "Create Customer", "Profile Details", "Pricing & Credit", "Addresses", "History"],
+          crm: ["All Customers", "Create Customer"],
           engineer: ["Request Products", "My Requests", "Approval Queue", "PO Raised", "Completed"],
           jobs: ["Job List", "Create Job", "Project Costing"],
           accounting: ["Invoice Ready", "Draft Invoices", "Xero Linked", "Supplier Bills", "COGS", "Stock Valuation", "Credits"],
@@ -5534,7 +5539,7 @@ const seed = {
 
       function jobManagerForm(jobItem) {
         const editing = jobItem && jobItem.id && jobItem.id !== "__new";
-        const j = editing ? jobItem : { id: nextJobId(), customerId: (data.customers[0] || {}).id || '', name: '', status: 'Planning', locationId: '', owner: currentUser().name, notes: '' };
+        const j = editing ? jobItem : { id: nextJobId(), customerId: jobCreateCustomerId || (data.customers[0] || {}).id || '', name: '', status: 'Planning', locationId: '', owner: currentUser().name, notes: '' };
         const statusOptions = ["Planning", "Approved", "Pending Parts", "In Progress", "Ready To Invoice", "Invoiced", "Completed", "On Hold"];
         const locationOptions = '<option value="">Create/select later</option>' + data.locations.filter(function(loc) { return ["Job Bin", "Customer Site", "Warehouse Shelf"].includes(loc.type); }).map(function(loc) { return '<option value="' + loc.id + '"' + (loc.id === j.locationId ? ' selected' : '') + '>' + escapeHtml(loc.name + ' · ' + loc.type) + '</option>'; }).join('');
         const customerOptions = data.customers.length ? data.customers.map(function(c) { return '<option value="' + c.id + '"' + (c.id === j.customerId ? ' selected' : '') + '>' + escapeHtml(c.name || c.companyName || c.email) + '</option>'; }).join('') : '<option value="">Create a customer first</option>';
@@ -5636,6 +5641,7 @@ const seed = {
         j.invoiceStage = values.invoiceStage || "Not reviewed";
         j.notes = values.notes || "";
         selectedJobId = "";
+        jobCreateCustomerId = "";
         activeSubPage.jobs = "Job List";
         saveAppData();
         toast((created ? "Created " : "Saved ") + j.id + ".");
@@ -8143,8 +8149,12 @@ const seed = {
 
       function renderCrm() {
         ensureCustomerProfileFields();
-        const crmSubPage = selectedSubPage("crm");
-        if (selectedCrmCustomerId === "__new") {
+        let crmSubPage = selectedSubPage("crm");
+        if (!["All Customers", "Create Customer"].includes(crmSubPage)) {
+          activeSubPage.crm = "All Customers";
+          crmSubPage = "All Customers";
+        }
+        if (selectedCrmCustomerId === "__new" || crmSubPage === "Create Customer") {
           document.getElementById("screen-crm").innerHTML = customerCreateProfile();
           bindCrm();
           return;
@@ -8155,23 +8165,16 @@ const seed = {
           bindCrm();
           return;
         }
-        if (["Profile Details", "Pricing & Credit", "Addresses", "History"].includes(crmSubPage)) {
-          const fallback = data.customers[0];
-          if (!fallback) {
-            document.getElementById("screen-crm").innerHTML = panel("No customer selected", "Create or import a customer before opening the workspace.", '<div class="empty-state"><strong>Your customer list is empty</strong><p class="muted">Customer records remain available offline once created and upload when live sync is available.</p><button data-create-crm-customer="true">Create first customer</button></div>');
-            bindCrm(); return;
-          }
-          selectedCrmCustomerId = fallback.id;
-          document.getElementById("screen-crm").innerHTML = customerMegaProfile(fallback);
-          bindCrm(); return;
-        }
         const profileStats = customerProfileStats();
         const cards = data.customers.map(function(c) {
           const orders = data.salesOrders.filter(function(order) { return order.customerId === c.id; });
           const value = orders.reduce(function(total, order) { return total + salesOrderValue(order); }, 0);
           const open = orders.filter(function(order) { return !["Invoiced","Completed","Cancelled"].includes(order.status); }).length;
           const lastOrder = orders.slice().sort(function(a,b){ return String(b.created||"").localeCompare(String(a.created||"")); })[0];
-          return '<button class="crm-customer-card" data-open-crm-customer="' + c.id + '"><span class="crm-avatar">' + escapeHtml((c.companyName || c.name || "?").charAt(0).toUpperCase()) + '</span><span class="crm-customer-card-main"><strong>' + escapeHtml(c.name) + '</strong><small>' + escapeHtml(c.email || c.phone || "No primary contact") + '</small><span><i>' + escapeHtml(c.customerType || "Customer") + '</i><i>' + escapeHtml(c.status || "Active") + '</i></span></span><span class="crm-customer-card-meta"><b>' + orders.length + ' orders</b><small>' + open + ' open · ' + money(value) + '</small><small>' + (lastOrder ? "Last " + escapeHtml(lastOrder.created) : "No orders yet") + '</small></span></button>';
+          const primaryAddress = addressObject(c, "primary"), deliveryAddress = addressObject(c, "delivery");
+          const searchable = [c.name,c.companyName,c.firstName,c.lastName,c.code,c.email,c.email2,c.email3,c.phone,c.mobile,primaryAddress.line1,primaryAddress.city,primaryAddress.postcode,deliveryAddress.line1,deliveryAddress.city,deliveryAddress.postcode].filter(Boolean).join(" ").toLowerCase();
+          const attention = (!c.email && !c.phone && !c.mobile) || !deliveryAddress.line1 || !c.priceList || String(c.status || "").toLowerCase() === "on hold";
+          return '<button class="crm-customer-card" data-open-crm-customer="' + c.id + '" data-crm-search="' + escapeHtml(searchable) + '" data-crm-attention="' + (attention ? "true" : "false") + '"><span class="crm-avatar">' + escapeHtml((c.companyName || c.name || "?").charAt(0).toUpperCase()) + '</span><span class="crm-customer-card-main"><strong>' + escapeHtml(c.name) + '</strong><small>' + escapeHtml(c.email || c.phone || "No primary contact") + '</small><span><i>' + escapeHtml(c.customerType || "Customer") + '</i><i>' + escapeHtml(c.status || "Active") + '</i></span></span><span class="crm-customer-card-meta"><b>' + orders.length + ' orders</b><small>' + open + ' open · ' + money(value) + '</small><small>' + escapeHtml(c.code || "No code") + (lastOrder ? ' · Last ' + escapeHtml(lastOrder.created) : ' · No orders yet') + '</small></span></button>';
         }).join("") || '<div class="empty-state"><strong>No customers yet</strong><p>Create the first customer to start the account workspace.</p></div>';
         document.getElementById("screen-crm").innerHTML =
           '<section class="crm-directory-shell"><header class="crm-directory-head"><div><span class="eyebrow">CUSTOMER OPERATIONS</span><h2>Customers</h2><p>Accounts, people, locations, commercial terms and customer history in one operational workspace.</p></div><div class="crm-directory-actions"><button class="secondary" data-crm-focus-search="true">Search</button><button data-create-crm-customer="true">Create customer</button></div></header>' +
@@ -8215,23 +8218,45 @@ const seed = {
               (accountWarning ? '<div class="crm-account-warning"><b>Important instruction</b><span>' + escapeHtml(accountWarning) + '</span></div>' : '') +
               '<div class="crm-core-groups"><div class="crm-core-group"><h4><i>01</i> Contact &amp; ownership</h4><dl><dt>Primary contact</dt><dd><b>' + escapeHtml([c.firstName,c.lastName].filter(Boolean).join(" ") || c.name) + '</b><small>' + escapeHtml(c.phone || c.mobile || "No phone") + '</small></dd><dt>Email</dt><dd><b>' + escapeHtml(c.email || "Not set") + '</b></dd><dt>Preferred contact</dt><dd><b>' + escapeHtml(c.communicationPreference || "Email") + '</b></dd><dt>Account owner</dt><dd><b>' + escapeHtml(c.owner || "Office") + '</b></dd></dl></div>' +
               '<div class="crm-core-group crm-core-addresses"><h4><i>02</i> Primary addresses</h4><div class="crm-address-summary"><span>ACCOUNT</span><b>Primary account</b><p>' + displayAddress(primary) + '</p></div><div class="crm-address-summary"><span>BILLING</span><b>Primary billing</b><p>' + displayAddress(billing) + '</p></div><div class="crm-address-summary"><span>DELIVERY</span><b>Primary delivery</b><p>' + displayAddress(delivery) + '</p></div></div>' +
-              '<div class="crm-core-group"><h4><i>03</i> Commercial account</h4><dl><dt>Customer code</dt><dd><b>' + escapeHtml(c.code||"Not set") + '</b></dd><dt>Price list</dt><dd><b>' + escapeHtml(String(c.priceList||"rrp").toUpperCase()) + '</b><small>' + Number(c.discount||0) + '% discount</small></dd><dt>Payment terms</dt><dd><b>' + Number(c.creditDays||0) + ' days</b><small>' + money(Number(c.creditLimit||0)) + ' credit limit</small></dd><dt>Tax / currency</dt><dd><b>' + escapeHtml(c.taxCode||"T20") + ' · ' + escapeHtml(c.currency||"GBP") + '</b></dd></dl></div></div></section>' +
+              '<div class="crm-core-group"><h4><i>03</i> Commercial account</h4><dl><dt>Customer code</dt><dd><b>' + escapeHtml(c.code||"Not set") + '</b></dd><dt>Company / VAT</dt><dd><b>' + escapeHtml(c.companyNumber||"Not set") + '</b><small>' + escapeHtml(c.vatNumber||"VAT not set") + '</small></dd><dt>Price list</dt><dd><b>' + escapeHtml(String(c.priceList||"rrp").toUpperCase()) + '</b><small>' + Number(c.discount||0) + '% discount</small></dd><dt>Payment terms</dt><dd><b>' + Number(c.creditDays||0) + ' days</b><small>' + money(Number(c.creditLimit||0)) + ' credit limit</small></dd><dt>Tax / currency</dt><dd><b>' + escapeHtml(c.taxCode||"T20") + ' · ' + escapeHtml(c.currency||"GBP") + '</b></dd></dl></div></div></section>' +
               '<aside class="crm-account-health"><header><h3>Account health</h3></header><div class="crm-health-grade ' + (healthIssues.length ? "warn" : "good") + '">' + (healthIssues.length ? "!" : "A") + '</div><strong>' + healthLabel + '</strong><p>' + (healthIssues.length ? escapeHtml(healthIssues.join(". ")) : "No core profile issues detected.") + '</p><button class="secondary" data-crm-profile-jump="history">View history</button></aside></div>' +
           '</div>' +
           '<div class="crm-profile-page" data-crm-profile-page="orders">' + panel("Orders","All sales orders linked directly to this customer.",history.split("<h3>Timeline</h3>")[0] + '<button class="success" data-create-sales-order-customer="' + c.id + '">New order</button>') + '</div>' +
-          '<div class="crm-profile-page" data-crm-profile-page="projects">' + panel("Jobs & Projects","Customer-linked jobs and projects. Sales orders remain valid without a project parent.", jobs.length ? '<div class="notice-row">' + jobs.map(function(j){return '<div class="notice-item"><strong>'+escapeHtml(j.name||j.id)+'</strong><p class="muted">'+escapeHtml(j.status||"Planning")+' · '+escapeHtml(j.id||"")+'</p></div>';}).join("") + '</div>' : '<div class="empty-state"><strong>No linked jobs or projects</strong><p>Create a job/project when this customer needs project context.</p><button data-crm-new-project="'+c.id+'">Create job / project</button></div>') + '</div>' +
+          '<div class="crm-profile-page" data-crm-profile-page="projects">' + panel("Jobs & Projects","Customer-linked jobs and projects. Sales orders remain valid without a project parent.", jobs.length ? '<div class="notice-row">' + jobs.map(function(j){return '<div class="notice-item"><strong>'+escapeHtml(j.name||j.id)+'</strong><p class="muted">'+escapeHtml(j.status||"Planning")+' · '+escapeHtml(j.id||"")+'</p><button class="secondary" data-crm-open-job="'+j.id+'">Open job / project</button></div>';}).join("") + '</div>' : '<div class="empty-state"><strong>No linked jobs or projects</strong><p>Create a job/project when this customer needs project context.</p><button data-crm-new-project="'+c.id+'">Create job / project</button></div>') + '</div>' +
           '<div class="crm-profile-page" data-crm-profile-page="people">' + panel("People","Primary and secondary customer contacts.",'<div class="crm-people-list"><div><strong>'+escapeHtml([c.firstName,c.lastName].filter(Boolean).join(" ")||c.name)+'</strong><span>Primary · '+escapeHtml(c.title||"Contact")+'</span><small>'+escapeHtml(c.email||"No email")+' · '+escapeHtml(c.phone||c.mobile||"No phone")+'</small><button class="secondary" data-crm-edit="'+c.id+'|people">Edit people</button></div>'+(c.email2?'<div><strong>Accounts / secondary contact</strong><span>Billing</span><small>'+escapeHtml(c.email2)+'</small><button class="secondary" data-crm-edit="'+c.id+'|people">Edit</button></div>':'')+'</div>') + '</div>' +
           '<div class="crm-profile-page" data-crm-profile-page="locations">' + panel("Locations","Reusable primary, billing and delivery locations from the customer master record.",'<div class="crm-location-grid">'+["primary","billing","delivery"].map(function(type){var a=addressObject(c,type);return '<div><span>'+type.toUpperCase()+'</span><strong>'+type.charAt(0).toUpperCase()+type.slice(1)+' address</strong><p>'+displayAddress(a)+'</p><button class="secondary" data-crm-edit="'+c.id+'|locations">Edit locations</button></div>';}).join("")+'</div>') + '</div>' +
           '<div class="crm-profile-page" data-crm-profile-page="finance">' + panel("Finance","Pricing, credit, tax and account references.",'<div class="crm-finance-grid"><div><span>Price list</span><strong>'+escapeHtml(String(c.priceList||"rrp").toUpperCase())+'</strong></div><div><span>Discount</span><strong>'+Number(c.discount||0)+'%</strong></div><div><span>Credit limit</span><strong>'+money(Number(c.creditLimit||0))+'</strong></div><div><span>Payment terms</span><strong>'+Number(c.creditDays||0)+' days</strong></div><div><span>Tax</span><strong>'+escapeHtml(c.taxCode||"T20")+'</strong></div><div><span>Currency</span><strong>'+escapeHtml(c.currency||"GBP")+'</strong></div></div><button data-crm-edit="'+c.id+'|finance">Edit pricing & credit</button>') + '</div>' +
           '<div class="crm-profile-page" data-crm-profile-page="history">' + panel("History","Sales orders and customer timeline events.",history) + '</div>' +
-          '<div class="crm-edit-backdrop" data-crm-edit-close="true"></div><aside class="crm-edit-drawer" aria-label="Edit customer"><header><div><span class="eyebrow">CUSTOMER MASTER DATA</span><h3>Edit ' + escapeHtml(c.name) + '</h3></div><button class="secondary" data-crm-edit-close="true">Close</button></header><nav class="crm-edit-tabs"><button class="active" data-crm-edit-tab="account">Account</button><button data-crm-edit-tab="people">People</button><button data-crm-edit-tab="locations">Locations</button><button data-crm-edit-tab="finance">Pricing &amp; terms</button><button data-crm-edit-tab="site">Site / access</button><button data-crm-edit-tab="admin">References &amp; admin</button></nav><div class="crm-edit-body">' +
-            '<section class="crm-edit-page active" data-crm-edit-page="account"><h3>Account identity</h3>'+customerIdentityForm(c)+'</section>' +
-            '<section class="crm-edit-page" data-crm-edit-page="people"><h3>People & communication</h3>'+customerIdentityForm(c)+'<label>Communication preference<select data-crm-field="'+c.id+'|communicationPreference">'+optionList(["Email","Phone","SMS"],c.communicationPreference)+'</select></label></section>' +
-            '<section class="crm-edit-page" data-crm-edit-page="locations"><h3>Primary addresses</h3>'+customerAddressPanel(c)+'</section>' +
-            '<section class="crm-edit-page" data-crm-edit-page="finance"><h3>Pricing, credit & tax</h3>'+customerCommercialForm(c)+'</section>' +
-            '<section class="crm-edit-page" data-crm-edit-page="site"><h3>Site & access</h3><label>Access notes<textarea data-crm-field="'+c.id+'|customFields.accessNotes">'+escapeHtml((c.customFields&&c.customFields.accessNotes)||"")+'</textarea></label><label>Site notes<textarea data-crm-field="'+c.id+'|customFields.siteNotes">'+escapeHtml((c.customFields&&c.customFields.siteNotes)||"")+'</textarea></label><label>Preferred engineer<input data-crm-field="'+c.id+'|customFields.preferredEngineer" value="'+escapeHtml((c.customFields&&c.customFields.preferredEngineer)||"")+'"></label><label>Service plan<input data-crm-field="'+c.id+'|customFields.servicePlan" value="'+escapeHtml((c.customFields&&c.customFields.servicePlan)||"")+'"></label></section>' +
-            '<section class="crm-edit-page" data-crm-edit-page="admin"><h3>References & admin</h3>'+customerAccountReferences(c)+customerMarketingForm(c)+'</section>' +
-          '</div><footer><span class="muted">Saving updates the authoritative customer record and refreshes linked order addresses.</span><button class="secondary" data-crm-edit-close="true">Cancel</button><button data-save-crm-customer="'+c.id+'">Save customer</button></footer></aside>' +
+          '<div class="crm-edit-backdrop" data-crm-edit-close="true"></div><aside class="crm-edit-drawer" aria-label="Edit customer"><header><div><span class="eyebrow">CUSTOMER MASTER DATA</span><h3>Edit ' + escapeHtml(c.name) + '</h3><small class="crm-edit-status" data-crm-edit-status>No unsaved changes</small></div><button class="secondary" data-crm-edit-close="true">Close</button></header><nav class="crm-edit-tabs"><button class="active" data-crm-edit-tab="account">Account</button><button data-crm-edit-tab="people">People</button><button data-crm-edit-tab="locations">Locations</button><button data-crm-edit-tab="finance">Pricing &amp; terms</button><button data-crm-edit-tab="site">Site / access</button><button data-crm-edit-tab="admin">References &amp; admin</button></nav><div class="crm-edit-body">' +
+            '<section class="crm-edit-page active" data-crm-edit-page="account"><h3>Account</h3><p class="muted">Core company identity, ownership and customer classification.</p><div class="form-grid three">' +
+              crmField(c,"companyName","Company / household") + crmField(c,"code","Customer code") +
+              '<label>Customer type<select data-crm-field="'+c.id+'|customerType">'+optionList(["Retail","Trade","Wholesale","Unknown"],c.customerType)+'</select></label>' +
+              '<label>Status<select data-crm-field="'+c.id+'|status">'+optionList(["Active","Prospect","On Hold","Closed"],c.status)+'</select></label>' +
+              crmField(c,"owner","Account owner") + crmField(c,"website","Website") +
+              crmField(c,"companyNumber","Company number") + crmField(c,"vatNumber","VAT number") +
+            '</div></section>' +
+            '<section class="crm-edit-page" data-crm-edit-page="people"><h3>People & communication</h3><p class="muted">Primary and secondary contact details used across customer communication.</p><div class="form-grid three">' +
+              crmField(c,"firstName","First name") + crmField(c,"lastName","Last name") + crmField(c,"title","Job title") +
+              crmField(c,"email","Main email") + crmField(c,"email2","Accounts / secondary email") + crmField(c,"email3","Extra email") +
+              crmField(c,"phone","Telephone") + crmField(c,"mobile","Mobile") +
+              '<label>Preferred communication<select data-crm-field="'+c.id+'|communicationPreference">'+optionList(["Email","Phone","SMS"],c.communicationPreference)+'</select></label>' +
+            '</div></section>' +
+            '<section class="crm-edit-page" data-crm-edit-page="locations"><h3>Locations</h3><p class="muted">Primary, billing and delivery addresses. Saving refreshes linked order addresses unless an order has a manual override.</p>'+customerAddressPanel(c)+'</section>' +
+            '<section class="crm-edit-page" data-crm-edit-page="finance"><h3>Pricing &amp; terms</h3><p class="muted">Commercial defaults used by sales orders and account controls.</p><div class="form-grid three">' +
+              '<label>Price group<select data-crm-field="'+c.id+'|priceList">'+optionList(["rrp","trade","wholesale"],c.priceList)+'</select></label>' +
+              crmField(c,"discount","Discount %","number") + crmField(c,"creditLimit","Credit limit","number") +
+              crmField(c,"creditDays","Credit days","number") +
+              '<label>Credit term type<select data-crm-field="'+c.id+'|creditTermType">'+optionList(["Net","Net EOM"],c.creditTermType)+'</select></label>' +
+              crmField(c,"nominalCode","Nominal code") + crmField(c,"taxCode","Tax code") +
+              '<label>Currency<select data-crm-field="'+c.id+'|currency">'+optionList(["GBP","EUR","USD"],c.currency)+'</select></label>' +
+            '</div></section>' +
+            '<section class="crm-edit-page" data-crm-edit-page="site"><h3>Site & access</h3><p class="muted">Operational notes for delivery, jobs and engineers.</p><label>Access notes<textarea data-crm-field="'+c.id+'|customFields.accessNotes">'+escapeHtml((c.customFields&&c.customFields.accessNotes)||"")+'</textarea></label><label>Site notes<textarea data-crm-field="'+c.id+'|customFields.siteNotes">'+escapeHtml((c.customFields&&c.customFields.siteNotes)||"")+'</textarea></label><div class="form-grid two"><label>Preferred engineer<input data-crm-field="'+c.id+'|customFields.preferredEngineer" value="'+escapeHtml((c.customFields&&c.customFields.preferredEngineer)||"")+'"></label><label>Service plan<input data-crm-field="'+c.id+'|customFields.servicePlan" value="'+escapeHtml((c.customFields&&c.customFields.servicePlan)||"")+'"></label></div></section>' +
+            '<section class="crm-edit-page" data-crm-edit-page="admin"><h3>References & admin</h3><p class="muted">External-system references and internal account controls.</p><div class="form-grid three">' +
+              crmField(c,"brightpearlContactId","Brightpearl contact ID") + crmField(c,"xeroContactId","Xero contact ID") +
+              crmField(c,"leadSource","Lead source") +
+              '<label>Newsletter<select data-crm-field="'+c.id+'|newsletter">'+optionList(["Yes","No"],c.newsletter)+'</select></label>' +
+            '</div><label>Internal memo<textarea data-crm-field="'+c.id+'|memo">'+escapeHtml(c.memo||"")+'</textarea></label></section>' +
+          '</div><footer><span class="muted">One authoritative customer record. No duplicate edit fields are rendered across tabs.</span><button class="secondary" data-crm-edit-close="true">Cancel</button><button data-save-crm-customer="'+c.id+'">Save customer</button></footer></aside>' +
         '</section>';
       }
 
@@ -8449,18 +8474,21 @@ const seed = {
       function bindCrm() {
         document.querySelectorAll("[data-open-crm-customer]").forEach(function(button) {
           button.addEventListener("click", function() {
+            activeSubPage.crm = "All Customers";
             selectedCrmCustomerId = button.dataset.openCrmCustomer;
             render();
           });
         });
         document.querySelectorAll("[data-create-crm-customer]").forEach(function(button) {
           button.addEventListener("click", function() {
+            activeSubPage.crm = "Create Customer";
             selectedCrmCustomerId = "__new";
             render();
           });
         });
         document.querySelectorAll("[data-back-crm]").forEach(function(button) {
           button.addEventListener("click", function() {
+            activeSubPage.crm = "All Customers";
             selectedCrmCustomerId = "";
             render();
           });
@@ -8506,14 +8534,6 @@ const seed = {
             render();
           });
         });
-        document.querySelectorAll("[data-open-so]").forEach(function(button) {
-          button.addEventListener("click", function() {
-            selectedSalesOrderId = button.dataset.openSo;
-            salesOrderView = "detail";
-            active = "salesorders";
-            render();
-          });
-        });
       
         document.querySelectorAll("[data-crm-profile-tab]").forEach(function(button) {
           button.addEventListener("click", function() {
@@ -8527,25 +8547,38 @@ const seed = {
             if (target) target.click();
           });
         });
+        let crmEditorDirty = false;
+        function setCrmEditorDirty(value) {
+          crmEditorDirty = !!value;
+          const status = document.querySelector("[data-crm-edit-status]");
+          if (status) status.textContent = crmEditorDirty ? "Unsaved changes" : "No unsaved changes";
+        }
         function openCrmEditor(section) {
           const drawer = document.querySelector(".crm-edit-drawer");
           const backdrop = document.querySelector(".crm-edit-backdrop");
           if (!drawer || !backdrop) return;
+          setCrmEditorDirty(false);
           drawer.classList.add("open"); backdrop.classList.add("open");
           const target = document.querySelector('[data-crm-edit-tab="' + (section || "account") + '"]');
           if (target) target.click();
         }
-        function closeCrmEditor() {
+        function closeCrmEditor(force) {
+          if (crmEditorDirty && !force && !window.confirm("Discard unsaved customer changes?")) return;
           const drawer = document.querySelector(".crm-edit-drawer");
           const backdrop = document.querySelector(".crm-edit-backdrop");
           if (drawer) drawer.classList.remove("open");
           if (backdrop) backdrop.classList.remove("open");
+          setCrmEditorDirty(false);
         }
         document.querySelectorAll("[data-crm-edit]").forEach(function(button) {
           button.addEventListener("click", function() { openCrmEditor((button.dataset.crmEdit.split("|")[1] || "account")); });
         });
         document.querySelectorAll("[data-crm-edit-close]").forEach(function(button) {
-          button.addEventListener("click", closeCrmEditor);
+          button.addEventListener("click", function() { closeCrmEditor(false); });
+        });
+        document.querySelectorAll(".crm-edit-drawer [data-crm-field], .crm-edit-drawer [data-crm-address]").forEach(function(field) {
+          field.addEventListener("input", function() { setCrmEditorDirty(true); });
+          field.addEventListener("change", function() { setCrmEditorDirty(true); });
         });
         document.querySelectorAll("[data-crm-edit-tab]").forEach(function(button) {
           button.addEventListener("click", function() {
@@ -8563,17 +8596,35 @@ const seed = {
         });
         document.querySelectorAll("[data-crm-new-project]").forEach(function(button) {
           button.addEventListener("click", function() {
-            active = "engineerorders";
+            jobCreateCustomerId = button.dataset.crmNewProject || "";
+            selectedJobId = "__new";
+            active = "jobs";
+            activeSubPage.jobs = "Create Job";
             render();
-            toast("Create the job / project and select this customer.");
+            toast("New job / project opened with the customer preselected.");
+          });
+        });
+        document.querySelectorAll("[data-crm-open-job]").forEach(function(button) {
+          button.addEventListener("click", function() {
+            selectedJobId = button.dataset.crmOpenJob;
+            active = "jobs";
+            activeSubPage.jobs = "Project Costing";
+            render();
           });
         });
         const directorySearch = document.getElementById("crmDirectorySearch");
+        let crmDirectoryFilter = "all";
         function filterCrmDirectory() {
-          if (!directorySearch) return;
-          const q = directorySearch.value.trim().toLowerCase();
+          const q = directorySearch ? directorySearch.value.trim().toLowerCase() : "";
           document.querySelectorAll(".crm-customer-card").forEach(function(card) {
-            card.hidden = q && card.textContent.toLowerCase().indexOf(q) === -1;
+            const searchable = card.dataset.crmSearch || card.textContent.toLowerCase();
+            const value = card.textContent.toLowerCase();
+            const matchesSearch = !q || searchable.indexOf(q) !== -1;
+            const matchesFilter = crmDirectoryFilter === "all" ||
+              (crmDirectoryFilter === "trade" && (value.indexOf("trade") !== -1 || value.indexOf("wholesale") !== -1)) ||
+              (crmDirectoryFilter === "retail" && value.indexOf("retail") !== -1) ||
+              (crmDirectoryFilter === "attention" && card.dataset.crmAttention === "true");
+            card.hidden = !(matchesSearch && matchesFilter);
           });
         }
         if (directorySearch) directorySearch.addEventListener("input", filterCrmDirectory);
@@ -8583,13 +8634,8 @@ const seed = {
         document.querySelectorAll("[data-crm-filter]").forEach(function(button) {
           button.addEventListener("click", function() {
             document.querySelectorAll("[data-crm-filter]").forEach(function(chip) { chip.classList.toggle("active", chip === button); });
-            const filter = button.dataset.crmFilter;
-            document.querySelectorAll(".crm-customer-card").forEach(function(card) {
-              const value = card.textContent.toLowerCase();
-              card.hidden = filter === "trade" ? value.indexOf("trade") === -1 && value.indexOf("wholesale") === -1 :
-                filter === "retail" ? value.indexOf("retail") === -1 :
-                filter === "attention" ? value.indexOf("on hold") === -1 : false;
-            });
+            crmDirectoryFilter = button.dataset.crmFilter || "all";
+            filterCrmDirectory();
           });
         });
 
@@ -8657,28 +8703,43 @@ const seed = {
 
       function saveCrmCustomer(customerId) {
         const c = customer(customerId);
-        if (!c) return;
-        document.querySelectorAll('[data-crm-field^="' + customerId + '|"]').forEach(function(field) {
+        if (!c) return toast("Customer record not found.");
+        const scope = document.querySelector(".crm-edit-drawer") || document;
+        const candidate = Object.assign({}, c, {
+          addresses: JSON.parse(JSON.stringify(c.addresses || {})),
+          customFields: Object.assign({}, c.customFields || {}),
+          matrix: Object.assign({}, c.matrix || {})
+        });
+        scope.querySelectorAll('[data-crm-field^="' + customerId + '|"]').forEach(function(field) {
           const path = field.dataset.crmField.split("|")[1];
           const value = field.type === "number" ? Number(field.value || 0) : field.value;
           if (path.indexOf("customFields.") === 0) {
-            c.customFields[path.replace("customFields.", "")] = value;
+            candidate.customFields[path.replace("customFields.", "")] = value;
           } else {
-            c[path] = value;
+            candidate[path] = value;
           }
         });
-        document.querySelectorAll('[data-crm-address^="' + customerId + '|"]').forEach(function(field) {
+        scope.querySelectorAll('[data-crm-address^="' + customerId + '|"]').forEach(function(field) {
           const parts = field.dataset.crmAddress.split("|");
           const type = parts[1];
           const key = parts[2];
-          c.addresses = c.addresses || {};
-          c.addresses[type] = c.addresses[type] || { line1: "", line2: "", city: "", postcode: "", phone: "" };
-          c.addresses[type][key] = field.value;
+          candidate.addresses[type] = candidate.addresses[type] || { line1: "", line2: "", city: "", postcode: "", country: "United Kingdom", phone: "" };
+          candidate.addresses[type][key] = field.value;
         });
-        c.name = c.companyName || [c.firstName, c.lastName].filter(Boolean).join(" ") || c.email || c.code;
-        c.matrix.brightpearl = c.brightpearlContactId || c.code ? "Linked" : "Missing";
-        c.matrix.shopify = c.shopifyCustomerId ? "Linked" : "Not linked";
-        c.matrix.xero = c.xeroContactId ? "Linked" : "Missing";
+        const hasName = Boolean(String(candidate.companyName || "").trim() || String(candidate.firstName || "").trim() || String(candidate.lastName || "").trim());
+        if (!hasName) return toast("Keep a company name or customer person name before saving.");
+        const hasLookup = Boolean(String(candidate.email || "").trim() || String(candidate.phone || "").trim() || String(candidate.mobile || "").trim() || String(candidate.code || "").trim() || String(candidate.brightpearlContactId || "").trim());
+        if (!hasLookup) return toast("Keep at least one email, phone, mobile, customer code or Contact ID so the customer remains searchable.");
+        const duplicateEmail = String(candidate.email || "").trim().toLowerCase();
+        if (duplicateEmail && data.customers.some(function(other) { return other.id !== customerId && String(other.email || "").trim().toLowerCase() === duplicateEmail; })) {
+          return toast("Another customer already uses that primary email. Review the record before saving.");
+        }
+        candidate.name = candidate.companyName || [candidate.firstName, candidate.lastName].filter(Boolean).join(" ") || candidate.email || candidate.code;
+        candidate.matrix.brightpearl = candidate.brightpearlContactId ? "Linked" : "Missing";
+        candidate.matrix.shopify = candidate.shopifyCustomerId ? "Linked" : "Not linked";
+        candidate.matrix.xero = candidate.xeroContactId ? "Linked" : "Missing";
+        Object.keys(c).forEach(function(key) { if (!(key in candidate)) delete c[key]; });
+        Object.assign(c, candidate);
         syncCustomerMasterAddressToOrders(c.id);
         saveAppData();
         toast(c.name + " profile saved and linked order addresses refreshed.");
@@ -8780,6 +8841,7 @@ const seed = {
           matrix: { brightpearl: "Linked", shopify: "Not linked", xero: values.xeroContactId ? "Linked" : "Missing", quotient: "Not linked" }
         }, values);
         data.customers.push(newCustomer);
+        activeSubPage.crm = "All Customers";
         selectedCrmCustomerId = id;
         saveAppData();
         toast(customerName + " customer profile created.");
@@ -12917,7 +12979,7 @@ const seed = {
         }
         if (action === "customer") {
           selectedCrmCustomerId = id;
-          activeSubPage.crm = "Profile Details";
+          activeSubPage.crm = "All Customers";
           active = "crm";
           render();
           return;

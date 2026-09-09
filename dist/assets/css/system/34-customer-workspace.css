@@ -1,5 +1,5 @@
 
-/* Customer Account Workspace — v1.3.0 */
+/* Customer Account Workspace — v1.3.2 */
 .crm-directory-shell,.crm-account-workspace{display:grid;gap:12px}
 .crm-directory-head,.crm-account-topbar,.crm-account-header{display:flex;align-items:center;justify-content:space-between;gap:12px}
 .crm-directory-head h2,.crm-account-header h2{margin:2px 0 3px}.crm-directory-head p,.crm-account-header p{margin:0;color:var(--muted,#5b6972)}
