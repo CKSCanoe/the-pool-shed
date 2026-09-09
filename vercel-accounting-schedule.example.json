@@ -1,0 +1,8 @@
+{
+  "crons": [
+    {
+      "path": "/api/finance?action=cron",
+      "schedule": "* * * * *"
+    }
+  ]
+}
