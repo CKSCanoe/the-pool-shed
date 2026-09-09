@@ -21,6 +21,7 @@ function psMarginMeter(s) {
   });
   return rows;
  }
+ window.psDashboardDailyReview = dailyReview;
  function reviewMarkup(){
   const rows=dailyReview();
   return '<section class="panel" style="grid-column:1/-1"><h2>Today’s review</h2><p class="muted">Checks recorded information for missing details, overdue work and margin risks. Status changes and invoices always need review.</p>'+(rows.length?'<div class="ps-daily-list">'+rows.map(r=>'<article><div><strong>'+esc(r.id)+'</strong><p>'+esc(r.text)+'</p></div><button class="secondary" data-business-open="'+esc(r.id)+'" data-business-type="'+r.type+'">Review</button></article>').join('')+'</div>':'<p>No issues found by these checks.</p>')+'<p class="muted">Supplier payment deadlines require supplier bills and current accounting data; a purchase-order delivery date is not a payment deadline.</p></section>';
@@ -30,7 +31,5 @@ function psMarginMeter(s) {
  const groupBase=sidebarSubGroups;sidebarSubGroups=function(id){const g=groupBase(id).slice();if(id==='crm'&&canAccessTab('purchase'))g.push('Suppliers');return g;};
  const openBase=openSidebarSubGroup;openSidebarSubGroup=function(id,group){if(id==='crm'&&group==='Suppliers')return openBase('purchase','Suppliers');return openBase.apply(this,arguments);};
  document.addEventListener('click',async e=>{const b=e.target.closest('[data-dashboard-ai]');if(!b)return;const target=document.getElementById('psDashboardAIResult');b.disabled=true;try{if(!supabaseSession?.access_token)throw Error('Sign in to the shared workspace to request AI review.');if(!await saveRemoteWorkspace(true))throw Error('Sync the workspace before requesting AI review.');const response=await fetch('/api/project-review',{method:'POST',headers:{Authorization:'Bearer '+supabaseSession.access_token,'Content-Type':'application/json'},body:JSON.stringify({workspace:WORKSPACE_ID,scope:'dashboard'})});const result=await response.json();if(!response.ok)throw Error(result.error||'AI review unavailable');target.textContent=result.review+'\nBased on shared information saved '+result.asOf;}catch(error){target.textContent=error.message;}finally{b.disabled=false;}});
- const base=render;
- render=function(){base();if(active==='dashboard'&&dashboardView!=='restockReport'){document.getElementById('screen-dashboard').insertAdjacentHTML('afterbegin',reviewMarkup()+(isAdminUser()?'<section class="panel" style="grid-column:1/-1"><h2>AI daily briefing</h2><p>Optional administrator review of outstanding-work counts from the saved workspace. No customer contact details or documents are sent. Requires the AI connection in your deployment settings.</p><button data-dashboard-ai>Review priorities with AI</button><p id="psDashboardAIResult" aria-live="polite" style="white-space:pre-wrap"></p></section>':''));}};
  document.addEventListener('click',e=>{const b=e.target.closest('[data-business-open]');if(!b)return;if(b.dataset.businessType==='project'){psProjectSelected=b.dataset.businessOpen;psProjectTab='Overview';openSidebarSubGroup('jobs','Projects');}else{selectedSalesOrderId=b.dataset.businessOpen;salesOrderView='detail';openSidebarSubGroup('salesorders','Sales Orders');}});
 })();

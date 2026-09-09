@@ -1,4 +1,4 @@
-# Dashboard Reference Match — 1.1.1
+# Dashboard Quick Actions — 1.2.0
 
 
 Vercel deployment now skips npm dependency installation because the production build has no runtime npm dependencies; `@electric-sql/pglite` remains a local test-only development dependency.

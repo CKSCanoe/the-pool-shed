@@ -149,6 +149,7 @@ const seed = {
         warehouse: ""
       };
       let dashboardCommercialChart = "line";
+      let dashboardReviewExpanded = false;
       let restockReportFilters = { status: "", location: "", priority: "", search: "", sort: "status" };
       let missingStockFilters = { status: "", location: "", engineer: "", reason: "", search: "", sort: "value" };
       let thresholdFilters = { location: "", type: "", priority: "", status: "", search: "" };
@@ -2677,20 +2678,80 @@ const seed = {
 
       function dashboardNeedsAttentionHtml(alerts) {
         const reviewOrders = (data.salesOrders || []).filter(function(order){ return order.status === "Needs Review" || order.status === "Needs review"; }).length;
-        const poAwaiting = (data.purchaseOrders || data.purchaseorders || []).filter(function(po){
+        const poAwaiting = (data.purchaseOrders || []).filter(function(po){
           return !["Complete","Completed","Cancelled","Closed"].includes(String(po.status || ""));
         }).length;
         const projectActions = (data.jobs || []).filter(function(j){ return ["Pending Parts","On Hold","Ready To Invoice"].includes(String(j.status || "")); }).length;
         const items = [
-          { count: reviewOrders, label: "Sales orders need review", cls: "amber", tab: "salesorders" },
-          { count: poAwaiting, label: "POs awaiting stock", cls: "red", tab: "purchasing" },
-          { count: alerts.length, label: "Low stock alerts", cls: "blue", restock: true },
-          { count: projectActions, label: "Project actions due", cls: "amber", tab: "jobs" }
-        ].filter(function(item){ return item.count > 0; });
-        if (!items.length) return '<div class="dashboard-reference-clear"><span>✓</span><strong>No urgent actions</strong></div>';
-        return items.slice(0,4).map(function(item){
-          return '<button type="button" class="dashboard-reference-alert" '+(item.restock ? 'data-open-restock-report="true"' : 'data-tab="'+item.tab+'"')+'><span class="'+item.cls+'">'+item.count+'</span><strong>'+item.label+'</strong><b>›</b></button>';
+          { count: reviewOrders, label: "Sales orders need review", cls: "amber", action: "sales-orders" },
+          { count: poAwaiting, label: "POs awaiting stock", cls: "red", action: "purchase-orders" },
+          { count: alerts.length, label: "Low stock alerts", cls: "blue", action: "restock" },
+          { count: projectActions, label: "Project actions due", cls: "amber", action: "projects" }
+        ];
+        return items.map(function(item){
+          return '<button type="button" class="dashboard-rail-alert" data-dashboard-quick="'+item.action+'"><span class="'+item.cls+'">'+item.count+'</span><strong>'+item.label+'</strong><b>›</b></button>';
         }).join("");
+      }
+
+      function dashboardQuickActionsHtml() {
+        return '<section class="dashboard-rail-card dashboard-rail-dark dashboard-quick-actions">' +
+          '<div class="dashboard-rail-heading"><strong>⚡ Quick actions</strong></div>' +
+          '<div class="dashboard-quick-list">' +
+            '<button type="button" data-dashboard-quick="new-sales-order"><span>＋</span>New sales order</button>' +
+            '<button type="button" data-dashboard-quick="new-project"><span>＋</span>New project</button>' +
+            '<button type="button" data-dashboard-quick="add-customer"><span>♙</span>Add customer</button>' +
+            '<button type="button" data-dashboard-quick="new-purchase-order"><span>▣</span>Create purchase order</button>' +
+            '<button type="button" data-dashboard-quick="goods-in"><span>▤</span>Record goods in</button>' +
+            '<button type="button" data-dashboard-quick="analytics"><span>▥</span>View reports</button>' +
+          '</div>' +
+        '</section>';
+      }
+
+      function dashboardReviewRailHtml() {
+        const source = typeof window.psDashboardDailyReview === "function" ? window.psDashboardDailyReview() : [];
+        const grouped = new Map();
+        source.forEach(function(row) {
+          const key = String(row.type || "item") + "|" + String(row.id || "");
+          if (!grouped.has(key)) grouped.set(key, { id: row.id, type: row.type, messages: [] });
+          const item = grouped.get(key);
+          if (!item.messages.includes(row.text)) item.messages.push(row.text);
+        });
+        const allRows = Array.from(grouped.values());
+        const rows = dashboardReviewExpanded ? allRows : allRows.slice(0, 3);
+        const body = rows.length ? rows.map(function(row) {
+          const category = row.type === "project" ? "Project" : "Sales Order";
+          const extra = row.messages.length > 1 ? ' <span class="dashboard-review-more">+'+(row.messages.length-1)+' more</span>' : "";
+          return '<article class="dashboard-review-item">' +
+            '<div><span class="dashboard-review-category">'+category+'</span><strong>'+escapeHtml(row.id)+'</strong><p>'+escapeHtml(row.messages[0] || "")+extra+'</p></div>' +
+            '<button class="secondary" type="button" data-business-open="'+escapeHtml(row.id)+'" data-business-type="'+escapeHtml(row.type || "order")+'">Review</button>' +
+          '</article>';
+        }).join("") : '<div class="dashboard-review-empty"><span>✓</span><strong>No review issues</strong><p>Nothing in the saved workspace needs manual review from these checks.</p></div>';
+        return '<section class="dashboard-rail-card dashboard-review-card">' +
+          '<div class="dashboard-rail-heading"><strong>⚑ Today’s review</strong><button class="link-button" type="button" data-dashboard-quick="review-all">'+(dashboardReviewExpanded ? 'Show less ↑' : 'View all →')+'</button></div>' +
+          body +
+        '</section>';
+      }
+
+      function dashboardAiRailHtml() {
+        if (!isAdminUser()) return "";
+        return '<section class="dashboard-rail-card dashboard-ai-card">' +
+          '<div class="dashboard-rail-heading"><strong>✣ AI daily briefing</strong></div>' +
+          '<p>Optional administrator review of outstanding-work counts from the saved workspace.</p>' +
+          '<button type="button" data-dashboard-ai>Review priorities with AI</button>' +
+          '<p id="psDashboardAIResult" class="dashboard-ai-result" aria-live="polite"></p>' +
+        '</section>';
+      }
+
+      function dashboardRightRailHtml(alerts) {
+        return '<aside class="dashboard-right-rail">' +
+          dashboardQuickActionsHtml() +
+          '<section class="dashboard-rail-card dashboard-rail-dark dashboard-alert-card">' +
+            '<div class="dashboard-rail-heading"><strong>♧ Alerts & tasks</strong><button class="link-button" type="button" data-dashboard-quick="review-all">View all →</button></div>' +
+            dashboardNeedsAttentionHtml(alerts) +
+          '</section>' +
+          dashboardReviewRailHtml() +
+          dashboardAiRailHtml() +
+        '</aside>';
       }
 
       function renderDashboard() {
@@ -2712,28 +2773,30 @@ const seed = {
         const timeLabel = now.toLocaleTimeString("en-GB",{hour:"2-digit",minute:"2-digit"});
 
         const hero =
-          '<section class="dashboard-reference-hero">' +
+          '<section class="dashboard-reference-hero dashboard-final-hero">' +
             '<div class="dashboard-reference-topline">' +
               '<div class="dashboard-greeting"><span class="dashboard-sun" aria-hidden="true">☀</span><div><h1>'+escapeHtml(dashboardGreeting())+'</h1><p>Here’s what’s happening across your business today.</p></div></div>' +
               '<div class="dashboard-reference-date"><strong>'+escapeHtml(dateLabel)+'</strong><span>'+escapeHtml(timeLabel)+'</span></div>' +
             '</div>' +
-            '<div class="dashboard-reference-kpi-row">' +
-              '<div class="dashboard-reference-kpis">' +
-                '<div class="dashboard-reference-kpi"><span>Sales (Invoiced)</span><strong>'+money(commercialSummary.sales)+'</strong>'+dashboardDelta(commercialSummary.sales, previousSummary.sales)+'</div>' +
-                '<div class="dashboard-reference-kpi"><span>Cost of Goods</span><strong>'+money(commercialSummary.cost)+'</strong>'+dashboardDelta(commercialSummary.cost, previousSummary.cost)+'</div>' +
-                '<div class="dashboard-reference-kpi"><span>Gross Profit</span><strong>'+money(commercialSummary.profit)+'</strong>'+dashboardDelta(commercialSummary.profit, previousSummary.profit)+'</div>' +
-                '<div class="dashboard-reference-kpi"><span>Profit Margin</span><strong>'+commercialMargin.toFixed(1)+'%</strong>'+dashboardDelta(commercialMargin, previousMargin,' pp')+'</div>' +
-              '</div>' +
-              '<aside class="dashboard-reference-attention"><div class="dashboard-reference-attention-head"><strong>⚠ Needs Attention</strong><button type="button" data-tab="salesorders">⚡ Quick actions</button></div>'+dashboardNeedsAttentionHtml(alerts)+'</aside>' +
+            '<div class="dashboard-reference-kpis">' +
+              '<div class="dashboard-reference-kpi"><span>Sales (Invoiced)</span><strong>'+money(commercialSummary.sales)+'</strong>'+dashboardDelta(commercialSummary.sales, previousSummary.sales)+'</div>' +
+              '<div class="dashboard-reference-kpi"><span>Cost of Goods</span><strong>'+money(commercialSummary.cost)+'</strong>'+dashboardDelta(commercialSummary.cost, previousSummary.cost)+'</div>' +
+              '<div class="dashboard-reference-kpi"><span>Gross Profit</span><strong>'+money(commercialSummary.profit)+'</strong>'+dashboardDelta(commercialSummary.profit, previousSummary.profit)+'</div>' +
+              '<div class="dashboard-reference-kpi"><span>Profit Margin</span><strong>'+commercialMargin.toFixed(1)+'%</strong>'+dashboardDelta(commercialMargin, previousMargin,' pp')+'</div>' +
             '</div>' +
           '</section>';
 
         document.getElementById("screen-dashboard").innerHTML =
-          '<div class="dashboard-reference-page">' +
-            hero +
-            '<div class="dashboard-reference-workspace">' +
-              dashboardCommercialSection(commercialOrders, commercialRange) +
-              dashboardBigProjectsHtml() +
+          '<div class="dashboard-reference-page dashboard-final-page">' +
+            '<div class="dashboard-final-layout">' +
+              '<main class="dashboard-final-main">' +
+                hero +
+                '<div class="dashboard-reference-workspace dashboard-final-workspace">' +
+                  dashboardCommercialSection(commercialOrders, commercialRange) +
+                  dashboardBigProjectsHtml() +
+                '</div>' +
+              '</main>' +
+              dashboardRightRailHtml(alerts) +
             '</div>' +
           '</div>';
 
@@ -2787,6 +2850,27 @@ const seed = {
       }
 
       function bindDashboard() {
+        document.querySelectorAll("[data-dashboard-quick]").forEach(function(button) {
+          button.addEventListener("click", function() {
+            const action = button.dataset.dashboardQuick;
+            if (action === "new-sales-order") { createNewSalesOrder(); return; }
+            if (action === "new-project") { openSidebarSubGroup("jobs", "Create Job"); return; }
+            if (action === "add-customer") { openSidebarSubGroup("crm", "Create Customer"); return; }
+            if (action === "new-purchase-order") {
+              active = "purchase";
+              activeSubPage.purchase = "Purchase Orders";
+              createDraftPurchaseOrder();
+              return;
+            }
+            if (action === "goods-in") { openSidebarSubGroup("warehouse", "Goods In"); return; }
+            if (action === "analytics") { active = "analytics"; render(); return; }
+            if (action === "sales-orders") { openSidebarSubGroup("salesorders", "Sales Orders"); return; }
+            if (action === "purchase-orders") { openSidebarSubGroup("purchase", "Purchase Orders"); return; }
+            if (action === "projects") { openSidebarSubGroup("jobs", "Job List"); return; }
+            if (action === "restock") { dashboardView = "restockReport"; render(); return; }
+            if (action === "review-all") { dashboardReviewExpanded = !dashboardReviewExpanded; render(); return; }
+          });
+        });
         document.querySelectorAll("[data-dashboard-commercial-filter]").forEach(function(field) {
           field.addEventListener("change", function() {
             const key = field.dataset.dashboardCommercialFilter;

@@ -8478,6 +8478,373 @@ button.dashboard-command-metric:focus-visible {
 }
 
 
+/* ========================================================================
+   DASHBOARD FINAL APPROVED COMPOSITION — v1.2.0
+   Only the approved commercial dashboard + quick-action rail are visible.
+   ======================================================================== */
+
+.dashboard-final-page {
+  margin: -16px -18px 0;
+  min-height: calc(100vh - 68px);
+  background: var(--color-canvas);
+}
+
+.dashboard-final-layout {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 286px;
+  min-width: 0;
+  background: var(--color-brand-navy);
+}
+
+.dashboard-final-main {
+  min-width: 0;
+  background: var(--color-canvas);
+}
+
+.dashboard-final-hero {
+  margin: 0;
+  border-radius: 0;
+  padding: 14px 22px 18px;
+}
+
+.dashboard-final-hero .dashboard-reference-kpis {
+  grid-template-columns: repeat(4, minmax(0,1fr));
+}
+
+.dashboard-final-workspace {
+  padding: 12px 12px 14px;
+  background: var(--color-canvas);
+}
+
+.dashboard-right-rail {
+  display: grid;
+  align-content: start;
+  gap: 10px;
+  min-width: 0;
+  padding: 14px 12px 16px;
+  border-left: 1px solid #29404D;
+  background: var(--color-brand-navy);
+}
+
+.dashboard-rail-card {
+  overflow: hidden;
+  border: 1px solid var(--color-border-default);
+  border-radius: 7px;
+  background: var(--color-surface-default);
+}
+
+.dashboard-rail-dark {
+  border-color: #31505E;
+  background: #122F3F;
+  color: #FFFFFF;
+}
+
+.dashboard-rail-heading {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  min-height: 36px;
+  padding: 8px 10px;
+}
+
+.dashboard-rail-heading > strong {
+  color: inherit;
+  font-size: 11px;
+  font-weight: 800;
+}
+
+.dashboard-rail-heading .link-button {
+  min-height: auto;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: var(--color-brand-aqua);
+  font-size: var(--ps-font-micro);
+}
+
+.dashboard-quick-list {
+  display: grid;
+  gap: 5px;
+  padding: 0 8px 8px;
+}
+
+.dashboard-quick-list button {
+  display: grid;
+  grid-template-columns: 22px minmax(0,1fr);
+  align-items: center;
+  gap: 6px;
+  width: 100%;
+  min-height: 34px;
+  padding: 6px 9px;
+  border: 1px solid #2D5363;
+  border-radius: 5px;
+  background: #17495D;
+  color: #FFFFFF;
+  text-align: left;
+  font-size: 10px;
+  font-weight: 700;
+}
+
+.dashboard-quick-list button:first-child,
+.dashboard-quick-list button:nth-child(2) {
+  border-color: #008EA3;
+  background: var(--color-brand-teal);
+}
+
+.dashboard-quick-list button:hover,
+.dashboard-quick-list button:focus-visible {
+  border-color: var(--color-brand-aqua);
+  background: #1E5B70;
+}
+
+.dashboard-quick-list button:first-child:hover,
+.dashboard-quick-list button:nth-child(2):hover,
+.dashboard-quick-list button:first-child:focus-visible,
+.dashboard-quick-list button:nth-child(2):focus-visible {
+  background: #008A9E;
+}
+
+.dashboard-quick-list button > span {
+  display: inline-grid;
+  place-items: center;
+  color: #C8F7FB;
+  font-size: 15px;
+  line-height: 1;
+}
+
+.dashboard-alert-card {
+  padding-bottom: 4px;
+}
+
+.dashboard-rail-alert {
+  display: grid;
+  grid-template-columns: 23px minmax(0,1fr) 10px;
+  align-items: center;
+  gap: 7px;
+  width: calc(100% - 16px);
+  min-height: 31px;
+  margin: 0 8px;
+  padding: 4px 0;
+  border: 0;
+  border-top: 1px solid #2D4B59;
+  border-radius: 0;
+  background: transparent;
+  color: #EAF1F4;
+  text-align: left;
+}
+
+.dashboard-rail-alert:first-of-type {
+  border-top: 0;
+}
+
+.dashboard-rail-alert:hover,
+.dashboard-rail-alert:focus-visible {
+  background: #173747;
+}
+
+.dashboard-rail-alert > span {
+  display: inline-grid;
+  place-items: center;
+  width: 20px;
+  height: 20px;
+  border-radius: 4px;
+  color: #FFFFFF;
+  font-size: var(--ps-font-micro);
+  font-weight: 800;
+}
+
+.dashboard-rail-alert > span.amber { background: var(--color-status-attention); }
+.dashboard-rail-alert > span.red { background: var(--color-status-danger); }
+.dashboard-rail-alert > span.blue { background: var(--color-info-text); }
+
+.dashboard-rail-alert strong {
+  overflow: hidden;
+  color: #EDF4F7;
+  font-size: var(--ps-font-micro);
+  font-weight: 650;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.dashboard-rail-alert b {
+  color: #A7B7C0;
+  font-size: 15px;
+  font-weight: 400;
+}
+
+.dashboard-review-card,
+.dashboard-ai-card {
+  color: var(--color-text-primary);
+}
+
+.dashboard-review-card .dashboard-rail-heading,
+.dashboard-ai-card .dashboard-rail-heading {
+  border-bottom: 1px solid var(--color-border-default);
+}
+
+.dashboard-review-item {
+  display: grid;
+  grid-template-columns: minmax(0,1fr) auto;
+  gap: 8px;
+  align-items: center;
+  padding: 8px 10px;
+  border-top: 1px solid var(--color-border-default);
+}
+
+.dashboard-review-item:first-of-type {
+  border-top: 0;
+}
+
+.dashboard-review-item > div {
+  min-width: 0;
+}
+
+.dashboard-review-category {
+  display: inline-block;
+  margin: 0 5px 3px 0;
+  color: var(--color-action-primary);
+  font-size: var(--ps-font-micro);
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: .03em;
+}
+
+.dashboard-review-item strong {
+  display: block;
+  color: var(--color-text-primary);
+  font-size: 10px;
+}
+
+.dashboard-review-item p {
+  margin: 2px 0 0;
+  color: var(--color-text-secondary);
+  font-size: var(--ps-font-micro);
+  line-height: 1.35;
+}
+
+.dashboard-review-more {
+  color: var(--color-text-secondary);
+  font-weight: 700;
+}
+
+.dashboard-review-item button {
+  min-height: 30px;
+  padding: 4px 8px;
+  font-size: var(--ps-font-micro);
+}
+
+.dashboard-review-empty {
+  padding: 12px 10px;
+  color: var(--color-text-secondary);
+}
+
+.dashboard-review-empty span {
+  color: var(--color-status-success);
+  font-size: 15px;
+}
+
+.dashboard-review-empty strong {
+  display: block;
+  margin: 2px 0;
+  color: var(--color-text-primary);
+  font-size: 10px;
+}
+
+.dashboard-review-empty p {
+  margin: 0;
+  font-size: var(--ps-font-micro);
+  line-height: 1.35;
+}
+
+.dashboard-ai-card {
+  padding-bottom: 10px;
+}
+
+.dashboard-ai-card > p {
+  margin: 0;
+  padding: 0 10px 8px;
+  color: var(--color-text-secondary);
+  font-size: var(--ps-font-micro);
+  line-height: 1.4;
+}
+
+.dashboard-ai-card > button {
+  min-height: 32px;
+  margin: 0 10px;
+  padding: 5px 9px;
+  font-size: var(--ps-font-micro);
+}
+
+.dashboard-ai-result {
+  margin-top: 8px !important;
+  white-space: pre-wrap;
+}
+
+.dashboard-final-page .dashboard-reference-commercial,
+.dashboard-final-page .dashboard-big-projects {
+  box-shadow: none;
+}
+
+.dashboard-final-page .dashboard-commercial-shell {
+  margin: 0;
+}
+
+.dashboard-final-page .dashboard-big-projects {
+  margin-top: 0;
+}
+
+@media (max-width: 1250px) {
+  .dashboard-final-layout {
+    grid-template-columns: minmax(0,1fr) 250px;
+  }
+
+  .dashboard-final-hero .dashboard-reference-kpis {
+    grid-template-columns: repeat(2,minmax(0,1fr));
+  }
+}
+
+@media (max-width: 980px) {
+  .dashboard-final-layout {
+    grid-template-columns: 1fr;
+  }
+
+  .dashboard-right-rail {
+    grid-template-columns: repeat(2,minmax(0,1fr));
+    border-left: 0;
+    border-top: 1px solid #29404D;
+  }
+
+  .dashboard-quick-actions,
+  .dashboard-alert-card {
+    align-self: stretch;
+  }
+}
+
+@media (max-width: 650px) {
+  .dashboard-final-page {
+    margin: -12px -12px 0;
+  }
+
+  .dashboard-final-hero {
+    padding: 12px;
+  }
+
+  .dashboard-final-hero .dashboard-reference-kpis {
+    grid-template-columns: 1fr 1fr;
+  }
+
+  .dashboard-right-rail {
+    grid-template-columns: 1fr;
+    padding: 8px;
+  }
+
+  .dashboard-final-workspace {
+    padding: 8px;
+  }
+}
+
+
 /* ===== MODULE: system/30-workspace-core.css ===== */
 /*
  Pool Shed maintained CSS module: 30-workspace-core.css

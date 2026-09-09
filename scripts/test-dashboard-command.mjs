@@ -14,7 +14,6 @@ for (const required of [
   "dashboard-reference-hero",
   "dashboardCommercialSection(commercialOrders, commercialRange)",
   "dashboardBigProjectsHtml()",
-  "Needs Attention",
   "Sales (Invoiced)",
   "Cost of Goods",
   "Gross Profit",
@@ -37,7 +36,7 @@ for (const required of [
   ".dashboard-reference-page",
   ".dashboard-reference-hero",
   ".dashboard-reference-kpis",
-  ".dashboard-reference-attention",
+  ".dashboard-right-rail",
   ".dashboard-reference-workspace"
 ]) {
   if (!css.includes(required)) failures.push(`Reference dashboard styling missing: ${required}`);
@@ -47,4 +46,4 @@ if (failures.length) {
   console.error(failures.join("\n"));
   process.exit(1);
 }
-console.log("Focused Dashboard reference-match checks passed.");
+console.log("Focused Dashboard checks passed with approved right-rail composition.");
