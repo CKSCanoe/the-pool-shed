@@ -1,0 +1,27 @@
+{
+  "name": "the-pool-shed",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "build": "bash scripts/build.sh",
+    "validate": "node scripts/validate-runtime.mjs public && node scripts/test-catalogue-health-actions.mjs && node scripts/test-bundle-studio.mjs && node scripts/test-fulfilment-lifecycle.mjs && node scripts/test-release-cleanup.mjs && node scripts/test-bundle-sales-intelligence.mjs && node scripts/test-po-catalogue-performance.mjs && node scripts/test-po-picker-ui.mjs && node scripts/test-production-overhaul.mjs && node scripts/test-sales-table-header.mjs && node scripts/test-sales-order-customer-picker.mjs && node scripts/test-receiving-ledger.mjs && node scripts/test-professional-workspace.mjs && node scripts/test-workspace-sync.mjs && node scripts/test-ledger-performance.mjs && node scripts/test-accounting.mjs && node scripts/test-accounting-database.mjs && node scripts/test-accounting-api.mjs && node scripts/test-workspace-database.mjs && node scripts/test-project-engine.mjs && node scripts/test-project-database.mjs && node scripts/test-project-ai.mjs && node scripts/test-bundle-system-v2.mjs && node scripts/test-dashboard-review.mjs && node scripts/test-release-assets.mjs",
+    "test:health": "node scripts/test-catalogue-health-actions.mjs",
+    "audit": "node scripts/performance-audit.mjs",
+    "test:fulfilment": "node scripts/test-fulfilment-lifecycle.mjs",
+    "test:bundles": "node scripts/test-bundle-system-v2.mjs",
+    "test:bundle-studio": "node scripts/test-bundle-studio.mjs",
+    "test:po-performance": "node scripts/test-po-catalogue-performance.mjs",
+    "test:po-ui": "node scripts/test-po-picker-ui.mjs",
+    "test:receiving": "node scripts/test-receiving-ledger.mjs",
+    "test:workspace": "node scripts/test-professional-workspace.mjs && node scripts/test-workspace-sync.mjs && node scripts/test-workspace-database.mjs",
+    "test:browser": "node scripts/test-browser-smoke.cjs",
+    "test:performance": "node scripts/test-ledger-performance.mjs",
+    "test:accounting": "node scripts/test-accounting.mjs && node scripts/test-accounting-database.mjs && node scripts/test-accounting-api.mjs",
+    "test:projects": "node scripts/test-project-engine.mjs && node scripts/test-project-database.mjs && node scripts/test-project-ai.mjs"
+  },
+  "version": "1.0.0",
+  "description": "The Pool Shed inventory, purchasing, sales, warehouse and bundle management application",
+  "devDependencies": {
+    "@electric-sql/pglite": "^0.5.8"
+  }
+}
