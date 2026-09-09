@@ -3,6 +3,8 @@ set -euo pipefail
 ROOT=$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)
 DIST="$ROOT/dist"
 
+node "$ROOT/scripts/build-css.mjs"
+
 rm -rf "$DIST"
 mkdir -p "$DIST"
 cp -R "$ROOT/public/." "$DIST/"

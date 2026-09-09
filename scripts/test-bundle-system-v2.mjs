@@ -1,6 +1,6 @@
 import fs from 'node:fs';
 const js=fs.readFileSync('public/bundle-system.js','utf8');
-const css=fs.readFileSync('public/bundle-system.css','utf8');
+const css=fs.readFileSync('public/assets/css/system/20-features.css','utf8');
 const html=fs.readFileSync('public/index.html','utf8');
 const checks={
   linkedProductIds:js.includes('productId'),
@@ -11,7 +11,7 @@ const checks={
   customerDisplay:js.includes('bundleQuoteDisplay')&&js.includes('bundleInvoiceDisplay'),
   duplication:js.includes('Duplicate bundle'),
   responsive:css.includes('@media(max-width:720px)'),
-  loaded:html.includes('bundle-system.js')&&html.includes('bundle-system.css')
+  loaded:html.includes('bundle-system.js')&&(html.includes('bundle-system.css')||html.includes('assets/css/app.css'))
 };
 for(const [k,v] of Object.entries(checks)){if(!v)throw new Error(`Bundle system check failed: ${k}`)}
 console.log('Bundle Product System checks passed:',Object.keys(checks).length);

@@ -1,7 +1,11 @@
-# Vercel deployment install fix — 1.0.3
+# Shared component system — 1.0.6
 
 
 Vercel deployment now skips npm dependency installation because the production build has no runtime npm dependencies; `@electric-sql/pglite` remains a local test-only development dependency.
+Production now loads one deterministic CSS bundle (`assets/css/app.css`) generated from the maintained source modules in their established cascade order, removing the 26-link runtime stylesheet chain without changing business logic.
+Active application styling is now maintained in four ordered source modules: legacy compatibility, feature-scoped rules, workspace-scoped rules, and one authoritative Precision Operations design system. The production bundle is regenerated from those modules; print-only popup styles remain separate.
+Twelve repeated unscoped global primitives (`html`, `body`, headings, controls and core table cells) were consolidated into the authoritative design-system module, preventing feature/workspace CSS from owning competing top-level definitions.
+Shared buttons, form controls, fields, panels, record surfaces, KPIs, action rows, tabs, breadcrumbs, top bars, status pills, tables and modal shells now have one unscoped Precision Operations definition in the authoritative design-system module; legacy/feature/workspace modules retain only scoped variants.
 Selected Concept B is now the production visual foundation: 16px operational rhythm, 38px desktop controls, compact 39px data rows, sharp 5/6/8px geometry, flat border-led surfaces, underline tabs, Aqua focus treatment, touch-safe mobile density, and the approved PB logo. The Professional Palette remains unchanged.
 
 The UI now uses the locked Pool Shed Professional colour foundation through one canonical semantic token layer. Legacy CSS colour literals resolve through the approved palette, arbitrary Sales Order status colour entry is constrained to approved semantic colours, and the token stylesheet is included in the offline core cache.
@@ -22,7 +26,7 @@ See `PERFORMANCE-REVIEW.md` for this release’s speed improvements, measurement
 
 See `PROFESSIONAL-RELEASE-AUDIT.md` for the current release, deployment notes and limits. The ZIP includes the complete source and rebuilt `dist` folder.
 
-# The Pool Shed - Version 1.0.3
+# The Pool Shed - Version 1.0.6
 
 Production-clean application package for Vercel + Supabase.
 

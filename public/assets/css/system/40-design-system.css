@@ -1,0 +1,1172 @@
+/*
+ Pool Shed CSS source module: 40-design-system.css
+ This module preserves the established cascade while consolidating previously
+ fragmented active application styles. Shared visual authority lives in
+ 40-design-system.css; feature/workspace rules must remain scoped.
+*/
+
+/* ===== CONSOLIDATED FROM: assets/css/00-pool-shed-tokens.css ===== */
+/* Pool Shed Professional visual foundation.
+   Canonical colour source. All application colour should resolve through these tokens. */
+:root {
+  color-scheme: light;
+
+  /* Approved Pool Shed palette */
+  --ps-palette-navy: #102B3A;
+  --ps-palette-teal: #007A8C;
+  --ps-palette-aqua: #00A7C4;
+  --ps-palette-ink: #17252E;
+  --ps-palette-slate: #5B6972;
+  --ps-palette-canvas: #F3F6F8;
+  --ps-palette-soft-blue: #EAF1F4;
+  --ps-palette-border: #D7E0E5;
+  --ps-palette-white: #FFFFFF;
+  --ps-palette-success: #218653;
+  --ps-palette-attention: #B36A05;
+  --ps-palette-danger: #B83A43;
+  --ps-palette-info: #176B91;
+
+  /* Approved dark palette */
+  --ps-palette-dark-canvas: #0C1821;
+  --ps-palette-dark-surface: #12232E;
+  --ps-palette-dark-raised: #172B37;
+  --ps-palette-dark-border: #29404D;
+  --ps-palette-dark-text: #EDF4F7;
+  --ps-palette-dark-muted: #A7B7C0;
+
+  /* Semantic colour layer */
+  --color-brand-navy: var(--ps-palette-navy);
+  --color-action-primary: var(--ps-palette-teal);
+  --color-action-primary-hover: color-mix(in srgb, var(--ps-palette-teal) 82%, var(--ps-palette-navy));
+  --color-action-focus: var(--ps-palette-aqua);
+  --color-action-soft: color-mix(in srgb, var(--ps-palette-teal) 9%, var(--ps-palette-white));
+  --color-action-line: color-mix(in srgb, var(--ps-palette-teal) 30%, var(--ps-palette-white));
+
+  --color-text-primary: var(--ps-palette-ink);
+  --color-text-secondary: var(--ps-palette-slate);
+  --color-text-inverse: var(--ps-palette-white);
+  --color-text-disabled: color-mix(in srgb, var(--ps-palette-slate) 62%, var(--ps-palette-white));
+
+  --color-surface-canvas: var(--ps-palette-canvas);
+  --color-surface-default: var(--ps-palette-white);
+  --color-surface-subtle: var(--ps-palette-soft-blue);
+  --color-surface-raised: var(--ps-palette-white);
+  --color-surface-selected: var(--color-action-soft);
+
+  --color-border-default: var(--ps-palette-border);
+  --color-border-strong: color-mix(in srgb, var(--ps-palette-slate) 48%, var(--ps-palette-white));
+
+  --color-status-success: var(--ps-palette-success);
+  --color-status-success-text: #176B42;
+  --color-status-success-bg: #EAF7EF;
+  --color-status-success-line: #BBDDC8;
+
+  --color-status-attention: var(--ps-palette-attention);
+  --color-status-attention-text: #895005;
+  --color-status-attention-bg: #FFF5DA;
+  --color-status-attention-line: #E8CF8E;
+
+  --color-status-danger: var(--ps-palette-danger);
+  --color-status-danger-text: #9E3039;
+  --color-status-danger-bg: #FDEDEF;
+  --color-status-danger-line: #E9BEC2;
+
+  --color-status-info: var(--ps-palette-info);
+  --color-status-info-text: #145F80;
+  --color-status-info-bg: #EAF5FA;
+  --color-status-info-line: #BBDCE9;
+
+  --color-overlay-scrim: color-mix(in srgb, var(--ps-palette-navy) 72%, transparent);
+  --color-overlay-soft: color-mix(in srgb, var(--ps-palette-navy) 10%, transparent);
+  --shadow-color: color-mix(in srgb, var(--ps-palette-navy) 12%, transparent);
+  --shadow-color-strong: color-mix(in srgb, var(--ps-palette-navy) 24%, transparent);
+
+  /* Geometry / interaction foundation */
+  --focus-ring: 0 0 0 3px color-mix(in srgb, var(--color-action-focus) 28%, transparent);
+  --shadow-panel: 0 1px 3px var(--shadow-color);
+  --shadow-raised: 0 8px 24px var(--shadow-color);
+  --shadow-dialog: 0 24px 64px var(--shadow-color-strong);
+
+  /* Compatibility aliases. Legacy component names resolve to the one semantic system. */
+  --ink: var(--color-text-primary);
+  --muted: var(--color-text-secondary);
+  --line: var(--color-border-default);
+  --soft: var(--color-surface-canvas);
+  --panel: var(--color-surface-default);
+  --brand: var(--color-action-primary);
+  --brand-dark: var(--color-action-primary-hover);
+  --accent: var(--color-action-focus);
+  --navy: var(--color-brand-navy);
+  --shadow: var(--shadow-panel);
+
+  --ps-ink: var(--color-text-primary);
+  --ps-muted: var(--color-text-secondary);
+  --ps-line: var(--color-border-default);
+  --ps-soft: var(--color-surface-subtle);
+  --ps-cyan: var(--color-action-focus);
+  --ps-teal: var(--color-action-primary);
+  --ps-navy: var(--color-brand-navy);
+  --ps-green: var(--color-status-success);
+  --ps-amber: var(--color-status-attention);
+  --ps-red: var(--color-status-danger);
+  --ps-shadow: var(--shadow-panel);
+
+  --pb-ink: var(--color-text-primary);
+  --pb-muted: var(--color-text-secondary);
+  --pb-line: var(--color-border-default);
+  --pb-soft: var(--color-surface-subtle);
+  --pb-cyan: var(--color-action-focus);
+  --pb-teal: var(--color-action-primary);
+  --pb-navy: var(--color-brand-navy);
+  --pb-blue: var(--color-status-info);
+  --pb-green: var(--color-status-success);
+  --pb-yellow: var(--color-status-attention);
+  --pb-red: var(--color-status-danger);
+
+  --pool-ink: var(--color-text-primary);
+  --pool-surface: var(--color-surface-canvas);
+  --pool-blue: var(--color-status-info);
+  --pool-green: var(--color-status-success);
+  --pool-yellow: var(--color-status-attention);
+  --pool-red: var(--color-status-danger);
+
+  --ci-navy: var(--color-brand-navy);
+  --ci-cyan: var(--color-action-focus);
+  --ci-teal: var(--color-action-primary);
+  --ci-green: var(--color-status-success);
+  --ci-yellow: var(--color-status-attention);
+  --ci-red: var(--color-status-danger);
+
+  --bs-navy: var(--color-brand-navy);
+  --bs-blue: var(--color-action-primary);
+  --bs-cyan: var(--color-action-soft);
+  --bs-line: var(--color-border-default);
+  --bs-green: var(--color-status-success);
+  --bs-amber: var(--color-status-attention);
+  --bs-red: var(--color-status-danger);
+
+  --b2-blue: var(--color-action-primary);
+  --b2-navy: var(--color-brand-navy);
+  --b2-amber: var(--color-status-attention);
+  --b2-line: var(--color-border-default);
+
+  --teal-soft: var(--color-action-soft);
+  --amber-soft: var(--color-status-attention-bg);
+  --red-soft: var(--color-status-danger-bg);
+}
+
+html[data-theme="dark"],
+body[data-theme="dark"],
+[data-theme="dark"] {
+  color-scheme: dark;
+  --color-text-primary: var(--ps-palette-dark-text);
+  --color-text-secondary: var(--ps-palette-dark-muted);
+  --color-text-inverse: var(--ps-palette-dark-canvas);
+  --color-text-disabled: color-mix(in srgb, var(--ps-palette-dark-muted) 58%, var(--ps-palette-dark-surface));
+  --color-surface-canvas: var(--ps-palette-dark-canvas);
+  --color-surface-default: var(--ps-palette-dark-surface);
+  --color-surface-subtle: var(--ps-palette-dark-raised);
+  --color-surface-raised: var(--ps-palette-dark-raised);
+  --color-surface-selected: color-mix(in srgb, var(--ps-palette-teal) 18%, var(--ps-palette-dark-surface));
+  --color-border-default: var(--ps-palette-dark-border);
+  --color-border-strong: color-mix(in srgb, var(--ps-palette-dark-muted) 42%, var(--ps-palette-dark-surface));
+  --color-action-primary-hover: var(--ps-palette-aqua);
+  --color-action-soft: color-mix(in srgb, var(--ps-palette-teal) 16%, var(--ps-palette-dark-surface));
+  --color-action-line: color-mix(in srgb, var(--ps-palette-teal) 46%, var(--ps-palette-dark-surface));
+
+  --color-status-success-text: color-mix(in srgb, var(--ps-palette-success) 42%, var(--ps-palette-dark-text));
+  --color-status-success-bg: color-mix(in srgb, var(--ps-palette-success) 16%, var(--ps-palette-dark-surface));
+  --color-status-success-line: color-mix(in srgb, var(--ps-palette-success) 38%, var(--ps-palette-dark-surface));
+  --color-status-attention-text: color-mix(in srgb, var(--ps-palette-attention) 50%, var(--ps-palette-dark-text));
+  --color-status-attention-bg: color-mix(in srgb, var(--ps-palette-attention) 16%, var(--ps-palette-dark-surface));
+  --color-status-attention-line: color-mix(in srgb, var(--ps-palette-attention) 38%, var(--ps-palette-dark-surface));
+  --color-status-danger-text: color-mix(in srgb, var(--ps-palette-danger) 46%, var(--ps-palette-dark-text));
+  --color-status-danger-bg: color-mix(in srgb, var(--ps-palette-danger) 16%, var(--ps-palette-dark-surface));
+  --color-status-danger-line: color-mix(in srgb, var(--ps-palette-danger) 38%, var(--ps-palette-dark-surface));
+  --color-status-info-text: color-mix(in srgb, var(--ps-palette-info) 38%, var(--ps-palette-dark-text));
+  --color-status-info-bg: color-mix(in srgb, var(--ps-palette-info) 18%, var(--ps-palette-dark-surface));
+  --color-status-info-line: color-mix(in srgb, var(--ps-palette-info) 42%, var(--ps-palette-dark-surface));
+
+  /* Reassert legacy aliases at the themed element so scoped historical aliases cannot diverge. */
+  --ink: var(--color-text-primary);
+  --muted: var(--color-text-secondary);
+  --line: var(--color-border-default);
+  --soft: var(--color-surface-canvas);
+  --panel: var(--color-surface-default);
+  --brand: var(--color-action-primary);
+  --brand-dark: var(--color-action-primary-hover);
+  --accent: var(--color-action-focus);
+  --navy: var(--color-brand-navy);
+}
+
+/* Core surfaces are deliberately tied to semantic roles. */
+
+.main { background:var(--color-surface-canvas); }
+.sidebar { background:var(--color-brand-navy); }
+button:focus-visible,
+input:focus-visible,
+select:focus-visible,
+textarea:focus-visible,
+summary:focus-visible,
+a:focus-visible { outline-color:var(--color-action-focus); }
+::selection { background:var(--color-action-soft); color:var(--color-text-primary); }
+
+/* Semantic status defaults used by legacy inline status variables. */
+.pill.good,.status-good,.success,.is-success { --status-bg:var(--color-status-success); --status-fg:var(--color-text-inverse); }
+.pill.warn,.status-warn,.warning,.is-warning { --status-bg:var(--color-status-attention); --status-fg:var(--color-text-inverse); }
+.pill.bad,.status-bad,.danger,.is-danger { --status-bg:var(--color-status-danger); --status-fg:var(--color-text-inverse); }
+
+/* ===== CONSOLIDATED FROM: assets/css/15-pool-shed-precision-foundation.css ===== */
+/*
+ * Pool Shed Precision Operations — canonical visual foundation
+ * Selected Concept B. Colour semantics remain defined by 00-pool-shed-tokens.css.
+ * This file intentionally loads last so legacy presentation layers converge on one
+ * spacing, typography, geometry, control, table, tab, panel and responsive system.
+ */
+
+:root {
+  --ps-space-1: 4px;
+  --ps-space-2: 8px;
+  --ps-space-3: 12px;
+  --ps-space-4: 16px;
+  --ps-space-5: 20px;
+  --ps-space-6: 24px;
+
+  --ps-control-height: 38px;
+  --ps-touch-target: 44px;
+  --ps-table-row-height: 39px;
+
+  --ps-radius-sm: 4px;
+  --ps-radius-control: 5px;
+  --ps-radius-panel: 6px;
+  --ps-radius-dialog: 8px;
+
+  --ps-font-page-title: 24px;
+  --ps-font-section-title: 18px;
+  --ps-font-panel-title: 13px;
+  --ps-font-body: 14px;
+  --ps-font-table: 13px;
+  --ps-font-label: 11px;
+  --ps-font-micro: 10px;
+
+  /* Existing component contracts resolve to the selected foundation. */
+  --workspace-gap: var(--ps-space-4);
+  --control-height: var(--ps-control-height);
+  --ps-radius: var(--ps-radius-panel);
+  --shadow-panel: none;
+  --ps-shadow: none;
+  --shadow: none;
+}
+
+
+
+
+
+/* Shell */
+.main {
+  padding: var(--ps-space-5);
+  background: var(--color-surface-canvas);
+}
+
+.sidebar .brand {
+  gap: 9px;
+  padding: 2px 7px 13px;
+}
+
+.brand-mark,
+.ps-boot-logo {
+  background: transparent !important;
+  border: 0 !important;
+  box-shadow: none !important;
+}
+
+.brand-mark {
+  width: 38px;
+  height: 38px;
+  border-radius: 0 !important;
+  flex: 0 0 38px;
+}
+
+.brand-mark img,
+.ps-boot-logo img {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+}
+
+.ps-boot-logo {
+  width: 58px;
+  height: 58px;
+  border-radius: 0 !important;
+}
+
+.sidebar .brand strong {
+  font-size: 14px;
+  letter-spacing: 0;
+}
+
+.sidebar .brand span {
+  font-size: 11px;
+  margin-top: 1px;
+}
+
+.sidebar nav {
+  gap: 2px;
+}
+
+.sidebar nav button {
+  min-height: var(--ps-control-height);
+  padding: 8px 9px;
+  border-radius: var(--ps-radius-sm);
+  font-size: 13px;
+}
+
+.sidebar nav button.active {
+  background: var(--color-action-primary);
+  color: var(--color-text-inverse);
+  border-color: var(--color-action-primary);
+  box-shadow: none;
+}
+
+/* Page hierarchy */
+.main .topbar {
+  gap: var(--ps-space-3);
+  padding: 0 0 var(--ps-space-4);
+  margin: 0 0 var(--ps-space-4);
+  border-bottom: 1px solid var(--color-border-default) !important;
+}
+
+.main .topbar h1 {
+  margin: 3px 0 0;
+  font-size: var(--ps-font-page-title) !important;
+  line-height: 1.12;
+  font-weight: 730;
+  letter-spacing: -0.025em;
+}
+
+
+
+
+
+#pageIntro,
+.topbar .title p {
+  margin-top: 4px;
+  max-width: 72ch;
+  color: var(--color-text-secondary);
+  font-size: 12px;
+  line-height: 1.45;
+}
+
+
+
+/* Controls */
+.main :is(button, input, select, textarea) {
+  border-radius: var(--ps-radius-control);
+}
+
+
+
+input:not([type="checkbox"]):not([type="radio"]) {
+  min-height: var(--ps-control-height);
+}
+
+
+
+button:hover {
+  transform: none !important;
+}
+
+button.secondary,
+button.ghost {
+  background: var(--color-surface-default);
+  color: var(--color-text-primary);
+  border: 1px solid var(--color-border-default);
+}
+
+button.secondary:hover,
+button.ghost:hover {
+  background: var(--color-surface-subtle);
+  border-color: var(--color-border-strong);
+}
+
+button:disabled,
+input:disabled,
+select:disabled,
+textarea:disabled {
+  opacity: .42;
+  cursor: not-allowed;
+}
+
+button:focus-visible,
+input:focus-visible,
+select:focus-visible,
+textarea:focus-visible,
+summary:focus-visible,
+a:focus-visible,
+[tabindex]:focus-visible {
+  outline: 2px solid var(--color-action-focus) !important;
+  outline-offset: 2px !important;
+  box-shadow: none !important;
+}
+
+/* Forms */
+
+
+.field label,
+.form-field label,
+label.field-label {
+  color: var(--color-text-secondary);
+  font-size: var(--ps-font-label);
+  font-weight: 700;
+}
+
+.field input,
+.field select,
+.field textarea {
+  margin-top: 0;
+  border-radius: var(--ps-radius-control);
+  border-color: var(--color-border-default);
+  font-size: 13px;
+  font-weight: 500;
+  padding-inline: 9px;
+}
+
+
+
+/* Border-led operational surfaces */
+.main :is(.panel,.record-card,.mini-card,.profile-card) {
+  border: 1px solid var(--color-border-default) !important;
+  border-radius: var(--ps-radius-panel) !important;
+  box-shadow: none !important;
+}
+
+
+
+.panel > header,
+.panel-header {
+  gap: var(--ps-space-3) !important;
+  padding: 0 0 var(--ps-space-3) !important;
+  margin-bottom: var(--ps-space-3);
+}
+
+.panel > .panel-body,
+.record-card-body {
+  padding: var(--ps-space-4) !important;
+}
+
+.profile-stat, .warehouse-kpi {
+  border-radius: var(--ps-radius-panel) !important;
+  padding: var(--ps-space-3) !important;
+  box-shadow: none !important;
+}
+
+/* Section navigation and record tabs: flat underline selection */
+
+
+.ps-section-nav button {
+  min-height: 35px;
+  padding: 0 12px;
+  border: 0;
+  border-bottom: 2px solid transparent;
+  border-radius: 0;
+  background: transparent;
+  color: var(--color-text-secondary);
+  font-size: 12px;
+  font-weight: 650;
+  white-space: nowrap;
+  animation: none !important;
+}
+
+.ps-section-nav button.active {
+  background: transparent;
+  color: var(--color-action-primary);
+  border-color: transparent;
+  border-bottom-color: var(--color-action-primary);
+  box-shadow: none !important;
+  animation: none !important;
+}
+
+.workspace-tabs, .sales-workspace .tabs-row {
+  display: flex !important;
+  flex-wrap: nowrap !important;
+  gap: 0 !important;
+  overflow-x: auto;
+  padding: 0 var(--ps-space-4) !important;
+  margin: 0;
+  border-bottom: 1px solid var(--color-border-default);
+}
+
+#screen-salesorders .tab-chip, .customer-tabs button, .sales-workspace .tab-chip {
+  min-height: 38px !important;
+  padding: 0 12px !important;
+  border: 0 !important;
+  border-bottom: 2px solid transparent !important;
+  border-radius: 0 !important;
+  background: transparent !important;
+  color: var(--color-text-secondary) !important;
+  font-size: 12px !important;
+  font-weight: 650 !important;
+  white-space: nowrap;
+  box-shadow: none !important;
+}
+
+.tab-chip.active,
+#screen-salesorders .tab-chip.active,
+.customer-tabs button.active,
+.sales-workspace .tab-chip.active {
+  background: transparent !important;
+  color: var(--color-action-primary) !important;
+  border-color: transparent !important;
+  border-bottom-color: var(--color-action-primary) !important;
+  box-shadow: none !important;
+}
+
+/* Tables: compact, bounded, sticky and numeric-friendly */
+.order-lines-scroll, .po-lines-wrap, .sales-table-scroll {
+  max-width: 100%;
+  overflow: auto;
+  overscroll-behavior: contain;
+  border: 1px solid var(--color-border-default);
+  border-radius: var(--ps-radius-control) !important;
+  scrollbar-gutter: stable;
+}
+
+
+
+
+
+#screen-salesorders .order-lines-table tbody td, .sales-workspace .order-lines-table td {
+  height: var(--ps-table-row-height);
+  padding: 6px 10px !important;
+  color: var(--color-text-primary);
+  font-size: var(--ps-font-table);
+  line-height: 1.35;
+  vertical-align: middle;
+  border-bottom: 1px solid var(--color-border-default);
+}
+
+#screen-salesorders .order-lines-table thead th,
+.sales-workspace .order-lines-table th {
+  height: 34px;
+  padding: 0 10px !important;
+  font-size: var(--ps-font-micro) !important;
+}
+
+tbody tr:hover {
+  background: color-mix(in srgb, var(--color-action-primary) 3%, var(--color-surface-default));
+}
+
+/* Status: compact text + colour + shape cue. */
+
+
+/* Dialogs: viewport-safe shell with persistent header/actions where markup permits. */
+.modal-backdrop.active,
+.modal-backdrop.show {
+  overflow: auto;
+  padding: var(--ps-space-4);
+  background: var(--color-overlay-scrim);
+}
+
+.modal-card, .modal-panel {
+  max-height: calc(100dvh - 32px);
+  border: 1px solid var(--color-border-default);
+  border-radius: var(--ps-radius-dialog) !important;
+  box-shadow: var(--shadow-dialog);
+  overflow: auto;
+}
+
+.modal header,
+.modal-card > header,
+.modal-panel > header,
+.modal footer,
+.modal-card > footer,
+.modal-panel > footer {
+  position: sticky;
+  z-index: 2;
+  background: var(--color-surface-default);
+}
+
+.modal header,
+.modal-card > header,
+.modal-panel > header {
+  top: 0;
+}
+
+.modal footer,
+.modal-card > footer,
+.modal-panel > footer {
+  bottom: 0;
+}
+
+/* Density modes retain the same geometry language instead of creating a second design system. */
+html[data-density="compact"] {
+  --control-height: 34px;
+  --workspace-gap: 12px;
+  --ps-table-row-height: 35px;
+}
+
+html[data-density="comfortable"] {
+  --control-height: 42px;
+  --workspace-gap: 20px;
+  --ps-table-row-height: 44px;
+}
+
+html[data-density="compact"] td {
+  padding-block: 4px !important;
+}
+
+html[data-density="comfortable"] td {
+  padding-block: 8px !important;
+}
+
+html[data-density="comfortable"] .panel {
+  padding: var(--ps-space-5);
+}
+
+/* Precision breakpoints: mobile <600, compact 600–899, desktop 900–1199, wide >=1200. */
+@media (max-width: 1199px) {
+  .main {
+    padding: var(--ps-space-4);
+  }
+}
+
+@media (max-width: 899px) {
+  .topbar {
+    gap: var(--ps-space-4);
+  }
+
+  .panel {
+    padding: var(--ps-space-4);
+  }
+
+  .screen.grid {
+    gap: var(--ps-space-4) !important;
+  }
+}
+
+@media (max-width: 599px) {
+  :root {
+    --control-height: var(--ps-touch-target);
+    --ps-table-row-height: 46px;
+  }
+
+  .main {
+    padding: var(--ps-space-3);
+  }
+
+  .topbar,
+  .main .topbar {
+    padding-bottom: var(--ps-space-3);
+    margin-bottom: var(--ps-space-3);
+  }
+
+  .main .topbar h1,
+  h1 {
+    font-size: 22px !important;
+  }
+
+  button,
+  input:not([type="checkbox"]):not([type="radio"]),
+  select {
+    min-height: var(--ps-touch-target);
+  }
+
+  .panel {
+    padding: 14px;
+  }
+
+  .panel > .panel-body,
+  .record-card-body {
+    padding: 14px !important;
+  }
+
+  .tabs-row,
+  .customer-tabs,
+  .workspace-tabs,
+  .sales-workspace .tabs-row {
+    padding-inline: var(--ps-space-3) !important;
+  }
+
+  td,
+  #screen-salesorders .order-lines-table tbody td,
+  .sales-workspace .order-lines-table td {
+    padding-block: 8px !important;
+  }
+
+  .modal-backdrop.active,
+  .modal-backdrop.show {
+    padding: var(--ps-space-3);
+  }
+
+  .modal,
+  .modal-card,
+  .modal-panel {
+    max-height: calc(100dvh - 24px);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .ps-section-nav button,
+  button,
+  .modal,
+  .modal-card,
+  .modal-panel {
+    transition: none !important;
+    animation: none !important;
+  }
+}
+
+/* ===== AUTHORITATIVE GLOBAL PRIMITIVES =====
+   Consolidated from repeated top-level global selectors across the historical cascade.
+   Feature modules must not redefine these unscoped primitives. ===== */
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+/* ========================================================================
+   AUTHORITATIVE SHARED COMPONENT SYSTEM
+   Precision Operations v1.0.6
+
+   Unscoped shared primitives live here only. Feature and workspace modules
+   may style feature-specific descendants/variants, but must not redefine the
+   base component contract.
+   ======================================================================== */
+
+html {
+  font-size: 14px;
+}
+
+body {
+  margin: 0;
+  font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  font-size: var(--ps-font-body);
+  line-height: 1.45;
+  color: var(--color-text-primary);
+  background: var(--color-surface-canvas);
+  -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
+}
+
+h1,
+h2,
+h3 {
+  margin-top: 0;
+  color: var(--color-text-primary);
+}
+
+h1 {
+  margin-bottom: var(--ps-space-2);
+  font-size: var(--ps-font-page-title);
+  line-height: 1.12;
+  font-weight: 730;
+  letter-spacing: -0.025em;
+}
+
+h2 {
+  margin-bottom: var(--ps-space-2);
+  font-size: var(--ps-font-section-title);
+  line-height: 1.25;
+  font-weight: 700;
+  letter-spacing: -0.015em;
+}
+
+h3 {
+  margin-bottom: var(--ps-space-2);
+  font-size: var(--ps-font-panel-title);
+  line-height: 1.3;
+  font-weight: 700;
+  letter-spacing: 0;
+}
+
+/* Controls */
+button,
+input,
+select,
+textarea {
+  font: inherit;
+}
+
+button {
+  min-height: var(--ps-control-height);
+  padding: 8px 12px;
+  border: 1px solid var(--color-action-primary);
+  border-radius: var(--ps-radius-control);
+  background: var(--color-action-primary);
+  color: var(--color-text-inverse);
+  font-size: 13px;
+  font-weight: 680;
+  line-height: 1.3;
+  box-shadow: none;
+  cursor: pointer;
+  transition: background-color .12s ease, border-color .12s ease, color .12s ease;
+}
+
+button:hover {
+  background: var(--color-action-primary-hover);
+  border-color: var(--color-action-primary-hover);
+}
+
+button:active {
+  filter: brightness(.96);
+}
+
+button:disabled {
+  opacity: .42;
+  cursor: not-allowed;
+  filter: none;
+}
+
+input,
+select,
+textarea {
+  width: 100%;
+  max-width: 100%;
+  border: 1px solid var(--color-border-default);
+  border-radius: var(--ps-radius-control);
+  background: var(--color-surface-default);
+  color: var(--color-text-primary);
+  font-size: 13px;
+  font-weight: 500;
+  box-shadow: none;
+}
+
+input,
+select {
+  min-height: var(--ps-control-height);
+  padding: 8px 9px;
+}
+
+textarea {
+  min-height: calc(var(--ps-control-height) * 2);
+  padding: 9px;
+  resize: vertical;
+  line-height: 1.4;
+}
+
+input::placeholder,
+textarea::placeholder {
+  color: var(--color-text-secondary);
+  opacity: .72;
+}
+
+button:focus-visible,
+input:focus-visible,
+select:focus-visible,
+textarea:focus-visible,
+summary:focus-visible,
+a:focus-visible,
+[tabindex]:focus-visible {
+  outline: 2px solid var(--color-action-focus) !important;
+  outline-offset: 2px !important;
+  box-shadow: none !important;
+}
+
+/* Forms */
+.field {
+  display: grid;
+  gap: 5px;
+  min-width: 0;
+  padding: 0;
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+  align-self: start;
+}
+
+.form-grid {
+  display: grid;
+  gap: var(--ps-space-3);
+  min-width: 0;
+}
+
+/* Operational surfaces */
+.panel,
+.record-card,
+.mini-card,
+.profile-card {
+  min-width: 0;
+  border: 1px solid var(--color-border-default);
+  border-radius: var(--ps-radius-panel);
+  background: var(--color-surface-default);
+  box-shadow: none;
+}
+
+.panel {
+  padding: var(--ps-space-4);
+}
+
+.panel-head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: var(--ps-space-3);
+  padding: 0 0 var(--ps-space-3);
+  margin: 0 0 var(--ps-space-3);
+  border: 0;
+  border-bottom: 1px solid var(--color-border-default);
+  background: transparent;
+}
+
+.panel-body {
+  min-width: 0;
+  padding: 0;
+}
+
+.mini-card,
+.profile-card {
+  padding: var(--ps-space-3);
+}
+
+.record-card {
+  overflow: clip;
+}
+
+.kpi {
+  min-width: 0;
+  padding: var(--ps-space-3);
+  border: 1px solid var(--color-border-default);
+  border-radius: var(--ps-radius-panel);
+  background: var(--color-surface-default);
+  box-shadow: none;
+}
+
+/* Action groups */
+.action-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--ps-space-2);
+}
+
+/* Navigation */
+.breadcrumb {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--ps-space-2);
+  color: var(--color-text-secondary);
+  font-size: var(--ps-font-label);
+  line-height: 1.35;
+}
+
+.topbar {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: var(--ps-space-3);
+  margin: 0 0 var(--ps-space-4);
+  padding: 0 0 var(--ps-space-4);
+  border: 0;
+  border-bottom: 1px solid var(--color-border-default);
+  border-radius: 0;
+  background: transparent;
+  box-shadow: none;
+}
+
+.ps-section-nav,
+.tabs-row,
+.customer-tabs {
+  display: flex;
+  flex-wrap: nowrap;
+  align-items: end;
+  gap: 0;
+  width: max-content;
+  max-width: 100%;
+  overflow-x: auto;
+  overflow-y: hidden;
+  margin: 0 0 var(--ps-space-4);
+  padding: 0;
+  border: 0;
+  border-bottom: 1px solid var(--color-border-default);
+  border-radius: 0;
+  background: transparent;
+  box-shadow: none;
+  scrollbar-width: thin;
+}
+
+.tab-chip {
+  min-height: 38px;
+  padding: 0 12px;
+  border: 0;
+  border-bottom: 2px solid transparent;
+  border-radius: 0;
+  background: transparent;
+  color: var(--color-text-secondary);
+  font-size: 12px;
+  font-weight: 650;
+  line-height: 1.2;
+  white-space: nowrap;
+  box-shadow: none;
+}
+
+.tab-chip:hover {
+  background: var(--color-surface-subtle);
+  color: var(--color-text-primary);
+}
+
+.tab-chip.active {
+  background: transparent;
+  color: var(--color-action-primary);
+  border-bottom-color: var(--color-action-primary);
+}
+
+/* Status */
+.pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  min-height: 0;
+  max-width: 100%;
+  padding: 3px 7px;
+  border: 1px solid var(--color-border-default);
+  border-radius: 999px;
+  background: var(--color-surface-subtle);
+  color: var(--color-text-secondary);
+  font-size: var(--ps-font-micro);
+  font-weight: 800;
+  line-height: 1.2;
+  white-space: nowrap;
+}
+
+/* Tables */
+.table-scroll {
+  width: 100%;
+  max-width: 100%;
+  overflow: auto;
+  overscroll-behavior: contain;
+  border: 1px solid var(--color-border-default);
+  border-radius: var(--ps-radius-control);
+  scrollbar-gutter: stable;
+}
+
+table {
+  width: 100%;
+  border-collapse: separate;
+  border-spacing: 0;
+  font-size: var(--ps-font-table);
+  font-variant-numeric: tabular-nums;
+}
+
+th,
+td {
+  text-align: left;
+  border-bottom: 1px solid var(--color-border-default);
+  vertical-align: middle;
+}
+
+th {
+  position: sticky;
+  top: 0;
+  z-index: 2;
+  height: 34px;
+  padding: 0 10px;
+  background: var(--color-surface-subtle);
+  color: var(--color-text-secondary);
+  font-size: var(--ps-font-micro);
+  font-weight: 750;
+  line-height: 1.2;
+  letter-spacing: .045em;
+  text-transform: uppercase;
+  white-space: nowrap;
+}
+
+td {
+  height: var(--ps-table-row-height);
+  padding: 6px 10px;
+  background: var(--color-surface-default);
+  color: var(--color-text-primary);
+  font-size: var(--ps-font-table);
+  line-height: 1.35;
+}
+
+/* Dialog shell */
+.modal {
+  width: min(560px, 100%);
+  max-height: calc(100dvh - 32px);
+  overflow: auto;
+  border: 1px solid var(--color-border-default);
+  border-radius: var(--ps-radius-dialog);
+  background: var(--color-surface-default);
+  box-shadow: var(--shadow-dialog);
+}
+
+@media (max-width: 599px) {
+  button,
+  input:not([type="checkbox"]):not([type="radio"]),
+  select {
+    min-height: var(--ps-touch-target);
+  }
+
+  .topbar {
+    gap: var(--ps-space-3);
+    margin-bottom: var(--ps-space-3);
+    padding-bottom: var(--ps-space-3);
+  }
+
+  .panel {
+    padding: 14px;
+  }
+
+  .mini-card,
+  .profile-card,
+  .kpi {
+    padding: 12px;
+  }
+
+  .pill {
+    white-space: normal;
+  }
+
+  .modal {
+    max-height: calc(100dvh - 24px);
+  }
+}
+
+/* Shared responsive behaviour belongs with the shared component system. */
+@media (max-width: 1100px) {
+  .topbar {
+    flex-direction: column;
+  }
+}
+
+@media (max-width: 599px) {
+  .panel-head {
+    flex-direction: column;
+  }
+
+  .action-row {
+    align-items: stretch;
+  }
+
+  .table-scroll table {
+    min-width: 680px;
+  }
+
+  .modal {
+    width: min(96vw, 760px);
+  }
+}
+

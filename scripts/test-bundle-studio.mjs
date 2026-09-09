@@ -1,9 +1,9 @@
 import fs from 'node:fs';
 const js=fs.readFileSync('public/bundle-studio.js','utf8');
-const css=fs.readFileSync('public/bundle-studio.css','utf8');
+const css=fs.readFileSync('public/assets/css/system/20-features.css','utf8');
 const html=fs.readFileSync('public/index.html','utf8');
 const checks=[
- [html.includes('bundle-studio.js')&&html.includes('bundle-studio.css'),'bundle assets linked'],
+ [html.includes('bundle-studio.js')&&(html.includes('bundle-studio.css')||html.includes('assets/css/app.css')),'bundle assets linked'],
  [js.includes('data-bs-replace'),'replace action rendered'],
  [js.includes('openPicker(rootFrom(replace),replace.dataset.bsReplace)'),'replace action wired'],
  [js.includes('data-bs-remove-selected'),'bulk remove rendered'],

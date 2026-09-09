@@ -4,15 +4,63 @@
     "status": "modified"
   },
   {
+    "path": "dist/assets/css/app.css",
+    "status": "modified"
+  },
+  {
+    "path": "dist/assets/css/system/10-legacy-compat.css",
+    "status": "modified"
+  },
+  {
+    "path": "dist/assets/css/system/20-features.css",
+    "status": "modified"
+  },
+  {
+    "path": "dist/assets/css/system/30-workspaces.css",
+    "status": "modified"
+  },
+  {
+    "path": "dist/assets/css/system/40-design-system.css",
+    "status": "modified"
+  },
+  {
+    "path": "dist/service-worker.js",
+    "status": "modified"
+  },
+  {
     "path": "package.json",
     "status": "modified"
   },
   {
-    "path": "scripts/test-release-cleanup.mjs",
+    "path": "public/assets/css/app.css",
     "status": "modified"
   },
   {
-    "path": "vercel.json",
+    "path": "public/assets/css/system/10-legacy-compat.css",
+    "status": "modified"
+  },
+  {
+    "path": "public/assets/css/system/20-features.css",
+    "status": "modified"
+  },
+  {
+    "path": "public/assets/css/system/30-workspaces.css",
+    "status": "modified"
+  },
+  {
+    "path": "public/assets/css/system/40-design-system.css",
+    "status": "modified"
+  },
+  {
+    "path": "public/service-worker.js",
+    "status": "modified"
+  },
+  {
+    "path": "scripts/test-css-architecture.mjs",
+    "status": "modified"
+  },
+  {
+    "path": "scripts/test-release-cleanup.mjs",
     "status": "modified"
   }
 ]

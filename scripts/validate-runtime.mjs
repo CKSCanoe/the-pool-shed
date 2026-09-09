@@ -7,14 +7,14 @@ const htmlPath = path.join(root, 'index.html');
 const swPath = path.join(root, 'service-worker.js');
 const configPath = path.join(root, 'config.js');
 const salesSearchPath = path.join(root, 'sales-order-search.js');
-const salesSearchCssPath = path.join(root, 'sales-order-search.css');
+const salesSearchCssPath = path.join(root, 'assets/css/system/20-features.css');
 const partialFulfilmentPath = path.join(root, 'partial-fulfilment.js');
-const partialFulfilmentCssPath = path.join(root, 'partial-fulfilment.css');
+const partialFulfilmentCssPath = path.join(root, 'assets/css/system/20-features.css');
 const catalogueIntelligencePath = path.join(root, 'catalogue-intelligence.js');
-const catalogueIntelligenceCssPath = path.join(root, 'catalogue-intelligence.css');
+const catalogueIntelligenceCssPath = path.join(root, 'assets/css/system/20-features.css');
 const productImagesPath = path.join(root, 'product-images.js');
-const productImagesCssPath = path.join(root, 'product-images.css');
-const catalogueHealthCssPath = path.join(root, 'catalogue-health.css');
+const productImagesCssPath = path.join(root, 'assets/css/system/20-features.css');
+const catalogueHealthCssPath = path.join(root, 'assets/css/system/20-features.css');
 
 for (const file of [htmlPath, swPath, configPath, salesSearchPath, salesSearchCssPath, partialFulfilmentPath, partialFulfilmentCssPath, catalogueIntelligencePath, catalogueIntelligenceCssPath, productImagesPath, productImagesCssPath, catalogueHealthCssPath]) {
   if (!fs.existsSync(file)) throw new Error(`Missing required deployment file: ${file}`);
@@ -28,16 +28,16 @@ const appSource = html + '\n' + localAssetSource;
 if (!appSource.includes('<!doctype html>') || !appSource.includes('The Pool Shed')) {
   throw new Error('index.html does not look like The Pool Shed app');
 }
-if (!appSource.includes('./sales-order-search.css') || !appSource.includes('./sales-order-search.js')) {
+if (!(appSource.includes('./sales-order-search.css') || appSource.includes('./assets/css/app.css')) || !appSource.includes('./sales-order-search.js')) {
   throw new Error('The v1.10.5 sales order search assets are not connected to index.html');
 }
-if (!appSource.includes('./partial-fulfilment.css') || !appSource.includes('./partial-fulfilment.js')) {
+if (!(appSource.includes('./partial-fulfilment.css') || appSource.includes('./assets/css/app.css')) || !appSource.includes('./partial-fulfilment.js')) {
   throw new Error('The v1.10.9 partial shipment assets are not connected to index.html');
 }
-if (!appSource.includes('./catalogue-intelligence.css') || !appSource.includes('./catalogue-intelligence.js')) {
+if (!(appSource.includes('./catalogue-intelligence.css') || appSource.includes('./assets/css/app.css')) || !appSource.includes('./catalogue-intelligence.js')) {
   throw new Error('The v1.11.4 catalogue intelligence assets are not connected to index.html');
 }
-if (!appSource.includes('./product-images.css') || !appSource.includes('./product-images.js')) {
+if (!(appSource.includes('./product-images.css') || appSource.includes('./assets/css/app.css')) || !appSource.includes('./product-images.js')) {
   throw new Error('The v1.11.4 product image assets are not connected to index.html');
 }
 
@@ -71,16 +71,16 @@ if ((appSource.match(/purchaseOrderStatusPicker\(po/g) || []).length < 5) {
 
 const swSource = fs.readFileSync(swPath, 'utf8');
 new vm.Script(swSource, { filename: 'service-worker.js' });
-for (const asset of ['product-images.css', 'product-images.js', 'sales-order-search.css', 'sales-order-search.js', 'partial-fulfilment.css', 'partial-fulfilment.js', 'catalogue-intelligence.css', 'catalogue-intelligence.js']) {
+for (const asset of ['product-images.js', 'sales-order-search.js', 'partial-fulfilment.js', 'catalogue-intelligence.js']) {
   if (!swSource.includes(asset)) throw new Error(`Offline cache is missing ${asset}`);
 }
 if (!swSource.includes('pool-shed-app-v1')) {
   throw new Error('Service worker cache key is not set for the Version 1 release');
 }
-for (const asset of ['bundle-studio.css', 'bundle-studio.js']) {
+for (const asset of ['bundle-studio.js']) {
   if (!swSource.includes(asset)) throw new Error(`Offline cache is missing ${asset}`);
 }
-if (!swSource.includes('catalogue-health.css')) throw new Error('Offline cache is missing catalogue-health.css');
+if (!swSource.includes('assets/css/app.css')) throw new Error('Offline cache is missing the application stylesheet bundle');
 for (const feature of ['Catalogue quality workspace','data-health-save','data-health-export','data-health-import','bindCatalogueHealth']) {
   if (!appSource.includes(feature)) throw new Error(`Catalogue health control is missing ${feature}`);
 }

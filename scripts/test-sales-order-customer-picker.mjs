@@ -1,11 +1,11 @@
 import fs from 'node:fs';
 const index = fs.readFileSync('public/index.html','utf8');
 const js = fs.readFileSync('public/sales-order-customer-picker.js','utf8');
-const css = fs.readFileSync('public/sales-order-customer-picker.css','utf8');
+const css = fs.readFileSync('public/assets/css/system/20-features.css','utf8');
 const sw = fs.readFileSync('public/service-worker.js','utf8');
 const checks = [
   ['picker JS loaded', index.includes('sales-order-customer-picker.js')],
-  ['picker CSS loaded', index.includes('sales-order-customer-picker.css')],
+  ['picker CSS loaded', (index.includes('sales-order-customer-picker.css') || index.includes('assets/css/app.css'))],
   ['live customer search', js.includes('function searchCustomers(query)') && js.includes('data-so-customer-search')],
   ['create and attach', js.includes('function createAndAttachCustomer(form)') && js.includes('applyCustomerToSalesOrder(orderId, newCustomer.id)')],
   ['CRM record created', js.includes('data.customers.push(newCustomer)')],

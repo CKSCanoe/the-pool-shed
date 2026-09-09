@@ -1,6 +1,6 @@
 import fs from 'node:fs';
 const js = fs.readFileSync('public/assets/js/01-legacy-01.js', 'utf8');
-const css = fs.readFileSync('public/assets/css/01-legacy-01.css', 'utf8');
+const css = fs.readFileSync('public/assets/css/system/10-legacy-compat.css', 'utf8');
 const checks = [
   ['partial stage calculation', js.includes('function fulfilmentStageClass')],
   ['delivery uses shipped quantities', js.includes('shipState = fulfilmentStageClass(state.shipped, state.required')],

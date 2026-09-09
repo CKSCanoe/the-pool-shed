@@ -1,6 +1,6 @@
 import fs from 'node:fs';
 const js = fs.readFileSync('public/catalogue-intelligence.js','utf8');
-const css = fs.readFileSync('public/catalogue-intelligence.css','utf8');
+const css = fs.readFileSync('public/assets/css/system/20-features.css','utf8');
 const checks = [
   ['modal search rendered', js.includes('id="ciPoModalSearch"')],
   ['modal close rendered', js.includes('data-ci-po-modal-close="true"')],
