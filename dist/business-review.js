@@ -1,7 +1,7 @@
 /* Read-only guidance; never changes statuses, sends invoices or moves stock. */
 function psMarginMeter(s) {
  const margin=s.margin, value=margin===null?0:Math.max(0,Math.min(100,margin));
- return '<section class="ps-margin-meter"><strong>'+(margin===null?'Set an agreed quote to monitor margin':margin.toFixed(1)+'% forecast margin')+'</strong><span>Target '+s.target+'%</span><div class="ps-margin-track" role="img" aria-label="Forecast margin '+(margin===null?'unavailable':margin.toFixed(1)+' percent')+', target '+s.target+' percent"><i style="width:'+value+'%;background:'+(margin!==null&&margin<s.target?'#b86612':'#147b59')+'"></i><b style="left:'+Math.max(0,Math.min(100,s.target))+'%"></b></div><small>0% is break-even. Forecast cost headroom at target: '+money(s.headroom/100)+'.</small></section>';
+ return '<section class="ps-margin-meter"><strong>'+(margin===null?'Set an agreed quote to monitor margin':margin.toFixed(1)+'% forecast margin')+'</strong><span>Target '+s.target+'%</span><div class="ps-margin-track" role="img" aria-label="Forecast margin '+(margin===null?'unavailable':margin.toFixed(1)+' percent')+', target '+s.target+' percent"><i style="width:'+value+'%;background:'+(margin!==null&&margin<s.target?'#B36A05':'#218653')+'"></i><b style="left:'+Math.max(0,Math.min(100,s.target))+'%"></b></div><small>0% is break-even. Forecast cost headroom at target: '+money(s.headroom/100)+'.</small></section>';
 }
 (function(){
  const esc=v=>escapeHtml(String(v??''));

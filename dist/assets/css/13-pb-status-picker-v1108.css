@@ -1,7 +1,7 @@
 /* v1.10.8: visible-label status pickers for Sales Orders and Purchase Orders. */
 .status-picker {
-  --status-bg: #607080;
-  --status-fg: #ffffff;
+  --status-bg: var(--color-text-secondary);
+  --status-fg: var(--color-surface-default);
   position: relative;
   display: inline-grid;
   grid-template-columns: 11px minmax(0, 1fr) 10px;
@@ -12,7 +12,7 @@
   max-width: 100%;
   min-height: 44px;
   padding: 0 .82rem;
-  border: 1px solid color-mix(in srgb, var(--status-bg), #0b2633 24%);
+  border: 1px solid color-mix(in srgb, var(--status-bg), var(--color-brand-navy) 24%);
   border-radius: 999px;
   background: var(--status-bg);
   color: var(--status-fg);
@@ -84,7 +84,7 @@
   box-shadow: 0 9px 22px color-mix(in srgb, var(--status-bg), transparent 58%);
 }
 .status-picker:focus-within {
-  outline: 3px solid color-mix(in srgb, var(--status-bg), #00a6ce 42%);
+  outline: 3px solid color-mix(in srgb, var(--status-bg), var(--color-action-primary) 42%);
   outline-offset: 2px;
 }
 .status-picker-native:disabled { cursor: not-allowed; }

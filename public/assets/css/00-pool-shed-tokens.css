@@ -1,0 +1,209 @@
+/* Pool Shed Professional visual foundation.
+   Canonical colour source. All application colour should resolve through these tokens. */
+:root {
+  color-scheme: light;
+
+  /* Approved Pool Shed palette */
+  --ps-palette-navy: #102B3A;
+  --ps-palette-teal: #007A8C;
+  --ps-palette-aqua: #00A7C4;
+  --ps-palette-ink: #17252E;
+  --ps-palette-slate: #5B6972;
+  --ps-palette-canvas: #F3F6F8;
+  --ps-palette-soft-blue: #EAF1F4;
+  --ps-palette-border: #D7E0E5;
+  --ps-palette-white: #FFFFFF;
+  --ps-palette-success: #218653;
+  --ps-palette-attention: #B36A05;
+  --ps-palette-danger: #B83A43;
+  --ps-palette-info: #176B91;
+
+  /* Approved dark palette */
+  --ps-palette-dark-canvas: #0C1821;
+  --ps-palette-dark-surface: #12232E;
+  --ps-palette-dark-raised: #172B37;
+  --ps-palette-dark-border: #29404D;
+  --ps-palette-dark-text: #EDF4F7;
+  --ps-palette-dark-muted: #A7B7C0;
+
+  /* Semantic colour layer */
+  --color-brand-navy: var(--ps-palette-navy);
+  --color-action-primary: var(--ps-palette-teal);
+  --color-action-primary-hover: color-mix(in srgb, var(--ps-palette-teal) 82%, var(--ps-palette-navy));
+  --color-action-focus: var(--ps-palette-aqua);
+  --color-action-soft: color-mix(in srgb, var(--ps-palette-teal) 9%, var(--ps-palette-white));
+  --color-action-line: color-mix(in srgb, var(--ps-palette-teal) 30%, var(--ps-palette-white));
+
+  --color-text-primary: var(--ps-palette-ink);
+  --color-text-secondary: var(--ps-palette-slate);
+  --color-text-inverse: var(--ps-palette-white);
+  --color-text-disabled: color-mix(in srgb, var(--ps-palette-slate) 62%, var(--ps-palette-white));
+
+  --color-surface-canvas: var(--ps-palette-canvas);
+  --color-surface-default: var(--ps-palette-white);
+  --color-surface-subtle: var(--ps-palette-soft-blue);
+  --color-surface-raised: var(--ps-palette-white);
+  --color-surface-selected: var(--color-action-soft);
+
+  --color-border-default: var(--ps-palette-border);
+  --color-border-strong: color-mix(in srgb, var(--ps-palette-slate) 48%, var(--ps-palette-white));
+
+  --color-status-success: var(--ps-palette-success);
+  --color-status-success-text: #176B42;
+  --color-status-success-bg: #EAF7EF;
+  --color-status-success-line: #BBDDC8;
+
+  --color-status-attention: var(--ps-palette-attention);
+  --color-status-attention-text: #895005;
+  --color-status-attention-bg: #FFF5DA;
+  --color-status-attention-line: #E8CF8E;
+
+  --color-status-danger: var(--ps-palette-danger);
+  --color-status-danger-text: #9E3039;
+  --color-status-danger-bg: #FDEDEF;
+  --color-status-danger-line: #E9BEC2;
+
+  --color-status-info: var(--ps-palette-info);
+  --color-status-info-text: #145F80;
+  --color-status-info-bg: #EAF5FA;
+  --color-status-info-line: #BBDCE9;
+
+  --color-overlay-scrim: color-mix(in srgb, var(--ps-palette-navy) 72%, transparent);
+  --color-overlay-soft: color-mix(in srgb, var(--ps-palette-navy) 10%, transparent);
+  --shadow-color: color-mix(in srgb, var(--ps-palette-navy) 12%, transparent);
+  --shadow-color-strong: color-mix(in srgb, var(--ps-palette-navy) 24%, transparent);
+
+  /* Geometry / interaction foundation */
+  --focus-ring: 0 0 0 3px color-mix(in srgb, var(--color-action-focus) 28%, transparent);
+  --shadow-panel: 0 1px 3px var(--shadow-color);
+  --shadow-raised: 0 8px 24px var(--shadow-color);
+  --shadow-dialog: 0 24px 64px var(--shadow-color-strong);
+
+  /* Compatibility aliases. Legacy component names resolve to the one semantic system. */
+  --ink: var(--color-text-primary);
+  --muted: var(--color-text-secondary);
+  --line: var(--color-border-default);
+  --soft: var(--color-surface-canvas);
+  --panel: var(--color-surface-default);
+  --brand: var(--color-action-primary);
+  --brand-dark: var(--color-action-primary-hover);
+  --accent: var(--color-action-focus);
+  --navy: var(--color-brand-navy);
+  --shadow: var(--shadow-panel);
+
+  --ps-ink: var(--color-text-primary);
+  --ps-muted: var(--color-text-secondary);
+  --ps-line: var(--color-border-default);
+  --ps-soft: var(--color-surface-subtle);
+  --ps-cyan: var(--color-action-focus);
+  --ps-teal: var(--color-action-primary);
+  --ps-navy: var(--color-brand-navy);
+  --ps-green: var(--color-status-success);
+  --ps-amber: var(--color-status-attention);
+  --ps-red: var(--color-status-danger);
+  --ps-shadow: var(--shadow-panel);
+
+  --pb-ink: var(--color-text-primary);
+  --pb-muted: var(--color-text-secondary);
+  --pb-line: var(--color-border-default);
+  --pb-soft: var(--color-surface-subtle);
+  --pb-cyan: var(--color-action-focus);
+  --pb-teal: var(--color-action-primary);
+  --pb-navy: var(--color-brand-navy);
+  --pb-blue: var(--color-status-info);
+  --pb-green: var(--color-status-success);
+  --pb-yellow: var(--color-status-attention);
+  --pb-red: var(--color-status-danger);
+
+  --pool-ink: var(--color-text-primary);
+  --pool-surface: var(--color-surface-canvas);
+  --pool-blue: var(--color-status-info);
+  --pool-green: var(--color-status-success);
+  --pool-yellow: var(--color-status-attention);
+  --pool-red: var(--color-status-danger);
+
+  --ci-navy: var(--color-brand-navy);
+  --ci-cyan: var(--color-action-focus);
+  --ci-teal: var(--color-action-primary);
+  --ci-green: var(--color-status-success);
+  --ci-yellow: var(--color-status-attention);
+  --ci-red: var(--color-status-danger);
+
+  --bs-navy: var(--color-brand-navy);
+  --bs-blue: var(--color-action-primary);
+  --bs-cyan: var(--color-action-soft);
+  --bs-line: var(--color-border-default);
+  --bs-green: var(--color-status-success);
+  --bs-amber: var(--color-status-attention);
+  --bs-red: var(--color-status-danger);
+
+  --b2-blue: var(--color-action-primary);
+  --b2-navy: var(--color-brand-navy);
+  --b2-amber: var(--color-status-attention);
+  --b2-line: var(--color-border-default);
+
+  --teal-soft: var(--color-action-soft);
+  --amber-soft: var(--color-status-attention-bg);
+  --red-soft: var(--color-status-danger-bg);
+}
+
+html[data-theme="dark"],
+body[data-theme="dark"],
+[data-theme="dark"] {
+  color-scheme: dark;
+  --color-text-primary: var(--ps-palette-dark-text);
+  --color-text-secondary: var(--ps-palette-dark-muted);
+  --color-text-inverse: var(--ps-palette-dark-canvas);
+  --color-text-disabled: color-mix(in srgb, var(--ps-palette-dark-muted) 58%, var(--ps-palette-dark-surface));
+  --color-surface-canvas: var(--ps-palette-dark-canvas);
+  --color-surface-default: var(--ps-palette-dark-surface);
+  --color-surface-subtle: var(--ps-palette-dark-raised);
+  --color-surface-raised: var(--ps-palette-dark-raised);
+  --color-surface-selected: color-mix(in srgb, var(--ps-palette-teal) 18%, var(--ps-palette-dark-surface));
+  --color-border-default: var(--ps-palette-dark-border);
+  --color-border-strong: color-mix(in srgb, var(--ps-palette-dark-muted) 42%, var(--ps-palette-dark-surface));
+  --color-action-primary-hover: var(--ps-palette-aqua);
+  --color-action-soft: color-mix(in srgb, var(--ps-palette-teal) 16%, var(--ps-palette-dark-surface));
+  --color-action-line: color-mix(in srgb, var(--ps-palette-teal) 46%, var(--ps-palette-dark-surface));
+
+  --color-status-success-text: color-mix(in srgb, var(--ps-palette-success) 42%, var(--ps-palette-dark-text));
+  --color-status-success-bg: color-mix(in srgb, var(--ps-palette-success) 16%, var(--ps-palette-dark-surface));
+  --color-status-success-line: color-mix(in srgb, var(--ps-palette-success) 38%, var(--ps-palette-dark-surface));
+  --color-status-attention-text: color-mix(in srgb, var(--ps-palette-attention) 50%, var(--ps-palette-dark-text));
+  --color-status-attention-bg: color-mix(in srgb, var(--ps-palette-attention) 16%, var(--ps-palette-dark-surface));
+  --color-status-attention-line: color-mix(in srgb, var(--ps-palette-attention) 38%, var(--ps-palette-dark-surface));
+  --color-status-danger-text: color-mix(in srgb, var(--ps-palette-danger) 46%, var(--ps-palette-dark-text));
+  --color-status-danger-bg: color-mix(in srgb, var(--ps-palette-danger) 16%, var(--ps-palette-dark-surface));
+  --color-status-danger-line: color-mix(in srgb, var(--ps-palette-danger) 38%, var(--ps-palette-dark-surface));
+  --color-status-info-text: color-mix(in srgb, var(--ps-palette-info) 38%, var(--ps-palette-dark-text));
+  --color-status-info-bg: color-mix(in srgb, var(--ps-palette-info) 18%, var(--ps-palette-dark-surface));
+  --color-status-info-line: color-mix(in srgb, var(--ps-palette-info) 42%, var(--ps-palette-dark-surface));
+
+  /* Reassert legacy aliases at the themed element so scoped historical aliases cannot diverge. */
+  --ink: var(--color-text-primary);
+  --muted: var(--color-text-secondary);
+  --line: var(--color-border-default);
+  --soft: var(--color-surface-canvas);
+  --panel: var(--color-surface-default);
+  --brand: var(--color-action-primary);
+  --brand-dark: var(--color-action-primary-hover);
+  --accent: var(--color-action-focus);
+  --navy: var(--color-brand-navy);
+}
+
+/* Core surfaces are deliberately tied to semantic roles. */
+body { color:var(--color-text-primary); background:var(--color-surface-canvas); }
+.main { background:var(--color-surface-canvas); }
+.sidebar { background:var(--color-brand-navy); }
+button:focus-visible,
+input:focus-visible,
+select:focus-visible,
+textarea:focus-visible,
+summary:focus-visible,
+a:focus-visible { outline-color:var(--color-action-focus); }
+::selection { background:var(--color-action-soft); color:var(--color-text-primary); }
+
+/* Semantic status defaults used by legacy inline status variables. */
+.pill.good,.status-good,.success,.is-success { --status-bg:var(--color-status-success); --status-fg:var(--color-text-inverse); }
+.pill.warn,.status-warn,.warning,.is-warning { --status-bg:var(--color-status-attention); --status-fg:var(--color-text-inverse); }
+.pill.bad,.status-bad,.danger,.is-danger { --status-bg:var(--color-status-danger); --status-fg:var(--color-text-inverse); }

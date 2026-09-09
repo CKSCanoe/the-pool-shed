@@ -1,0 +1,595 @@
+/*
+ * Pool Shed Precision Operations — canonical visual foundation
+ * Selected Concept B. Colour semantics remain defined by 00-pool-shed-tokens.css.
+ * This file intentionally loads last so legacy presentation layers converge on one
+ * spacing, typography, geometry, control, table, tab, panel and responsive system.
+ */
+
+:root {
+  --ps-space-1: 4px;
+  --ps-space-2: 8px;
+  --ps-space-3: 12px;
+  --ps-space-4: 16px;
+  --ps-space-5: 20px;
+  --ps-space-6: 24px;
+
+  --ps-control-height: 38px;
+  --ps-touch-target: 44px;
+  --ps-table-row-height: 39px;
+
+  --ps-radius-sm: 4px;
+  --ps-radius-control: 5px;
+  --ps-radius-panel: 6px;
+  --ps-radius-dialog: 8px;
+
+  --ps-font-page-title: 24px;
+  --ps-font-section-title: 18px;
+  --ps-font-panel-title: 13px;
+  --ps-font-body: 14px;
+  --ps-font-table: 13px;
+  --ps-font-label: 11px;
+  --ps-font-micro: 10px;
+
+  /* Existing component contracts resolve to the selected foundation. */
+  --workspace-gap: var(--ps-space-4);
+  --control-height: var(--ps-control-height);
+  --ps-radius: var(--ps-radius-panel);
+  --shadow-panel: none;
+  --ps-shadow: none;
+  --shadow: none;
+}
+
+html {
+  font-size: 14px;
+}
+
+body {
+  font-size: var(--ps-font-body);
+  line-height: 1.45;
+}
+
+/* Shell */
+.main {
+  padding: var(--ps-space-5);
+  background: var(--color-surface-canvas);
+}
+
+.sidebar .brand {
+  gap: 9px;
+  padding: 2px 7px 13px;
+}
+
+.brand-mark,
+.ps-boot-logo {
+  background: transparent !important;
+  border: 0 !important;
+  box-shadow: none !important;
+}
+
+.brand-mark {
+  width: 38px;
+  height: 38px;
+  border-radius: 0 !important;
+  flex: 0 0 38px;
+}
+
+.brand-mark img,
+.ps-boot-logo img {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+}
+
+.ps-boot-logo {
+  width: 58px;
+  height: 58px;
+  border-radius: 0 !important;
+}
+
+.sidebar .brand strong {
+  font-size: 14px;
+  letter-spacing: 0;
+}
+
+.sidebar .brand span {
+  font-size: 11px;
+  margin-top: 1px;
+}
+
+.sidebar nav {
+  gap: 2px;
+}
+
+.sidebar nav button {
+  min-height: var(--ps-control-height);
+  padding: 8px 9px;
+  border-radius: var(--ps-radius-sm);
+  font-size: 13px;
+}
+
+.sidebar nav button.active {
+  background: var(--color-action-primary);
+  color: var(--color-text-inverse);
+  border-color: var(--color-action-primary);
+  box-shadow: none;
+}
+
+/* Page hierarchy */
+.topbar,
+.main .topbar {
+  gap: var(--ps-space-3);
+  padding: 0 0 var(--ps-space-4);
+  margin: 0 0 var(--ps-space-4);
+  border-bottom: 1px solid var(--color-border-default) !important;
+}
+
+.main .topbar h1,
+h1 {
+  margin: 3px 0 0;
+  font-size: var(--ps-font-page-title) !important;
+  line-height: 1.12;
+  font-weight: 730;
+  letter-spacing: -0.025em;
+}
+
+h2 {
+  font-size: var(--ps-font-section-title);
+  line-height: 1.25;
+}
+
+h3 {
+  font-size: var(--ps-font-panel-title);
+  line-height: 1.3;
+}
+
+#pageIntro,
+.topbar .title p {
+  margin-top: 4px;
+  max-width: 72ch;
+  color: var(--color-text-secondary);
+  font-size: 12px;
+  line-height: 1.45;
+}
+
+.breadcrumb {
+  gap: var(--ps-space-2);
+  color: var(--color-text-secondary);
+  font-size: var(--ps-font-label);
+}
+
+/* Controls */
+.main :is(button, input, select, textarea),
+button,
+input,
+select,
+textarea {
+  border-radius: var(--ps-radius-control);
+}
+
+button {
+  min-height: var(--ps-control-height);
+  padding: 8px 12px;
+  font-weight: 680;
+  line-height: 1.3;
+  box-shadow: none;
+}
+
+input:not([type="checkbox"]):not([type="radio"]),
+select {
+  min-height: var(--ps-control-height);
+}
+
+textarea {
+  min-height: calc(var(--ps-control-height) * 2);
+}
+
+button:hover {
+  transform: none !important;
+}
+
+button.secondary,
+button.ghost {
+  background: var(--color-surface-default);
+  color: var(--color-text-primary);
+  border: 1px solid var(--color-border-default);
+}
+
+button.secondary:hover,
+button.ghost:hover {
+  background: var(--color-surface-subtle);
+  border-color: var(--color-border-strong);
+}
+
+button:disabled,
+input:disabled,
+select:disabled,
+textarea:disabled {
+  opacity: .42;
+  cursor: not-allowed;
+}
+
+button:focus-visible,
+input:focus-visible,
+select:focus-visible,
+textarea:focus-visible,
+summary:focus-visible,
+a:focus-visible,
+[tabindex]:focus-visible {
+  outline: 2px solid var(--color-action-focus) !important;
+  outline-offset: 2px !important;
+  box-shadow: none !important;
+}
+
+/* Forms */
+.field {
+  gap: 5px;
+}
+
+.field label,
+.form-field label,
+label.field-label {
+  color: var(--color-text-secondary);
+  font-size: var(--ps-font-label);
+  font-weight: 700;
+}
+
+.field input,
+.field select,
+.field textarea {
+  margin-top: 0;
+  border-radius: var(--ps-radius-control);
+  border-color: var(--color-border-default);
+  font-size: 13px;
+  font-weight: 500;
+  padding-inline: 9px;
+}
+
+.form-grid {
+  gap: var(--ps-space-3);
+}
+
+/* Border-led operational surfaces */
+.panel,
+.record-card,
+.mini-card,
+.profile-card,
+.main :is(.panel,.record-card,.mini-card,.profile-card) {
+  border: 1px solid var(--color-border-default) !important;
+  border-radius: var(--ps-radius-panel) !important;
+  box-shadow: none !important;
+}
+
+.panel {
+  padding: var(--ps-space-4);
+}
+
+.panel > header,
+.panel-header {
+  gap: var(--ps-space-3) !important;
+  padding: 0 0 var(--ps-space-3) !important;
+  margin-bottom: var(--ps-space-3);
+}
+
+.panel > .panel-body,
+.record-card-body {
+  padding: var(--ps-space-4) !important;
+}
+
+.kpi,
+.profile-stat,
+.warehouse-kpi {
+  border-radius: var(--ps-radius-panel) !important;
+  padding: var(--ps-space-3) !important;
+  box-shadow: none !important;
+}
+
+/* Section navigation and record tabs: flat underline selection */
+.ps-section-nav {
+  display: flex;
+  flex-wrap: nowrap;
+  gap: 2px;
+  width: max-content;
+  max-width: 100%;
+  overflow-x: auto;
+  margin-bottom: var(--ps-space-4);
+  padding: 0;
+  background: transparent;
+  border: 0;
+  border-bottom: 1px solid var(--color-border-default);
+  border-radius: 0;
+}
+
+.ps-section-nav button {
+  min-height: 35px;
+  padding: 0 12px;
+  border: 0;
+  border-bottom: 2px solid transparent;
+  border-radius: 0;
+  background: transparent;
+  color: var(--color-text-secondary);
+  font-size: 12px;
+  font-weight: 650;
+  white-space: nowrap;
+  animation: none !important;
+}
+
+.ps-section-nav button.active {
+  background: transparent;
+  color: var(--color-action-primary);
+  border-color: transparent;
+  border-bottom-color: var(--color-action-primary);
+  box-shadow: none !important;
+  animation: none !important;
+}
+
+.tabs-row,
+.customer-tabs,
+.workspace-tabs,
+.sales-workspace .tabs-row {
+  display: flex !important;
+  flex-wrap: nowrap !important;
+  gap: 0 !important;
+  overflow-x: auto;
+  padding: 0 var(--ps-space-4) !important;
+  margin: 0;
+  border-bottom: 1px solid var(--color-border-default);
+}
+
+.tab-chip,
+#screen-salesorders .tab-chip,
+.customer-tabs button,
+.sales-workspace .tab-chip {
+  min-height: 38px !important;
+  padding: 0 12px !important;
+  border: 0 !important;
+  border-bottom: 2px solid transparent !important;
+  border-radius: 0 !important;
+  background: transparent !important;
+  color: var(--color-text-secondary) !important;
+  font-size: 12px !important;
+  font-weight: 650 !important;
+  white-space: nowrap;
+  box-shadow: none !important;
+}
+
+.tab-chip.active,
+#screen-salesorders .tab-chip.active,
+.customer-tabs button.active,
+.sales-workspace .tab-chip.active {
+  background: transparent !important;
+  color: var(--color-action-primary) !important;
+  border-color: transparent !important;
+  border-bottom-color: var(--color-action-primary) !important;
+  box-shadow: none !important;
+}
+
+/* Tables: compact, bounded, sticky and numeric-friendly */
+.table-scroll,
+.order-lines-scroll,
+.po-lines-wrap,
+.sales-table-scroll {
+  max-width: 100%;
+  overflow: auto;
+  overscroll-behavior: contain;
+  border: 1px solid var(--color-border-default);
+  border-radius: var(--ps-radius-control) !important;
+  scrollbar-gutter: stable;
+}
+
+table {
+  width: 100%;
+  border-collapse: separate;
+  border-spacing: 0;
+  font-size: var(--ps-font-table);
+  font-variant-numeric: tabular-nums;
+}
+
+th {
+  position: sticky;
+  top: 0;
+  z-index: 2;
+  height: 34px;
+  padding: 0 10px !important;
+  background: var(--color-surface-subtle) !important;
+  color: var(--color-text-secondary) !important;
+  font-size: var(--ps-font-micro) !important;
+  font-weight: 750;
+  line-height: 1.2;
+  letter-spacing: .045em;
+  text-transform: uppercase;
+  white-space: nowrap;
+  vertical-align: middle;
+}
+
+td,
+#screen-salesorders .order-lines-table tbody td,
+.sales-workspace .order-lines-table td {
+  height: var(--ps-table-row-height);
+  padding: 6px 10px !important;
+  color: var(--color-text-primary);
+  font-size: var(--ps-font-table);
+  line-height: 1.35;
+  vertical-align: middle;
+  border-bottom: 1px solid var(--color-border-default);
+}
+
+#screen-salesorders .order-lines-table thead th,
+.sales-workspace .order-lines-table th {
+  height: 34px;
+  padding: 0 10px !important;
+  font-size: var(--ps-font-micro) !important;
+}
+
+tbody tr:hover {
+  background: color-mix(in srgb, var(--color-action-primary) 3%, var(--color-surface-default));
+}
+
+/* Status: compact text + colour + shape cue. */
+.pill {
+  min-height: 0;
+  padding: 3px 7px;
+  border-radius: 999px;
+  font-size: var(--ps-font-micro);
+  font-weight: 800;
+  line-height: 1.2;
+}
+
+/* Dialogs: viewport-safe shell with persistent header/actions where markup permits. */
+.modal-backdrop.active,
+.modal-backdrop.show {
+  overflow: auto;
+  padding: var(--ps-space-4);
+  background: var(--color-overlay-scrim);
+}
+
+.modal,
+.modal-card,
+.modal-panel {
+  max-height: calc(100dvh - 32px);
+  border: 1px solid var(--color-border-default);
+  border-radius: var(--ps-radius-dialog) !important;
+  box-shadow: var(--shadow-dialog);
+  overflow: auto;
+}
+
+.modal header,
+.modal-card > header,
+.modal-panel > header,
+.modal footer,
+.modal-card > footer,
+.modal-panel > footer {
+  position: sticky;
+  z-index: 2;
+  background: var(--color-surface-default);
+}
+
+.modal header,
+.modal-card > header,
+.modal-panel > header {
+  top: 0;
+}
+
+.modal footer,
+.modal-card > footer,
+.modal-panel > footer {
+  bottom: 0;
+}
+
+/* Density modes retain the same geometry language instead of creating a second design system. */
+html[data-density="compact"] {
+  --control-height: 34px;
+  --workspace-gap: 12px;
+  --ps-table-row-height: 35px;
+}
+
+html[data-density="comfortable"] {
+  --control-height: 42px;
+  --workspace-gap: 20px;
+  --ps-table-row-height: 44px;
+}
+
+html[data-density="compact"] td {
+  padding-block: 4px !important;
+}
+
+html[data-density="comfortable"] td {
+  padding-block: 8px !important;
+}
+
+html[data-density="comfortable"] .panel {
+  padding: var(--ps-space-5);
+}
+
+/* Precision breakpoints: mobile <600, compact 600–899, desktop 900–1199, wide >=1200. */
+@media (max-width: 1199px) {
+  .main {
+    padding: var(--ps-space-4);
+  }
+}
+
+@media (max-width: 899px) {
+  .topbar {
+    gap: var(--ps-space-4);
+  }
+
+  .panel {
+    padding: var(--ps-space-4);
+  }
+
+  .screen.grid {
+    gap: var(--ps-space-4) !important;
+  }
+}
+
+@media (max-width: 599px) {
+  :root {
+    --control-height: var(--ps-touch-target);
+    --ps-table-row-height: 46px;
+  }
+
+  .main {
+    padding: var(--ps-space-3);
+  }
+
+  .topbar,
+  .main .topbar {
+    padding-bottom: var(--ps-space-3);
+    margin-bottom: var(--ps-space-3);
+  }
+
+  .main .topbar h1,
+  h1 {
+    font-size: 22px !important;
+  }
+
+  button,
+  input:not([type="checkbox"]):not([type="radio"]),
+  select {
+    min-height: var(--ps-touch-target);
+  }
+
+  .panel {
+    padding: 14px;
+  }
+
+  .panel > .panel-body,
+  .record-card-body {
+    padding: 14px !important;
+  }
+
+  .tabs-row,
+  .customer-tabs,
+  .workspace-tabs,
+  .sales-workspace .tabs-row {
+    padding-inline: var(--ps-space-3) !important;
+  }
+
+  td,
+  #screen-salesorders .order-lines-table tbody td,
+  .sales-workspace .order-lines-table td {
+    padding-block: 8px !important;
+  }
+
+  .modal-backdrop.active,
+  .modal-backdrop.show {
+    padding: var(--ps-space-3);
+  }
+
+  .modal,
+  .modal-card,
+  .modal-panel {
+    max-height: calc(100dvh - 24px);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .ps-section-nav button,
+  button,
+  .modal,
+  .modal-card,
+  .modal-panel {
+    transition: none !important;
+    animation: none !important;
+  }
+}

@@ -207,7 +207,7 @@ for (const requiredStyle of [
   'background: var(--surface)',
   'solid Product Hub refinements',
   '.ci-search-backdrop',
-  'background: #ffffff !important',
+  'background: var(--color-surface-default) !important',
   'button.ci-result-row',
   '.ci-popover-footer',
   '.ci-search-shell.ci-search-source-active',
@@ -426,7 +426,7 @@ for (const requiredSearchFeature of ['data-so-select-product-v1105', 'productMat
   }
 }
 
-for (const statusToken of ['statusEditorModal', 'data-add-status', 'data-edit-status', 'data-delete-status', 'RAL_STATUS_COLOURS', 'deleteSalesOrderStatus']) {
+for (const statusToken of ['statusEditorModal', 'data-add-status', 'data-edit-status', 'data-delete-status', 'POOL_SHED_STATUS_COLOURS', 'statusPaletteColour', 'normaliseStatusColour', 'deleteSalesOrderStatus']) {
   if (!appSource.includes(statusToken)) throw new Error(`Status management is incomplete: ${statusToken}`);
 }
 console.log(`Runtime validation passed: ${count} inline scripts, service worker, offline sales search, catalogue intelligence, PO supplier-offer search, partial shipment balance test, solid catalogue search UI and required app functions.`);
