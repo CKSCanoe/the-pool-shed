@@ -8373,7 +8373,7 @@ body[data-theme="dark"] .ps-section-nav button.active { background:var(--color-b
 
 /* ===== MODULE: system/34-customer-workspace.css ===== */
 
-/* Customer Workspace — Design Lab parity — v1.4.0
+/* Customer Workspace — Design Lab parity — v1.4.1
    Scoped to CRM so the production shell/dashboard remain unchanged. */
 
 #screen-crm{display:block;min-width:0}
@@ -8432,7 +8432,13 @@ body[data-theme="dark"] .ps-section-nav button.active { background:var(--color-b
 .crm-stat small{display:block;color:#5b6972;font-size:10px}
 
 .crm-grid{display:grid;grid-template-columns:1.2fr .8fr;gap:10px}
-.crm-account-overview-grid{grid-template-columns:minmax(0,1.7fr) minmax(250px,.72fr);align-items:start}
+.crm-account-overview-grid{grid-template-columns:minmax(0,1fr);align-items:start}
+.crm-account-health-card .crm-cardhead{padding:8px 12px}
+.crm-account-health-card .crm-cardbody{display:grid;grid-template-columns:minmax(260px,.78fr) minmax(0,1.22fr);gap:18px;align-items:center;padding:10px 12px}
+.crm-account-health-card .crm-healthscore{padding:0}
+.crm-account-health-card .crm-attention-row{margin:0;padding:0 0 0 18px;border-top:0;border-left:1px solid #d7e0e5;min-height:40px}
+.crm-account-health-card .crm-healthscore>div{min-width:0}
+.crm-account-health-card .crm-healthscore small{line-height:1.4}
 .crm-card,.crm-depth-card{background:#fff;border:1px solid #d7e0e5;border-radius:7px;overflow:hidden;min-width:0}
 .crm-cardhead,.crm-depth-card>header{display:flex;justify-content:space-between;align-items:center;gap:10px;padding:10px 12px;border-bottom:1px solid #d7e0e5}
 .crm-cardhead h3,.crm-depth-card h3{margin:0;font-size:12px;color:#17252e}
@@ -8450,7 +8456,7 @@ body[data-theme="dark"] .ps-section-nav button.active { background:var(--color-b
 .crm-account-warning span{font-size:10px;font-weight:850;text-transform:uppercase;letter-spacing:.05em}
 .crm-account-warning b{color:#6f4205}
 
-.crm-core-sections{display:grid;grid-template-columns:minmax(180px,.9fr) minmax(260px,1.25fr) minmax(180px,.85fr);gap:10px}
+.crm-core-sections{display:grid;grid-template-columns:minmax(210px,1fr) minmax(300px,1.35fr) minmax(210px,1fr);gap:10px}
 .crm-core-group{min-width:0;background:#fff;border:1px solid #d4e5ea;border-radius:6px;padding:10px}
 .crm-core-group-head{display:flex;gap:8px;align-items:flex-start;padding-bottom:8px;margin-bottom:2px;border-bottom:1px solid #e3edf0}
 .crm-core-group-head>span{display:grid;place-items:center;flex:0 0 22px;height:22px;border-radius:4px;background:#e5f3f6;color:#007a8c;font-size:10px;font-weight:900}
@@ -8459,7 +8465,7 @@ body[data-theme="dark"] .ps-section-nav button.active { background:var(--color-b
 .crm-core-item{display:grid;grid-template-columns:minmax(84px,.75fr) minmax(0,1.25fr);gap:9px;padding:8px 0;border-top:1px solid #eef3f5}
 .crm-core-item:first-of-type{border-top:0}
 .crm-core-item>span{color:#627681;font-size:10px;font-weight:750;text-transform:uppercase;letter-spacing:.035em}
-.crm-core-item strong{display:block;color:#17252e;font-size:11px;line-height:1.35;overflow-wrap:anywhere}
+.crm-core-item strong{display:block;color:#17252e;font-size:11px;line-height:1.4;overflow-wrap:anywhere;word-break:break-word}
 .crm-core-item small{display:block;margin-top:2px;color:#697d87;font-size:10px;line-height:1.35}
 
 .crm-address-block{padding:8px 0;border-top:1px solid #eef3f5}
@@ -8467,7 +8473,7 @@ body[data-theme="dark"] .ps-section-nav button.active { background:var(--color-b
 .crm-address-block>div{display:flex;align-items:center;gap:6px}
 .crm-address-block i{display:inline-block;padding:2px 4px;border-radius:3px;background:#dceef3;color:#145f80;font-style:normal;font-size:10px;letter-spacing:.04em;font-weight:800}
 .crm-address-block strong{color:#17252e;font-size:10px}
-.crm-address-block p{margin:5px 0 3px;color:#425963;font-size:10px;line-height:1.5}
+.crm-address-block p{margin:5px 0 3px;color:#425963;font-size:10px;line-height:1.5;overflow-wrap:anywhere}
 
 .crm-healthscore{display:flex;align-items:center;gap:10px;padding:2px 0 10px}
 .crm-health-ring{width:38px;height:38px;border-radius:50%;display:grid;place-items:center;background:#eaf7ef;border:2px solid #218653;color:#176b42;font-weight:900;font-size:16px}
@@ -8524,6 +8530,10 @@ body[data-theme="dark"] .ps-section-nav button.active { background:var(--color-b
   .crm-master-detail{grid-template-columns:250px minmax(0,1fr)}
   .crm-core-sections{grid-template-columns:1fr 1fr}
   .crm-core-addresses{grid-row:span 2}
+}
+@media(max-width:980px){
+  .crm-account-health-card .crm-cardbody{grid-template-columns:1fr;gap:10px}
+  .crm-account-health-card .crm-attention-row{padding:10px 0 0;border-left:0;border-top:1px solid #d7e0e5}
 }
 @media(max-width:900px){
   .crm-master-detail{grid-template-columns:1fr}

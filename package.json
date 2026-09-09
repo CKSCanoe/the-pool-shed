@@ -19,7 +19,7 @@
     "test:accounting": "node scripts/test-accounting.mjs && node scripts/test-accounting-database.mjs && node scripts/test-accounting-api.mjs",
     "test:projects": "node scripts/test-project-engine.mjs && node scripts/test-project-database.mjs && node scripts/test-project-ai.mjs"
   },
-  "version": "1.4.0",
+  "version": "1.4.1",
   "description": "The Pool Shed inventory, purchasing, sales, warehouse and bundle management application",
   "devDependencies": {
     "@electric-sql/pglite": "^0.5.8"

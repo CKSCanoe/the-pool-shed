@@ -1,4 +1,4 @@
-# Customer Design Lab Parity — 1.4.0
+# Customer Health Layout Refinement — 1.4.1
 
 
 Vercel deployment now skips npm dependency installation because the production build has no runtime npm dependencies; `@electric-sql/pglite` remains a local test-only development dependency.
