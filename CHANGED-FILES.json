@@ -1,0 +1,130 @@
+[
+  {
+    "path": "pnpm-lock.yaml",
+    "status": "new"
+  },
+  {
+    "path": "CONNECTED-REGRESSION-RESULTS.txt",
+    "status": "new"
+  },
+  {
+    "path": "vercel-accounting-schedule.example.json",
+    "status": "new"
+  },
+  {
+    "path": "vercel.json",
+    "status": "modified"
+  },
+  {
+    "path": "qa-accounting-mobile.png",
+    "status": "new"
+  },
+  {
+    "path": "README.md",
+    "status": "modified"
+  },
+  {
+    "path": "ACCOUNTING-SETUP.md",
+    "status": "new"
+  },
+  {
+    "path": "package.json",
+    "status": "modified"
+  },
+  {
+    "path": "CONNECTED-RELEASE-AUDIT.md",
+    "status": "new"
+  },
+  {
+    "path": "database/001-accounting.sql",
+    "status": "new"
+  },
+  {
+    "path": "database/002-workspace-hardening.sql",
+    "status": "new"
+  },
+  {
+    "path": "dist/index.html",
+    "status": "modified"
+  },
+  {
+    "path": "dist/professional-workspace.css",
+    "status": "modified"
+  },
+  {
+    "path": "dist/accounting-workspace.js",
+    "status": "new"
+  },
+  {
+    "path": "dist/config.js",
+    "status": "modified"
+  },
+  {
+    "path": "dist/service-worker.js",
+    "status": "modified"
+  },
+  {
+    "path": "dist/assets/js/01-legacy-01.js",
+    "status": "modified"
+  },
+  {
+    "path": "server/accounting.js",
+    "status": "new"
+  },
+  {
+    "path": "public/index.html",
+    "status": "modified"
+  },
+  {
+    "path": "public/professional-workspace.css",
+    "status": "modified"
+  },
+  {
+    "path": "public/accounting-workspace.js",
+    "status": "new"
+  },
+  {
+    "path": "public/service-worker.js",
+    "status": "modified"
+  },
+  {
+    "path": "public/assets/js/01-legacy-01.js",
+    "status": "modified"
+  },
+  {
+    "path": "scripts/test-workspace-database.mjs",
+    "status": "new"
+  },
+  {
+    "path": "scripts/test-accounting.mjs",
+    "status": "new"
+  },
+  {
+    "path": "scripts/test-browser-smoke.cjs",
+    "status": "modified"
+  },
+  {
+    "path": "scripts/test-accounting-api.mjs",
+    "status": "new"
+  },
+  {
+    "path": "scripts/accounting-backup.mjs",
+    "status": "new"
+  },
+  {
+    "path": "scripts/test-accounting-database.mjs",
+    "status": "new"
+  },
+  {
+    "path": "scripts/build.sh",
+    "status": "modified"
+  },
+  {
+    "path": "scripts/test-workspace-sync.mjs",
+    "status": "modified"
+  },
+  {
+    "path": "api/finance.js",
+    "status": "new"
+  }
+]
