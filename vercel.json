@@ -3,7 +3,7 @@
   "buildCommand": "npm run build",
   "outputDirectory": "dist",
   "framework": null,
-  "installCommand": "npm install",
+  "installCommand": "node -e \"console.log('Pool Shed: no production npm dependencies to install')\"",
   "cleanUrls": true,
   "trailingSlash": false,
   "rewrites": [

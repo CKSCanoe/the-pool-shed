@@ -9,7 +9,7 @@ const failures = [];
 
 if (/<title>[^<]*(?:v\d|version\s+\d)/i.test(index)) failures.push('A version number is visible in the page title.');
 if (/bundle-(?:system-v2|studio-v\d+)/.test(index)) failures.push('Versioned bundle assets remain linked in index.html.');
-if (pkg.version !== '1.0.2') failures.push('package.json is not Version 1.0.2.');
+if (pkg.version !== '1.0.3') failures.push('package.json is not Version 1.0.3.');
 if (vercel.outputDirectory !== 'dist') failures.push('Vercel outputDirectory must be dist.');
 for (const file of ['bundle-system.js','bundle-system.css','bundle-studio.js','bundle-studio.css']) {
   if (!fs.existsSync(path.join(root,'public',file))) failures.push(`Missing ${file}.`);

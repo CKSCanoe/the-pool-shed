@@ -4,51 +4,15 @@
     "status": "modified"
   },
   {
-    "path": "dist/assets/css/15-pool-shed-precision-foundation.css",
-    "status": "new"
-  },
-  {
-    "path": "dist/assets/img/pb-logo.png",
-    "status": "new"
-  },
-  {
-    "path": "dist/assets/js/01-legacy-01.js",
-    "status": "modified"
-  },
-  {
-    "path": "dist/index.html",
-    "status": "modified"
-  },
-  {
-    "path": "dist/service-worker.js",
-    "status": "modified"
-  },
-  {
     "path": "package.json",
     "status": "modified"
   },
   {
-    "path": "public/assets/css/15-pool-shed-precision-foundation.css",
-    "status": "new"
-  },
-  {
-    "path": "public/assets/img/pb-logo.png",
-    "status": "new"
-  },
-  {
-    "path": "public/assets/js/01-legacy-01.js",
-    "status": "modified"
-  },
-  {
-    "path": "public/index.html",
-    "status": "modified"
-  },
-  {
-    "path": "public/service-worker.js",
-    "status": "modified"
-  },
-  {
     "path": "scripts/test-release-cleanup.mjs",
+    "status": "modified"
+  },
+  {
+    "path": "vercel.json",
     "status": "modified"
   }
 ]

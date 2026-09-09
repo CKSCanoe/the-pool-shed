@@ -1,6 +1,6 @@
 {
   "ACCOUNTING-SETUP.md": "4c67271ab3b280d5a458049822aa772e04754a3a00f81186d555072713273e68",
-  "CHANGED-FILES.json": "2a967403d18abc1adaa139a5b6e6e213c52b886a976cf7056339037f65ccc3fb",
+  "CHANGED-FILES.json": "853437b2f22458504d3150a238f348f7610d988222e11108dfc4652a6a2d1ae6",
   "CONNECTED-REGRESSION-RESULTS.txt": "0bd682ae34c1ba923c0d6c375d0da3330bef3f1bb60108390805e34f70b2d5c9",
   "CONNECTED-RELEASE-AUDIT.md": "66a6a79ed1b0e60259dc1edb833e425f7d15c8b3608dfef57154e28371809747",
   "FINAL-VERIFICATION-RESULTS.txt": "ae18f4bb054906ca2a56d0769f3b384cc8bd23cc48c1e7dba21ada75389bc2b6",
@@ -14,7 +14,7 @@
   "PROJECT-REGRESSION-RESULTS.txt": "8570c608de46f4a6ec839ea736d625743045ed673d1af727474d98cced2ee371",
   "PROJECT-RELEASE-AUDIT.md": "df141d2b64c7278bf08683c115733fe62a0a5f24ad4f4c0c3759bcd7671141ae",
   "PROJECT-SETUP-AND-USER-GUIDE.md": "42d1d47efa1d50cc2dc3594d9af3c7c41b2b816144ddd7c512b2acaad8667597",
-  "README.md": "2eaeacce17c98f97693cc70ed0d50a5717954a4936a972db1db5be4629222d9d",
+  "README.md": "b5762dd09f2e9e37b2261280f0c699aab8522b83d5ff0e79d7f8a6522e42a487",
   "RECEIVING-AUDIT.md": "c1ba84f6cbd30cf22c8c1419a25a8536e65195921f278cf833d3db4f89ec2ba5",
   "REGRESSION-RESULTS.txt": "431de6ab8e3910914ecbe9cb3119c4d0b5127e389c8660035b37b56e43eeca41",
   "RELIABILITY-AUDIT.md": "63915f5ef4e5fd6685f1badf72b31a0836601e5f0865000981e282ea4b8d6134",
@@ -94,7 +94,7 @@
   "dist/sales-workspace.js": "6fd20fc62ab211d960156e07e401f5ae3643cbd41617ad281ab8270f230e3569",
   "dist/service-worker.js": "44b5779b3fa622c72a95327493100e184b92faff58af9573a2d4658763125b51",
   "dist/workspace-polish.css": "5b605ab16c99151c604b35a775fd673f9ed0eefcc685fd4c82abd9d12ed9cd1a",
-  "package.json": "40fcf000814df982d6f4765304d4428a880edaa11f0230e98c18337efd997f31",
+  "package.json": "75b7951214482127e9146119297df9ae2d1915a7b8bf022fc7df0c107aca5de2",
   "pnpm-lock.yaml": "a3a54068ea374e7623ae21833eaf48cf87083d8e189fa6bf73c849ea6bf01241",
   "public/accounting-workspace.js": "e50eed44f6d38ca5a5a5c9db89007d5d0e121fb4f365b903e89b765783064ad3",
   "public/assets/css/00-pool-shed-tokens.css": "3a2e0c6cbad39dfacacee554e769bcf3065920123fc0c19fe0b045087a2fd698",
@@ -189,7 +189,7 @@
   "scripts/test-project-engine.mjs": "1af1276f2ef00c5680e34ab13e48ba716b95e3544a25466090c9955d4bce6474",
   "scripts/test-receiving-ledger.mjs": "221ef8529f119e0f233480a31d57b10c21498e2b657f5a56787e522245adac14",
   "scripts/test-release-assets.mjs": "0bc63b74e986bc8c48c097a2ce0e2e05b3cf47daf10e6983f690d9be7376512a",
-  "scripts/test-release-cleanup.mjs": "a22206d3421ff0fefabdea3d3660d45f4f100675ad8155ee283de95b380e30a8",
+  "scripts/test-release-cleanup.mjs": "984884bbebd1624b83a73ec98c9c00e5c5e19c619af68b5f915952065ccc4368",
   "scripts/test-sales-order-customer-picker.mjs": "ad2ab41a1cf63b1829035045ecd0d90ae2dabe33ef5cf72e0b639d088d401893",
   "scripts/test-sales-table-header.mjs": "e64f7651c248c20a0c6d4dcd57e8ab430e7e0335796d2e18e72156a07fdf6d75",
   "scripts/test-workspace-database.mjs": "b29846459905955079ce36070556a362f4e211fc1c4b95c9c1c4aea4ee302fbb",
@@ -197,5 +197,5 @@
   "scripts/validate-runtime.mjs": "5c4e2931377fa7fe43dac875ada2b93e84cf7d8b653ce0c522bf63813d271784",
   "server/accounting.js": "d6b097585196ca6ceac0b247aa0e6d30c700c3186eb6ba6e852091a2fae35c39",
   "vercel-accounting-schedule.example.json": "e4c1a0f99c481702bc9af1419446886d4734ceb5997a0e983bbc143611f5917f",
-  "vercel.json": "39667f41d1aec28cddbcd4367701fb5737dd733734ad882c53a15e40a723f470"
+  "vercel.json": "7a818ba37cfcf2f0b420fee5ea29fd5e3d040b1b861d5569cb8041769741b669"
 }
