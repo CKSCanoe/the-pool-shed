@@ -7,7 +7,7 @@ const requiredCss=[
   ".crm-account-overview-grid{grid-template-columns:minmax(0,1fr)",
   ".crm-account-health-card .crm-cardbody{display:grid;grid-template-columns:minmax(260px,.78fr) minmax(0,1.22fr)",
   ".crm-account-health-card .crm-attention-row{margin:0;padding:0 0 0 18px;border-top:0;border-left:1px solid #d7e0e5",
-  ".crm-core-sections{display:grid;grid-template-columns:minmax(210px,1fr) minmax(300px,1.35fr) minmax(210px,1fr)",
+  ".crm-core-sections{display:grid;grid-template-columns:1fr;gap:8px}",
   "@media(max-width:980px)",
   ".crm-account-health-card .crm-cardbody{grid-template-columns:1fr"
 ];
@@ -22,4 +22,4 @@ if(!(coreIndex < healthIndex && healthIndex < recentIndex)) throw new Error("Acc
 if(css.includes(".crm-account-overview-grid{grid-template-columns:minmax(0,1.7fr)"))
   throw new Error("Old squeezed Account Essentials + side health split remains.");
 
-console.log("Customer health layout checks passed: Account Essentials is full width, Account Health is a horizontal row beneath it, core groups are rebalanced and narrow screens stack safely.");
+console.log("Customer health layout checks passed: Account Essentials remains full width, Account Health remains a horizontal row beneath it, and narrow screens stack safely.");

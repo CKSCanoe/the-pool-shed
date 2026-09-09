@@ -1,4 +1,4 @@
-# Customer Health Layout Refinement — 1.4.1
+# Customer Essentials Readability Refinement — 1.4.2
 
 
 Vercel deployment now skips npm dependency installation because the production build has no runtime npm dependencies; `@electric-sql/pglite` remains a local test-only development dependency.
