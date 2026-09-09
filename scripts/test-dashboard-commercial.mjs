@@ -18,6 +18,10 @@ for (const required of [
   "Big Job Projects",
   "data-dashboard-commercial-filter",
   "data-dashboard-commercial-export",
+  "dashboardBreakdownDonutHtml",
+  "Customer type",
+  "Warehouse",
+  "Advanced filters",
   "data-dashboard-job-open",
   "data-dashboard-project-new",
   "Project commercial value and margin are calculated only from sales orders explicitly linked to that job"

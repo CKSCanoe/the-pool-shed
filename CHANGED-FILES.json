@@ -40,8 +40,12 @@
     "status": "modified"
   },
   {
+    "path": "scripts/test-dashboard-command.mjs",
+    "status": "modified"
+  },
+  {
     "path": "scripts/test-dashboard-commercial.mjs",
-    "status": "added"
+    "status": "modified"
   },
   {
     "path": "scripts/test-release-cleanup.mjs",
