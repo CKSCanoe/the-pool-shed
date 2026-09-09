@@ -1935,6 +1935,8 @@ const seed = {
 
       function render() {
         ensureActiveAllowed();
+        const appShell = document.getElementById("appShell");
+        if (appShell) appShell.classList.toggle("dashboard-mode", active === "dashboard" && dashboardView !== "restockReport");
         updateShellBrand();
         renderAccountMenu();
         renderNav();
@@ -2771,12 +2773,16 @@ const seed = {
         const now = new Date();
         const dateLabel = now.toLocaleDateString("en-GB",{weekday:"short",day:"2-digit",month:"short",year:"numeric"});
         const timeLabel = now.toLocaleTimeString("en-GB",{hour:"2-digit",minute:"2-digit"});
+        const dashboardLocations = (data.locations || []).filter(function(location) { return !location.parentId || location.isMaster; });
+        const locationSelect = '<label class="dashboard-location-control"><span class="visually-hidden">Dashboard location</span><select data-dashboard-commercial-filter="warehouse"><option value="">⌖ All locations</option>' +
+          dashboardLocations.map(function(location) { return '<option value="'+escapeHtml(location.id)+'"'+(dashboardCommercialFilters.warehouse === location.id ? ' selected' : '')+'>'+escapeHtml(location.name)+'</option>'; }).join("") +
+          '</select></label>';
 
         const hero =
           '<section class="dashboard-reference-hero dashboard-final-hero">' +
             '<div class="dashboard-reference-topline">' +
               '<div class="dashboard-greeting"><span class="dashboard-sun" aria-hidden="true">☀</span><div><h1>'+escapeHtml(dashboardGreeting())+'</h1><p>Here’s what’s happening across your business today.</p></div></div>' +
-              '<div class="dashboard-reference-date"><strong>'+escapeHtml(dateLabel)+'</strong><span>'+escapeHtml(timeLabel)+'</span></div>' +
+              '<div class="dashboard-hero-tools">'+locationSelect+'<div class="dashboard-reference-date"><strong>'+escapeHtml(dateLabel)+'</strong><span>'+escapeHtml(timeLabel)+'</span></div></div>' +
             '</div>' +
             '<div class="dashboard-reference-kpis">' +
               '<div class="dashboard-reference-kpi"><span>Sales (Invoiced)</span><strong>'+money(commercialSummary.sales)+'</strong>'+dashboardDelta(commercialSummary.sales, previousSummary.sales)+'</div>' +

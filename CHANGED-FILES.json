@@ -16,14 +16,6 @@
     "status": "modified"
   },
   {
-    "path": "dist/business-review.js",
-    "status": "modified"
-  },
-  {
-    "path": "dist/quarterly-review.js",
-    "status": "modified"
-  },
-  {
     "path": "dist/service-worker.js",
     "status": "modified"
   },
@@ -44,23 +36,15 @@
     "status": "modified"
   },
   {
-    "path": "public/business-review.js",
-    "status": "modified"
-  },
-  {
-    "path": "public/quarterly-review.js",
-    "status": "modified"
-  },
-  {
     "path": "public/service-worker.js",
     "status": "modified"
   },
   {
-    "path": "scripts/test-dashboard-command.mjs",
+    "path": "scripts/test-dashboard-commercial.mjs",
     "status": "modified"
   },
   {
-    "path": "scripts/test-dashboard-final.mjs",
+    "path": "scripts/test-dashboard-polish.mjs",
     "status": "added"
   },
   {

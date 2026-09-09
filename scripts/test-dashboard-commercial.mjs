@@ -32,7 +32,7 @@ for (const required of [
 for (const required of [
   ".dashboard-commercial-shell",
   ".dashboard-commercial-filters",
-  ".dashboard-commercial-kpis",
+  ".dashboard-reference-kpis",
   ".dashboard-commercial-chart",
   ".dashboard-commercial-insights",
   ".dashboard-big-projects",
