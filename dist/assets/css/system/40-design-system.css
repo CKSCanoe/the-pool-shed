@@ -161,7 +161,7 @@ body[data-theme="dark"],
   color-scheme: dark;
   --color-text-primary: var(--ps-palette-dark-text);
   --color-text-secondary: var(--ps-palette-dark-muted);
-  --color-text-inverse: var(--ps-palette-dark-canvas);
+  --color-text-inverse: var(--ps-palette-white);
   --color-text-disabled: color-mix(in srgb, var(--ps-palette-dark-muted) 58%, var(--ps-palette-dark-surface));
   --color-surface-canvas: var(--ps-palette-dark-canvas);
   --color-surface-default: var(--ps-palette-dark-surface);
@@ -1249,5 +1249,217 @@ td {
   color: var(--color-action-primary);
   border-bottom-color: var(--color-action-primary);
   box-shadow: none;
+}
+
+
+/* ========================================================================
+   ACCESSIBLE COLOUR + TEXT RHYTHM CONTRACT — v1.0.9
+   High-contrast highlights, calm text spacing and non-overlapping decoration.
+   ======================================================================== */
+
+::selection {
+  background: var(--color-action-primary);
+  color: #FFFFFF;
+  text-shadow: none;
+}
+
+mark,
+.highlight {
+  background: var(--color-status-attention-bg);
+  color: var(--color-status-attention-text);
+  border-radius: 3px;
+  padding-inline: 2px;
+}
+
+:is(p, small, label, .muted, .help, .hint, .status-reason) {
+  line-height: 1.45;
+}
+
+:is(h1, h2, h3, .record-title, .panel-title) {
+  overflow-wrap: anywhere;
+  text-decoration: none;
+}
+
+.panel-head {
+  position: relative;
+  isolation: isolate;
+}
+
+.panel-head > :is(div, h1, h2, h3, p, span, strong, small, button, .action-row) {
+  position: relative;
+  z-index: 1;
+}
+
+/* Status colour must communicate meaning without sacrificing legibility. */
+:is(.pill.good, .pill.green, .bs-pill.green, .bsi-pill.good, .stock-ledger-badge, .bs-linked-badge) {
+  background: var(--color-status-success-bg);
+  color: var(--color-status-success-text);
+  border-color: var(--color-status-success-line);
+}
+
+:is(.pill.warn, .pill.amber, .bs-pill.amber, .bsi-pill.warn) {
+  background: var(--color-status-attention-bg);
+  color: var(--color-status-attention-text);
+  border-color: var(--color-status-attention-line);
+}
+
+:is(.pill.bad, .pill.red, .bs-pill.red, .bsi-pill.bad) {
+  background: var(--color-status-danger-bg);
+  color: var(--color-status-danger-text);
+  border-color: var(--color-status-danger-line);
+}
+
+:is(.pill.blue, .pill.purple, .pill.dark, .bundle-pill) {
+  background: var(--color-status-info-bg);
+  color: var(--color-status-info-text);
+  border-color: var(--color-status-info-line);
+}
+
+.health-status-corrected,
+.health-status-warning {
+  border: 1px solid;
+}
+
+.health-status-corrected {
+  background: var(--color-status-success-bg);
+  color: var(--color-status-success-text);
+  border-color: var(--color-status-success-line);
+}
+
+.health-status-warning {
+  background: var(--color-status-attention-bg);
+  color: var(--color-status-attention-text);
+  border-color: var(--color-status-attention-line);
+}
+
+/* Selection/highlight states use a soft field plus explicit foreground instead of aqua-on-aqua. */
+:is(
+  .global-result:hover,
+  .global-result.active,
+  .po-product-result:hover,
+  .supplier-list-table tbody tr:hover,
+  .so-product-result:hover,
+  .so-product-result.is-active,
+  .so-product-result:focus-visible,
+  .ci-result-row:hover,
+  .ci-result-row.is-active,
+  button.ci-result-row:hover,
+  button.ci-result-row.is-active,
+  .health-issue-row:hover,
+  .bs-result:hover,
+  .bs-result:focus,
+  .bs-picker-row:hover,
+  .bs-picker-row.selected,
+  .bs-component.selected,
+  .so-customer-result:hover,
+  .so-customer-result.active
+) {
+  background: var(--color-action-soft);
+  color: var(--color-text-primary);
+}
+
+:is(
+  .global-result:hover,
+  .global-result.active,
+  .po-product-result:hover,
+  .so-product-result:hover,
+  .so-product-result.is-active,
+  .ci-result-row:hover,
+  .ci-result-row.is-active,
+  .bs-picker-row.selected,
+  .bs-component.selected,
+  .so-customer-result:hover,
+  .so-customer-result.active
+) :is(strong, span, small, p) {
+  color: inherit;
+}
+
+/* Search clear controls are neutral utility actions, not coloured call-to-action blocks. */
+:is(.so-search-clear, .ci-search-clear) {
+  background: transparent;
+  color: var(--color-text-secondary);
+  border-color: transparent;
+  box-shadow: none;
+}
+
+:is(.so-search-clear, .ci-search-clear):hover {
+  background: var(--color-action-soft);
+  color: var(--color-action-primary);
+  border-color: var(--color-border-default);
+}
+
+/* Operational card headers use quiet semantic fills so text remains readable. */
+.so-address-card-head,
+.so-address-card.primary .so-address-card-head {
+  background: var(--color-action-soft);
+  color: var(--color-text-primary);
+}
+
+.so-address-card.billing .so-address-card-head {
+  background: var(--color-status-attention-bg);
+  color: var(--color-status-attention-text);
+}
+
+.so-address-card.delivery .so-address-card-head {
+  background: var(--color-status-success-bg);
+  color: var(--color-status-success-text);
+}
+
+.so-customer-drawer {
+  background: var(--color-surface-default);
+  color: var(--color-text-primary);
+}
+
+#screen-accounting .panel,
+#screen-jobs .panel {
+  border-color: var(--color-border-default);
+}
+
+#screen-accounting table thead th,
+#screen-jobs table thead th {
+  background: var(--color-surface-subtle);
+  color: var(--color-text-secondary);
+}
+
+/* Fulfilment sequence is information, not a decorative colour bar. */
+#screen-fulfilment .panel:first-child::before {
+  content: "PRINT  →  PICK  →  PACK  →  SHIP";
+  display: block;
+  margin: 0 0 var(--ps-space-3);
+  padding: 7px 10px;
+  border: 1px solid var(--color-border-default);
+  border-radius: var(--ps-radius-control);
+  background: var(--color-surface-subtle);
+  color: var(--color-text-secondary);
+  font-size: var(--ps-font-label);
+  font-weight: 800;
+  line-height: 1.35;
+  letter-spacing: .06em;
+}
+
+/* Old decorative spectrum/stripe treatments are intentionally absent. */
+.hero-panel,
+.workspace-hero,
+.supplier-hero,
+.supplier-profile-hero,
+.supplier-catalogue-hero,
+.po-hero,
+.partial-fulfilment-head,
+.catalogue-health-command,
+.bundle-hero,
+.bs-hero,
+.b2-header {
+  background-image: none;
+}
+
+@media (max-width: 599px) {
+  :is(p, small, label, .muted, .help, .hint, .status-reason) {
+    line-height: 1.5;
+  }
+
+  #screen-fulfilment .panel:first-child::before {
+    letter-spacing: .035em;
+    white-space: normal;
+  }
 }
 

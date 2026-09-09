@@ -23,7 +23,7 @@
 /* Prevent legacy screens flashing behind the current application while booting. */
 html.ps-booting body { overflow:hidden; }
 html.ps-booting #appShell, html.ps-booting #loginScreen { visibility:hidden !important; }
-#psBootScreen { position:fixed; inset:0; z-index:99999; display:grid; place-items:center; background:linear-gradient(135deg,var(--color-brand-navy) 0%,var(--color-brand-navy) 48%,var(--color-action-primary) 100%); color:var(--color-surface-default); transition:opacity .22s ease,visibility .22s ease; }
+#psBootScreen { position:fixed; inset:0; z-index:99999; display:grid; place-items:center; background:var(--color-surface-default); color:var(--color-surface-default); transition:opacity .22s ease,visibility .22s ease; }
 #psBootScreen.is-ready { opacity:0; visibility:hidden; pointer-events:none; }
 .ps-boot-card { width:min(430px,calc(100vw - 40px)); padding:32px; border:1px solid color-mix(in srgb, var(--color-surface-default) 20%, transparent); border-radius:var(--ps-radius-panel); background:color-mix(in srgb, var(--color-surface-default) 8%, transparent); backdrop-filter:blur(14px); box-shadow:none; }
 .ps-boot-brand { display:flex; align-items:center; gap:15px; }
@@ -31,7 +31,7 @@ html.ps-booting #appShell, html.ps-booting #loginScreen { visibility:hidden !imp
 .ps-boot-brand strong { display:block; font-size:22px; }
 .ps-boot-brand span { opacity:.76; font-size:13px; }
 .ps-boot-line { height:4px; margin-top:24px; border-radius:99px; overflow:hidden; background:color-mix(in srgb, var(--color-surface-default) 16%, transparent); }
-.ps-boot-line i { display:block; width:42%; height:100%; border-radius:inherit; background:linear-gradient(90deg,var(--color-status-danger),var(--color-status-attention),var(--color-action-focus),var(--color-status-success)); animation:psBoot 1.05s ease-in-out infinite alternate; }
+.ps-boot-line i { display:block; width:42%; height:100%; border-radius:inherit; background:var(--color-action-primary); animation:psBoot 1.05s ease-in-out infinite alternate; }
 @keyframes psBoot { from{transform:translateX(-20%)} to{transform:translateX(155%)} }
 @media (prefers-reduced-motion:reduce){.ps-boot-line i{animation:none;width:100%}}
 
@@ -69,7 +69,7 @@ button.secondary:hover { background:var(--color-action-focus); transform:none; }
 #screen-salesorders .tabs-row { position:relative; display:flex; flex-wrap:wrap; gap:8px; padding:8px 0 12px; border-bottom:1px solid var(--ps-line); }
 #screen-salesorders .tab-chip { min-height:44px; padding:9px 16px; border:1px solid var(--color-action-focus); border-radius:13px; background:var(--color-action-focus); color:var(--color-text-secondary); font-weight:750; box-shadow:none; }
 #screen-salesorders .tab-chip:hover { background:var(--color-action-focus); color:var(--color-brand-navy); transform:none; }
-#screen-salesorders .tab-chip.active { background:linear-gradient(135deg,var(--color-action-primary),var(--color-action-primary)); color:var(--color-action-primary); border-color:var(--color-action-primary); box-shadow:none; border-bottom-color:var(--color-action-primary);}
+#screen-salesorders .tab-chip.active { background:var(--color-surface-default); color:var(--color-action-primary); border-color:var(--color-action-primary); box-shadow:none; border-bottom-color:var(--color-action-primary);}
 
 /* Compact sales lines: readable like an ERP grid rather than oversized cards. */
 #screen-salesorders .order-lines-table { width:100%; table-layout:auto; border-collapse:separate; border-spacing:0; font-size:.91rem; }
@@ -109,7 +109,7 @@ button.secondary:hover { background:var(--color-action-focus); transform:none; }
 
 /* Bundle hierarchy is shown inside the sales lines, not in a giant intelligence panel. */
 .bsi-panel { display:none !important; }
-#screen-salesorders tr.bundle-line-head { background:linear-gradient(90deg,color-mix(in srgb, var(--color-action-primary) 9%, transparent),color-mix(in srgb, var(--color-status-success) 4.5%, transparent)); }
+#screen-salesorders tr.bundle-line-head { background:var(--color-surface-default); }
 #screen-salesorders tr.bundle-line-head > td { border-top:2px solid color-mix(in srgb, var(--color-action-primary) 35%, transparent); }
 #screen-salesorders tr.bundle-line-head td:nth-child(4) strong { font-size:1rem; }
 #screen-salesorders tr.bundle-line-child { background:var(--color-status-info); }
@@ -159,7 +159,7 @@ tr.ps-bundle-collapsed { display:none; }
 #screen-salesorders .so-line-assurance { margin:0 14px 14px; padding:9px 11px; }
 
 /* Fulfilment: make the intended sequence obvious. */
-#screen-fulfilment .panel:first-child::before { content:"PRINT  →  PICK  →  PACK  →  SHIP"; display:block; margin:0 0 12px; padding:8px 12px; border-radius:var(--ps-radius-panel); background:linear-gradient(90deg,var(--color-action-focus),var(--color-status-success)); color:var(--color-action-primary); font-size:.78rem; font-weight:900; letter-spacing:.08em; }
+#screen-fulfilment .panel:first-child::before { content:"PRINT  →  PICK  →  PACK  →  SHIP"; display:block; margin:0 0 12px; padding:8px 12px; border-radius:var(--ps-radius-panel); background:var(--color-surface-default); color:var(--color-action-primary); font-size:.78rem; font-weight:900; letter-spacing:.08em; }
 
 /* Accounting/Jobs are denser and more software-like without inventing fake integrations. */
 #screen-accounting .panel, #screen-jobs .panel { border:1px solid var(--color-action-focus); }
@@ -171,7 +171,7 @@ tr.ps-bundle-collapsed { display:none; }
 [data-theme="dark"] #screen-salesorders .so-line-composer,
 [data-theme="dark"] #screen-salesorders tr.bundle-line-child { background:var(--color-brand-navy); }
 [data-theme="dark"] #screen-salesorders .tab-chip { background:var(--color-brand-navy); color:var(--color-action-focus); border-color:var(--color-action-primary); }
-[data-theme="dark"] #screen-salesorders .tab-chip.active { background:linear-gradient(135deg,var(--color-action-primary),var(--color-action-primary)); color:var(--color-surface-default); }
+[data-theme="dark"] #screen-salesorders .tab-chip.active { background:var(--color-surface-default); color:var(--color-surface-default); }
 [data-theme="dark"] #screen-salesorders .order-lines-table thead th { background:var(--color-brand-navy); color:var(--color-action-focus); }
 [data-theme="dark"] #screen-salesorders .order-lines-table tbody td { border-bottom-color:var(--color-brand-navy); }
 
@@ -213,7 +213,7 @@ img { content-visibility: auto; }
   margin: 10px 0 14px;
   border: 1px solid var(--color-action-focus);
   border-radius:var(--ps-radius-dialog);
-  background: linear-gradient(180deg, var(--color-surface-default) 0%, var(--color-status-info) 100%);
+  background:var(--color-surface-default);
   box-shadow:none;
 }
 .so-customer-picker-head,
@@ -275,7 +275,7 @@ img { content-visibility: auto; }
 .so-customer-drawer-shell.open .so-customer-drawer-backdrop { opacity: 1; }
 .so-customer-drawer { position: absolute; top: 0; right: 0; bottom: 0; width: min(540px, 94vw); display: grid; grid-template-rows: auto minmax(0,1fr); background: var(--color-status-info); box-shadow: -24px 0 70px color-mix(in srgb, var(--color-brand-navy) 24%, transparent); transform: translateX(102%); transition: transform .22s cubic-bezier(.2,.8,.2,1); }
 .so-customer-drawer-shell.open .so-customer-drawer { transform: translateX(0); }
-.so-customer-drawer > header { display: flex; justify-content: space-between; gap: 18px; padding: 24px 24px 20px; background: linear-gradient(135deg, var(--color-brand-navy) 0%, var(--color-action-primary) 100%); color: var(--color-surface-default); }
+.so-customer-drawer > header { display: flex; justify-content: space-between; gap: 18px; padding: 24px 24px 20px; background:var(--color-brand-navy); color: var(--color-surface-default); }
 .so-customer-drawer > header > div { display: grid; gap: 4px; }
 .so-customer-drawer > header span { color: var(--color-action-focus); font-size: 10px; font-weight: 900; letter-spacing: .16em; }
 .so-customer-drawer > header h2 { margin: 0; color: var(--color-surface-default); font-size: 25px; }

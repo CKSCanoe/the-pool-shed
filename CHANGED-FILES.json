@@ -8,6 +8,10 @@
     "status": "modified"
   },
   {
+    "path": "dist/assets/css/system/10-legacy-compat.css",
+    "status": "modified"
+  },
+  {
     "path": "dist/assets/css/system/20-sales-product.css",
     "status": "modified"
   },
@@ -28,22 +32,6 @@
     "status": "modified"
   },
   {
-    "path": "dist/assets/css/system/30-workspace-core.css",
-    "status": "modified"
-  },
-  {
-    "path": "dist/assets/css/system/31-project-workspace.css",
-    "status": "modified"
-  },
-  {
-    "path": "dist/assets/css/system/32-sales-workspace.css",
-    "status": "modified"
-  },
-  {
-    "path": "dist/assets/css/system/33-workspace-polish.css",
-    "status": "modified"
-  },
-  {
     "path": "dist/assets/css/system/40-design-system.css",
     "status": "modified"
   },
@@ -57,6 +45,10 @@
   },
   {
     "path": "public/assets/css/app.css",
+    "status": "modified"
+  },
+  {
+    "path": "public/assets/css/system/10-legacy-compat.css",
     "status": "modified"
   },
   {
@@ -80,22 +72,6 @@
     "status": "modified"
   },
   {
-    "path": "public/assets/css/system/30-workspace-core.css",
-    "status": "modified"
-  },
-  {
-    "path": "public/assets/css/system/31-project-workspace.css",
-    "status": "modified"
-  },
-  {
-    "path": "public/assets/css/system/32-sales-workspace.css",
-    "status": "modified"
-  },
-  {
-    "path": "public/assets/css/system/33-workspace-polish.css",
-    "status": "modified"
-  },
-  {
     "path": "public/assets/css/system/40-design-system.css",
     "status": "modified"
   },
@@ -104,11 +80,19 @@
     "status": "modified"
   },
   {
+    "path": "scripts/test-colour-contrast.mjs",
+    "status": "added"
+  },
+  {
+    "path": "scripts/test-contrast-text-rhythm.mjs",
+    "status": "added"
+  },
+  {
     "path": "scripts/test-release-cleanup.mjs",
     "status": "modified"
   },
   {
-    "path": "scripts/test-visual-consistency.mjs",
-    "status": "added"
+    "path": "scripts/validate-runtime.mjs",
+    "status": "modified"
   }
 ]

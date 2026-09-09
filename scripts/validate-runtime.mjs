@@ -150,7 +150,6 @@ for (const requiredPartialFeature of [
   if (!partialSource.includes(requiredPartialFeature)) throw new Error(`Partial shipment feature missing: ${requiredPartialFeature}`);
 }
 for (const requiredPartialStyle of [
-  '@keyframes poolShedRainbowFlow',
   '.order-lines-scroll',
   '.order-shipment-summary',
   '.partial-fulfilment-modal',
@@ -200,7 +199,6 @@ for (const requiredStyle of [
   '.ci-search-popover',
   '.ci-po-catalogue-picker',
   '.ci-selected-offer',
-  '@keyframes ci-spectrum',
   'position: fixed',
   'prefers-reduced-motion',
   '.ci-popover-results',
