@@ -1,4 +1,4 @@
-# Shared component system — 1.0.6
+# Visual consistency sweep — 1.0.8
 
 
 Vercel deployment now skips npm dependency installation because the production build has no runtime npm dependencies; `@electric-sql/pglite` remains a local test-only development dependency.
@@ -6,6 +6,8 @@ Production now loads one deterministic CSS bundle (`assets/css/app.css`) generat
 Active application styling is now maintained in four ordered source modules: legacy compatibility, feature-scoped rules, workspace-scoped rules, and one authoritative Precision Operations design system. The production bundle is regenerated from those modules; print-only popup styles remain separate.
 Twelve repeated unscoped global primitives (`html`, `body`, headings, controls and core table cells) were consolidated into the authoritative design-system module, preventing feature/workspace CSS from owning competing top-level definitions.
 Shared buttons, form controls, fields, panels, record surfaces, KPIs, action rows, tabs, breadcrumbs, top bars, status pills, tables and modal shells now have one unscoped Precision Operations definition in the authoritative design-system module; legacy/feature/workspace modules retain only scoped variants.
+Feature styling is now ownership-based: Sales/Product, Catalogue, Bundles, platform feature overrides, Product Hub, workspace core, Projects, Sales workspace and workspace polish are maintained separately while production still ships one generated app.css. Routine feature cards/panels/summaries use the Precision Operations panel geometry; feature dialogs/popovers use the shared dialog geometry.
+Final visual consistency pass: routine feature panels, search/results surfaces, tables, status controls and tabs now use the locked Precision Operations radii, flat border-led surfaces and shared dialog elevation. Feature modules retain layout/behaviour ownership; no business engines or data contracts were changed.
 Selected Concept B is now the production visual foundation: 16px operational rhythm, 38px desktop controls, compact 39px data rows, sharp 5/6/8px geometry, flat border-led surfaces, underline tabs, Aqua focus treatment, touch-safe mobile density, and the approved PB logo. The Professional Palette remains unchanged.
 
 The UI now uses the locked Pool Shed Professional colour foundation through one canonical semantic token layer. Legacy CSS colour literals resolve through the approved palette, arbitrary Sales Order status colour entry is constrained to approved semantic colours, and the token stylesheet is included in the offline core cache.
@@ -26,7 +28,7 @@ See `PERFORMANCE-REVIEW.md` for this release’s speed improvements, measurement
 
 See `PROFESSIONAL-RELEASE-AUDIT.md` for the current release, deployment notes and limits. The ZIP includes the complete source and rebuilt `dist` folder.
 
-# The Pool Shed - Version 1.0.6
+# The Pool Shed - Version 1.0.8
 
 Production-clean application package for Vercel + Supabase.
 

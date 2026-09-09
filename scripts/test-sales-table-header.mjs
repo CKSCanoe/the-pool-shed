@@ -1,5 +1,5 @@
 import fs from 'node:fs';
-const css=fs.readFileSync('public/assets/css/system/20-features.css','utf8');
+const css=fs.readFileSync('public/assets/css/system/23-platform-feature-overrides.css','utf8');
 const sw=fs.readFileSync('public/service-worker.js','utf8');
 const checks=[
   ['sales lines have bounded scroll region', /#screen-salesorders \.order-lines-scroll \{[\s\S]*max-height:clamp\(360px,58vh,680px\)/],

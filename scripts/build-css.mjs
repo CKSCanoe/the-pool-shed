@@ -6,8 +6,15 @@ const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 const cssRoot = path.join(root, "public", "assets", "css");
 const sources = [
   "system/10-legacy-compat.css",
-  "system/20-features.css",
-  "system/30-workspaces.css",
+  "system/20-sales-product.css",
+  "system/21-catalogue.css",
+  "system/22-bundles.css",
+  "system/23-platform-feature-overrides.css",
+  "system/24-product-hub.css",
+  "system/30-workspace-core.css",
+  "system/31-project-workspace.css",
+  "system/32-sales-workspace.css",
+  "system/33-workspace-polish.css",
   "system/40-design-system.css",
 ];
 const banner = `/*

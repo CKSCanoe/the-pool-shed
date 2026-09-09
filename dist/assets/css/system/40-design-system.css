@@ -1170,3 +1170,84 @@ td {
   }
 }
 
+
+/* ========================================================================
+   FINAL VISUAL CONSISTENCY CONTRACT — v1.0.8
+   Feature modules own layout/behaviour. These recurring operational surfaces
+   share one visual treatment across Sales, Catalogue, Bundles and Product Hub.
+   ======================================================================== */
+
+:is(
+  .order-lines-scroll,
+  .health-table-wrap,
+  .bsi-table-wrap,
+  .dashboard-table-wrap,
+  .sales-table-scroll
+) {
+  border-color: var(--color-border-default);
+  background: var(--color-surface-default);
+  box-shadow: none;
+}
+
+:is(
+  .catalogue-row,
+  .ci-result-row,
+  .bundle-search-result,
+  .bundle-component-row,
+  .bs-component,
+  .dashboard-health-item
+) {
+  border-color: var(--color-border-default);
+  background: var(--color-surface-default);
+}
+
+:is(
+  .catalogue-row,
+  .ci-result-row,
+  .bundle-search-result,
+  .bundle-component-row,
+  .bs-component,
+  .dashboard-health-item
+):hover {
+  box-shadow: none;
+}
+
+:is(
+  .ci-command-centre,
+  .catalogue-health-command,
+  .bundle-hero,
+  .b2-header,
+  .bs-hero,
+  .product-hub-command,
+  .import-governance-hero
+) {
+  border-color: var(--color-border-default);
+  background: var(--color-surface-default);
+  box-shadow: none;
+}
+
+:is(
+  .so-search-popover,
+  .ci-search-popover,
+  .ci-search-popover-po,
+  .bs-picker-modal,
+  .so-customer-results,
+  .compare-drawer
+) {
+  border-color: var(--color-border-default);
+  border-radius: var(--ps-radius-dialog);
+  background: var(--color-surface-default);
+  box-shadow: var(--shadow-dialog);
+}
+
+:is(
+  .tab-chip.active,
+  #screen-salesorders .tab-chip.active,
+  .customer-tabs button.active,
+  .ps-section-nav button.active
+) {
+  color: var(--color-action-primary);
+  border-bottom-color: var(--color-action-primary);
+  box-shadow: none;
+}
+

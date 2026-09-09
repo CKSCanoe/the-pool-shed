@@ -8,15 +8,39 @@
     "status": "modified"
   },
   {
-    "path": "dist/assets/css/system/10-legacy-compat.css",
+    "path": "dist/assets/css/system/20-sales-product.css",
     "status": "modified"
   },
   {
-    "path": "dist/assets/css/system/20-features.css",
+    "path": "dist/assets/css/system/21-catalogue.css",
     "status": "modified"
   },
   {
-    "path": "dist/assets/css/system/30-workspaces.css",
+    "path": "dist/assets/css/system/22-bundles.css",
+    "status": "modified"
+  },
+  {
+    "path": "dist/assets/css/system/23-platform-feature-overrides.css",
+    "status": "modified"
+  },
+  {
+    "path": "dist/assets/css/system/24-product-hub.css",
+    "status": "modified"
+  },
+  {
+    "path": "dist/assets/css/system/30-workspace-core.css",
+    "status": "modified"
+  },
+  {
+    "path": "dist/assets/css/system/31-project-workspace.css",
+    "status": "modified"
+  },
+  {
+    "path": "dist/assets/css/system/32-sales-workspace.css",
+    "status": "modified"
+  },
+  {
+    "path": "dist/assets/css/system/33-workspace-polish.css",
     "status": "modified"
   },
   {
@@ -36,15 +60,39 @@
     "status": "modified"
   },
   {
-    "path": "public/assets/css/system/10-legacy-compat.css",
+    "path": "public/assets/css/system/20-sales-product.css",
     "status": "modified"
   },
   {
-    "path": "public/assets/css/system/20-features.css",
+    "path": "public/assets/css/system/21-catalogue.css",
     "status": "modified"
   },
   {
-    "path": "public/assets/css/system/30-workspaces.css",
+    "path": "public/assets/css/system/22-bundles.css",
+    "status": "modified"
+  },
+  {
+    "path": "public/assets/css/system/23-platform-feature-overrides.css",
+    "status": "modified"
+  },
+  {
+    "path": "public/assets/css/system/24-product-hub.css",
+    "status": "modified"
+  },
+  {
+    "path": "public/assets/css/system/30-workspace-core.css",
+    "status": "modified"
+  },
+  {
+    "path": "public/assets/css/system/31-project-workspace.css",
+    "status": "modified"
+  },
+  {
+    "path": "public/assets/css/system/32-sales-workspace.css",
+    "status": "modified"
+  },
+  {
+    "path": "public/assets/css/system/33-workspace-polish.css",
     "status": "modified"
   },
   {
@@ -56,11 +104,11 @@
     "status": "modified"
   },
   {
-    "path": "scripts/test-css-architecture.mjs",
+    "path": "scripts/test-release-cleanup.mjs",
     "status": "modified"
   },
   {
-    "path": "scripts/test-release-cleanup.mjs",
-    "status": "modified"
+    "path": "scripts/test-visual-consistency.mjs",
+    "status": "added"
   }
 ]

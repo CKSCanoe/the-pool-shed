@@ -1,6 +1,6 @@
 import fs from 'node:fs';
 const js=fs.readFileSync('public/bundle-system.js','utf8');
-const css=fs.readFileSync('public/assets/css/system/20-features.css','utf8');
+const css=fs.readFileSync('public/assets/css/system/22-bundles.css','utf8');
 const html=fs.readFileSync('public/index.html','utf8');
 const checks={
   linkedProductIds:js.includes('productId'),

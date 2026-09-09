@@ -6,8 +6,15 @@ const html = fs.readFileSync(path.join(root, "public", "index.html"), "utf8");
 const cssRoot = path.join(root, "public", "assets", "css");
 const modules = [
   "system/10-legacy-compat.css",
-  "system/20-features.css",
-  "system/30-workspaces.css",
+  "system/20-sales-product.css",
+  "system/21-catalogue.css",
+  "system/22-bundles.css",
+  "system/23-platform-feature-overrides.css",
+  "system/24-product-hub.css",
+  "system/30-workspace-core.css",
+  "system/31-project-workspace.css",
+  "system/32-sales-workspace.css",
+  "system/33-workspace-polish.css",
   "system/40-design-system.css",
 ];
 const failures = [];
@@ -40,7 +47,7 @@ const sharedBaseSelectors = new Set([
   ".record-card",".mini-card",".profile-card",".breadcrumb",
   "button","input","select","textarea","table","th","td"
 ]);
-for (const rel of ["system/10-legacy-compat.css","system/20-features.css","system/30-workspaces.css"]) {
+for (const rel of modules.filter((rel) => rel !== "system/40-design-system.css")) {
   const source = fs.readFileSync(path.join(cssRoot, rel), "utf8");
   for (const selector of sharedBaseSelectors) {
     const escaped = selector.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
@@ -68,4 +75,4 @@ if (failures.length) {
   console.error(failures.join("\n"));
   process.exit(1);
 }
-console.log("CSS architecture checks passed: 1 runtime bundle, 4 maintained app modules, 6 separate print styles, shared primitives owned by design system.");
+console.log("CSS architecture checks passed: 1 runtime bundle, 11 ownership modules, 6 separate print styles, shared primitives owned by design system.");

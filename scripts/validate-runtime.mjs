@@ -7,14 +7,14 @@ const htmlPath = path.join(root, 'index.html');
 const swPath = path.join(root, 'service-worker.js');
 const configPath = path.join(root, 'config.js');
 const salesSearchPath = path.join(root, 'sales-order-search.js');
-const salesSearchCssPath = path.join(root, 'assets/css/system/20-features.css');
+const salesSearchCssPath = path.join(root, 'assets/css/system/20-sales-product.css');
 const partialFulfilmentPath = path.join(root, 'partial-fulfilment.js');
-const partialFulfilmentCssPath = path.join(root, 'assets/css/system/20-features.css');
+const partialFulfilmentCssPath = path.join(root, 'assets/css/system/20-sales-product.css');
 const catalogueIntelligencePath = path.join(root, 'catalogue-intelligence.js');
-const catalogueIntelligenceCssPath = path.join(root, 'assets/css/system/20-features.css');
+const catalogueIntelligenceCssPath = path.join(root, 'assets/css/system/21-catalogue.css');
 const productImagesPath = path.join(root, 'product-images.js');
-const productImagesCssPath = path.join(root, 'assets/css/system/20-features.css');
-const catalogueHealthCssPath = path.join(root, 'assets/css/system/20-features.css');
+const productImagesCssPath = path.join(root, 'assets/css/system/20-sales-product.css');
+const catalogueHealthCssPath = path.join(root, 'assets/css/system/21-catalogue.css');
 
 for (const file of [htmlPath, swPath, configPath, salesSearchPath, salesSearchCssPath, partialFulfilmentPath, partialFulfilmentCssPath, catalogueIntelligencePath, catalogueIntelligenceCssPath, productImagesPath, productImagesCssPath, catalogueHealthCssPath]) {
   if (!fs.existsSync(file)) throw new Error(`Missing required deployment file: ${file}`);

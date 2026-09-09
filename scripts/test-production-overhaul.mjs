@@ -1,6 +1,6 @@
 import fs from 'node:fs';
 const index=fs.readFileSync('public/index.html','utf8');
-const css=fs.readFileSync('public/assets/css/system/20-features.css','utf8');
+const css=fs.readFileSync('public/assets/css/system/23-platform-feature-overrides.css','utf8');
 const js=fs.readFileSync('public/pool-shed-overhaul.js','utf8');
 const engine=fs.readFileSync('public/bundle-engine.js','utf8');
 const intelligence=fs.readFileSync('public/bundle-sales-intelligence.js','utf8');
