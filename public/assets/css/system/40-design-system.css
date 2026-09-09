@@ -1463,3 +1463,148 @@ mark,
   }
 }
 
+
+/* ========================================================================
+   READABILITY HARDENING — v1.0.10
+   Final audit corrections after the whole-app contrast/text-rhythm pass.
+   ======================================================================== */
+
+/* Hero/command surfaces must never resolve to light text on a light surface. */
+:is(
+  .partial-fulfilment-head,
+  .catalogue-health-command,
+  .inventory-sync-banner,
+  .import-admin-banner,
+  #psBootScreen
+) {
+  background: var(--color-brand-navy);
+  color: #FFFFFF;
+}
+
+:is(
+  .partial-fulfilment-head,
+  .catalogue-health-command,
+  .inventory-sync-banner,
+  .import-admin-banner,
+  #psBootScreen
+) :is(h1, h2, h3, strong, span, p, small, label) {
+  color: inherit;
+}
+
+:is(
+  .warehouse-command,
+  .customer-profile-summary,
+  .product-live-preview
+) {
+  background: var(--color-surface-default);
+  color: var(--color-text-primary);
+}
+
+/* Semantic surfaces use tint + semantic foreground, never same-colour-on-same-colour. */
+:is(
+  .line-type-badge.shipping,
+  .product-review-warnings .ready,
+  .crm-step-green,
+  .job-form-section.green .job-form-heading > span,
+  .so-search-connectivity,
+  .health-status-corrected,
+  .bs-linked-badge,
+  .b2-good,
+  .so-customer-linked-chip
+) {
+  background: var(--color-status-success-bg);
+  color: var(--color-status-success-text);
+  border-color: var(--color-status-success-line);
+}
+
+:is(
+  .warehouse-flow-step.yellow > span,
+  .product-review-warnings .warning,
+  .crm-step-yellow,
+  .crm-step-yellow .crm-step-number,
+  .product-wizard-step.yellow > span,
+  .job-form-section.yellow .job-form-heading > span,
+  .job-process-strip .step-yellow span,
+  .job-form-warning,
+  .so-search-connectivity.offline,
+  .bs-alert
+) {
+  background: var(--color-status-attention-bg);
+  color: var(--color-status-attention-text);
+  border-color: var(--color-status-attention-line);
+}
+
+:is(
+  .crm-step-red,
+  .job-form-section.red .job-form-heading > span,
+  .ci-basket-item button,
+  .danger-button
+) {
+  background: var(--color-status-danger-bg);
+  color: var(--color-status-danger-text);
+  border-color: var(--color-status-danger-line);
+}
+
+:is(
+  .crm-step-purple,
+  .pill.purple
+) {
+  background: var(--color-status-info-bg);
+  color: var(--color-status-info-text);
+  border-color: var(--color-status-info-line);
+}
+
+/* Aqua is an accent/focus colour, not a large text-bearing fill. */
+:is(
+  .warehouse-section-head,
+  .product-review-grid > div,
+  .product-wizard-step.navy,
+  .product-wizard-step.cyan,
+  .product-wizard-step.blue,
+  .job-process-strip .step-blue,
+  .job-project-meta > div,
+  .job-project-stats > div,
+  .detail-list > div,
+  .supplier-address-card,
+  .po-timeline section,
+  .po-stat-list > div,
+  .po-linked-banner,
+  .po-check-grid > div,
+  .partial-line-metrics span,
+  .health-help-strip > div,
+  .ci-result-metric,
+  .bs-component-metrics,
+  .bs-wizard-type > div
+) {
+  background: var(--color-surface-subtle);
+  color: var(--color-text-primary);
+  border-color: var(--color-border-default);
+}
+
+/* Text cannot drop below the locked micro size anywhere in normal UI copy. */
+:is(
+  small,
+  label,
+  .field span,
+  .status-reason,
+  .muted,
+  .help,
+  .hint,
+  [class*="kicker"],
+  [class*="breadcrumb"]
+) {
+  font-size: max(var(--ps-font-micro), 1em);
+}
+
+/* Preserve the established dense table language while keeping headers readable. */
+table th {
+  font-size: var(--ps-font-label);
+  line-height: 1.25;
+}
+
+/* Active navigation remains underline-led with readable foreground/background. */
+:is(.tab-chip.active, .customer-tabs button.active, .ps-section-nav button.active) {
+  background: transparent;
+  color: var(--color-action-primary);
+}
+

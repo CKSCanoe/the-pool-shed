@@ -1,4 +1,4 @@
-# Contrast and text rhythm — 1.0.9
+# Commercial Dashboard — 1.1.0
 
 
 Vercel deployment now skips npm dependency installation because the production build has no runtime npm dependencies; `@electric-sql/pglite` remains a local test-only development dependency.
@@ -8,6 +8,8 @@ Twelve repeated unscoped global primitives (`html`, `body`, headings, controls a
 Shared buttons, form controls, fields, panels, record surfaces, KPIs, action rows, tabs, breadcrumbs, top bars, status pills, tables and modal shells now have one unscoped Precision Operations definition in the authoritative design-system module; legacy/feature/workspace modules retain only scoped variants.
 Feature styling is now ownership-based: Sales/Product, Catalogue, Bundles, platform feature overrides, Product Hub, workspace core, Projects, Sales workspace and workspace polish are maintained separately while production still ships one generated app.css. Routine feature cards/panels/summaries use the Precision Operations panel geometry; feature dialogs/popovers use the shared dialog geometry.
 Final visual consistency pass: routine feature panels, search/results surfaces, tables, status controls and tabs now use the locked Precision Operations radii, flat border-led surfaces and shared dialog elevation. Feature modules retain layout/behaviour ownership; no business engines or data contracts were changed.
+Dashboard now implements the selected Design Lab Option A: dark operational command layer, compact exception-led Sales Order Flow, Needs Action rail, restrained semantic status markers, and responsive value/location summaries.
+Second-pass readability audit: corrected remaining light-on-light hero/command surfaces, removed same-colour semantic fills, raised all ordinary legacy micro-copy below 10px to the locked micro floor, and relaxed overly tight text line-height.
 Accessibility/visual correction pass: text selection and row highlights now use explicit high-contrast foreground/background pairs; semantic status chips use derived readable status colours; decorative rainbow/gradient stripes and top-edge graphics were removed; shared headings/body copy use calmer line-height and no overlapping decorative rules.
 Selected Concept B is now the production visual foundation: 16px operational rhythm, 38px desktop controls, compact 39px data rows, sharp 5/6/8px geometry, flat border-led surfaces, underline tabs, Aqua focus treatment, touch-safe mobile density, and the approved PB logo. The Professional Palette remains unchanged.
 
@@ -29,7 +31,7 @@ See `PERFORMANCE-REVIEW.md` for this release’s speed improvements, measurement
 
 See `PROFESSIONAL-RELEASE-AUDIT.md` for the current release, deployment notes and limits. The ZIP includes the complete source and rebuilt `dist` folder.
 
-# The Pool Shed - Version 1.0.9
+# The Pool Shed - Version 1.1.0
 
 Production-clean application package for Vercel + Supabase.
 

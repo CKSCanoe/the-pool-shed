@@ -8,31 +8,11 @@
     "status": "modified"
   },
   {
-    "path": "dist/assets/css/system/10-legacy-compat.css",
-    "status": "modified"
-  },
-  {
-    "path": "dist/assets/css/system/20-sales-product.css",
-    "status": "modified"
-  },
-  {
-    "path": "dist/assets/css/system/21-catalogue.css",
-    "status": "modified"
-  },
-  {
-    "path": "dist/assets/css/system/22-bundles.css",
-    "status": "modified"
-  },
-  {
-    "path": "dist/assets/css/system/23-platform-feature-overrides.css",
-    "status": "modified"
-  },
-  {
     "path": "dist/assets/css/system/24-product-hub.css",
     "status": "modified"
   },
   {
-    "path": "dist/assets/css/system/40-design-system.css",
+    "path": "dist/assets/js/01-legacy-01.js",
     "status": "modified"
   },
   {
@@ -48,31 +28,11 @@
     "status": "modified"
   },
   {
-    "path": "public/assets/css/system/10-legacy-compat.css",
-    "status": "modified"
-  },
-  {
-    "path": "public/assets/css/system/20-sales-product.css",
-    "status": "modified"
-  },
-  {
-    "path": "public/assets/css/system/21-catalogue.css",
-    "status": "modified"
-  },
-  {
-    "path": "public/assets/css/system/22-bundles.css",
-    "status": "modified"
-  },
-  {
-    "path": "public/assets/css/system/23-platform-feature-overrides.css",
-    "status": "modified"
-  },
-  {
     "path": "public/assets/css/system/24-product-hub.css",
     "status": "modified"
   },
   {
-    "path": "public/assets/css/system/40-design-system.css",
+    "path": "public/assets/js/01-legacy-01.js",
     "status": "modified"
   },
   {
@@ -80,19 +40,11 @@
     "status": "modified"
   },
   {
-    "path": "scripts/test-colour-contrast.mjs",
-    "status": "added"
-  },
-  {
-    "path": "scripts/test-contrast-text-rhythm.mjs",
+    "path": "scripts/test-dashboard-commercial.mjs",
     "status": "added"
   },
   {
     "path": "scripts/test-release-cleanup.mjs",
-    "status": "modified"
-  },
-  {
-    "path": "scripts/validate-runtime.mjs",
     "status": "modified"
   }
 ]

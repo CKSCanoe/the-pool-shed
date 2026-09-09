@@ -136,6 +136,17 @@ const seed = {
       let draggedDashboardStatus = "";
       let dashboardStatusDragMoved = false;
       let dashboardView = "command";
+      let dashboardCommercialFilters = {
+        preset: "6m",
+        start: "",
+        end: "",
+        dateType: "order",
+        groupBy: "month",
+        channel: "",
+        status: "invoiced",
+        priceList: ""
+      };
+      let dashboardCommercialChart = "line";
       let restockReportFilters = { status: "", location: "", priority: "", search: "", sort: "status" };
       let missingStockFilters = { status: "", location: "", engineer: "", reason: "", search: "", sort: "value" };
       let thresholdFilters = { location: "", type: "", priority: "", status: "", search: "" };
@@ -2297,13 +2308,353 @@ const seed = {
         return { stockUnits: stockUnits, locationUnits: locationUnits, orphanStock: orphanStock, liveStatuses: liveStatuses.length };
       }
 
+
+      function dashboardDateValue(value) {
+        if (!value) return "";
+        const text = String(value).slice(0, 10);
+        const date = new Date(text + "T00:00:00");
+        return Number.isNaN(date.getTime()) ? "" : text;
+      }
+
+      function dashboardOrderDate(order, type) {
+        if (!order) return "";
+        if (type === "invoice") {
+          const invoiceEvents = (data.notifications || []).filter(function(note) {
+            return note.salesOrderId === order.id && note.trigger === "Invoice" && note.date;
+          }).sort(function(a, b) { return String(a.date).localeCompare(String(b.date)); });
+          if (invoiceEvents.length) return dashboardDateValue(invoiceEvents[invoiceEvents.length - 1].date);
+          return invoiceStatusForOrder(order) === "Invoiced" ? dashboardDateValue(order.updated || order.created || order.due) : "";
+        }
+        if (type === "dispatch") {
+          const notes = goodsNotesForOrder(order.id).filter(function(note) {
+            return note.shippedAt || note.shippedDate || (String(note.status || "").toLowerCase().indexOf("ship") >= 0 && note.date);
+          });
+          if (notes.length) {
+            const last = notes[notes.length - 1];
+            return dashboardDateValue(last.shippedAt || last.shippedDate || last.date);
+          }
+          return order.status === "Shipped" ? dashboardDateValue(order.updated || order.due || order.created) : "";
+        }
+        return dashboardDateValue(order.created || order.due);
+      }
+
+      function dashboardRange() {
+        const now = new Date();
+        const end = dashboardCommercialFilters.end || now.toISOString().slice(0, 10);
+        let start = dashboardCommercialFilters.start;
+        if (!start) {
+          const cursor = new Date(end + "T00:00:00");
+          if (dashboardCommercialFilters.preset === "30d") cursor.setDate(cursor.getDate() - 29);
+          else if (dashboardCommercialFilters.preset === "3m") cursor.setMonth(cursor.getMonth() - 2, 1);
+          else if (dashboardCommercialFilters.preset === "ytd") { cursor.setMonth(0, 1); }
+          else if (dashboardCommercialFilters.preset === "12m") cursor.setMonth(cursor.getMonth() - 11, 1);
+          else cursor.setMonth(cursor.getMonth() - 5, 1);
+          start = cursor.toISOString().slice(0, 10);
+        }
+        return { start: start, end: end };
+      }
+
+      function dashboardCommercialOrders(range) {
+        range = range || dashboardRange();
+        return (data.salesOrders || []).filter(function(order) {
+          const date = dashboardOrderDate(order, dashboardCommercialFilters.dateType);
+          if (!date || date < range.start || date > range.end) return false;
+          const invoiceState = invoiceStatusForOrder(order);
+          if (dashboardCommercialFilters.status === "invoiced" && invoiceState !== "Invoiced") return false;
+          if (dashboardCommercialFilters.status === "invoice-ready" && invoiceState !== "Need To Invoice") return false;
+          if (dashboardCommercialFilters.status === "active" && ["Shipped", "Invoiced", "Cancelled"].includes(order.status)) return false;
+          if (dashboardCommercialFilters.channel && String(order.channel || order.source || "") !== dashboardCommercialFilters.channel) return false;
+          if (dashboardCommercialFilters.priceList) {
+            const c = customer(order.customerId) || {};
+            if (String(order.priceList || c.priceList || "") !== dashboardCommercialFilters.priceList) return false;
+          }
+          return true;
+        });
+      }
+
+      function dashboardCommercialSummary(orders) {
+        return (orders || []).reduce(function(total, order) {
+          const summary = salesOrderCostSummary(order);
+          total.sales += Number(summary.sell || 0);
+          total.cost += Number(summary.cost || 0);
+          total.profit += Number(summary.margin || 0);
+          total.orders += 1;
+          return total;
+        }, { sales: 0, cost: 0, profit: 0, orders: 0 });
+      }
+
+      function dashboardPreviousRange(range) {
+        const start = new Date(range.start + "T00:00:00");
+        const end = new Date(range.end + "T00:00:00");
+        const days = Math.max(1, Math.round((end - start) / 86400000) + 1);
+        const prevEnd = new Date(start);
+        prevEnd.setDate(prevEnd.getDate() - 1);
+        const prevStart = new Date(prevEnd);
+        prevStart.setDate(prevStart.getDate() - days + 1);
+        return { start: prevStart.toISOString().slice(0, 10), end: prevEnd.toISOString().slice(0, 10) };
+      }
+
+      function dashboardDelta(current, previous, suffix) {
+        current = Number(current || 0); previous = Number(previous || 0);
+        if (!previous && !current) return '<small class="dashboard-kpi-delta neutral">No change</small>';
+        if (!previous) return '<small class="dashboard-kpi-delta good">New in period</small>';
+        const pct = ((current - previous) / Math.abs(previous)) * 100;
+        const cls = pct > 0.01 ? "good" : pct < -0.01 ? "bad" : "neutral";
+        const arrow = pct > 0.01 ? "↑" : pct < -0.01 ? "↓" : "→";
+        return '<small class="dashboard-kpi-delta ' + cls + '">' + arrow + ' ' + Math.abs(pct).toFixed(1) + '%' + (suffix || '') + ' vs previous period</small>';
+      }
+
+      function dashboardPeriodKey(dateText, groupBy) {
+        const d = new Date(dateText + "T00:00:00");
+        if (groupBy === "day") return dateText;
+        if (groupBy === "week") {
+          const monday = new Date(d);
+          const day = (monday.getDay() + 6) % 7;
+          monday.setDate(monday.getDate() - day);
+          return monday.toISOString().slice(0, 10);
+        }
+        return dateText.slice(0, 7);
+      }
+
+      function dashboardPeriodLabel(key, groupBy) {
+        const d = new Date((groupBy === "month" ? key + "-01" : key) + "T00:00:00");
+        if (groupBy === "day") return d.toLocaleDateString("en-GB", { day: "2-digit", month: "short" });
+        if (groupBy === "week") return "W/C " + d.toLocaleDateString("en-GB", { day: "2-digit", month: "short" });
+        return d.toLocaleDateString("en-GB", { month: "short", year: "numeric" });
+      }
+
+      function dashboardCommercialSeries(orders) {
+        const buckets = {};
+        (orders || []).forEach(function(order) {
+          const date = dashboardOrderDate(order, dashboardCommercialFilters.dateType);
+          if (!date) return;
+          const key = dashboardPeriodKey(date, dashboardCommercialFilters.groupBy);
+          if (!buckets[key]) buckets[key] = { key: key, sales: 0, cost: 0, profit: 0, orders: 0 };
+          const summary = salesOrderCostSummary(order);
+          buckets[key].sales += Number(summary.sell || 0);
+          buckets[key].cost += Number(summary.cost || 0);
+          buckets[key].profit += Number(summary.margin || 0);
+          buckets[key].orders += 1;
+        });
+        return Object.keys(buckets).sort().map(function(key) {
+          const row = buckets[key];
+          row.margin = row.sales ? (row.profit / row.sales) * 100 : 0;
+          row.label = dashboardPeriodLabel(key, dashboardCommercialFilters.groupBy);
+          return row;
+        });
+      }
+
+      function dashboardCommercialChartHtml(series) {
+        if (!series.length) return '<div class="dashboard-chart-empty"><strong>No commercial data in this period</strong><span>Adjust the date range or filters to include sales orders.</span></div>';
+        const width = 860, height = 280, left = 58, right = 42, top = 18, bottom = 42;
+        const plotW = width - left - right, plotH = height - top - bottom;
+        const maxValue = Math.max(1, ...series.map(function(row) { return Math.max(row.sales, row.cost, row.profit); }));
+        const x = function(i) { return left + (series.length === 1 ? plotW / 2 : (i / (series.length - 1)) * plotW); };
+        const y = function(v) { return top + plotH - (Number(v || 0) / maxValue) * plotH; };
+        const marginY = function(v) { return top + plotH - (Math.max(0, Math.min(100, Number(v || 0))) / 100) * plotH; };
+        const line = function(key, yFn) { return series.map(function(row, i) { return (i ? "L" : "M") + x(i).toFixed(1) + "," + yFn(row[key]).toFixed(1); }).join(" "); };
+        const ticks = [0, .25, .5, .75, 1].map(function(ratio) {
+          const yy = top + plotH - ratio * plotH;
+          return '<line x1="' + left + '" y1="' + yy + '" x2="' + (width-right) + '" y2="' + yy + '" class="dashboard-chart-gridline"/>' +
+            '<text x="' + (left-8) + '" y="' + (yy+4) + '" text-anchor="end" class="dashboard-chart-axis">' + money(maxValue * ratio).replace(".00","") + '</text>';
+        }).join("");
+        const labels = series.map(function(row, i) {
+          return '<text x="' + x(i) + '" y="' + (height-15) + '" text-anchor="middle" class="dashboard-chart-axis">' + escapeHtml(row.label) + '</text>';
+        }).join("");
+        const points = series.map(function(row, i) {
+          return '<g class="dashboard-chart-hit"><circle cx="' + x(i) + '" cy="' + y(row.sales) + '" r="4" class="dashboard-chart-dot sales"/><title>' + escapeHtml(row.label) + ' · Sales ' + money(row.sales) + ' · Cost ' + money(row.cost) + ' · Profit ' + money(row.profit) + ' · Margin ' + row.margin.toFixed(1) + '%</title></g>';
+        }).join("");
+        if (dashboardCommercialChart === "bar") {
+          const bw = Math.max(8, Math.min(38, plotW / Math.max(series.length,1) / 4));
+          const bars = series.map(function(row,i) {
+            const cx=x(i);
+            return '<rect x="'+(cx-bw*1.6)+'" y="'+y(row.sales)+'" width="'+bw+'" height="'+(top+plotH-y(row.sales))+'" class="dashboard-chart-bar sales"/>' +
+              '<rect x="'+(cx-bw*.5)+'" y="'+y(row.cost)+'" width="'+bw+'" height="'+(top+plotH-y(row.cost))+'" class="dashboard-chart-bar cost"/>' +
+              '<rect x="'+(cx+bw*.6)+'" y="'+y(row.profit)+'" width="'+bw+'" height="'+(top+plotH-y(row.profit))+'" class="dashboard-chart-bar profit"/>';
+          }).join("");
+          return '<svg class="dashboard-commercial-chart" viewBox="0 0 '+width+' '+height+'" role="img" aria-label="Sales, cost and gross profit by period">'+ticks+bars+labels+'</svg>';
+        }
+        return '<svg class="dashboard-commercial-chart" viewBox="0 0 '+width+' '+height+'" role="img" aria-label="Sales, cost, gross profit and profit margin by period">' +
+          ticks +
+          '<path d="'+line("sales",y)+'" class="dashboard-chart-line sales"/>' +
+          '<path d="'+line("cost",y)+'" class="dashboard-chart-line cost"/>' +
+          '<path d="'+line("profit",y)+'" class="dashboard-chart-line profit"/>' +
+          '<path d="'+line("margin",marginY)+'" class="dashboard-chart-line margin"/>' +
+          points + labels + '</svg>';
+      }
+
+      function dashboardBreakdownRows(orders) {
+        const groups = {};
+        (orders || []).forEach(function(order) {
+          const key = String(order.channel || order.source || "Other");
+          if (!groups[key]) groups[key] = { name: key, sales: 0, profit: 0 };
+          const s = salesOrderCostSummary(order);
+          groups[key].sales += Number(s.sell || 0);
+          groups[key].profit += Number(s.margin || 0);
+        });
+        return Object.values(groups).sort(function(a,b){ return b.sales-a.sales; });
+      }
+
+      function dashboardCategoryRows(orders) {
+        const groups = {};
+        (orders || []).forEach(function(order) {
+          (order.lines || []).forEach(function(line) {
+            const p = product(line.productId) || {};
+            const category = p.category || "Other";
+            if (!groups[category]) groups[category] = { name: category, sales: 0, cost: 0, profit: 0 };
+            const sell = marginCheckLinePrice(order, line) * Number(line.qty || 0);
+            const cost = Number(line.unitCost != null ? line.unitCost : p.cost || 0) * Number(line.qty || 0);
+            groups[category].sales += sell;
+            groups[category].cost += cost;
+            groups[category].profit += sell - cost;
+          });
+        });
+        return Object.values(groups).sort(function(a,b){ return b.profit-a.profit; }).slice(0,5);
+      }
+
+      function dashboardCustomerRows(orders) {
+        const groups = {};
+        (orders || []).forEach(function(order) {
+          const c = customer(order.customerId) || { id: order.customerId || "unknown", name: "Unknown customer" };
+          if (!groups[c.id]) groups[c.id] = { name: c.name || c.companyName || c.email || "Customer", profit: 0, sales: 0 };
+          const s = salesOrderCostSummary(order);
+          groups[c.id].profit += Number(s.margin || 0);
+          groups[c.id].sales += Number(s.sell || 0);
+        });
+        return Object.values(groups).sort(function(a,b){ return b.profit-a.profit; }).slice(0,5);
+      }
+
+      function dashboardCommercialSection(orders, range) {
+        const summary = dashboardCommercialSummary(orders);
+        const previous = dashboardCommercialSummary(dashboardCommercialOrders(dashboardPreviousRange(range)));
+        const margin = summary.sales ? (summary.profit / summary.sales) * 100 : 0;
+        const prevMargin = previous.sales ? (previous.profit / previous.sales) * 100 : 0;
+        const channels = Array.from(new Set((data.salesOrders || []).map(function(order){ return String(order.channel || order.source || ""); }).filter(Boolean))).sort();
+        const prices = Array.from(new Set((data.customers || []).map(function(c){ return String(c.priceList || ""); }).filter(Boolean))).sort();
+        const series = dashboardCommercialSeries(orders);
+        const breakdown = dashboardBreakdownRows(orders);
+        const categories = dashboardCategoryRows(orders);
+        const customers = dashboardCustomerRows(orders);
+        const breakdownTotal = breakdown.reduce(function(n,row){ return n + row.sales; },0) || 1;
+
+        const filterHtml =
+          '<aside class="dashboard-commercial-filters" aria-label="Sales and profitability filters">' +
+            '<div class="dashboard-filter-title"><strong>Filters</strong><span>Commercial view</span></div>' +
+            '<label>Preset<select data-dashboard-commercial-filter="preset">' +
+              '<option value="30d"'+(dashboardCommercialFilters.preset==="30d"?" selected":"")+'>Last 30 days</option>' +
+              '<option value="3m"'+(dashboardCommercialFilters.preset==="3m"?" selected":"")+'>Last 3 months</option>' +
+              '<option value="6m"'+(dashboardCommercialFilters.preset==="6m"?" selected":"")+'>Last 6 months</option>' +
+              '<option value="ytd"'+(dashboardCommercialFilters.preset==="ytd"?" selected":"")+'>Year to date</option>' +
+              '<option value="12m"'+(dashboardCommercialFilters.preset==="12m"?" selected":"")+'>Last 12 months</option>' +
+              '<option value="custom"'+(dashboardCommercialFilters.preset==="custom"?" selected":"")+'>Custom dates</option>' +
+            '</select></label>' +
+            '<div class="dashboard-filter-dates"><label>Start<input type="date" value="'+escapeHtml(range.start)+'" data-dashboard-commercial-filter="start"></label><label>End<input type="date" value="'+escapeHtml(range.end)+'" data-dashboard-commercial-filter="end"></label></div>' +
+            '<label>Date type<select data-dashboard-commercial-filter="dateType"><option value="order"'+(dashboardCommercialFilters.dateType==="order"?" selected":"")+'>Order date</option><option value="invoice"'+(dashboardCommercialFilters.dateType==="invoice"?" selected":"")+'>Invoice date</option><option value="dispatch"'+(dashboardCommercialFilters.dateType==="dispatch"?" selected":"")+'>Dispatch date</option></select></label>' +
+            '<label>Group by<select data-dashboard-commercial-filter="groupBy"><option value="month"'+(dashboardCommercialFilters.groupBy==="month"?" selected":"")+'>Month</option><option value="week"'+(dashboardCommercialFilters.groupBy==="week"?" selected":"")+'>Week</option><option value="day"'+(dashboardCommercialFilters.groupBy==="day"?" selected":"")+'>Day</option></select></label>' +
+            '<label>Channel<select data-dashboard-commercial-filter="channel"><option value="">All channels</option>' + channels.map(function(v){ return '<option value="'+escapeHtml(v)+'"'+(dashboardCommercialFilters.channel===v?" selected":"")+'>'+escapeHtml(v)+'</option>'; }).join("") + '</select></label>' +
+            '<label>Order status<select data-dashboard-commercial-filter="status"><option value="invoiced"'+(dashboardCommercialFilters.status==="invoiced"?" selected":"")+'>Invoiced only</option><option value="invoice-ready"'+(dashboardCommercialFilters.status==="invoice-ready"?" selected":"")+'>Invoice ready</option><option value="active"'+(dashboardCommercialFilters.status==="active"?" selected":"")+'>Active orders</option><option value="all"'+(dashboardCommercialFilters.status==="all"?" selected":"")+'>All orders</option></select></label>' +
+            '<label>Price list<select data-dashboard-commercial-filter="priceList"><option value="">All price lists</option>' + prices.map(function(v){ return '<option value="'+escapeHtml(v)+'"'+(dashboardCommercialFilters.priceList===v?" selected":"")+'>'+escapeHtml(v.toUpperCase())+'</option>'; }).join("") + '</select></label>' +
+            '<div class="dashboard-filter-actions"><button class="secondary" type="button" data-dashboard-commercial-reset="true">Reset</button><button type="button" data-dashboard-commercial-apply="true">Apply</button></div>' +
+          '</aside>';
+
+        const kpis =
+          '<div class="dashboard-commercial-kpis">' +
+            '<div class="dashboard-commercial-kpi"><span>Invoiced sales value</span><strong>'+money(summary.sales)+'</strong>'+dashboardDelta(summary.sales, previous.sales)+'</div>' +
+            '<div class="dashboard-commercial-kpi"><span>Cost of goods</span><strong>'+money(summary.cost)+'</strong>'+dashboardDelta(summary.cost, previous.cost)+'</div>' +
+            '<div class="dashboard-commercial-kpi"><span>Gross profit</span><strong>'+money(summary.profit)+'</strong>'+dashboardDelta(summary.profit, previous.profit)+'</div>' +
+            '<div class="dashboard-commercial-kpi"><span>Profit margin</span><strong>'+margin.toFixed(1)+'%</strong>'+dashboardDelta(margin, prevMargin,' pp')+'</div>' +
+          '</div>';
+
+        const legend = '<div class="dashboard-chart-legend"><span class="sales">Sales value</span><span class="cost">Cost of goods</span><span class="profit">Gross profit</span><span class="margin">Margin %</span></div>';
+        const chartControls = '<div class="dashboard-chart-controls"><button type="button" data-dashboard-chart="line" class="'+(dashboardCommercialChart==="line"?"active":"")+'">Line</button><button type="button" data-dashboard-chart="bar" class="'+(dashboardCommercialChart==="bar"?"active":"")+'">Bar</button><button type="button" class="secondary" data-dashboard-commercial-export="true">Export</button></div>';
+
+        const breakdownHtml = breakdown.length ? breakdown.slice(0,5).map(function(row){
+          const pct=(row.sales/breakdownTotal)*100;
+          return '<div class="dashboard-breakdown-row"><span><i style="--share:'+pct.toFixed(1)+'%"></i><strong>'+escapeHtml(row.name)+'</strong></span><span>'+pct.toFixed(0)+'%</span><strong>'+money(row.sales)+'</strong></div>';
+        }).join("") : '<div class="dashboard-empty-copy">No sales breakdown for this period.</div>';
+
+        const categoryHtml = categories.length ? '<div class="dashboard-mini-table"><div class="head"><span>Category</span><span>Sales</span><span>Cost</span><span>Profit</span><span>Margin</span></div>' + categories.map(function(row){
+          const pct=row.sales ? row.profit/row.sales*100 : 0;
+          return '<div><strong>'+escapeHtml(row.name)+'</strong><span>'+money(row.sales)+'</span><span>'+money(row.cost)+'</span><span class="good-text">'+money(row.profit)+'</span><span class="good-text">'+pct.toFixed(1)+'%</span></div>';
+        }).join("") + '</div>' : '<div class="dashboard-empty-copy">No category performance in this period.</div>';
+
+        const customerHtml = customers.length ? '<ol class="dashboard-top-list">' + customers.map(function(row){ return '<li><span>'+escapeHtml(row.name)+'</span><strong>'+money(row.profit)+'</strong></li>'; }).join("") + '</ol>' : '<div class="dashboard-empty-copy">No customer profit data in this period.</div>';
+
+        return '<section class="dashboard-commercial-shell">' +
+          '<div class="dashboard-commercial-head"><div><span class="dashboard-eyebrow">Commercial performance</span><h2>Sales & Profitability</h2><p>Track invoiced sales, cost, gross profit and margin over the period you choose.</p></div><span class="dashboard-commercial-range">'+escapeHtml(range.start)+' → '+escapeHtml(range.end)+'</span></div>' +
+          '<div class="dashboard-commercial-layout">' + filterHtml +
+            '<div class="dashboard-commercial-main">' + kpis +
+              '<div class="dashboard-chart-head">'+legend+chartControls+'</div>' +
+              dashboardCommercialChartHtml(series) +
+              '<div class="dashboard-commercial-insights">' +
+                '<div class="dashboard-insight-card"><div class="dashboard-insight-head"><strong>Sales breakdown</strong><span>'+summary.orders+' orders</span></div>'+breakdownHtml+'</div>' +
+                '<div class="dashboard-insight-card dashboard-category-card"><div class="dashboard-insight-head"><strong>Top performing categories</strong><span>Selected period</span></div>'+categoryHtml+'</div>' +
+                '<div class="dashboard-insight-card"><div class="dashboard-insight-head"><strong>Top customers by profit</strong><span>Selected period</span></div>'+customerHtml+'</div>' +
+              '</div>' +
+              '<p class="dashboard-cost-note">Cost uses the existing sales-order unit-cost/catalogue-cost basis. Invoice-date reporting uses recorded invoice activity when available.</p>' +
+            '</div>' +
+          '</div>' +
+        '</section>';
+      }
+
+      function dashboardJobFinancialSummary(jobItem) {
+        const linkedOrders = (data.salesOrders || []).filter(function(order) { return order.jobId === jobItem.id; });
+        const commercial = linkedOrders.reduce(function(total, order) {
+          const s = salesOrderCostSummary(order);
+          total.value += Number(s.sell || 0);
+          total.cost += Number(s.cost || 0);
+          total.profit += Number(s.margin || 0);
+          return total;
+        }, { value: 0, cost: 0, profit: 0 });
+        commercial.margin = commercial.value ? (commercial.profit / commercial.value) * 100 : 0;
+        commercial.linkedOrders = linkedOrders;
+        return commercial;
+      }
+
+      function dashboardBigProjectsHtml() {
+        const progressByStatus = { "Planning": 10, "Approved": 20, "Pending Parts": 35, "In Progress": 55, "Ready To Invoice": 90, "Invoiced": 100, "Completed": 100, "On Hold": 25 };
+        const rows = (data.jobs || []).map(function(j) {
+          const finance = dashboardJobFinancialSummary(j);
+          const req = jobRequestStats(j.id);
+          const po = jobPoStats(j.id);
+          const c = customer(j.customerId) || {};
+          const dueDates = finance.linkedOrders.map(function(order){ return dashboardDateValue(order.due); }).filter(Boolean)
+            .concat(po.pos.map(function(item){ return dashboardDateValue(item.due); }).filter(Boolean)).sort();
+          const progress = Math.max(progressByStatus[j.status] || 10, po.ordered ? Math.min(85, Math.round((po.received / po.ordered) * 80)) : 0);
+          return { job: j, finance: finance, req: req, po: po, customer: c, due: dueDates[0] || "", progress: progress, size: finance.value || req.value || 0 };
+        }).sort(function(a,b){ return b.size-a.size; }).slice(0,6);
+
+        const body = rows.length ? rows.map(function(row) {
+          const j=row.job, f=row.finance;
+          const statusClass = j.status === "Completed" || j.status === "Invoiced" ? "good" : j.status === "On Hold" || j.status === "Pending Parts" ? "warn" : "blue";
+          return '<tr>' +
+            '<td><button class="link-button dashboard-project-link" data-dashboard-job-open="'+escapeHtml(j.id)+'"><strong>'+escapeHtml(j.name || j.id)+'</strong><small>'+escapeHtml(j.id)+'</small></button></td>' +
+            '<td>'+escapeHtml(row.customer.name || row.customer.companyName || "No customer linked")+'</td>' +
+            '<td class="right"><strong>'+(f.value ? money(f.value) : "—")+'</strong><small>'+(f.linkedOrders.length ? f.linkedOrders.length+' linked sales order'+(f.linkedOrders.length===1?'':'s') : 'No linked sales')+'</small></td>' +
+            '<td class="right">'+(f.value ? money(f.cost) : "—")+'</td>' +
+            '<td class="right '+(f.profit>=0?"good-text":"bad-text")+'">'+(f.value ? money(f.profit) : "—")+'</td>' +
+            '<td class="right">'+(f.value ? f.margin.toFixed(1)+'%' : "—")+'</td>' +
+            '<td><span class="pill '+statusClass+'">'+escapeHtml(j.status || "Planning")+'</span></td>' +
+            '<td><div class="dashboard-project-progress"><span><i style="width:'+row.progress+'%"></i></span><strong>'+row.progress+'%</strong></div></td>' +
+            '<td>'+(row.due ? escapeHtml(row.due) : "TBC")+'</td>' +
+          '</tr>';
+        }).join("") : '<tr><td colspan="9" class="muted">No jobs or projects have been created yet.</td></tr>';
+
+        return '<section class="panel dashboard-big-projects"><div class="panel-head"><div><h2>Big Job Projects</h2><p>High-value jobs, linked sales, projected margin, progress and the next key date at a glance.</p></div><div class="dashboard-project-actions"><button class="secondary" type="button" data-dashboard-projects-all="true">View all projects</button><button type="button" data-dashboard-project-new="true">New project</button></div></div><div class="panel-body"><div class="dashboard-project-table-wrap"><table><thead><tr><th>Project</th><th>Client</th><th class="right">Value</th><th class="right">Cost</th><th class="right">Projected profit</th><th class="right">Margin</th><th>Status</th><th>Progress</th><th>Next key date</th></tr></thead><tbody>'+body+'</tbody></table></div><p class="dashboard-cost-note">Project commercial value and margin are calculated only from sales orders explicitly linked to that job, so standalone sales orders remain independent.</p></div></section>';
+      }
+
       function renderDashboard() {
         if (dashboardView === "restockReport") {
           document.getElementById("screen-dashboard").innerHTML = restockAlertsReportPage();
           bindDashboard();
           return;
         }
+
         const alerts = restockAlerts();
+        const commercialRange = dashboardRange();
+        const commercialOrders = dashboardCommercialOrders(commercialRange);
+        const commercialSummary = dashboardCommercialSummary(commercialOrders);
+        const commercialMargin = commercialSummary.sales ? (commercialSummary.profit / commercialSummary.sales) * 100 : 0;
         const dashboardLocations = (data.locations || []).filter(function(loc) { return !loc.parentId || loc.isMaster || loc.id === "L-QUARANTINE"; });
         const locationRows = dashboardLocations.map(function(loc) {
           const rows = stockRowsForLocationScope(loc.id);
@@ -2325,42 +2676,85 @@ const seed = {
           return '<tr><td><span class="pill ' + cls + '">' + rule.label + '</span></td><td><strong>' + p.name + '</strong><br><span class="muted">' + loc.name + '</span></td><td>' + rule.current + '</td><td>' + rule.min + '</td><td>' + rule.restockTo + '</td><td>' + (rule.belowMin ? rule.needed : 0) + '</td></tr>';
         }).join("") || '<tr><td colspan="6" class="muted">No restock alerts. All locations are within their thresholds.</td></tr>';
 
-        const statusCards = orderedDashboardStatuses().map(function(status) {
+        const orderedStatuses = orderedDashboardStatuses();
+        const statusCards = orderedStatuses.map(function(status) {
           const orders = data.salesOrders.filter(function(order) { return order.status === status.name; });
           const total = orders.reduce(function(sum, order) { return sum + salesOrderValue(order); }, 0);
           return '<button class="status-summary-card" type="button" draggable="true" style="' + statusInlineStyle(status.name) + '" data-open-status-orders="' + status.name + '" data-status-drag="' + status.name + '" title="Drag to reorder. Click to open this status.">' +
-            '<strong>' + status.name + '</strong>' +
-            '<small>' + orders.length + ' orders · ' + money(total) + '</small>' +
+            '<span class="status-summary-name"><i aria-hidden="true"></i><strong>' + status.name + '</strong></span>' +
+            '<span class="status-summary-value"><strong>' + orders.length + '</strong><small>orders</small></span>' +
+            '<small class="status-summary-total">' + money(total) + '</small>' +
           '</button>';
         }).join("");
 
+        const liveStatusRows = orderedStatuses.map(function(status) {
+          const orders = data.salesOrders.filter(function(order) { return order.status === status.name; });
+          if (!orders.length) return "";
+          const total = orders.reduce(function(sum, order) { return sum + salesOrderValue(order); }, 0);
+          return '<button class="dashboard-action-item" type="button" style="' + statusInlineStyle(status.name) + '" data-open-status-orders="' + status.name + '">' +
+            '<i class="dashboard-action-marker" aria-hidden="true"></i>' +
+            '<span><strong>' + escapeHtml(status.name) + '</strong><small>' + orders.length + ' order' + (orders.length === 1 ? '' : 's') + ' · ' + money(total) + '</small></span>' +
+            '<span class="dashboard-action-link">Open →</span>' +
+          '</button>';
+        }).filter(Boolean).slice(0, 4).join("");
+
+        const needsAction = liveStatusRows +
+          (alerts.length ? '<button class="dashboard-action-item dashboard-action-restock" type="button" data-open-restock-report="true"><i class="dashboard-action-marker" aria-hidden="true"></i><span><strong>Restock alerts</strong><small>' + alerts.length + ' threshold' + (alerts.length === 1 ? '' : 's') + ' need review</small></span><span class="dashboard-action-link">Open →</span></button>' : '') ||
+          '<div class="dashboard-action-clear"><span class="pill good">Clear</span><div><strong>No urgent exceptions</strong><small>Operational queues are currently clear.</small></div></div>';
+
+        const locationSummary = dashboardLocations.slice(0, 5).map(function(loc) {
+          const rows = stockRowsForLocationScope(loc.id);
+          const qty = rows.reduce(function(total, row) { return total + Number(row.qty || 0); }, 0);
+          return '<div class="dashboard-location-row"><span><strong>' + escapeHtml(loc.name) + '</strong><small>' + qty + ' units · ' + escapeHtml(loc.type) + '</small></span><strong>' + money(locationValue(loc.id, "cost")) + '</strong></div>';
+        }).join("") || '<div class="dashboard-empty-copy">No stock locations are configured.</div>';
+
         const health = dashboardHealthSummary();
-        const healthStrip = '<div class="dashboard-health-strip">' +
+        const healthStrip = '<div class="dashboard-health-strip dashboard-health-strip-command">' +
           '<div class="dashboard-health-item good"><span>Inventory ledger</span><strong>' + health.stockUnits + ' units</strong><small>Physical stock across all bins</small></div>' +
           '<div class="dashboard-health-item blue"><span>Location roll-up</span><strong>' + health.locationUnits + ' units</strong><small>Parent locations include their bins</small></div>' +
           '<div class="dashboard-health-item ' + (health.orphanStock ? 'red' : 'good') + '"><span>Data connections</span><strong>' + (health.orphanStock ? health.orphanStock + ' issue(s)' : 'Connected') + '</strong><small>' + (health.orphanStock ? 'Review recovered stock links' : 'Products and locations reconciled') + '</small></div>' +
           '<div class="dashboard-health-item warn"><span>Sales workflow</span><strong>' + health.liveStatuses + ' stages</strong><small>Includes stages found on live orders</small></div>' +
         '</div>';
 
-        document.getElementById("screen-dashboard").innerHTML = healthStrip +
-          panel("Today In Stock Control", "What needs attention across warehouse, vans, jobs and customer orders.", '<div class="hero-grid">' +
-            '<div class="hero-metric"><span>Pick Pack Ship</span><strong>' + data.salesOrders.filter(function(order) { return order.status !== "Shipped"; }).length + ' open</strong><small>Customer orders waiting</small></div>' +
-            '<div class="hero-metric"><span>Supplier POs</span><strong>' + pendingUnits() + ' units</strong><small>' + money(supplierPendingValue()) + ' pending cost</small></div>' +
-            '<div class="hero-metric"><span>Van Stock Value</span><strong>' + money(locationValue("L-VAN-MITCH", "cost") + locationValue("L-VAN-DAVE", "cost")) + '</strong><small>Mitch and Dave combined</small></div>' +
-            '<div class="hero-metric"><span>Product Alerts</span><strong>' + alerts.length + '</strong><small>Thresholds to review</small></div>' +
-          '</div>', '<span class="pill good">Operational workspace</span>').replace('class="panel"', 'class="panel hero-panel"') +
-          '<div class="grid kpis">' +
-            kpi("Stock Cost Value", money(totalStockValue("cost")), "All locations combined") +
-            kpi("Stock Sell Value", money(totalStockValue("rrp")), "Based on RRP") +
-            kpi("Allocated Cost", money(totalAllocatedValue()), "Reserved to jobs") +
-            '<button class="panel kpi" type="button" data-open-restock-report="true"><span>Restock Alerts</span><strong>' + alerts.length + '</strong><small>Location-specific thresholds</small></button>' +
-          '</div>' +
-          panel("Sales Order Status", "Click a status name to open every sales order currently in that stage.", '<div class="status-summary-grid">' + statusCards + '</div>') +
-          '<div class="grid two">' +
-            panel("Value By Location", "Warehouse, vans, job bins and customer sites.", '<div class="dashboard-table-wrap"><table><thead><tr><th>Location</th><th>Qty</th><th class="right">Cost</th><th class="right">RRP</th></tr></thead><tbody>' + locationRows + '</tbody></table></div>') +
-            panel("Recent Movements", "Every stock action creates a movement.", '<div class="dashboard-table-wrap"><table><thead><tr><th>Type</th><th>Item</th><th>Qty</th><th>User</th></tr></thead><tbody>' + movementRows + '</tbody></table></div>') +
-          '</div>' +
-          panel("Restock Alerts", "Minimum and restock-to levels are set per product and per location.", '<div class="dashboard-table-wrap"><table><thead><tr><th>Status</th><th>Item</th><th>Current</th><th>Min</th><th>Restock To</th><th>Top Up</th></tr></thead><tbody>' + restockRows + '</tbody></table></div>', '<button data-open-restock-report="true">Open full report</button>');
+        const commandHero =
+          '<section class="dashboard-command">' +
+            '<div class="dashboard-command-head"><div><span class="dashboard-eyebrow">Live operations</span><h2>Today’s operating picture</h2><p>Commercial performance and operational exceptions together, using live Pool Shed records.</p></div><span class="dashboard-live-state"><i aria-hidden="true"></i>Operational</span></div>' +
+            '<div class="dashboard-command-metrics dashboard-command-finance">' +
+              '<div class="dashboard-command-metric"><span>Sales · selected period</span><strong>' + money(commercialSummary.sales) + '</strong><small>' + commercialSummary.orders + ' matching order' + (commercialSummary.orders === 1 ? '' : 's') + '</small></div>' +
+              '<div class="dashboard-command-metric"><span>Cost of goods</span><strong>' + money(commercialSummary.cost) + '</strong><small>Existing sales cost basis</small></div>' +
+              '<div class="dashboard-command-metric"><span>Gross profit</span><strong>' + money(commercialSummary.profit) + '</strong><small>Sales less cost</small></div>' +
+              '<div class="dashboard-command-metric"><span>Profit margin</span><strong>' + commercialMargin.toFixed(1) + '%</strong><small>' + commercialRange.start + ' → ' + commercialRange.end + '</small></div>' +
+            '</div>' +
+          '</section>';
+
+        const valueKpis =
+          '<div class="dashboard-value-grid">' +
+            '<div class="dashboard-value-card"><span>Stock cost value</span><strong>' + money(totalStockValue("cost")) + '</strong><small>All locations combined</small></div>' +
+            '<div class="dashboard-value-card"><span>Stock sell value</span><strong>' + money(totalStockValue("rrp")) + '</strong><small>Based on RRP</small></div>' +
+            '<div class="dashboard-value-card"><span>Allocated cost</span><strong>' + money(totalAllocatedValue()) + '</strong><small>Reserved to jobs</small></div>' +
+          '</div>';
+
+        document.getElementById("screen-dashboard").innerHTML =
+          '<div class="dashboard-command-layout">' +
+            commandHero +
+            dashboardCommercialSection(commercialOrders, commercialRange) +
+            dashboardBigProjectsHtml() +
+            '<div class="dashboard-command-grid">' +
+              '<div class="dashboard-command-main">' +
+                panel("Sales Order Flow", "Scan by exception. Click a status to open every sales order currently in that stage.", valueKpis + '<div class="status-summary-grid dashboard-status-grid">' + statusCards + '</div>') +
+              '</div>' +
+              '<aside class="dashboard-command-rail">' +
+                panel("Needs Action", "Live exceptions that deserve attention first.", '<div class="dashboard-action-list">' + needsAction + '</div>') +
+                panel("Value By Location", "Current stock cost by operational location.", '<div class="dashboard-location-list">' + locationSummary + '</div>') +
+              '</aside>' +
+            '</div>' +
+            '<div class="dashboard-secondary-grid">' +
+              panel("Value By Location", "Warehouse, vans, job bins and customer sites.", '<div class="dashboard-table-wrap"><table><thead><tr><th>Location</th><th>Qty</th><th class="right">Cost</th><th class="right">RRP</th></tr></thead><tbody>' + locationRows + '</tbody></table></div>') +
+              panel("Recent Movements", "Every stock action creates a movement.", '<div class="dashboard-table-wrap"><table><thead><tr><th>Type</th><th>Item</th><th>Qty</th><th>User</th></tr></thead><tbody>' + movementRows + '</tbody></table></div>') +
+            '</div>' +
+            healthStrip +
+            panel("Restock Alerts", "Minimum and restock-to levels are set per product and per location.", '<div class="dashboard-table-wrap"><table><thead><tr><th>Status</th><th>Item</th><th>Current</th><th>Min</th><th>Restock To</th><th>Top Up</th></tr></thead><tbody>' + restockRows + '</tbody></table></div>', '<button data-open-restock-report="true">Open full report</button>') +
+          '</div>';
 
         bindDashboard();
       }
@@ -2412,6 +2806,53 @@ const seed = {
       }
 
       function bindDashboard() {
+        document.querySelectorAll("[data-dashboard-commercial-filter]").forEach(function(field) {
+          field.addEventListener("change", function() {
+            const key = field.dataset.dashboardCommercialFilter;
+            dashboardCommercialFilters[key] = field.value;
+            if (key === "preset" && field.value !== "custom") {
+              dashboardCommercialFilters.start = "";
+              dashboardCommercialFilters.end = "";
+            }
+            if (key === "start" || key === "end") dashboardCommercialFilters.preset = "custom";
+            render();
+          });
+        });
+        document.querySelectorAll("[data-dashboard-commercial-reset]").forEach(function(button) {
+          button.addEventListener("click", function() {
+            dashboardCommercialFilters = { preset: "6m", start: "", end: "", dateType: "order", groupBy: "month", channel: "", status: "invoiced", priceList: "" };
+            dashboardCommercialChart = "line";
+            render();
+          });
+        });
+        document.querySelectorAll("[data-dashboard-commercial-apply]").forEach(function(button) {
+          button.addEventListener("click", function() { render(); });
+        });
+        document.querySelectorAll("[data-dashboard-chart]").forEach(function(button) {
+          button.addEventListener("click", function() {
+            dashboardCommercialChart = button.dataset.dashboardChart;
+            render();
+          });
+        });
+        document.querySelectorAll("[data-dashboard-commercial-export]").forEach(function(button) {
+          button.addEventListener("click", function() {
+            const range = dashboardRange();
+            downloadCsv("the-pool-shed-profitability-" + range.start + "-to-" + range.end + ".csv",
+              ["period","sales","cost","grossProfit","marginPercent","orders"],
+              dashboardCommercialSeries(dashboardCommercialOrders(range)).map(function(row) {
+                return { period: row.label, sales: row.sales.toFixed(2), cost: row.cost.toFixed(2), grossProfit: row.profit.toFixed(2), marginPercent: row.margin.toFixed(2), orders: row.orders };
+              }));
+          });
+        });
+        document.querySelectorAll("[data-dashboard-job-open]").forEach(function(button) {
+          button.addEventListener("click", function() { openJobCosting(button.dataset.dashboardJobOpen); });
+        });
+        document.querySelectorAll("[data-dashboard-projects-all]").forEach(function(button) {
+          button.addEventListener("click", function() { selectedJobId = ""; active = "jobs"; activeSubPage.jobs = "Job List"; render(); });
+        });
+        document.querySelectorAll("[data-dashboard-project-new]").forEach(function(button) {
+          button.addEventListener("click", function() { selectedJobId = "__new"; active = "jobs"; activeSubPage.jobs = "Create Job"; render(); });
+        });
         document.querySelectorAll("[data-open-restock-report]").forEach(function(button) {
           button.addEventListener("click", function() {
             dashboardView = "restockReport";
