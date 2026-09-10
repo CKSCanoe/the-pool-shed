@@ -6036,6 +6036,7 @@ const seed = {
       }
 
       function bindSalesOrderList() {
+        document.querySelectorAll("body > #salesOrderProductResults").forEach(function(node){ node.remove(); });
         document.querySelectorAll("[data-sales-subview]").forEach(function(button) {
           button.addEventListener("click", function() {
             salesOrderView = button.dataset.salesSubview;
@@ -6469,6 +6470,184 @@ const seed = {
             addLineInput.classList.add("has-selection");
             addLineResults.hidden = true;
             addLineInput.focus();
+          });
+        }
+
+        document.querySelectorAll("[data-toggle-so-goods-notes]").forEach(function(button){
+          button.addEventListener("click", function(){
+            const panel = document.querySelector('[data-so-goods-notes-panel="' + button.dataset.toggleSoGoodsNotes + '"]');
+            if (!panel) return;
+            panel.hidden = !panel.hidden;
+            button.textContent = panel.hidden ? "View all" : "Hide";
+          });
+        });
+        document.querySelectorAll("[data-so-goods-note-search]").forEach(function(input){
+          input.addEventListener("input", function(){
+            const panel = input.closest("[data-so-goods-notes-panel]");
+            const term = input.value.trim().toLowerCase();
+            let shown = 0;
+            panel.querySelectorAll("[data-so-gn-search]").forEach(function(row){
+              const visible = !term || String(row.dataset.soGnSearch || "").indexOf(term) !== -1;
+              row.hidden = !visible;
+              if (visible) shown += 1;
+            });
+            const empty = panel.querySelector("[data-so-goods-note-empty]");
+            if (empty) empty.hidden = shown > 0;
+          });
+        });
+
+        function batchElements(orderId) {
+          return {
+            drawer: document.querySelector('[data-so-batch-drawer="' + orderId + '"]'),
+            backdrop: document.querySelector('[data-so-batch-backdrop="' + orderId + '"]'),
+            search: document.querySelector('[data-so-batch-search="' + orderId + '"]'),
+            filter: document.querySelector('[data-so-batch-stock-filter="' + orderId + '"]'),
+            results: document.querySelector('[data-so-batch-results="' + orderId + '"]')
+          };
+        }
+        function updateSalesBatchSummary(orderId) {
+          const els = batchElements(orderId);
+          if (!els.drawer) return;
+          window.__salesOrderBatchSelections = window.__salesOrderBatchSelections || {};
+          const store = window.__salesOrderBatchSelections[orderId] = window.__salesOrderBatchSelections[orderId] || {};
+          els.drawer.querySelectorAll("[data-so-batch-qty]").forEach(function(input){
+            const qty=Math.max(0,Math.floor(Number(input.value)||0));
+            if (qty) store[input.dataset.soBatchQty]=qty;
+            else delete store[input.dataset.soBatchQty];
+          });
+          const selected = Object.keys(store).map(function(productId){
+            const p=product(productId);
+            return { productId:productId, qty:store[productId], price:p ? salesOrderLinePrice(salesOrder(orderId), {productId:productId,qty:store[productId]}) : 0 };
+          });
+          const units = selected.reduce(function(sum,item){return sum+item.qty;},0);
+          const value = selected.reduce(function(sum,item){return sum+item.qty*item.price;},0);
+          const summary = els.drawer.querySelector("[data-so-batch-summary]");
+          const valueEl = els.drawer.querySelector("[data-so-batch-value]");
+          const count = els.drawer.querySelector("[data-so-batch-selected-count]");
+          const commit = els.drawer.querySelector("[data-commit-so-batch]");
+          if (summary) summary.textContent = selected.length + " line" + (selected.length===1?"":"s") + " · " + units + " unit" + (units===1?"":"s");
+          if (valueEl) valueEl.textContent = money(value) + " net before VAT";
+          if (count) count.textContent = selected.length;
+          if (commit) commit.disabled = !selected.length;
+          els.drawer.querySelectorAll("[data-so-batch-product]").forEach(function(row){
+            const input = row.querySelector("[data-so-batch-qty]");
+            row.classList.toggle("selected", Number(input && input.value || 0) > 0);
+          });
+        }
+        function renderSalesBatch(orderId) {
+          const order = salesOrder(orderId);
+          const els = batchElements(orderId);
+          if (!order || !els.results) return;
+          window.__salesOrderBatchSelections = window.__salesOrderBatchSelections || {};
+          const store = window.__salesOrderBatchSelections[orderId] = window.__salesOrderBatchSelections[orderId] || {};
+          els.results.querySelectorAll("[data-so-batch-qty]").forEach(function(input){
+            const qty=Math.max(0,Math.floor(Number(input.value)||0));
+            if(qty) store[input.dataset.soBatchQty]=qty;
+          });
+          const selectedTab = els.drawer.querySelector('[data-so-batch-tab="selected"].active');
+          const query = selectedTab ? "" : (els.search ? els.search.value : "");
+          const stock = selectedTab ? "all" : (els.filter ? els.filter.value : "all");
+          els.results.innerHTML = salesOrderBatchProductRows(order, query, stock, Boolean(selectedTab));
+          els.results.querySelectorAll("[data-so-batch-qty]").forEach(function(input){
+            if (store[input.dataset.soBatchQty] != null) input.value = store[input.dataset.soBatchQty];
+          });
+          if (selectedTab) {
+            els.results.querySelectorAll("[data-so-batch-product]").forEach(function(row){
+              const input=row.querySelector("[data-so-batch-qty]");
+              if (!input || Number(input.value||0) <= 0) row.hidden=true;
+            });
+            els.results.querySelectorAll(".so-batch-family").forEach(function(family){
+              family.hidden = !Array.from(family.querySelectorAll("[data-so-batch-product]")).some(function(row){ return !row.hidden; });
+            });
+          }
+          updateSalesBatchSummary(orderId);
+        }
+        function setSalesBatchOpen(orderId, open) {
+          const els = batchElements(orderId);
+          if (!els.drawer || !els.backdrop) return;
+          els.drawer.classList.toggle("open", open);
+          els.backdrop.hidden = !open;
+          els.backdrop.classList.toggle("open", open);
+          els.drawer.setAttribute("aria-hidden", open ? "false" : "true");
+          document.body.classList.toggle("so-batch-open", open);
+          if (open) {
+            renderSalesBatch(orderId);
+            setTimeout(function(){ if (els.search) els.search.focus(); }, 40);
+          }
+        }
+        document.querySelectorAll("[data-open-so-batch]").forEach(function(button){
+          button.addEventListener("click", function(){ setSalesBatchOpen(button.dataset.openSoBatch, true); });
+        });
+        document.querySelectorAll("[data-close-so-batch]").forEach(function(button){
+          button.addEventListener("click", function(){ setSalesBatchOpen(button.dataset.closeSoBatch, false); });
+        });
+        document.querySelectorAll("[data-so-batch-backdrop]").forEach(function(backdrop){
+          backdrop.addEventListener("click", function(){ setSalesBatchOpen(backdrop.dataset.soBatchBackdrop, false); });
+        });
+        document.querySelectorAll("[data-so-batch-search]").forEach(function(input){
+          input.addEventListener("input", function(){ renderSalesBatch(input.dataset.soBatchSearch); });
+        });
+        document.querySelectorAll("[data-so-batch-stock-filter]").forEach(function(select){
+          select.addEventListener("change", function(){ renderSalesBatch(select.dataset.soBatchStockFilter); });
+        });
+        document.querySelectorAll("[data-so-batch-tab]").forEach(function(button){
+          button.addEventListener("click", function(){
+            const drawer=button.closest("[data-so-batch-drawer]");
+            drawer.querySelectorAll("[data-so-batch-tab]").forEach(function(tab){tab.classList.toggle("active",tab===button);});
+            renderSalesBatch(drawer.dataset.soBatchDrawer);
+          });
+        });
+        document.querySelectorAll("[data-so-batch-results]").forEach(function(results){
+          results.addEventListener("click", function(event){
+            const plus=event.target.closest("[data-so-batch-plus]");
+            const minus=event.target.closest("[data-so-batch-minus]");
+            const id=plus ? plus.dataset.soBatchPlus : (minus ? minus.dataset.soBatchMinus : "");
+            if (!id) return;
+            const input=results.querySelector('[data-so-batch-qty="' + id + '"]');
+            if (!input) return;
+            input.value=Math.max(0,Number(input.value||0)+(plus?1:-1));
+            updateSalesBatchSummary(results.dataset.soBatchResults);
+          });
+          results.addEventListener("input", function(event){
+            const input=event.target.closest("[data-so-batch-qty]");
+            if (!input) return;
+            if (Number(input.value)<0) input.value=0;
+            updateSalesBatchSummary(results.dataset.soBatchResults);
+          });
+        });
+        document.querySelectorAll("[data-commit-so-batch]").forEach(function(button){
+          button.addEventListener("click", function(){
+            const orderId=button.dataset.commitSoBatch;
+            updateSalesBatchSummary(orderId);
+            const store=(window.__salesOrderBatchSelections&&window.__salesOrderBatchSelections[orderId])||{};
+            const selections=Object.keys(store).map(function(productId){return {productId:productId,qty:store[productId]};});
+            if(window.__salesOrderBatchSelections) delete window.__salesOrderBatchSelections[orderId];
+            addBatchProductsToSalesOrder(orderId,selections);
+          });
+        });
+
+        if (!window.__salesOrderFloatingSearchBound) {
+          window.__salesOrderFloatingSearchBound = true;
+          window.addEventListener("resize", function(){
+            const input=document.getElementById("salesOrderProductSearch");
+            const box=document.getElementById("salesOrderProductResults");
+            if (input && box && !box.hidden) positionSalesOrderProductResults(input,box);
+          });
+          window.addEventListener("scroll", function(){
+            const input=document.getElementById("salesOrderProductSearch");
+            const box=document.getElementById("salesOrderProductResults");
+            if (input && box && !box.hidden) positionSalesOrderProductResults(input,box);
+          }, true);
+          document.addEventListener("mousedown", function(event){
+            const box=document.getElementById("salesOrderProductResults");
+            const input=document.getElementById("salesOrderProductSearch");
+            if (box && !box.hidden && event.target!==input && !box.contains(event.target)) box.hidden=true;
+          });
+          document.addEventListener("keydown", function(event){
+            if (event.key === "Escape") {
+              const openDrawer=document.querySelector("[data-so-batch-drawer].open");
+              if (openDrawer) setSalesBatchOpen(openDrawer.dataset.soBatchDrawer,false);
+            }
           });
         }
 
@@ -7061,6 +7240,144 @@ const seed = {
         render();
       }
 
+
+      function salesOrderVariantMeta(p) {
+        if (!p) return "";
+        const values = [
+          p.variantValue, p.variantLabel, p.variant, p.variantName,
+          p.size, p.colour || p.color, p.length, p.diameter, p.voltage
+        ].filter(Boolean).map(function(value){ return String(value).trim(); });
+        const seen = [];
+        values.forEach(function(value){ if (seen.indexOf(value) === -1) seen.push(value); });
+        return seen.slice(0, 4).join(" · ");
+      }
+
+      function salesOrderProductFamily(p) {
+        return String((p && (p.parentName || p.parent_name || p.familyName || p.family_name)) || (p && p.name) || "Products");
+      }
+
+      function salesOrderGoodsNotesDirectory(order) {
+        const notes = goodsNotesForOrder(order.id).slice().sort(function(a,b){
+          return String(b.created || b.date || b.id).localeCompare(String(a.created || a.date || a.id));
+        });
+        if (!notes.length) {
+          return '<div class="so-gn-directory"><div class="so-gn-directory-head"><div><span>Goods notes</span><strong>No goods notes yet</strong></div><small>Created from fulfilment when stock is committed to a shipment.</small></div></div>';
+        }
+        const openCount = notes.filter(function(note){ return !note.shipped; }).length;
+        const rows = notes.map(function(note) {
+          const qty = (note.lines || []).reduce(function(sum,line){ return sum + Number(line.qty || 0); }, 0);
+          const status = goodsNoteStatus(note);
+          const statusClass = note.shipped ? "neutral" : (note.packed ? "good" : "info");
+          const itemSummary = (note.lines || []).slice(0,2).map(function(line){
+            const p = product(line.productId);
+            return (p ? (p.sku || p.name) : line.productId) + " ×" + Number(line.qty || 0);
+          }).join(" · ");
+          const extra = Math.max(0, (note.lines || []).length - 2);
+          return '<button type="button" class="so-gn-row" data-open-goods-note="' + note.id + '" data-so-gn-search="' + escapeHtml([note.id,status,itemSummary].join(" ").toLowerCase()) + '">' +
+            '<span><strong>' + note.id + '</strong><small>' + escapeHtml(itemSummary + (extra ? " · +" + extra + " more" : "")) + '</small></span>' +
+            '<span><strong>' + qty + ' unit' + (qty===1?'':'s') + '</strong><small>' + escapeHtml(note.shippingMethod || order.carrier || "Fulfilment") + '</small></span>' +
+            '<span class="pill ' + statusClass + '">' + escapeHtml(status) + '</span>' +
+            '<span class="so-gn-open">Open →</span>' +
+          '</button>';
+        }).join("");
+        return '<div class="so-gn-directory">' +
+          '<div class="so-gn-directory-head"><div><span>Goods notes</span><strong>' + notes.length + ' total · ' + openCount + ' open</strong></div><button type="button" class="secondary" data-toggle-so-goods-notes="' + order.id + '">View all</button></div>' +
+          '<div class="so-gn-panel" data-so-goods-notes-panel="' + order.id + '" hidden>' +
+            '<div class="so-gn-search"><input type="search" data-so-goods-note-search="' + order.id + '" placeholder="Find goods note, item or status" aria-label="Find goods note"></div>' +
+            '<div class="so-gn-list">' + rows + '<div class="so-gn-empty" data-so-goods-note-empty hidden>No matching goods notes.</div></div>' +
+          '</div>' +
+        '</div>';
+      }
+
+      function salesOrderBatchPicker(order) {
+        return '<div class="so-batch-backdrop" data-so-batch-backdrop="' + order.id + '" hidden></div>' +
+          '<aside class="so-batch-drawer" data-so-batch-drawer="' + order.id + '" aria-label="Add multiple items" aria-hidden="true">' +
+            '<div class="so-batch-head"><div><span>PRODUCT CATALOGUE</span><strong>Add multiple items</strong><p>Search once, set quantities, then add everything to ' + order.id + ' together.</p></div><button type="button" class="secondary" data-close-so-batch="' + order.id + '">Close</button></div>' +
+            '<div class="so-batch-tools"><div class="so-batch-search-row"><input type="search" data-so-batch-search="' + order.id + '" placeholder="Search product, variant, SKU, barcode or description"><select data-so-batch-stock-filter="' + order.id + '"><option value="all">All stock</option><option value="in">In stock</option><option value="low">Low stock</option><option value="out">Out of stock</option></select></div>' +
+              '<div class="so-batch-tabs"><button type="button" class="active" data-so-batch-tab="all">All products</button><button type="button" data-so-batch-tab="selected">Selected <span data-so-batch-selected-count>0</span></button></div></div>' +
+            '<div class="so-batch-body"><div class="so-batch-hint"><strong>Fast entry</strong><span>Type to bring the best matches to the top. Use quantity controls to build the order. Stock is not allocated until you use the Sales Order allocation action.</span></div><div data-so-batch-results="' + order.id + '"></div></div>' +
+            '<div class="so-batch-footer"><div><strong data-so-batch-summary>0 lines · 0 units</strong><small data-so-batch-value>£0.00 net before VAT</small></div><button type="button" class="primary-action" data-commit-so-batch="' + order.id + '" disabled>Add items to order</button></div>' +
+          '</aside>';
+      }
+
+      function salesOrderBatchProductRows(order, query, stockFilter, selectedOnly) {
+        const clean = String(query || "").trim();
+        const terms = clean.toLowerCase().split(/\s+/).filter(Boolean);
+        const priceList = orderPriceList(order);
+        const candidates = salesOrderCatalogueProducts().map(function(p,index){
+          const text = salesOrderProductSearchText(p);
+          const name = String(p.name || "").toLowerCase();
+          const sku = String(p.sku || p.code || "").toLowerCase();
+          let score = clean ? 0 : (1000-index);
+          if (clean) {
+            if (sku === clean.toLowerCase() || name === clean.toLowerCase()) score = 10000;
+            else if (sku.indexOf(clean.toLowerCase()) === 0) score = 9000;
+            else if (name.indexOf(clean.toLowerCase()) === 0) score = 8000;
+            else if (terms.every(function(term){ return text.indexOf(term) !== -1; })) score = 5000 + terms.length;
+          }
+          return { product:p, score:score };
+        }).filter(function(entry){ return clean ? entry.score > 0 : true; })
+          .sort(function(a,b){ return b.score-a.score || String(a.product.name||"").localeCompare(String(b.product.name||"")); })
+          .slice(0, 80);
+
+        const visible = candidates.filter(function(entry){
+          const stock = salesOrderProductStockInfo(entry.product);
+          if (stockFilter === "in") return stock.available > 0;
+          if (stockFilter === "low") return stock.available > 0 && stock.cls === "warn";
+          if (stockFilter === "out") return stock.available <= 0;
+          return true;
+        });
+
+        if (!visible.length) return '<div class="empty-state so-batch-empty"><strong>No matching products</strong><p>Try a product family, variant, SKU, barcode, brand or category.</p></div>';
+
+        const grouped = {};
+        visible.forEach(function(entry){
+          const p = entry.product;
+          const family = salesOrderProductFamily(p);
+          if (!grouped[family]) grouped[family] = [];
+          grouped[family].push(p);
+        });
+        return Object.keys(grouped).map(function(family){
+          const products = grouped[family];
+          return '<section class="so-batch-family"><div class="so-batch-family-head"><strong>' + escapeHtml(family) + '</strong><span>' + products.length + ' item' + (products.length===1?'':'s') + '</span></div>' +
+            products.map(function(p){
+              const stock = salesOrderProductStockInfo(p);
+              const price = Number(p[priceList] || p.rrp || p.rrpPrice || p.rrp_price || p.trade || p.tradePrice || p.trade_price || 0);
+              const variant = salesOrderVariantMeta(p);
+              return '<div class="so-batch-row" data-so-batch-product="' + p.id + '" data-stock-class="' + stock.cls + '">' +
+                '<div class="so-batch-product"><strong>' + escapeHtml(p.name || "Unnamed product") + '</strong>' +
+                  (variant ? '<div class="so-variant-chips">' + variant.split(" · ").map(function(v){ return '<span>' + escapeHtml(v) + '</span>'; }).join("") + '</div>' : '') +
+                  '<small>' + escapeHtml(p.sku || p.code || "No SKU") + ' · ' + escapeHtml(p.category || "Product") + '</small></div>' +
+                '<div class="so-batch-stock"><strong class="' + stock.cls + '">' + stock.available + ' free</strong><small>' + stock.onHand + ' on hand</small></div>' +
+                '<div class="so-batch-price"><strong>' + money(price) + '</strong><small>net · ' + escapeHtml(String((p.taxCode || "20% VAT"))) + '</small></div>' +
+                '<div class="so-batch-qty"><button type="button" data-so-batch-minus="' + p.id + '" aria-label="Reduce ' + escapeHtml(p.name || p.sku) + ' quantity">−</button><input type="number" min="0" value="0" data-so-batch-qty="' + p.id + '" data-unit-price="' + price + '" aria-label="' + escapeHtml(p.name || p.sku) + ' quantity"><button type="button" data-so-batch-plus="' + p.id + '" aria-label="Increase ' + escapeHtml(p.name || p.sku) + ' quantity">+</button></div>' +
+              '</div>';
+            }).join("") + '</section>';
+        }).join("");
+      }
+
+      function addBatchProductsToSalesOrder(orderId, selections) {
+        const order = salesOrder(orderId);
+        if (!order || !Array.isArray(selections) || !selections.length) return;
+        let addedLines = 0, addedUnits = 0;
+        selections.forEach(function(selection){
+          const p = product(selection.productId);
+          const qty = Math.max(0, Math.floor(Number(selection.qty) || 0));
+          if (!p || !qty) return;
+          const existing = order.lines.find(function(line){ return line.productId === p.id; });
+          if (existing) existing.qty += qty;
+          else order.lines.push({ productId:p.id, qty:qty, allocated:0, picked:0, packed:0 });
+          addedLines += 1;
+          addedUnits += qty;
+        });
+        if (!addedUnits) return;
+        addSalesOrderNotification(order, "Multiple lines added", addedLines + " product lines · " + addedUnits + " units added to sales order", "Internal note");
+        order.status = "Needs Review";
+        saveAppData();
+        toast(addedLines + " item" + (addedLines===1?"":"s") + " added to " + order.id + ".");
+        render();
+      }
+
       function salesOrderDetail(order) {
         const c = customer(order.customerId);
         const progress = salesOrderProgress(order);
@@ -7082,7 +7399,10 @@ const seed = {
           const actionCell = nonStock
             ? '<div class="line-actions">' + removeButton + '</div>'
             : '<div class="line-actions"><button class="secondary" data-allocate-line="' + order.id + '|' + line.productId + '">Allocate</button><button class="secondary" data-unallocate-line="' + order.id + '|' + line.productId + '">Unallocate</button>' + removeButton + '</div><small class="muted">' + escapeHtml(salesOrderLineRemovalReason(line)) + '</small>';
-          return '<tr class="' + health.className + '"><td><input type="checkbox" data-sales-line-select="' + order.id + '|' + line.productId + '" aria-label="Select ' + p.sku + '"></td><td class="stock-status-cell"><span class="pill ' + health.pillClass + '">' + health.label + '</span><span class="status-reason">' + health.reason + '</span></td><td><strong>' + p.sku + '</strong><br><span class="muted">Item code: ' + p.id + '</span></td><td><strong>' + p.name + '</strong><br><span class="muted">' + p.category + '</span>' + goodsNoteLineLinks(order.id, line.productId) + '</td><td><select class="inline-edit" data-line-select-field="' + order.id + '|' + line.productId + '|accountCode">' + optionList(["4000 Merchandise Sales", "4010 Service Upsell", "4020 Trade Sales"], line.accountCode || "4000 Merchandise Sales") + '</select></td><td><select class="inline-edit" data-line-select-field="' + order.id + '|' + line.productId + '|taxCode">' + optionList(["20% VAT", "Not rated", "Zero rated"], line.taxCode || "20% VAT") + '</select></td><td><input class="qty-input" data-line-field="' + order.id + '|' + line.productId + '|qty" type="number" min="0" value="' + line.qty + '"><br><span class="muted">' + allocationText + '</span></td><td>' + allocationCell + '</td><td>' + line.picked + '</td><td>' + line.packed + '</td><td class="right">' + money(unitPrice) + priceFlag + '</td><td class="right">' + money(unitPrice * line.qty) + '</td><td class="compact-actions">' + actionCell + '</td></tr>';
+          const variantMeta = salesOrderVariantMeta(p);
+          const familyMeta = p.parentName && p.parentName !== p.name ? p.parentName : p.category;
+          const noteCount = goodsNotesForOrder(order.id).filter(function(note){ return note.lines.some(function(noteLine){ return noteLine.productId === line.productId; }); }).length;
+          return '<tr class="' + health.className + '"><td><input type="checkbox" data-sales-line-select="' + order.id + '|' + line.productId + '" aria-label="Select ' + p.sku + '"></td><td class="stock-status-cell"><span class="pill ' + health.pillClass + '">' + health.label + '</span><span class="status-reason">' + health.reason + '</span></td><td><strong>' + p.sku + '</strong><br><span class="muted">Item code: ' + p.id + '</span></td><td><strong>' + p.name + '</strong>' + (variantMeta ? '<div class="so-variant-chips">' + variantMeta.split(" · ").map(function(v){return '<span>'+escapeHtml(v)+'</span>';}).join("") + '</div>' : '') + '<br><span class="muted">' + escapeHtml(familyMeta || "") + (noteCount ? ' · ' + noteCount + ' goods note' + (noteCount===1?'':'s') : '') + '</span></td><td><select class="inline-edit" data-line-select-field="' + order.id + '|' + line.productId + '|accountCode">' + optionList(["4000 Merchandise Sales", "4010 Service Upsell", "4020 Trade Sales"], line.accountCode || "4000 Merchandise Sales") + '</select></td><td><select class="inline-edit" data-line-select-field="' + order.id + '|' + line.productId + '|taxCode">' + optionList(["20% VAT", "Not rated", "Zero rated"], line.taxCode || "20% VAT") + '</select></td><td><input class="qty-input" data-line-field="' + order.id + '|' + line.productId + '|qty" type="number" min="0" value="' + line.qty + '"><br><span class="muted">' + allocationText + '</span></td><td>' + allocationCell + '</td><td>' + line.picked + '</td><td>' + line.packed + '</td><td class="right">' + money(unitPrice) + priceFlag + '</td><td class="right">' + money(unitPrice * line.qty) + '</td><td class="compact-actions">' + actionCell + '</td></tr>';
         }).join("");
         ensureSalesOrderAddresses(order, c);
         const bothLinked = order.addressCopy.billing && order.addressCopy.delivery;
@@ -7121,7 +7441,7 @@ const seed = {
           '<div class="record-card-body record-shell">' +
             customerProfileCard(order, c, activePriceList, costSummary, "crm") +
             '<div class="order-meta-column so-order-details-card"><div class="so-card-heading"><div><span>Order details</span><strong>Dates & channel</strong></div></div><div class="field"><span>Date created</span><input data-order-field="' + order.id + '" data-field="created" type="date" value="' + order.created + '"></div><div class="field"><span>Due Date</span><input data-order-field="' + order.id + '" data-field="due" type="date" value="' + order.due + '"></div><div class="field"><span>Channel</span><select data-order-field="' + order.id + '" data-field="channel">' + optionList(["Project Order", "Trade Counter", "Service Upsell", "WooCommerce", "Wholesale and trade", "Phone Order"], order.channel) + '</select></div></div>' +
-            '<div class="so-fulfilment-card"><div class="so-card-heading"><div><span>Stock & fulfilment</span><strong>Allocation control</strong></div><button type="button" class="secondary" data-so-tab="addresses">Review addresses</button></div><label>Allocation source<select data-order-field="' + order.id + '" data-field="carrier">' + locationOptionsSelected(order.carrier) + '</select></label><div class="so-source-note"><span class="so-source-dot"></span><div><strong>Main Warehouse is the default</strong><small>Only change this when deliberately allocating from a van, job bin or site.</small></div></div><div class="so-progress-grid"><div><span>Picked</span><strong>' + progress.picked + '/' + progress.required + '</strong><div class="so-mini-progress"><i style="width:' + (progress.required ? Math.min(100, Math.round(progress.picked / progress.required * 100)) : 0) + '%"></i></div></div><div><span>Packed</span><strong>' + progress.packed + '/' + progress.required + '</strong><div class="so-mini-progress"><i style="width:' + (progress.required ? Math.min(100, Math.round(progress.packed / progress.required * 100)) : 0) + '%"></i></div></div></div></div>' +
+            '<div class="so-fulfilment-card"><div class="so-card-heading"><div><span>Stock & fulfilment</span><strong>Allocation control</strong></div><button type="button" class="secondary" data-so-tab="addresses">Review addresses</button></div><label>Allocation source<select data-order-field="' + order.id + '" data-field="carrier">' + locationOptionsSelected(order.carrier) + '</select></label><div class="so-source-note"><span class="so-source-dot"></span><div><strong>Main Warehouse is the default</strong><small>Only change this when deliberately allocating from a van, job bin or site.</small></div></div><div class="so-progress-grid"><div><span>Picked</span><strong>' + progress.picked + '/' + progress.required + '</strong><div class="so-mini-progress"><i style="width:' + (progress.required ? Math.min(100, Math.round(progress.picked / progress.required * 100)) : 0) + '%"></i></div></div><div><span>Packed</span><strong>' + progress.packed + '/' + progress.required + '</strong><div class="so-mini-progress"><i style="width:' + (progress.required ? Math.min(100, Math.round(progress.packed / progress.required * 100)) : 0) + '%"></i></div></div></div>' + salesOrderGoodsNotesDirectory(order) + '</div>' +
           '</div>' +
           salesOrderTabs() +
           '<div class="record-card-body">' + salesOrderTabContent(order, lineRows, poRows, addressCards, costRows, costSummary) + '</div>' +
@@ -7267,7 +7587,10 @@ const seed = {
       }
 
       function salesOrderAddRow(order) {
-        return '<div class="po-add-items so-add-items"><div class="po-add-copy"><span>Stock item</span><strong>Search product catalogue</strong><p>Search by product, SKU, item code or barcode. Stock availability and the customer price list are checked before adding.</p></div><div class="po-add-controls"><div class="po-product-search"><input id="salesOrderProductSearch" data-order-id="' + order.id + '" autocomplete="off" placeholder="Search product or SKU"><div id="salesOrderProductResults" class="po-product-results so-product-results" hidden></div></div><input id="salesOrderProductQty" class="po-add-qty" type="number" min="1" value="1" aria-label="Quantity"><button type="button" data-add-line-order="' + order.id + '">Add stock item</button></div></div>' +
+        return '<div class="po-add-items so-add-items"><div class="po-add-copy"><span>Stock item</span><strong>Add products</strong><p>Type to bring the best product and variant matches to the top, or use Add multiple items for a larger order.</p></div>' +
+          '<div class="po-add-controls so-smart-add-controls"><div class="po-product-search so-smart-product-search"><input id="salesOrderProductSearch" data-order-id="' + order.id + '" autocomplete="off" placeholder="Search product, variant, SKU, barcode or description"><div id="salesOrderProductResults" class="po-product-results so-product-results" hidden></div></div>' +
+          '<input id="salesOrderProductQty" class="po-add-qty" type="number" min="1" value="1" aria-label="Quantity"><button type="button" data-add-line-order="' + order.id + '">Add stock item</button><button type="button" class="secondary" data-open-so-batch="' + order.id + '">Add multiple items</button></div></div>' +
+        salesOrderBatchPicker(order) +
         '<section class="so-line-composer"><div class="so-line-composer-head"><div><span>Additional charges</span><strong>Add a non-stock sales line</strong><p>Use this for one-off work, labour, call-out charges, discounts, delivery and other items that must not affect inventory.</p></div><div class="so-line-choice"><button type="button" class="secondary active" data-line-composer-tab="custom">Custom sales line</button><button type="button" class="secondary" data-line-composer-tab="shipping">Shipping charge</button></div></div>' +
         '<div class="so-line-form" data-line-composer-panel="custom"><label class="so-line-description"><span>Description</span><input id="customLineDescription" placeholder="Example: Additional installation labour"></label><label><span>Quantity</span><input id="customLineQty" type="number" min="1" step="1" value="1"></label><label><span>Unit price net</span><input id="customLinePrice" type="number" min="0" step="0.01" value="0.00"></label><label><span>Unit cost</span><input id="customLineCost" type="number" min="0" step="0.01" value="0.00"></label><label><span>Tax</span><select id="customLineTax">' + optionList(["20% VAT","Zero rated","Not rated"],"20% VAT") + '</select></label><label><span>Sales account</span><select id="customLineAccount">' + optionList(["4010 Service Upsell","4030 Labour Income","4050 Call-out Charges","4060 Miscellaneous Sales"],"4010 Service Upsell") + '</select></label><label class="so-line-note"><span>Internal note (optional)</span><textarea id="customLineNote" placeholder="Reason, engineer detail or approval note"></textarea></label><button type="button" class="primary-action" data-add-custom-line="' + order.id + '">Add custom line</button></div>' +
         '<div class="so-line-form" data-line-composer-panel="shipping" hidden><label class="so-line-description"><span>Shipping method</span><select id="shippingLineMethod"><option>Standard delivery</option><option>Express delivery</option><option>Pallet delivery</option><option>Chemical delivery surcharge</option><option>Free delivery</option><option>Collection</option><option>Custom shipping</option></select></label><label class="so-line-description"><span>Customer description</span><input id="shippingLineDescription" value="Standard delivery" placeholder="Shown on the sales order and invoice"></label><label><span>Charge net</span><input id="shippingLinePrice" type="number" min="0" step="0.01" value="12.50"></label><label><span>Tax</span><select id="shippingLineTax">' + optionList(["20% VAT","Zero rated","Not rated"],"20% VAT") + '</select></label><button type="button" class="primary-action" data-add-shipping-line="' + order.id + '">Add shipping</button></div>' +
@@ -7300,18 +7623,28 @@ const seed = {
       function salesOrderProductMatches(query) {
         const q = String(query || "").trim().toLowerCase();
         const products = salesOrderCatalogueProducts();
-        if (!q) return products.slice(0, 12);
+        if (!q) return products.slice(0, 14);
         const terms = q.split(/\s+/).filter(Boolean);
-        return products.filter(function(p) {
+        return products.map(function(p,index){
           const haystack = salesOrderProductSearchText(p);
-          return terms.every(function(term) { return haystack.includes(term); });
-        }).sort(function(a,b) {
-          const aSku=String(a.sku||"").toLowerCase(), bSku=String(b.sku||"").toLowerCase();
-          const aName=String(a.name||a.parentName||"").toLowerCase(), bName=String(b.name||b.parentName||"").toLowerCase();
-          const aExact=(aSku===q||aName===q)?0:(aSku.startsWith(q)||aName.startsWith(q)?1:2);
-          const bExact=(bSku===q||bName===q)?0:(bSku.startsWith(q)||bName.startsWith(q)?1:2);
-          return aExact-bExact || aName.localeCompare(bName);
-        }).slice(0, 20);
+          const sku = String(p.sku || p.code || "").toLowerCase();
+          const name = String(p.name || p.parentName || "").toLowerCase();
+          const variant = String(salesOrderVariantMeta(p) || "").toLowerCase();
+          if (!terms.every(function(term){ return haystack.indexOf(term) !== -1; })) return null;
+          let score = 1000-index;
+          if (sku === q || name === q) score += 10000;
+          else if (sku.indexOf(q) === 0) score += 8000;
+          else if (name.indexOf(q) === 0) score += 7000;
+          else if (variant.indexOf(q) === 0) score += 5000;
+          terms.forEach(function(term){
+            if (sku.indexOf(term) === 0) score += 700;
+            if (name.indexOf(term) === 0) score += 500;
+            if (variant.indexOf(term) !== -1) score += 300;
+          });
+          return { product:p, score:score };
+        }).filter(Boolean).sort(function(a,b){
+          return b.score-a.score || String(a.product.name||"").localeCompare(String(b.product.name||""));
+        }).slice(0, 24).map(function(entry){ return entry.product; });
       }
 
       function salesOrderProductStockInfo(p) {
@@ -7328,23 +7661,56 @@ const seed = {
         return { onHand: onHand, available: available, cls: cls, label: label };
       }
 
+      function positionSalesOrderProductResults(input, box) {
+        if (!input || !box || box.hidden) return;
+        const rect = input.getBoundingClientRect();
+        const pad = 12;
+        const gap = 4;
+        const width = Math.min(Math.max(rect.width, 620), window.innerWidth - pad * 2);
+        const left = Math.min(Math.max(pad, rect.left), Math.max(pad, window.innerWidth - width - pad));
+        const below = window.innerHeight - rect.bottom - pad;
+        const above = rect.top - pad;
+        const openAbove = below < 260 && above > below;
+        box.classList.add("so-product-results-portal");
+        box.style.width = width + "px";
+        box.style.left = left + "px";
+        if (openAbove) {
+          box.style.top = "auto";
+          box.style.bottom = (window.innerHeight - rect.top + gap) + "px";
+          box.style.maxHeight = Math.max(180, above - gap) + "px";
+        } else {
+          box.style.bottom = "auto";
+          box.style.top = (rect.bottom + gap) + "px";
+          box.style.maxHeight = Math.max(180, below - gap) + "px";
+        }
+      }
+
       function renderSalesOrderProductResults(orderId, query) {
         const box = document.getElementById("salesOrderProductResults");
+        const input = document.getElementById("salesOrderProductSearch");
         const order = salesOrder(orderId);
         if (!box || !order) return;
         const clean = String(query || "").trim();
         const matches = salesOrderProductMatches(clean);
         const priceList = orderPriceList(order);
+        if (box.parentElement !== document.body) document.body.appendChild(box);
         box.hidden = false;
-        box.innerHTML = '<div class="po-product-results-head"><div><strong>Matching products</strong><span>Select the exact item or variant</span></div><span>' + matches.length + ' result(s)</span></div>' + (matches.length ? matches.map(function(p) {
-          const stock = salesOrderProductStockInfo(p);
-          const price = Number(p[priceList] || p.rrp || p.rrpPrice || p.rrp_price || p.trade || p.tradePrice || p.trade_price || 0);
-          return '<button type="button" class="po-product-result so-product-result ' + stock.cls + '" data-so-select-product="' + order.id + '|' + p.id + '">' +
-            '<div><strong>' + escapeHtml(p.name || 'Unnamed product') + '</strong><span>' + escapeHtml(p.sku || p.code || 'No SKU') + ' · ' + escapeHtml([p.parentName && p.parentName !== p.name ? p.parentName : '', p.variantValue || p.variantLabel || p.variant || '', p.brand, p.category, p.supplierSku ? 'Supplier SKU '+p.supplierSku : ''].filter(Boolean).join(' · ')) + '</span></div>' +
-            '<div><span class="pill ' + stock.cls + '">' + stock.label + '</span><small>' + stock.available + ' available · ' + stock.onHand + ' on hand</small></div>' +
-            '<div class="right"><small>' + escapeHtml(String(priceList || 'RRP').toUpperCase()) + ' price</small><strong>' + money(price) + '</strong></div>' +
-          '</button>';
-        }).join('') : '<div class="empty-state"><strong>No matching products</strong><p>The sales catalogue currently has '+salesOrderCatalogueProducts().length+' active item(s). Try a parent name, variant, Pool Bros SKU, supplier SKU, barcode, brand or category.</p></div>');
+        box.innerHTML = '<div class="so-product-results-head"><div><strong>Best matches</strong><span>' + (clean ? 'Results reorder as you type' : 'Start typing to narrow the catalogue') + '</span></div><span>' + matches.length + ' result' + (matches.length===1?'':'s') + '</span></div>' +
+          (matches.length ? matches.map(function(p,index) {
+            const stock = salesOrderProductStockInfo(p);
+            const price = Number(p[priceList] || p.rrp || p.rrpPrice || p.rrp_price || p.trade || p.tradePrice || p.trade_price || 0);
+            const variant = salesOrderVariantMeta(p);
+            const family = p.parentName && p.parentName !== p.name ? p.parentName : p.category;
+            return '<button type="button" class="so-smart-product-result ' + stock.cls + (index===0?' active':'') + '" data-so-select-product="' + order.id + '|' + p.id + '">' +
+              '<span class="so-smart-result-main"><strong>' + escapeHtml(p.name || 'Unnamed product') + '</strong>' +
+              (variant ? '<span class="so-variant-chips">' + variant.split(" · ").map(function(v){return '<i>'+escapeHtml(v)+'</i>';}).join("") + '</span>' : '') +
+              '<small>' + escapeHtml(p.sku || p.code || 'No SKU') + (family ? ' · ' + escapeHtml(family) : '') + '</small></span>' +
+              '<span class="so-smart-result-price"><strong>' + money(price) + '</strong><small>net · ' + escapeHtml(String(priceList || 'RRP').toUpperCase()) + '</small></span>' +
+              '<span class="so-smart-result-stock"><strong class="' + stock.cls + '">' + stock.available + ' free</strong><small>' + stock.onHand + ' on hand</small></span>' +
+              '<span class="so-smart-result-action">Select</span>' +
+            '</button>';
+          }).join('') : '<div class="empty-state"><strong>No matching products</strong><p>Try a parent product, variant, Pool Bros SKU, supplier SKU, barcode, brand or category.</p></div>');
+        positionSalesOrderProductResults(input, box);
       }
 
       function goodsNoteLineLinks(orderId, productId) {
