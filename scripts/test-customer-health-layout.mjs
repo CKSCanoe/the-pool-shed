@@ -5,9 +5,9 @@ const js=fs.readFileSync("public/assets/js/01-legacy-01.js","utf8");
 
 const requiredCss=[
   ".crm-account-overview-grid{grid-template-columns:minmax(0,1fr)",
-  ".crm-account-health-card .crm-cardbody{display:grid;grid-template-columns:minmax(260px,.78fr) minmax(0,1.22fr)",
-  ".crm-account-health-card .crm-attention-row{margin:0;padding:0 0 0 18px;border-top:0;border-left:1px solid #d7e0e5",
-  ".crm-core-sections{display:grid;grid-template-columns:1fr;gap:8px}",
+  ".crm-account-health-card .crm-cardbody{display:grid;grid-template-columns:minmax(280px,.72fr) minmax(0,1.28fr)",
+  ".crm-account-health-card .crm-attention-row{margin:0;padding:8px 10px;border:1px solid #e8cf8e",
+  ".crm-core-sections{display:grid;grid-template-columns:1fr;gap:0}",
   "@media(max-width:980px)",
   ".crm-account-health-card .crm-cardbody{grid-template-columns:1fr"
 ];

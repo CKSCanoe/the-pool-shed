@@ -35,7 +35,7 @@ const styling=[
   '.crm-hero{background:#fff',
   '.crm-profile-tabs',
   '.crm-summary{display:grid;grid-template-columns:repeat(4',
-  '.crm-core-account{background:#eef8fb',
+  '.crm-core-account{background:#fff',
   '.crm-core-sections{display:grid;grid-template-columns:',
   '.crm-edit-drawer{position:fixed;top:0;right:0;bottom:0;width:min(560px,94vw)',
   '@media(max-width:900px)',
@@ -48,4 +48,4 @@ if(js.includes('class="crm-directory-shell"')) throw new Error("Old separate dir
 if(css.includes('.crm-account-header{padding:12px 14px;background:#102b3a')) throw new Error("Old dark CRM header styling remains.");
 if(!js.includes('data-crm-copy=')) throw new Error("Core record copy actions are not connected.");
 
-console.log("Customer Design Lab parity checks passed: master-detail directory, white account hero, tabbed profile, summary, highlighted core record, supporting overview cards, depth cards, 560px editor and responsive structure are present.");
+console.log("Customer Design Lab parity checks passed: master-detail directory, light account header, dashboard-aligned tabs/summary, readable core record, supporting overview cards, depth cards, 560px editor and responsive structure are present.");
