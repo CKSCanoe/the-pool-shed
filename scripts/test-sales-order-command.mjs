@@ -2,11 +2,12 @@ import fs from 'node:fs';
 
 const js = fs.readFileSync('public/assets/js/01-legacy-01.js','utf8');
 const css = fs.readFileSync('public/assets/css/system/32-sales-workspace.css','utf8');
+const workspace = fs.readFileSync('public/sales-workspace.js','utf8');
 const pkg = JSON.parse(fs.readFileSync('package.json','utf8'));
 const sw = fs.readFileSync('public/service-worker.js','utf8');
 
 const checks = [
-  ['release version', pkg.version === '1.5.0'],
+  ['release version', pkg.version === '1.5.2'],
   ['smart product ranking', js.includes('function salesOrderProductMatches(query)') && js.includes('score += 10000')],
   ['search covers variant and SKU fields', js.includes('p.variantValue') && js.includes('p.supplierSku')],
   ['product dropdown is viewport portal', js.includes('function positionSalesOrderProductResults') && css.includes('.so-product-results-portal')],
@@ -20,7 +21,11 @@ const checks = [
   ['existing allocation engine remains', js.includes('function allocateSalesOrder') && js.includes('function allocateSalesOrderLine')],
   ['existing custom line engine remains', js.includes('function addCustomSalesLine') && js.includes('data-add-custom-line')],
   ['existing shipping line engine remains', js.includes('function addShippingSalesLine') && js.includes('data-add-shipping-line')],
-  ['service worker invalidated', sw.includes('sales-order-command-v1')]
+  ['selected Concept A page shell', workspace.includes('sales-command-page') && css.includes('Sales Order Command parity refinement')],
+  ['selected Concept A items workspace', workspace.includes('so-command-items') && workspace.includes('so-entry-and-totals')],
+  ['selected Concept A readable table', workspace.includes('so-command-table') && css.includes('min-width:930px')],
+  ['selected Concept A live totals rail', workspace.includes('so-command-totals') && css.includes('.so-command-totals')],
+  ['service worker invalidated', sw.includes('sales-order-command-v1-parity-fix-v1')]
 ];
 
 let failed = false;

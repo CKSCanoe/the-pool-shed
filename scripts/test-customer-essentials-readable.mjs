@@ -20,11 +20,11 @@ const jsRequired=[
 for(const token of jsRequired) if(!js.includes(token)) throw new Error("Missing readable Account Essentials structure: "+token);
 
 const cssRequired=[
-  '.crm-core-sections{display:grid;grid-template-columns:1fr;gap:8px}',
-  '.crm-core-band{min-width:0;background:#fff;border:1px solid #d7e5ea;border-radius:6px;overflow:hidden}',
+  '.crm-core-sections{display:grid;grid-template-columns:1fr;gap:0}',
+  '.crm-core-band{min-width:0;background:#fff;border:0;border-radius:0;overflow:hidden}',
   '.crm-core-band-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr))}',
   '.crm-core-field strong{display:block;color:#17252e;font-size:12px;line-height:1.45',
-  '.crm-address-row{display:grid;grid-template-columns:155px minmax(0,1fr) auto',
+  '.crm-address-row{display:grid;grid-template-columns:150px minmax(0,1fr) auto',
   '@media(max-width:700px)',
   '.crm-core-band-grid{grid-template-columns:1fr}',
   '.crm-address-row{grid-template-columns:1fr auto;align-items:start'

@@ -1,4 +1,4 @@
-# Sales Order Command — 1.5.0
+# Pool Shed Uniform System — 1.5.2
 
 
 Vercel deployment now skips npm dependency installation because the production build has no runtime npm dependencies; `@electric-sql/pglite` remains a local test-only development dependency.

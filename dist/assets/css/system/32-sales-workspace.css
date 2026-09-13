@@ -45,7 +45,7 @@
 
 
 
-/* ===== Sales Order Command — v1.5.0 ===== */
+/* ===== Sales Order Command foundation ===== */
 .sales-workspace .so-variant-chips{
   display:flex;flex-wrap:wrap;gap:4px;margin-top:4px
 }
@@ -182,4 +182,607 @@ body.so-batch-open{overflow:hidden}
   .sales-workspace .so-gn-row{grid-template-columns:minmax(0,1fr) 64px 50px}
   .sales-workspace .so-gn-row>span:nth-child(2){display:none}
   .sales-workspace .so-gn-open{display:none}
+}
+
+
+/* ===== Sales Order Command parity refinement — v1.5.1 =====
+   Selected Concept A: readable operational composition without changing sales/stock engines.
+*/
+#screen-salesorders .sales-workspace.sales-command-page{
+  --so-command-gap:12px;
+  border:0;
+  border-radius:8px;
+  background:var(--color-surface-canvas,#f3f6f8);
+  overflow:visible;
+  box-shadow:none
+}
+#screen-salesorders .sales-workspace.sales-command-page>.record-top{
+  min-height:58px;
+  padding:11px 14px!important;
+  gap:10px;
+  background:#fff;
+  border:1px solid var(--color-border-default,#d7e0e5);
+  border-radius:8px 8px 0 0
+}
+#screen-salesorders .sales-workspace.sales-command-page .record-id{
+  display:flex;align-items:center;gap:8px;flex-wrap:wrap;min-width:0
+}
+#screen-salesorders .sales-workspace.sales-command-page .record-id>strong{
+  font-size:20px!important;
+  line-height:1.2;
+  letter-spacing:-.02em
+}
+#screen-salesorders .sales-workspace.sales-command-page .detail-actions{
+  margin-left:auto;
+  display:flex;
+  gap:6px;
+  flex-wrap:wrap
+}
+#screen-salesorders .sales-workspace.sales-command-page .detail-actions button{
+  min-height:34px;
+  height:34px;
+  padding:0 10px;
+  font-size:11px
+}
+#screen-salesorders .sales-workspace.sales-command-page .detail-actions .so-action-save{
+  background:var(--color-action-primary,#007a8c);
+  color:#fff;
+  border-color:var(--color-action-primary,#007a8c)
+}
+
+/* Concept A summary row */
+#screen-salesorders .sales-workspace.sales-command-page>.record-shell{
+  display:grid!important;
+  grid-template-columns:minmax(360px,1.25fr) minmax(220px,.72fr) minmax(270px,.88fr)!important;
+  gap:10px!important;
+  padding:12px 14px!important;
+  align-items:stretch!important;
+  background:var(--color-surface-canvas,#f3f6f8);
+  border-inline:1px solid var(--color-border-default,#d7e0e5)
+}
+#screen-salesorders .sales-workspace.sales-command-page>.record-shell>*{
+  min-width:0;
+  height:100%!important;
+  min-height:0!important;
+  border:1px solid var(--color-border-default,#d7e0e5)!important;
+  border-radius:7px!important;
+  background:#fff!important;
+  box-shadow:none!important
+}
+#screen-salesorders .sales-workspace.sales-command-page .customer-profile-compact{
+  padding:10px 11px!important
+}
+#screen-salesorders .sales-workspace.sales-command-page .customer-profile-compact .customer-toolbar,
+#screen-salesorders .sales-workspace.sales-command-page .customer-profile-compact .customer-money-grid,
+#screen-salesorders .sales-workspace.sales-command-page .customer-profile-compact .sales-core-contact,
+#screen-salesorders .sales-workspace.sales-command-page .customer-profile-compact .customer-card-kicker,
+#screen-salesorders .sales-workspace.sales-command-page .customer-profile-compact .customer-profile-summary,
+#screen-salesorders .sales-workspace.sales-command-page .customer-profile-compact .customer-info-grid{
+  display:none!important
+}
+#screen-salesorders .sales-workspace.sales-command-page .so-customer-picker{
+  margin:0!important;
+  position:relative;
+  z-index:12
+}
+#screen-salesorders .sales-workspace.sales-command-page .so-customer-picker-head{
+  margin-bottom:7px
+}
+#screen-salesorders .sales-workspace.sales-command-page .so-customer-search-row{
+  gap:6px
+}
+#screen-salesorders .sales-workspace.sales-command-page .so-customer-search-field input{
+  min-height:36px!important;
+  height:36px;
+  font-size:12px
+}
+#screen-salesorders .sales-workspace.sales-command-page .so-new-customer-button{
+  min-height:36px;
+  height:36px;
+  padding-inline:9px;
+  white-space:nowrap
+}
+#screen-salesorders .sales-workspace.sales-command-page .so-customer-current{
+  margin-top:8px;
+  padding:8px 9px;
+  border:1px solid #e3eaee;
+  border-radius:6px;
+  background:#f8fafb
+}
+#screen-salesorders .sales-workspace.sales-command-page .so-customer-current strong{
+  font-size:12px
+}
+#screen-salesorders .sales-workspace.sales-command-page .so-customer-current small{
+  font-size:10px;
+  line-height:1.35
+}
+
+#screen-salesorders .sales-workspace.sales-command-page .so-order-details-card,
+#screen-salesorders .sales-workspace.sales-command-page .so-fulfilment-card{
+  padding:10px 11px!important
+}
+#screen-salesorders .sales-workspace.sales-command-page .so-card-heading{
+  min-height:36px;
+  margin:-1px 0 8px;
+  padding:0 0 8px;
+  border-bottom:1px solid #e5ecef
+}
+#screen-salesorders .sales-workspace.sales-command-page .so-card-heading span{
+  font-size:10px;
+  text-transform:uppercase;
+  letter-spacing:.04em
+}
+#screen-salesorders .sales-workspace.sales-command-page .so-card-heading strong{
+  font-size:12px
+}
+#screen-salesorders .sales-workspace.sales-command-page .so-order-details-card .field{
+  margin-bottom:7px
+}
+#screen-salesorders .sales-workspace.sales-command-page .so-order-details-card .field:last-child{
+  margin-bottom:0
+}
+#screen-salesorders .sales-workspace.sales-command-page .so-order-details-card input,
+#screen-salesorders .sales-workspace.sales-command-page .so-order-details-card select,
+#screen-salesorders .sales-workspace.sales-command-page .so-fulfilment-card select{
+  min-height:34px!important;
+  height:34px;
+  font-size:11px
+}
+#screen-salesorders .sales-workspace.sales-command-page .so-progress-grid{
+  gap:6px;
+  margin-top:8px
+}
+#screen-salesorders .sales-workspace.sales-command-page .so-progress-grid>div{
+  padding:7px;
+  border:1px solid #e2e9ed;
+  border-radius:5px;
+  background:#f8fafb
+}
+#screen-salesorders .sales-workspace.sales-command-page .so-progress-grid span,
+#screen-salesorders .sales-workspace.sales-command-page .so-progress-grid strong{
+  font-size:10px
+}
+
+/* Flat Concept A tabs */
+#screen-salesorders .sales-workspace.sales-command-page>.tabs-row{
+  padding:0 14px!important;
+  background:#fff;
+  border:1px solid var(--color-border-default,#d7e0e5);
+  border-top:0;
+  gap:0!important
+}
+#screen-salesorders .sales-workspace.sales-command-page>.tabs-row .tab-chip{
+  min-height:38px!important;
+  height:38px;
+  padding:0 12px!important;
+  font-size:11px!important
+}
+
+/* The working surface is intentionally one coherent module rather than nested legacy panels. */
+#screen-salesorders .sales-workspace.sales-command-page>.record-card-body:not(.record-shell){
+  padding:0!important;
+  border:1px solid var(--color-border-default,#d7e0e5);
+  border-top:0;
+  border-radius:0 0 8px 8px;
+  background:#fff;
+  overflow:visible
+}
+#screen-salesorders .sales-workspace.sales-command-page .so-command-items{
+  min-width:0;
+  background:#fff
+}
+#screen-salesorders .sales-workspace.sales-command-page .so-command-toolbar{
+  display:flex;
+  align-items:center;
+  gap:10px;
+  min-height:48px;
+  padding:7px 10px;
+  border-bottom:1px solid var(--color-border-default,#d7e0e5);
+  background:#f8fafb
+}
+#screen-salesorders .sales-workspace.sales-command-page .so-command-toolbar-actions{
+  display:flex;align-items:center;gap:5px;flex-wrap:wrap
+}
+#screen-salesorders .sales-workspace.sales-command-page .so-command-toolbar-actions>button,
+#screen-salesorders .sales-workspace.sales-command-page .so-more-actions>summary{
+  min-height:32px;
+  height:32px;
+  padding:0 9px;
+  display:inline-flex;
+  align-items:center;
+  border:1px solid #cbd7dd;
+  border-radius:5px;
+  background:#fff;
+  color:var(--color-text-primary,#17252e);
+  font-size:10px;
+  font-weight:750
+}
+#screen-salesorders .sales-workspace.sales-command-page .so-command-line-summary{
+  margin-left:auto;
+  display:grid;
+  justify-items:end;
+  gap:1px;
+  white-space:nowrap
+}
+#screen-salesorders .sales-workspace.sales-command-page .so-command-line-summary strong{
+  font-size:10px
+}
+#screen-salesorders .sales-workspace.sales-command-page .so-command-line-summary span{
+  color:var(--color-text-secondary,#5b6972);
+  font-size:10px
+}
+#screen-salesorders .sales-workspace.sales-command-page .so-more-actions{
+  position:relative
+}
+#screen-salesorders .sales-workspace.sales-command-page .so-more-actions>summary{
+  list-style:none;
+  cursor:pointer
+}
+#screen-salesorders .sales-workspace.sales-command-page .so-more-actions>summary::-webkit-details-marker{display:none}
+#screen-salesorders .sales-workspace.sales-command-page .so-more-actions>div{
+  position:absolute;
+  z-index:80;
+  top:36px;
+  left:0;
+  width:180px;
+  padding:5px;
+  border:1px solid #ccd8de;
+  border-radius:6px;
+  background:#fff;
+  box-shadow:0 10px 24px rgba(16,43,58,.12)
+}
+#screen-salesorders .sales-workspace.sales-command-page .so-more-actions>div button{
+  width:100%;
+  min-height:32px;
+  justify-content:flex-start;
+  text-align:left;
+  font-size:10px
+}
+
+/* Order lines: readable compact Concept A columns. */
+#screen-salesorders .sales-workspace.sales-command-page .so-command-table-wrap{
+  margin:0;
+  border:0;
+  border-radius:0!important;
+  max-height:min(43vh,470px);
+  overflow:auto
+}
+#screen-salesorders .sales-workspace.sales-command-page .so-command-table{
+  width:100%;
+  min-width:930px!important;
+  table-layout:auto
+}
+#screen-salesorders .sales-workspace.sales-command-page .so-command-table thead{
+  position:sticky;
+  top:0;
+  z-index:4
+}
+#screen-salesorders .sales-workspace.sales-command-page .so-command-table th{
+  height:34px;
+  padding:0 9px!important;
+  background:#f5f8fa;
+  color:#5b6972;
+  font-size:10px!important;
+  letter-spacing:.03em;
+  text-transform:uppercase;
+  white-space:nowrap
+}
+#screen-salesorders .sales-workspace.sales-command-page .so-command-table td{
+  min-height:48px;
+  height:auto!important;
+  padding:8px 9px!important;
+  font-size:11px!important;
+  line-height:1.35;
+  vertical-align:middle
+}
+#screen-salesorders .sales-workspace.sales-command-page .so-command-table :is(th,td):nth-child(5),
+#screen-salesorders .sales-workspace.sales-command-page .so-command-table :is(th,td):nth-child(6),
+#screen-salesorders .sales-workspace.sales-command-page .so-command-table :is(th,td):nth-child(9),
+#screen-salesorders .sales-workspace.sales-command-page .so-command-table :is(th,td):nth-child(10){
+  display:none!important
+}
+/* Header is already reduced to nine cells, so do not hide its 5/6/9 cells. */
+#screen-salesorders .sales-workspace.sales-command-page .so-command-table thead :is(th):nth-child(5),
+#screen-salesorders .sales-workspace.sales-command-page .so-command-table thead :is(th):nth-child(6),
+#screen-salesorders .sales-workspace.sales-command-page .so-command-table thead :is(th):nth-child(9){
+  display:table-cell!important
+}
+#screen-salesorders .sales-workspace.sales-command-page .so-command-table .status-reason,
+#screen-salesorders .sales-workspace.sales-command-page .so-command-table .muted{
+  font-size:10px;
+  line-height:1.3
+}
+#screen-salesorders .sales-workspace.sales-command-page .so-command-table .qty-input{
+  width:58px;
+  min-height:32px!important;
+  height:32px;
+  font-size:11px
+}
+#screen-salesorders .sales-workspace.sales-command-page .so-command-table .line-actions{
+  display:flex!important;
+  flex-direction:row!important;
+  gap:4px!important;
+  flex-wrap:wrap
+}
+#screen-salesorders .sales-workspace.sales-command-page .so-command-table .line-actions button{
+  min-height:29px;
+  height:29px;
+  padding:0 7px;
+  font-size:9px
+}
+
+/* Add lines + totals as one deliberate lower workflow. */
+#screen-salesorders .sales-workspace.sales-command-page .so-entry-and-totals{
+  display:grid;
+  grid-template-columns:minmax(0,1fr) 250px;
+  gap:10px;
+  padding:10px;
+  border-top:1px solid var(--color-border-default,#d7e0e5);
+  background:var(--color-surface-canvas,#f3f6f8)
+}
+#screen-salesorders .sales-workspace.sales-command-page .so-entry-stack{
+  min-width:0;
+  display:grid;
+  gap:8px
+}
+#screen-salesorders .sales-workspace.sales-command-page .so-add-items,
+#screen-salesorders .sales-workspace.sales-command-page .so-line-composer{
+  margin:0;
+  border:1px solid var(--color-border-default,#d7e0e5);
+  border-radius:7px;
+  background:#fff;
+  box-shadow:none
+}
+#screen-salesorders .sales-workspace.sales-command-page .so-add-items{
+  display:grid;
+  grid-template-columns:180px minmax(0,1fr);
+  gap:10px;
+  align-items:start;
+  padding:10px 11px
+}
+#screen-salesorders .sales-workspace.sales-command-page .po-add-copy span,
+#screen-salesorders .sales-workspace.sales-command-page .so-line-composer-head span{
+  color:#657984;
+  font-size:10px;
+  font-weight:850;
+  text-transform:uppercase;
+  letter-spacing:.04em
+}
+#screen-salesorders .sales-workspace.sales-command-page .po-add-copy strong,
+#screen-salesorders .sales-workspace.sales-command-page .so-line-composer-head strong{
+  display:block;
+  margin-top:2px;
+  font-size:12px
+}
+#screen-salesorders .sales-workspace.sales-command-page .po-add-copy p,
+#screen-salesorders .sales-workspace.sales-command-page .so-line-composer-head p{
+  margin:3px 0 0;
+  color:#5b6972;
+  font-size:10px;
+  line-height:1.35
+}
+#screen-salesorders .sales-workspace.sales-command-page .so-smart-add-controls{
+  display:grid;
+  grid-template-columns:minmax(260px,1fr) 64px auto auto;
+  gap:6px;
+  align-items:start!important
+}
+#screen-salesorders .sales-workspace.sales-command-page .so-smart-product-search{
+  min-width:0!important;
+  width:100%
+}
+#screen-salesorders .sales-workspace.sales-command-page #salesOrderProductSearch{
+  width:100%;
+  min-height:38px!important;
+  height:38px;
+  padding:0 10px;
+  font-size:12px
+}
+#screen-salesorders .sales-workspace.sales-command-page .po-add-qty{
+  width:64px;
+  min-height:38px!important;
+  height:38px
+}
+#screen-salesorders .sales-workspace.sales-command-page .so-smart-add-controls>button{
+  min-height:38px;
+  height:38px;
+  padding-inline:9px;
+  white-space:nowrap;
+  font-size:10px
+}
+#screen-salesorders .sales-workspace.sales-command-page .so-line-composer{
+  overflow:hidden
+}
+#screen-salesorders .sales-workspace.sales-command-page .so-line-composer-head{
+  display:flex;
+  align-items:center;
+  gap:10px;
+  padding:9px 10px;
+  border-bottom:1px solid #e5ecef;
+  background:#f8fafb
+}
+#screen-salesorders .sales-workspace.sales-command-page .so-line-choice{
+  margin-left:auto;
+  display:flex;
+  gap:4px
+}
+#screen-salesorders .sales-workspace.sales-command-page .so-line-choice button{
+  min-height:30px;
+  height:30px;
+  padding:0 7px;
+  font-size:9px
+}
+#screen-salesorders .sales-workspace.sales-command-page .so-line-form{
+  padding:9px 10px
+}
+#screen-salesorders .sales-workspace.sales-command-page .so-line-assurance{
+  margin:0;
+  border:0;
+  border-top:1px solid #e5ecef;
+  border-radius:0;
+  padding:7px 10px;
+  font-size:10px
+}
+
+#screen-salesorders .sales-workspace.sales-command-page .so-command-totals{
+  align-self:start;
+  position:sticky;
+  top:10px;
+  border:1px solid var(--color-border-default,#d7e0e5);
+  border-radius:7px;
+  background:#fff;
+  overflow:hidden
+}
+#screen-salesorders .sales-workspace.sales-command-page .so-command-totals-head{
+  padding:9px 10px 8px;
+  border-bottom:1px solid #e5ecef;
+  background:#f8fafb
+}
+#screen-salesorders .sales-workspace.sales-command-page .so-command-totals-head span{
+  display:block;
+  color:#657984;
+  font-size:10px;
+  font-weight:850;
+  letter-spacing:.04em
+}
+#screen-salesorders .sales-workspace.sales-command-page .so-command-totals-head strong{
+  display:block;
+  margin-top:2px;
+  font-size:13px
+}
+#screen-salesorders .sales-workspace.sales-command-page .so-command-totals-head small{
+  display:block;
+  margin-top:2px;
+  color:#5b6972;
+  font-size:10px
+}
+#screen-salesorders .sales-workspace.sales-command-page .so-command-totals .order-total-strip{
+  margin:0;
+  padding:0
+}
+#screen-salesorders .sales-workspace.sales-command-page .so-command-totals .order-total-box{
+  width:auto;
+  max-width:none;
+  border:0;
+  border-radius:0;
+  box-shadow:none;
+  padding:8px 10px
+}
+#screen-salesorders .sales-workspace.sales-command-page .so-command-totals .order-total-row{
+  min-height:30px;
+  padding:6px 0;
+  font-size:11px
+}
+#screen-salesorders .sales-workspace.sales-command-page .so-command-totals .order-total-row.grand{
+  margin-top:3px;
+  padding-top:9px;
+  border-top:1px solid #dbe4e8
+}
+#screen-salesorders .sales-workspace.sales-command-page .so-command-totals .order-total-row.grand strong{
+  font-size:16px
+}
+
+/* Search result portal: deliberately readable and always above the order workspace. */
+#salesOrderProductResults.so-product-results-portal{
+  z-index:2147483000!important
+}
+#salesOrderProductResults .so-smart-product-result{
+  min-height:64px;
+  padding:9px 10px;
+  font-size:11px
+}
+#salesOrderProductResults .so-smart-result-main>strong{
+  font-size:12px
+}
+#salesOrderProductResults .so-smart-result-main>small,
+#salesOrderProductResults .so-smart-result-price small,
+#salesOrderProductResults .so-smart-result-stock small{
+  font-size:10px
+}
+
+/* Multi-item picker follows the selected prototype, but keeps production data/state. */
+.so-batch-drawer{
+  width:min(720px,96vw);
+  background:#f3f6f8
+}
+.so-batch-head strong{font-size:17px}
+.so-batch-head p,
+.so-batch-hint,
+.so-batch-family-head span,
+.so-batch-product>small,
+.so-batch-stock small,
+.so-batch-price small,
+.so-batch-footer small{
+  font-size:10px
+}
+.so-batch-product>strong,
+.so-batch-stock strong,
+.so-batch-price strong{
+  font-size:11px
+}
+.so-batch-row{
+  min-height:60px
+}
+.so-batch-search-row input,
+.so-batch-search-row select{
+  font-size:11px
+}
+
+@media(max-width:1100px){
+  #screen-salesorders .sales-workspace.sales-command-page>.record-shell{
+    grid-template-columns:minmax(0,1fr) minmax(220px,.72fr)!important
+  }
+  #screen-salesorders .sales-workspace.sales-command-page>.record-shell>.customer-profile-compact{
+    grid-column:1/-1
+  }
+  #screen-salesorders .sales-workspace.sales-command-page .so-entry-and-totals{
+    grid-template-columns:minmax(0,1fr) 230px
+  }
+}
+@media(max-width:760px){
+  #screen-salesorders .sales-workspace.sales-command-page>.record-top{
+    padding:10px 12px!important
+  }
+  #screen-salesorders .sales-workspace.sales-command-page .detail-actions{
+    width:100%;
+    display:grid;
+    grid-template-columns:1fr 1fr
+  }
+  #screen-salesorders .sales-workspace.sales-command-page>.record-shell{
+    grid-template-columns:1fr!important;
+    padding:10px 12px!important
+  }
+  #screen-salesorders .sales-workspace.sales-command-page>.record-shell>.customer-profile-compact{
+    grid-column:auto
+  }
+  #screen-salesorders .sales-workspace.sales-command-page>.tabs-row{
+    padding:0 12px!important
+  }
+  #screen-salesorders .sales-workspace.sales-command-page .so-command-toolbar{
+    align-items:flex-start;
+    flex-direction:column
+  }
+  #screen-salesorders .sales-workspace.sales-command-page .so-command-line-summary{
+    margin-left:0;
+    justify-items:start
+  }
+  #screen-salesorders .sales-workspace.sales-command-page .so-entry-and-totals{
+    grid-template-columns:1fr;
+    padding:8px
+  }
+  #screen-salesorders .sales-workspace.sales-command-page .so-command-totals{
+    position:static
+  }
+  #screen-salesorders .sales-workspace.sales-command-page .so-add-items{
+    grid-template-columns:1fr
+  }
+  #screen-salesorders .sales-workspace.sales-command-page .so-smart-add-controls{
+    grid-template-columns:minmax(0,1fr) 62px
+  }
+  #screen-salesorders .sales-workspace.sales-command-page .so-smart-product-search{
+    grid-column:1/-1
+  }
+  #screen-salesorders .sales-workspace.sales-command-page .so-smart-add-controls>button{
+    width:100%
+  }
 }

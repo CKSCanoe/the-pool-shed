@@ -1756,3 +1756,354 @@ table th {
   }
 }
 
+/* ========================================================================
+   CROSS-PAGE COHESION — v1.5.2
+   Approved system direction: Dashboard visual authority + module-specific
+   information architecture. Scoped to Dashboard, Customers and Sales Orders.
+   ======================================================================== */
+
+:root{
+  --ps-cohesion-workspace-gap:13px;
+  --ps-cohesion-workspace-pad:14px;
+  --ps-cohesion-panel-radius:8px;
+  --ps-cohesion-control-radius:5px;
+  --ps-cohesion-control-height:34px;
+  --ps-cohesion-input-height:38px;
+}
+
+/* Keep the Dashboard as the visual authority rather than restyling it into
+   another module. Its hero remains the only large dark command surface. */
+#screen-dashboard{
+  min-width:0;
+}
+#screen-dashboard .dashboard-reference-workspace,
+#screen-dashboard .dashboard-final-workspace{
+  gap:var(--ps-cohesion-workspace-gap);
+  padding:var(--ps-cohesion-workspace-pad);
+}
+#screen-dashboard :is(.dashboard-commercial-shell,.dashboard-projects-shell,.dashboard-rail-card){
+  border-radius:var(--ps-cohesion-panel-radius);
+  box-shadow:none;
+}
+#screen-dashboard :is(.dashboard-commercial-head,.dashboard-projects-head,.dashboard-rail-head){
+  min-height:55px;
+}
+
+/* Customers and Sales Orders begin on the same calm canvas and workspace
+   rhythm used beneath the Dashboard command hero. */
+#screen-crm,
+#screen-salesorders{
+  min-width:0;
+  padding:var(--ps-cohesion-workspace-pad) !important;
+  background:var(--color-surface-canvas);
+}
+#screen-crm .crm-page,
+#screen-salesorders .sales-workspace.sales-command-page{
+  gap:var(--ps-cohesion-workspace-gap);
+}
+
+/* Shared page-heading language. */
+#screen-crm .crm-pagehead{
+  min-height:42px;
+  align-items:flex-end;
+  gap:12px;
+}
+#screen-crm .crm-pagehead h1,
+#screen-salesorders .sales-workspace.sales-command-page .record-id>strong{
+  margin:0;
+  color:var(--color-text-primary);
+  font-size:20px !important;
+  font-weight:800;
+  line-height:1.15;
+  letter-spacing:-.02em;
+}
+#screen-crm .crm-pagehead p{
+  margin:3px 0 0;
+  color:var(--color-text-secondary);
+  font-size:10px;
+  line-height:1.4;
+}
+
+/* One control language across the previous approved pages. */
+#screen-crm :is(.crm-page-actions,.crm-hero-actions) button,
+#screen-salesorders .sales-workspace.sales-command-page :is(.detail-actions,.so-command-toolbar-actions) button{
+  min-height:var(--ps-cohesion-control-height);
+  height:var(--ps-cohesion-control-height);
+  border-radius:var(--ps-cohesion-control-radius);
+  box-shadow:none;
+}
+#screen-crm :is(.crm-directory-head input,.crm-edit-page input,.crm-edit-page select),
+#screen-salesorders .sales-workspace.sales-command-page :is(input,select){
+  border-radius:var(--ps-cohesion-control-radius);
+}
+#screen-crm .crm-directory-head input,
+#screen-salesorders .sales-workspace.sales-command-page #salesOrderProductSearch{
+  min-height:var(--ps-cohesion-input-height) !important;
+  height:var(--ps-cohesion-input-height);
+}
+
+/* Customer workspace: preserve the accepted light account identity while
+   matching Dashboard spacing, card geometry and visual weight. */
+#screen-crm .crm-master-detail{
+  grid-template-columns:290px minmax(0,1fr);
+  gap:var(--ps-cohesion-workspace-gap);
+}
+#screen-crm :is(.crm-directory,.crm-hero,.crm-card,.crm-depth-card){
+  border:1px solid var(--color-border-default);
+  border-radius:var(--ps-cohesion-panel-radius);
+  background:var(--color-surface-default);
+  box-shadow:none;
+}
+#screen-crm .crm-hero-main{
+  grid-template-columns:60px minmax(0,1fr) auto;
+  gap:14px;
+  padding:16px 18px;
+}
+#screen-crm .crm-hero-avatar{
+  width:56px;
+  height:56px;
+  font-size:16px;
+}
+#screen-crm .crm-hero-copy h2{
+  font-size:20px;
+  font-weight:800;
+  line-height:1.15;
+}
+#screen-crm .crm-hero-copy p{
+  margin-top:4px;
+  font-size:10px;
+}
+#screen-crm .crm-relationship-meta{
+  gap:12px;
+  margin-top:7px;
+  font-size:9px;
+}
+#screen-crm .crm-hero-meta{
+  gap:6px;
+  margin-top:8px;
+}
+#screen-crm .crm-pill{
+  min-height:23px;
+  padding:3px 7px;
+  font-size:9px;
+}
+#screen-crm .crm-profile-tabs{
+  padding-inline:12px;
+}
+#screen-crm .crm-profile-tabs button{
+  min-height:42px;
+  height:42px;
+  padding:0 11px;
+  font-size:10px;
+}
+#screen-crm .crm-profile{
+  gap:var(--ps-cohesion-workspace-gap);
+}
+#screen-crm .crm-profile-page.active{
+  gap:var(--ps-cohesion-workspace-gap);
+}
+#screen-crm .crm-summary{
+  gap:10px;
+}
+#screen-crm .crm-stat{
+  min-height:94px;
+  padding:11px 12px;
+  border-radius:7px;
+}
+#screen-crm .crm-stat span{
+  font-size:9px;
+}
+#screen-crm .crm-stat strong{
+  font-size:20px;
+}
+#screen-crm .crm-cardhead,
+#screen-crm .crm-depth-card>header{
+  min-height:55px;
+  padding:10px 13px;
+}
+#screen-crm .crm-cardhead h3,
+#screen-crm .crm-depth-card h3{
+  font-size:15px;
+  font-weight:800;
+}
+#screen-crm .crm-cardhead p,
+#screen-crm .crm-depth-card header p{
+  font-size:10px;
+}
+#screen-crm .crm-cardbody,
+#screen-crm .crm-depth-body{
+  padding:11px 13px;
+}
+#screen-crm .crm-core-account .crm-cardhead{
+  min-height:55px;
+  padding:10px 13px;
+}
+#screen-crm .crm-core-account .crm-cardhead h3{
+  font-size:16px;
+}
+#screen-crm .crm-section-kicker{
+  font-size:9px;
+}
+#screen-crm .crm-core-band-head{
+  min-height:46px;
+  padding:8px 10px;
+}
+#screen-crm .crm-core-field{
+  min-height:58px;
+}
+#screen-crm .crm-address-row{
+  min-height:58px;
+}
+#screen-crm .crm-account-health-card .crm-cardhead{
+  min-height:55px;
+  padding:10px 13px;
+}
+
+/* Sales Order Command: keep Concept A as the information architecture while
+   giving it the same card rhythm and hierarchy as the Dashboard/CRM pages. */
+#screen-salesorders .sales-workspace.sales-command-page{
+  --so-command-gap:var(--ps-cohesion-workspace-gap);
+  background:transparent;
+  border-radius:0;
+}
+#screen-salesorders .sales-workspace.sales-command-page>.record-top{
+  min-height:55px;
+  padding:10px 13px !important;
+  border-radius:var(--ps-cohesion-panel-radius) var(--ps-cohesion-panel-radius) 0 0;
+  box-shadow:none;
+}
+#screen-salesorders .sales-workspace.sales-command-page>.record-shell{
+  gap:var(--ps-cohesion-workspace-gap) !important;
+  padding:13px !important;
+}
+#screen-salesorders .sales-workspace.sales-command-page>.record-shell>*{
+  border-radius:7px !important;
+  box-shadow:none !important;
+}
+#screen-salesorders .sales-workspace.sales-command-page .customer-profile-compact,
+#screen-salesorders .sales-workspace.sales-command-page .so-order-details-card,
+#screen-salesorders .sales-workspace.sales-command-page .so-fulfilment-card{
+  padding:11px 12px !important;
+}
+#screen-salesorders .sales-workspace.sales-command-page .so-card-heading{
+  min-height:38px;
+  margin:0 0 8px;
+  padding:0 0 8px;
+}
+#screen-salesorders .sales-workspace.sales-command-page .so-card-heading span{
+  font-size:9px;
+}
+#screen-salesorders .sales-workspace.sales-command-page .so-card-heading strong{
+  font-size:12px;
+}
+#screen-salesorders .sales-workspace.sales-command-page>.tabs-row{
+  padding-inline:12px !important;
+}
+#screen-salesorders .sales-workspace.sales-command-page>.tabs-row .tab-chip{
+  min-height:40px !important;
+  height:40px;
+  padding-inline:11px !important;
+  font-size:10px !important;
+}
+#screen-salesorders .sales-workspace.sales-command-page .so-command-toolbar{
+  min-height:45px;
+  padding:7px 10px;
+}
+#screen-salesorders .sales-workspace.sales-command-page .so-command-table th{
+  height:34px;
+  font-size:9px !important;
+}
+#screen-salesorders .sales-workspace.sales-command-page .so-command-table td{
+  min-height:47px;
+  padding:7px 9px !important;
+  font-size:10px !important;
+}
+#screen-salesorders .sales-workspace.sales-command-page .so-command-table .status-reason,
+#screen-salesorders .sales-workspace.sales-command-page .so-command-table .muted{
+  font-size:9px;
+}
+#screen-salesorders .sales-workspace.sales-command-page .so-entry-and-totals{
+  gap:var(--ps-cohesion-workspace-gap);
+  padding:var(--ps-cohesion-workspace-gap);
+}
+#screen-salesorders .sales-workspace.sales-command-page .so-add-items,
+#screen-salesorders .sales-workspace.sales-command-page .so-line-composer,
+#screen-salesorders .sales-workspace.sales-command-page .so-command-totals{
+  border-radius:7px;
+  box-shadow:none;
+}
+#screen-salesorders .sales-workspace.sales-command-page .so-add-items{
+  padding:11px 12px;
+}
+#screen-salesorders .sales-workspace.sales-command-page .so-command-totals-head{
+  padding:10px 11px 9px;
+}
+#screen-salesorders .sales-workspace.sales-command-page .so-command-totals .order-total-box{
+  padding:8px 11px;
+}
+
+/* Popovers/sheets retain operational clarity above the newly unified surfaces. */
+#salesOrderProductResults.so-product-results-portal{
+  border-radius:7px;
+  box-shadow:0 14px 32px rgba(16,43,58,.16);
+}
+.so-batch-drawer{
+  border-left-color:var(--color-border-default);
+}
+.so-batch-family,
+.so-batch-hint{
+  border-radius:6px;
+  box-shadow:none;
+}
+
+/* Responsive behaviour relaxes density for touch without inventing another
+   visual system. */
+@media(max-width:1199px){
+  #screen-crm,
+  #screen-salesorders{
+    padding:12px !important;
+  }
+  #screen-crm .crm-master-detail{
+    grid-template-columns:250px minmax(0,1fr);
+  }
+}
+@media(max-width:899px){
+  #screen-crm .crm-master-detail{
+    grid-template-columns:1fr;
+  }
+  #screen-crm .crm-directory{
+    position:static;
+    max-height:300px;
+  }
+  #screen-salesorders .sales-workspace.sales-command-page>.record-shell{
+    gap:10px !important;
+  }
+}
+@media(max-width:599px){
+  #screen-crm,
+  #screen-salesorders{
+    padding:10px !important;
+  }
+  #screen-crm .crm-hero-main{
+    grid-template-columns:44px minmax(0,1fr);
+    padding:13px 14px;
+  }
+  #screen-crm .crm-hero-avatar{
+    width:42px;
+    height:42px;
+  }
+  #screen-crm .crm-hero-actions{
+    grid-column:1/-1;
+  }
+  #screen-crm .crm-profile-tabs button{
+    min-height:44px;
+    height:44px;
+  }
+  #screen-salesorders .sales-workspace.sales-command-page>.record-top{
+    padding:10px 12px !important;
+  }
+  #screen-salesorders .sales-workspace.sales-command-page>.record-shell{
+    padding:10px 12px !important;
+  }
+}
+
