@@ -12,7 +12,7 @@ const checks = [
   ['duplicate check', js.includes('function findDuplicate(form)') && js.includes('Use existing')],
   ['keyboard navigation', js.includes("event.key === 'ArrowDown'") && js.includes("event.key === 'Enter'")],
   ['drawer stays on SO', css.includes('.so-customer-drawer-shell') && css.includes('position: fixed')],
-  ['offline cache updated', sw.includes('sales-order-customer-picker.js') && sw.includes('pool-shed-v1.6.2-asset-freshness')],
+  ['offline cache updated', sw.includes('sales-order-customer-picker.js') && sw.includes('pool-shed-v1.6.3-asset-freshness')],
   ['old datalist replaced at runtime', js.includes('smart-customer-select') && js.includes('salesOrderCustomerOptions')]
 ];
 let failed = false;

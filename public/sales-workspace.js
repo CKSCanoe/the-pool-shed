@@ -170,47 +170,82 @@
   };
 
   salesOrderDetail = function(order) {
-    const template = document.createElement('template');
-    template.innerHTML = originalDetail(order).replace('sales-order-compact', 'sales-order-compact sales-workspace sales-command-page so2-page');
-    const root = template.content.querySelector('.so2-page');
-    if (!root) return template.innerHTML;
+    /* v1.6.3: authoritative Sales Order Command shell. Business/data engines
+       stay in the legacy runtime; this replaces only the outer presentation. */
+    const c = customer(order.customerId);
+    const progress = salesOrderProgress(order);
+    const required = Number(progress.required || 0);
+    const allocated = (order.lines || []).filter(function(line){ return !isNonStockSalesLine(line); })
+      .reduce(function(sum,line){ return sum + Number(line.allocated || 0); },0);
+    const packed = Number(progress.packed || 0);
+    const shipped = Number(progress.shipped || 0);
 
-    const recordTop = root.querySelector('.record-top');
-    if (recordTop) {
-      recordTop.classList.add('so2-command-header');
-      const back = document.createElement('button');
-      back.type = 'button';
-      back.className = 'so2-back';
-      back.dataset.backSoList = '';
-      back.textContent = '← Sales Orders';
-      recordTop.insertBefore(back, recordTop.firstChild);
-      const id = recordTop.querySelector('.record-id');
-      if (id) {
-        id.classList.add('so2-command-identity');
-        const meta = document.createElement('span');
-        meta.className = 'so2-command-meta';
-        meta.textContent = 'Created ' + (order.created || '—') + ' · Due ' + (order.due || '—') + ' · ' + (order.channel || order.source || 'Sales order');
-        id.appendChild(meta);
-      }
-      const save = recordTop.querySelector('[data-save-order]');
-      if (save) save.textContent = 'Save Order';
-      const print = recordTop.querySelector('[data-email-print-order]');
-      if (print) print.textContent = 'Email / Print';
-      const fulfil = recordTop.querySelector('[data-fulfil-order]');
-      if (fulfil) fulfil.textContent = 'Fulfil';
-    }
+    /* Reuse the existing active-tab business payload, but discard the legacy
+       record shell that was causing the approved design to be visually lost. */
+    const legacyTemplate = document.createElement('template');
+    legacyTemplate.innerHTML = originalDetail(order);
+    const legacyBodies = legacyTemplate.content.querySelectorAll('.record-card-body');
+    const activeBody = legacyBodies.length ? legacyBodies[legacyBodies.length - 1].innerHTML : '';
 
-    const shell = root.querySelector('.record-shell');
-    if (shell) shell.classList.add('so2-summary-grid');
-    const details = root.querySelector('.so-order-details-card');
-    if (details) details.classList.add('so2-summary-card','so2-order-details');
-    const fulfilment = root.querySelector('.so-fulfilment-card');
-    if (fulfilment) fulfilment.classList.add('so2-summary-card','so2-fulfilment-card');
+    const channelOptions = optionList(
+      ["Project Order","Trade Counter","Service Upsell","WooCommerce","Wholesale and trade","Phone Order"],
+      order.channel
+    );
+    const customerPo = order.customerPo || order.customerPO || order.customerPoRef || order.reference || '';
+    const fulfilmentCopy = required
+      ? (allocated >= required ? 'Stock allocated and ready for fulfilment.' : (allocated ? 'Partially allocated — review remaining demand.' : 'Stock has not been allocated yet.'))
+      : 'Add an order line to begin stock allocation.';
 
-    if(!order.lines.some(function(line){ return !isNonStockSalesLine(line); })) {
-      root.querySelectorAll('[data-allocate-order],[data-fulfil-order],[data-create-another-shipment]').forEach(function(el){ el.disabled = false; });
-    }
-    return template.innerHTML;
+    return '<div class="record-card sales-workspace sales-command-page so2-page so3-page">' +
+      '<header class="so3-command-header">' +
+        '<button type="button" class="so3-back" data-back-so-list>← Sales Orders</button>' +
+        '<div class="so3-order-identity">' +
+          '<div class="so3-order-title"><strong>' + escapeHtml(order.id) + '</strong>' + salesOrderStatusPicker(order) + '</div>' +
+          '<div class="so3-order-meta">Created ' + escapeHtml(order.created || '—') + ' · Due ' + escapeHtml(order.due || '—') + ' · ' + escapeHtml(order.channel || order.source || 'Sales order') + '</div>' +
+        '</div>' +
+        '<div class="so3-command-actions">' +
+          '<button type="button" class="secondary" data-email-print-order="' + escapeHtml(order.id) + '">Email / Print</button>' +
+          '<button type="button" class="secondary" data-allocate-order="' + escapeHtml(order.id) + '">Allocate All</button>' +
+          '<button type="button" class="secondary" data-fulfil-order="' + escapeHtml(order.id) + '">Fulfil</button>' +
+          '<button type="button" class="secondary so3-invoice" data-open-invoice-confirm="' + escapeHtml(order.id) + '">Invoice</button>' +
+          '<button type="button" class="primary-action so3-save so-action-save" data-save-order="' + escapeHtml(order.id) + '">Save Order</button>' +
+        '</div>' +
+      '</header>' +
+      '<div class="so3-command-accent" aria-hidden="true"></div>' +
+
+      '<div class="so3-workspace">' +
+        '<section class="so3-summary-grid">' +
+          so2CustomerCard(order,c) +
+          '<section class="so2-summary-card so3-order-details"><div class="so3-card-body">' +
+            '<span class="so2-kicker">Order details</span><h3>Dates & channel</h3>' +
+            '<div class="so3-detail-grid">' +
+              '<label><span>Date created</span><input data-order-field="' + escapeHtml(order.id) + '" data-field="created" type="date" value="' + escapeHtml(order.created || '') + '"></label>' +
+              '<label><span>Due date</span><input data-order-field="' + escapeHtml(order.id) + '" data-field="due" type="date" value="' + escapeHtml(order.due || '') + '"></label>' +
+              '<label><span>Channel</span><select data-order-field="' + escapeHtml(order.id) + '" data-field="channel">' + channelOptions + '</select></label>' +
+              '<label><span>Customer PO</span><input data-order-field="' + escapeHtml(order.id) + '" data-field="customerPo" value="' + escapeHtml(customerPo) + '" placeholder="Optional"></label>' +
+            '</div>' +
+          '</div></section>' +
+          '<section class="so2-summary-card so3-fulfilment"><div class="so3-card-body">' +
+            '<span class="so2-kicker">Stock & fulfilment</span>' +
+            '<div class="so3-fulfilment-title"><h3>' + (required ? (allocated >= required ? 'Ready to progress' : 'Allocation required') : 'Ready for order lines') + '</h3><button type="button" class="link-button" data-so-tab="fulfilment">Open fulfilment</button></div>' +
+            '<p>' + escapeHtml(fulfilmentCopy) + '</p>' +
+            '<div class="so3-stage-grid">' +
+              '<div><span>Ordered</span><strong>' + required + '</strong></div>' +
+              '<div><span>Allocated</span><strong>' + allocated + '</strong></div>' +
+              '<div><span>Packed</span><strong>' + packed + '</strong></div>' +
+              '<div><span>Shipped</span><strong>' + shipped + '</strong></div>' +
+            '</div>' +
+            '<label class="so3-source"><span>Allocation source</span><select data-order-field="' + escapeHtml(order.id) + '" data-field="carrier">' + locationOptionsSelected(order.carrier) + '</select></label>' +
+            '<div class="so3-goods-notes">' + salesOrderGoodsNotesDirectory(order) + '</div>' +
+          '</div></section>' +
+        '</section>' +
+
+        '<section class="so3-order-workspace">' +
+          salesOrderTabs() +
+          '<div class="so3-tab-content">' + activeBody + '</div>' +
+        '</section>' +
+      '</div>' +
+    '</div>';
   };
 
   function closeLineMenus(except) {

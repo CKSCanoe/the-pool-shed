@@ -1,46 +1,10 @@
 [
   {
-    "path": "DEEP-AUDIT-1.6.2.md",
-    "status": "added"
-  },
-  {
     "path": "README.md",
     "status": "modified"
   },
   {
-    "path": "dist/assets/css/app.css",
-    "status": "modified"
-  },
-  {
-    "path": "dist/assets/css/system/32-sales-workspace.css",
-    "status": "modified"
-  },
-  {
-    "path": "dist/assets/js/01-legacy-01.js",
-    "status": "modified"
-  },
-  {
-    "path": "dist/index.html",
-    "status": "modified"
-  },
-  {
-    "path": "dist/service-worker.js",
-    "status": "modified"
-  },
-  {
     "path": "package.json",
-    "status": "modified"
-  },
-  {
-    "path": "public/assets/css/app.css",
-    "status": "modified"
-  },
-  {
-    "path": "public/assets/css/system/32-sales-workspace.css",
-    "status": "modified"
-  },
-  {
-    "path": "public/assets/js/01-legacy-01.js",
     "status": "modified"
   },
   {
@@ -52,6 +16,54 @@
     "status": "modified"
   },
   {
+    "path": "public/sales-workspace.js",
+    "status": "modified"
+  },
+  {
+    "path": "public/assets/css/app.css",
+    "status": "modified"
+  },
+  {
+    "path": "public/assets/css/system/41-sales-order-command.css",
+    "status": "modified"
+  },
+  {
+    "path": "scripts/build-css.mjs",
+    "status": "modified"
+  },
+  {
+    "path": "scripts/validate-runtime.mjs",
+    "status": "modified"
+  },
+  {
+    "path": "scripts/test-sales-order-design-parity-v163.mjs",
+    "status": "modified"
+  },
+  {
+    "path": "scripts/test-sales-order-command.mjs",
+    "status": "modified"
+  },
+  {
+    "path": "scripts/test-sales-order-detail-v162.mjs",
+    "status": "modified"
+  },
+  {
+    "path": "scripts/test-sales-order-list-option-a.mjs",
+    "status": "modified"
+  },
+  {
+    "path": "scripts/test-sales-order-asset-freshness-v162.mjs",
+    "status": "modified"
+  },
+  {
+    "path": "scripts/test-sales-order-customer-picker.mjs",
+    "status": "modified"
+  },
+  {
+    "path": "scripts/test-sales-table-header.mjs",
+    "status": "modified"
+  },
+  {
     "path": "scripts/test-po-picker-ui.mjs",
     "status": "modified"
   },
@@ -60,35 +72,23 @@
     "status": "modified"
   },
   {
-    "path": "scripts/test-sales-order-asset-freshness-v162.mjs",
-    "status": "added"
-  },
-  {
-    "path": "scripts/test-sales-order-command.mjs",
+    "path": "dist/index.html",
     "status": "modified"
   },
   {
-    "path": "scripts/test-sales-order-customer-picker.mjs",
+    "path": "dist/service-worker.js",
     "status": "modified"
   },
   {
-    "path": "scripts/test-sales-order-detail-v161.mjs",
-    "status": "removed"
-  },
-  {
-    "path": "scripts/test-sales-order-detail-v162.mjs",
-    "status": "added"
-  },
-  {
-    "path": "scripts/test-sales-order-list-option-a.mjs",
+    "path": "dist/sales-workspace.js",
     "status": "modified"
   },
   {
-    "path": "scripts/test-sales-table-header.mjs",
+    "path": "dist/assets/css/app.css",
     "status": "modified"
   },
   {
-    "path": "scripts/validate-runtime.mjs",
+    "path": "dist/assets/css/system/41-sales-order-command.css",
     "status": "modified"
   }
 ]

@@ -1,4 +1,13 @@
-# Pool Shed Uniform System — 1.6.2
+# Pool Shed Uniform System — 1.6.3
+
+## 1.6.3 — Sales Order Design Parity
+
+- Replaced the legacy Sales Order outer record shell with the approved Order Command structure so the production page now matches the Design Lab hierarchy instead of relying on CSS rearrangement.
+- Added the dedicated final-authority `sales-order-command.css` layer after `app.css` to stop older Sales Order/Product Intelligence styles from visually winning.
+- Preserves the smarter customer intelligence card, compact order details, Stock & Fulfilment summary, clearer tab rail, Precision Row item lines, separate editable Variant column, Connected Product Catalogue, live VAT totals, Save Order, and Take / Record Payment.
+- Existing stock, allocation, fulfilment, Goods Note, CRM, pricing, tax, payment and offline engines remain authoritative.
+- Product Intelligence keeps search/ranking/data ownership but no longer owns the Sales Order visual surface.
+- Service-worker/cache asset versions advanced for this release.
 
 ## 1.6.2 — Sales Order Asset Freshness & Release Audit
 

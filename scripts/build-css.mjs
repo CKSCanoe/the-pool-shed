@@ -17,6 +17,7 @@ const sources = [
   "system/33-workspace-polish.css",
   "system/34-customer-workspace.css",
   "system/40-design-system.css",
+  "system/41-sales-order-command.css",
 ];
 const banner = `/*
  Pool Shed application stylesheet.
