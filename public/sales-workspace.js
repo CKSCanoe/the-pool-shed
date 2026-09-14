@@ -10,6 +10,7 @@
   const originalCustomer = customerProfileCard;
   const originalTabs = salesOrderTabs;
   const originalTotalsBox = salesOrderTotalsBox;
+  const originalAddRow = salesOrderAddRow;
 
   function so2Money(value) {
     return money(Number(value || 0));
@@ -78,6 +79,30 @@
       '<div class="order-total-row"><span>Balance due</span><strong>' + so2Money(balance) + '</strong></div>' +
       '<div class="so2-payment-actions"><button class="primary-action" data-open-payment="' + order.id + '">Take / Record Payment</button><button class="secondary" data-so-tab="notes">View payment history</button></div>' +
       '<p class="so2-totals-note">Payments update the financial record only. Stock state is controlled by allocation and fulfilment.</p>' +
+    '</div>';
+  };
+
+  salesOrderAddRow = function(order) {
+    return '<div class="so4-finder-shell">' +
+      '<div class="so4-finder-copy"><div><span class="so2-kicker">Connected product catalogue</span><strong>Add a stock-controlled item</strong><small>Start typing and useful products appear immediately. Search family, exact variant, SKU, barcode, size or common trade wording.</small></div>' +
+        '<span class="so4-catalogue-ready">● Catalogue ready · ' + (data.products || []).filter(function(p){return p && p.active !== false && !p.deleted && !p.archived && !p.hiddenFromCatalogue;}).length + ' items</span></div>' +
+      '<div class="so4-finder-controls">' +
+        '<div class="so4-search-field"><label for="salesOrderProductSearch">Find product, variant, SKU, barcode or keyword</label><div class="so4-search-wrap"><span aria-hidden="true">⌕</span><input id="salesOrderProductSearch" data-order-id="' + escapeHtml(order.id) + '" autocomplete="off" placeholder="Try product name, SKU, barcode, size or keyword"><button type="button" class="secondary so4-clear-search" data-so-clear-search>Clear</button><div id="salesOrderProductResults" class="po-product-results so-product-results" hidden></div></div></div>' +
+        '<label class="so4-qty-field"><span>Quantity</span><input id="salesOrderProductQty" type="number" min="1" value="1"></label>' +
+        '<button type="button" class="primary-action so4-add-selected" data-add-line-order="' + escapeHtml(order.id) + '">Add selected item</button>' +
+        '<button type="button" class="secondary so4-add-multiple" data-open-so-batch="' + escapeHtml(order.id) + '">Add multiple items</button>' +
+      '</div>' +
+      '<div class="so-smart-search-hints"><span>Try:</span><button type="button" data-so-inline-search-fill="chlorine">chlorine</button><button type="button" data-so-inline-search-fill="shock">shock</button><button type="button" data-so-inline-search-fill="hypo">hypo</button><button type="button" data-so-inline-search-fill="20 litre">20 litre</button><button type="button" data-so-inline-search-fill="pH minus">pH minus</button><small>Typos, word order and common trade terms are supported.</small></div>' +
+    '</div>' +
+    salesOrderBatchPicker(order) +
+    '<div class="so4-secondary-tools">' +
+      '<details class="so4-tool-card"><summary><span><small>Non-stock & custom</small><strong>Add a custom sales line</strong><em>Labour, call-out, discounts and other non-stock charges.</em></span><b>Open</b></summary>' +
+        '<div class="so4-tool-body so-line-form" data-line-composer-panel="custom"><label class="so-line-description"><span>Description</span><input id="customLineDescription" placeholder="Example: Additional installation labour"></label><label><span>Quantity</span><input id="customLineQty" type="number" min="1" step="1" value="1"></label><label><span>Unit price net</span><input id="customLinePrice" type="number" min="0" step="0.01" value="0.00"></label><label><span>Unit cost</span><input id="customLineCost" type="number" min="0" step="0.01" value="0.00"></label><label><span>Tax</span><select id="customLineTax">' + optionList(["20% VAT","Zero rated","Not rated"],"20% VAT") + '</select></label><label><span>Sales account</span><select id="customLineAccount">' + optionList(["4010 Service Upsell","4030 Labour Income","4050 Call-out Charges","4060 Miscellaneous Sales"],"4010 Service Upsell") + '</select></label><label class="so-line-note"><span>Internal note (optional)</span><textarea id="customLineNote" placeholder="Reason, engineer detail or approval note"></textarea></label><button type="button" class="primary-action" data-add-custom-line="' + escapeHtml(order.id) + '">Add custom line</button></div>' +
+      '</details>' +
+      '<details class="so4-tool-card"><summary><span><small>Delivery & billing</small><strong>Add a shipping charge</strong><em>Delivery charge, method and customer-facing description.</em></span><b>Open</b></summary>' +
+        '<div class="so4-tool-body so-line-form" data-line-composer-panel="shipping"><label class="so-line-description"><span>Shipping method</span><select id="shippingLineMethod"><option>Standard delivery</option><option>Express delivery</option><option>Pallet delivery</option><option>Chemical delivery surcharge</option><option>Free delivery</option><option>Collection</option><option>Custom shipping</option></select></label><label class="so-line-description"><span>Customer description</span><input id="shippingLineDescription" value="Standard delivery" placeholder="Shown on the sales order and invoice"></label><label><span>Charge net</span><input id="shippingLinePrice" type="number" min="0" step="0.01" value="12.50"></label><label><span>Tax</span><select id="shippingLineTax">' + optionList(["20% VAT","Zero rated","Not rated"],"20% VAT") + '</select></label><button type="button" class="primary-action" data-add-shipping-line="' + escapeHtml(order.id) + '">Add shipping</button></div>' +
+      '</details>' +
+      '<section class="so4-tool-card so4-commercial-check"><div><small>Commercial check</small><strong>Ready to progress?</strong><em>Save the order independently of allocation and fulfilment. Adding an item never allocates stock automatically.</em></div><span>✓ Stock and finance remain separate</span></section>' +
     '</div>';
   };
 
@@ -180,12 +205,22 @@
     const packed = Number(progress.packed || 0);
     const shipped = Number(progress.shipped || 0);
 
-    /* Reuse the existing active-tab business payload, but discard the legacy
-       record shell that was causing the approved design to be visually lost. */
-    const legacyTemplate = document.createElement('template');
-    legacyTemplate.innerHTML = originalDetail(order);
-    const legacyBodies = legacyTemplate.content.querySelectorAll('.record-card-body');
-    const activeBody = legacyBodies.length ? legacyBodies[legacyBodies.length - 1].innerHTML : '';
+    /* v1.7.1: the primary Items & Pricing surface is rendered directly from the
+       approved Sales Order Command presentation. It no longer round-trips
+       through the legacy record shell, which allowed old wrappers/styles to
+       leak back into the page. Non-primary tabs still reuse their existing
+       business payload until those modules are intentionally redesigned. */
+    let activeBody = '';
+    if (salesOrderTab === 'products') {
+      activeBody = so2ProductsContent(order);
+    } else if (salesOrderTab === 'fulfilment') {
+      activeBody = salesOrderTabContent(order, '', '', '', '', '');
+    } else {
+      const legacyTemplate = document.createElement('template');
+      legacyTemplate.innerHTML = originalDetail(order);
+      const legacyBodies = legacyTemplate.content.querySelectorAll('.record-card-body');
+      activeBody = legacyBodies.length ? legacyBodies[legacyBodies.length - 1].innerHTML : '';
+    }
 
     const channelOptions = optionList(
       ["Project Order","Trade Counter","Service Upsell","WooCommerce","Wholesale and trade","Phone Order"],
@@ -286,6 +321,22 @@
       return;
     }
     if (!event.target.closest('.so2-line-menu')) closeLineMenus();
+
+    const clearFinder = event.target.closest('[data-so-clear-search]');
+    if (clearFinder) {
+      const input = document.getElementById('salesOrderProductSearch');
+      const results = document.getElementById('salesOrderProductResults');
+      if (input) {
+        input.value = '';
+        input.dataset.selectedProductId = '';
+        input.dataset.finderMode = '';
+        input.classList.remove('has-selection');
+        input.focus();
+        input.dispatchEvent(new Event('input', { bubbles:true }));
+      }
+      if (results) results.hidden = true;
+      return;
+    }
 
     const editCustomer = event.target.closest('[data-sales-edit-customer]');
     if (editCustomer) {

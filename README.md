@@ -1,4 +1,12 @@
-# Pool Shed Uniform System — 1.7.0
+# Pool Shed Uniform System — 1.7.1
+
+
+## 1.7.1 — Sales Order Design Lab Parity
+
+- Makes the approved Sales Order Command layout the direct Items & Pricing render path instead of extracting it back through the legacy record shell.
+- Pulls the product finder, order lines, totals/payment and secondary line tools into one coherent presentation layer.
+- Keeps the Smart Product Finder live-as-you-type, customer history/frequently ordered recommendations, exact-SKU variant handling, stock and pricing engines intact.
+- Adds a final maintained Sales Order parity CSS module so older Sales/Product Intelligence rules cannot visually win the cascade.
 
 ## 1.7.0 — Smart Sales Order Product Finder
 

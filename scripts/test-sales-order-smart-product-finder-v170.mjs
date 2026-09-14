@@ -26,8 +26,8 @@ expect(legacy.includes("data-so-select-product"),"exact product selection hook m
 expect(css.includes(".so-finder-mega-grid"),"mega-menu layout missing");
 expect(css.includes(".so-finder-reason"),"why-shown styling missing");
 expect(css.includes(".so-finder-customer-panel"),"customer recommendation panel styling missing");
-expect(index.includes("app.css?v=1.7.0"),"versioned CSS asset missing");
-expect(index.includes("sales-workspace.js?v=1.7.0"),"versioned Sales workspace asset missing");
-expect(sw.includes("pool-shed-v1.7.0-asset-freshness"),"service worker cache not advanced");
+expect(index.includes("app.css?v=1.7.1"),"versioned CSS asset missing");
+expect(index.includes("sales-workspace.js?v=1.7.1"),"versioned Sales workspace asset missing");
+expect(sw.includes("pool-shed-v1.7.1-asset-freshness"),"service worker cache not advanced");
 
-console.log("Sales Order Smart Product Finder v1.7.0 regression passed.");
+console.log("Sales Order Smart Product Finder v1.7.1 regression passed.");
