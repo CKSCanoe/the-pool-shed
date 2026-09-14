@@ -7,7 +7,7 @@ const pkg = JSON.parse(fs.readFileSync('package.json','utf8'));
 const sw = fs.readFileSync('public/service-worker.js','utf8');
 
 const checks = [
-  ['release version', pkg.version === '1.5.2'],
+  ['release version', pkg.version === '1.6.0'],
   ['smart product ranking', js.includes('function salesOrderProductMatches(query)') && js.includes('score += 10000')],
   ['search covers variant and SKU fields', js.includes('p.variantValue') && js.includes('p.supplierSku')],
   ['product dropdown is viewport portal', js.includes('function positionSalesOrderProductResults') && css.includes('.so-product-results-portal')],

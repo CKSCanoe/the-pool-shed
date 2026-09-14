@@ -1,4 +1,7 @@
-# Pool Shed Uniform System — 1.5.2
+# Pool Shed Uniform System — 1.6.0
+
+Sales Orders now use the approved Option A **Order Queue** list before the order detail workspace: operational KPIs, Needs Action / Ready / Backorders queue tabs, smart order/customer/product/Goods Note search, stock/due/status filters, VAT-inclusive order value and selection-only bulk actions. The list continues to use the existing stock, allocation, fulfilment, Goods Note and invoice engines. Light-mode CRM and Sales Order form fields are explicitly protected from legacy dark-form palette rules; Dashboard command surfaces remain unchanged.
+
 
 
 Vercel deployment now skips npm dependency installation because the production build has no runtime npm dependencies; `@electric-sql/pglite` remains a local test-only development dependency.

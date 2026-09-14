@@ -113,6 +113,13 @@ const seed = {
       let selectedSalesCreditId = "";
       let salesOrderView = "list";
       let salesOrderFilter = "active";
+      let salesOrderListSearch = "";
+      let salesOrderListStatus = "";
+      let salesOrderListDue = "all";
+      let salesOrderListStock = "all";
+      let salesOrderListSource = "";
+      let salesOrderListChannel = "";
+      let salesOrderListMoreFiltersOpen = false;
       let invoiceListFilter = "all";
       let invoiceSearch = "";
       let paymentListFilter = "all";
@@ -5726,7 +5733,7 @@ const seed = {
         if (salesSubPage === "Customer Orders" && salesOrderView !== "detail") salesOrderView = "customerOrders";
         const selected = salesOrder(selectedSalesOrderId) || data.salesOrders[0];
         if (selected) selectedSalesOrderId = selected.id;
-        let content = salesOrdersSubMenu() + panel("Sales Orders", "Operational order list. Filter active or completed orders, then open an order to work on the full detail screen.", salesOrderListView(), '<button type="button" class="success" data-create-sales-order="true">New sales order</button>');
+        let content = salesOrdersSubMenu() + salesOrderListView();
         if (salesOrderView === "detail") {
           content = selected ? salesOrdersSubMenu() + salesOrderDetail(selected) : salesOrdersSubMenu() + operationalEmptyState("No sales order selected", "Create a sales order before opening its detail workspace.", "New sales order", "data-create-sales-order=\"true\"");
         }
@@ -5772,38 +5779,247 @@ const seed = {
         return '<div class="subnav"><button class="pill ' + (["list", "detail", "goodsnote", "customerAccounting", "customerOrders"].includes(salesOrderView) ? "blue" : "dark") + '" data-sales-subview="list">Sales Orders</button><button class="pill ' + (["credits", "creditDetail"].includes(salesOrderView) ? "blue" : "dark") + '" data-sales-subview="credits">Sales Credits</button><button class="pill ' + (salesOrderView === "invoices" ? "blue" : "dark") + '" data-sales-subview="invoices">Invoices</button></div>';
       }
 
-      function salesOrderListView() {
-        const filtered = data.salesOrders.filter(function(order) {
-          const completed = ["Shipped", "Completed", "Invoiced"].includes(order.status);
-          if (salesOrderFilter === "active") return !completed;
-          if (salesOrderFilter === "completed") return completed;
-          if (salesOrderFilter === "backorder") return order.tags.includes("Backorder") || order.status === "Part Stock" || order.status === "Part Shipped";
-          if (salesOrderFilter === "ready") return ["Ready To Pick", "Ready To Ship"].includes(order.status);
-          if (salesOrderFilter.indexOf("status:") === 0) return order.status === salesOrderFilter.slice(7);
+      function salesOrderIsCompleted(order) {
+        return ["Shipped", "Completed", "Invoiced"].includes(order.status);
+      }
+
+      function salesOrderDateOnly(value) {
+        const raw = String(value || "").trim();
+        if (!raw) return null;
+        const date = /^\d{4}-\d{2}-\d{2}$/.test(raw) ? new Date(raw + "T12:00:00") : new Date(raw);
+        if (Number.isNaN(date.getTime())) return null;
+        return new Date(date.getFullYear(), date.getMonth(), date.getDate());
+      }
+
+      function salesOrderDayIndex(date) {
+        if (!date) return null;
+        return Math.floor(Date.UTC(date.getFullYear(), date.getMonth(), date.getDate()) / 86400000);
+      }
+
+      function salesOrderDueMeta(order) {
+        const due = salesOrderDateOnly(order && order.due);
+        if (!due) return { diff: null, label: "No due date", short: "—" };
+        const today = new Date();
+        const diff = salesOrderDayIndex(due) - salesOrderDayIndex(new Date(today.getFullYear(), today.getMonth(), today.getDate()));
+        if (diff === 0) return { diff: 0, label: "Due today", short: "Today" };
+        if (diff < 0) {
+          const days = Math.abs(diff);
+          return { diff: diff, label: days + " day" + (days === 1 ? "" : "s") + " overdue", short: days + "d overdue" };
+        }
+        return { diff: diff, label: diff + " day" + (diff === 1 ? "" : "s") + " remaining", short: diff + "d" };
+      }
+
+      function salesOrderStockSummary(order) {
+        const stockLines = (order.lines || []).filter(function(line) { return !isNonStockSalesLine(line); });
+        let required = 0;
+        let allocated = 0;
+        let shortageUnits = 0;
+        let shortageLines = 0;
+        stockLines.forEach(function(line) {
+          const qty = Math.max(0, Number(line.qty || 0));
+          const lineAllocated = Math.min(qty, Math.max(0, Number(line.allocated || 0)));
+          const coverage = salesLineCoverage(line, order.id);
+          required += qty;
+          allocated += lineAllocated;
+          shortageUnits += Math.max(0, Number(coverage.toRaise || 0));
+          if (Number(coverage.toRaise || 0) > 0) shortageLines += 1;
+        });
+        return {
+          required: required,
+          allocated: allocated,
+          shortageUnits: shortageUnits,
+          shortageLines: shortageLines,
+          fullyAllocated: required > 0 && allocated >= required,
+          unallocated: required > 0 && allocated === 0,
+          stockLineCount: stockLines.length
+        };
+      }
+
+      function salesOrderNeedsAction(order) {
+        if (!order || salesOrderIsCompleted(order)) return false;
+        const stock = salesOrderStockSummary(order);
+        const due = salesOrderDueMeta(order);
+        if (["On Hold", "Needs Review", "Part Stock", "Part Shipped"].includes(order.status)) return true;
+        if (stock.shortageUnits > 0) return true;
+        if (due.diff !== null && due.diff < 0) return true;
+        return false;
+      }
+
+      function salesOrderSearchText(order) {
+        const c = customer(order.customerId) || {};
+        const products = (order.lines || []).map(function(line) {
+          const p = line.productId ? product(line.productId) : null;
+          return p ? [p.sku, p.name, p.category, p.barcode, p.supplierSku, p.variantValue].filter(Boolean).join(" ") : [line.description, line.name].filter(Boolean).join(" ");
+        }).join(" ");
+        const notes = goodsNotesForOrder(order.id).map(function(note) {
+          return [note.id, goodsNoteStatus(note), note.courier, note.trackingRef].filter(Boolean).join(" ");
+        }).join(" ");
+        return [
+          order.id, order.quoteRef, order.xeroRef, order.source, order.channel, order.status,
+          order.customerPo, order.customerPO, order.customerPoRef, order.reference,
+          (Array.isArray(order.tags) ? order.tags : []).join(" "),
+          c.id, c.code, c.name, c.companyName, c.email, c.phone, c.mobile,
+          products, notes
+        ].filter(Boolean).join(" ").toLowerCase();
+      }
+
+      function salesOrderMatchesPrimaryFilter(order) {
+        const completed = salesOrderIsCompleted(order);
+        const tags = Array.isArray(order.tags) ? order.tags : [];
+        if (salesOrderFilter === "active") return !completed;
+        if (salesOrderFilter === "needs") return salesOrderNeedsAction(order);
+        if (salesOrderFilter === "completed") return completed;
+        if (salesOrderFilter === "backorder") return tags.includes("Backorder") || order.status === "Part Stock" || order.status === "Part Shipped";
+        if (salesOrderFilter === "ready") return ["Ready To Pick", "Ready To Ship"].includes(order.status);
+        if (salesOrderFilter.indexOf("status:") === 0) return order.status === salesOrderFilter.slice(7);
+        return true;
+      }
+
+      function salesOrderListFilteredOrders() {
+        const query = String(salesOrderListSearch || "").trim().toLowerCase();
+        const externalStatus = salesOrderFilter.indexOf("status:") === 0 ? salesOrderFilter.slice(7) : "";
+        const status = externalStatus || salesOrderListStatus;
+        return data.salesOrders.filter(function(order) {
+          if (!salesOrderMatchesPrimaryFilter(order)) return false;
+          if (status && order.status !== status) return false;
+          const due = salesOrderDueMeta(order);
+          if (salesOrderListDue === "today" && due.diff !== 0) return false;
+          if (salesOrderListDue === "overdue" && !(due.diff !== null && due.diff < 0)) return false;
+          if (salesOrderListDue === "next7" && !(due.diff !== null && due.diff >= 0 && due.diff <= 7)) return false;
+          const stock = salesOrderStockSummary(order);
+          if (salesOrderListStock === "short" && stock.shortageUnits <= 0) return false;
+          if (salesOrderListStock === "full" && !stock.fullyAllocated) return false;
+          if (salesOrderListStock === "unallocated" && !stock.unallocated) return false;
+          if (salesOrderListSource && String(order.source || "") !== salesOrderListSource) return false;
+          if (salesOrderListChannel && String(order.channel || "") !== salesOrderListChannel) return false;
+          if (query && salesOrderSearchText(order).indexOf(query) === -1) return false;
           return true;
         });
-        const selectedStatus = salesOrderFilter.indexOf("status:") === 0 ? salesOrderFilter.slice(7) : "";
+      }
+
+      function salesOrderListView() {
+        const activeOrders = data.salesOrders.filter(function(order) { return !salesOrderIsCompleted(order); });
+        const completedOrders = data.salesOrders.filter(salesOrderIsCompleted);
+        const needsActionOrders = activeOrders.filter(salesOrderNeedsAction);
+        const readyOrders = activeOrders.filter(function(order) { return ["Ready To Pick", "Ready To Ship"].includes(order.status); });
+        const backorderOrders = activeOrders.filter(function(order) {
+          const tags = Array.isArray(order.tags) ? order.tags : [];
+          return tags.includes("Backorder") || order.status === "Part Stock" || order.status === "Part Shipped";
+        });
+        const dueTodayOrders = activeOrders.filter(function(order) { return salesOrderDueMeta(order).diff === 0; });
+        const activeValue = activeOrders.reduce(function(total, order) { return total + salesOrderTotals(order).gross; }, 0);
+        const selectedStatus = salesOrderFilter.indexOf("status:") === 0 ? salesOrderFilter.slice(7) : salesOrderListStatus;
+        const filtered = salesOrderListFilteredOrders();
+
+        const counts = {
+          active: activeOrders.length,
+          needs: needsActionOrders.length,
+          ready: readyOrders.length,
+          backorder: backorderOrders.length,
+          completed: completedOrders.length
+        };
         const filterTabs = [
-          { id: "active", label: "Active" },
-          { id: "completed", label: "Completed" },
-          { id: "backorder", label: "Backorders" },
-          { id: "ready", label: "Ready to process" },
-          { id: "all", label: "All orders" }
+          { id: "active", label: "Active", count: counts.active },
+          { id: "needs", label: "Needs action", count: counts.needs },
+          { id: "ready", label: "Ready", count: counts.ready },
+          { id: "backorder", label: "Backorders", count: counts.backorder },
+          { id: "completed", label: "Completed", count: counts.completed }
         ].map(function(item) {
-          return '<button class="' + (salesOrderFilter === item.id ? "" : "secondary") + '" data-so-filter="' + item.id + '">' + item.label + '</button>';
+          return '<button type="button" class="so-list-tab' + (salesOrderFilter === item.id ? ' active' : '') + '" data-so-filter="' + item.id + '">' + item.label + ' <span>' + item.count + '</span></button>';
         }).join("");
-        const activeStatusNotice = selectedStatus ? '<span class="pill" style="' + statusInlineStyle(selectedStatus).replace(/--status-bg:/, "background:").replace(/;--status-fg:/, ";color:") + '">Status: ' + selectedStatus + '</span><button class="secondary" data-so-filter="active">Clear status filter</button>' : "";
+
+        const statusNames = Array.from(new Set((data.statuses || []).map(function(item) { return item.name; }).concat(data.salesOrders.map(function(order) { return order.status; })))).filter(Boolean).sort();
+        const statusOptions = ['<option value="">All statuses</option>'].concat(statusNames.map(function(name) {
+          return '<option value="' + escapeHtml(name) + '"' + (selectedStatus === name ? ' selected' : '') + '>' + escapeHtml(name) + '</option>';
+        })).join("");
+        const sourceNames = Array.from(new Set(data.salesOrders.map(function(order) { return String(order.source || ""); }).filter(Boolean))).sort();
+        const channelNames = Array.from(new Set(data.salesOrders.map(function(order) { return String(order.channel || ""); }).filter(Boolean))).sort();
+        const sourceOptions = ['<option value="">Any source</option>'].concat(sourceNames.map(function(name) {
+          return '<option value="' + escapeHtml(name) + '"' + (salesOrderListSource === name ? ' selected' : '') + '>' + escapeHtml(name) + '</option>';
+        })).join("");
+        const channelOptions = ['<option value="">Any channel</option>'].concat(channelNames.map(function(name) {
+          return '<option value="' + escapeHtml(name) + '"' + (salesOrderListChannel === name ? ' selected' : '') + '>' + escapeHtml(name) + '</option>';
+        })).join("");
+
         const rows = filtered.map(function(order) {
-          const c = customer(order.customerId) || { name: "Recovered customer", priceList: "rrp" };
-          order.tags = Array.isArray(order.tags) ? order.tags : [];
+          const c = customer(order.customerId) || { name: "Recovered customer" };
           const progress = salesOrderProgress(order);
+          const stock = salesOrderStockSummary(order);
           const notes = goodsNotesForOrder(order.id);
-          const latestNote = notes[notes.length - 1];
-          const invoiceStatus = order.tags.includes("Invoice Ready") ? "Invoice ready" : order.xeroRef === "Draft" ? "Draft" : "Linked";
-          return '<tr><td><input type="checkbox" data-so-select="' + order.id + '" aria-label="Select ' + order.id + '"></td><td><button class="ghost" data-open-so="' + order.id + '"><strong>' + order.id + '</strong></button><br><span class="muted">' + order.quoteRef + ' · ' + order.source + '</span></td><td>' + invoiceStatus + '<br><span class="muted">' + order.xeroRef + '</span></td><td>' + c.name + '<br><span class="muted">' + c.priceList.toUpperCase() + ' default</span></td><td>' + statusPill(order.status) + '</td><td>' + processIcons(order) + '<br><span class="muted">' + progress.picked + '/' + progress.required + ' picked · ' + progress.packed + '/' + progress.required + ' packed</span></td><td>' + tagList(order.tags) + '</td><td>' + order.due + '<br><span class="muted">' + order.channel + '</span></td><td>' + (latestNote ? latestNote.id + '<br><span class="muted">' + goodsNoteStatus(latestNote) + '</span>' : '<span class="muted">No note</span>') + '</td><td class="right">' + money(salesOrderValue(order)) + '</td><td class="right"><button class="secondary" data-open-so="' + order.id + '">Open</button></td></tr>';
-        }).join("") || '<tr><td colspan="11" class="muted">No sales orders match this filter.</td></tr>';
-        return '<div class="action-row" style="margin-bottom:1rem">' + filterTabs + activeStatusNotice + '<button class="secondary" data-sales-list-action="filter">Show filter</button><button class="secondary" data-sales-list-action="export">Export</button><button class="secondary" data-sales-list-action="status">Update status</button><button class="secondary" data-sales-list-action="allocate">Allocate</button><button class="secondary" data-sales-list-action="fulfil">Fulfil</button><button class="secondary" data-sales-list-action="invoice">Invoice</button></div>' +
-          '<table><thead><tr><th></th><th>Order ID</th><th>Invoice</th><th>Contact</th><th>Status</th><th>Process</th><th>Tags</th><th>Due / Channel</th><th>Goods note</th><th class="right">Amount</th><th class="right">Actions</th></tr></thead><tbody>' + rows + '</tbody></table>';
+          const openNotes = notes.filter(function(note) { return !note.shipped; });
+          const due = salesOrderDueMeta(order);
+          const totals = salesOrderTotals(order);
+          const units = (order.lines || []).reduce(function(total, line) { return total + Math.max(0, Number(line.qty || 0)); }, 0);
+          const lineCount = (order.lines || []).length;
+          const furthest = Math.max(Number(progress.shipped || 0), Number(progress.packed || 0), Number(progress.picked || 0));
+          const progressPercent = progress.required ? Math.min(100, Math.round((furthest / progress.required) * 100)) : 0;
+          let fulfilmentLabel = "Not picked";
+          if (Number(progress.shipped || 0) > 0) fulfilmentLabel = progress.shipped + " shipped";
+          else if (Number(progress.packed || 0) > 0) fulfilmentLabel = progress.packed + " packed";
+          else if (Number(progress.picked || 0) > 0) fulfilmentLabel = progress.picked + " picked";
+
+          let stockMeta = "No stock-tracked lines";
+          if (stock.required > 0 && stock.shortageUnits > 0) stockMeta = stock.shortageUnits + " unit" + (stock.shortageUnits === 1 ? "" : "s") + " short · purchasing available";
+          else if (stock.required > 0 && stock.fullyAllocated) stockMeta = "Fully allocated";
+          else if (stock.required > 0) stockMeta = "Stock available to allocate";
+
+          const noteMeta = openNotes.length
+            ? openNotes.length + " open Goods Note" + (openNotes.length === 1 ? "" : "s")
+            : (notes.length ? notes.length + " shipped Goods Note" + (notes.length === 1 ? "" : "s") : "No open Goods Note");
+
+          const orderMeta = [
+            order.quoteRef && order.quoteRef !== "Manual draft" ? order.quoteRef : "",
+            order.source,
+            lineCount + " line" + (lineCount === 1 ? "" : "s") + " / " + units + " unit" + (units === 1 ? "" : "s")
+          ].filter(Boolean).join(" · ");
+
+          return '<tr>' +
+            '<td class="so-list-check"><input type="checkbox" data-so-select="' + escapeHtml(order.id) + '" aria-label="Select ' + escapeHtml(order.id) + '"></td>' +
+            '<td class="so-list-order"><button type="button" class="ghost so-list-order-link" data-open-so="' + escapeHtml(order.id) + '"><strong>' + escapeHtml(order.id) + ' · ' + escapeHtml(customerDisplayName(c)) + '</strong></button><span class="muted">' + escapeHtml(orderMeta) + '</span></td>' +
+            '<td>' + statusPill(order.status) + '</td>' +
+            '<td><strong>' + (stock.required ? stock.allocated + " / " + stock.required + " allocated" : "Non-stock") + '</strong><span class="muted">' + escapeHtml(stockMeta) + '</span></td>' +
+            '<td><strong>' + escapeHtml(fulfilmentLabel) + '</strong><div class="so-list-progress" aria-label="' + progressPercent + '% through fulfilment"><span style="width:' + progressPercent + '%"></span></div><span class="muted">' + escapeHtml(noteMeta) + '</span></td>' +
+            '<td><strong>' + escapeHtml(order.due || "—") + '</strong><span class="muted' + (due.diff !== null && due.diff < 0 ? ' so-list-overdue' : '') + '">' + escapeHtml(due.label) + '</span></td>' +
+            '<td class="right"><strong>' + money(totals.gross) + '</strong><span class="muted">inc VAT</span></td>' +
+            '<td class="right"><button type="button" data-open-so="' + escapeHtml(order.id) + '">Open</button></td>' +
+          '</tr>';
+        }).join("") || '<tr><td colspan="8"><div class="so-list-empty"><strong>No sales orders match this view.</strong><span>Change the queue, search or filters to broaden the results.</span></div></td></tr>';
+
+        const hasFilters = !!(salesOrderListSearch || selectedStatus || salesOrderListDue !== "all" || salesOrderListStock !== "all" || salesOrderListSource || salesOrderListChannel);
+
+        return '<section class="so-list-page" aria-label="Sales order queue">' +
+          '<div class="so-list-commandbar">' +
+            '<div class="so-list-command-copy"><span>SALES OPERATIONS</span><strong>Order queue</strong><small>Order value, stock position and fulfilment readiness in one operational view.</small></div>' +
+            '<div class="so-list-page-actions"><button type="button" class="secondary" data-sales-list-action="export">Export</button><button type="button" class="success" data-create-sales-order="true">New Sales Order</button></div>' +
+          '</div>' +
+          '<div class="so-list-kpis">' +
+            '<div class="so-list-kpi"><span>ACTIVE ORDERS</span><strong>' + activeOrders.length + '</strong><small>' + money(activeValue) + ' open value</small></div>' +
+            '<div class="so-list-kpi attention"><span>NEED ACTION</span><strong>' + needsActionOrders.length + '</strong><small>Stock, overdue or hold exception</small></div>' +
+            '<div class="so-list-kpi"><span>READY TO PROCESS</span><strong>' + readyOrders.length + '</strong><small>Warehouse-ready order state</small></div>' +
+            '<div class="so-list-kpi"><span>DUE TODAY</span><strong>' + dueTodayOrders.length + '</strong><small>' + dueTodayOrders.filter(salesOrderNeedsAction).length + ' currently need action</small></div>' +
+          '</div>' +
+          '<div class="so-list-card">' +
+            '<div class="so-list-tabs" role="tablist" aria-label="Sales order queue">' + filterTabs + '</div>' +
+            '<div class="so-list-filters">' +
+              '<label class="so-list-search"><span>Smart search</span><input type="search" data-so-list-search value="' + escapeHtml(salesOrderListSearch) + '" placeholder="Order, customer, PO ref, product or Goods Note" autocomplete="off"></label>' +
+              '<label><span>Status</span><select data-so-list-status>' + statusOptions + '</select></label>' +
+              '<label><span>Due</span><select data-so-list-due><option value="all"' + (salesOrderListDue === "all" ? " selected" : "") + '>Any due date</option><option value="today"' + (salesOrderListDue === "today" ? " selected" : "") + '>Due today</option><option value="overdue"' + (salesOrderListDue === "overdue" ? " selected" : "") + '>Overdue</option><option value="next7"' + (salesOrderListDue === "next7" ? " selected" : "") + '>Next 7 days</option></select></label>' +
+              '<label><span>Stock</span><select data-so-list-stock><option value="all"' + (salesOrderListStock === "all" ? " selected" : "") + '>Any stock state</option><option value="short"' + (salesOrderListStock === "short" ? " selected" : "") + '>Short stock</option><option value="full"' + (salesOrderListStock === "full" ? " selected" : "") + '>Fully allocated</option><option value="unallocated"' + (salesOrderListStock === "unallocated" ? " selected" : "") + '>Not allocated</option></select></label>' +
+              '<button type="button" class="secondary so-list-more-filter" data-so-list-more aria-expanded="' + (salesOrderListMoreFiltersOpen ? "true" : "false") + '">More filters</button>' +
+            '</div>' +
+            '<div class="so-list-extra-filters' + (salesOrderListMoreFiltersOpen ? ' open' : '') + '"' + (salesOrderListMoreFiltersOpen ? '' : ' hidden') + '>' +
+              '<label><span>Source</span><select data-so-list-source>' + sourceOptions + '</select></label>' +
+              '<label><span>Channel</span><select data-so-list-channel>' + channelOptions + '</select></label>' +
+              '<div class="so-list-filter-summary"><strong>' + filtered.length + ' result' + (filtered.length === 1 ? '' : 's') + '</strong><span>Filters apply to export as well.</span></div>' +
+              '<button type="button" class="secondary" data-so-list-clear' + (hasFilters ? '' : ' disabled') + '>Clear filters</button>' +
+            '</div>' +
+            '<div class="so-list-table-wrap"><table class="so-list-table"><thead><tr>' +
+              '<th class="so-list-check"><input type="checkbox" data-so-list-select-all aria-label="Select all visible sales orders"></th>' +
+              '<th>Order / Customer</th><th>Status</th><th>Stock</th><th>Fulfilment</th><th>Due</th><th class="right">Value</th><th class="right">Action</th>' +
+            '</tr></thead><tbody>' + rows + '</tbody></table></div>' +
+            '<div class="so-list-bulk" data-so-list-bulk hidden><strong><span data-so-list-selected-count>0</span> orders selected</strong><div><button type="button" class="secondary" data-sales-list-action="status">Update status</button><button type="button" class="secondary" data-sales-list-action="allocate">Allocate</button><button type="button" class="secondary" data-sales-list-action="fulfil">Fulfil</button><button type="button" class="secondary" data-sales-list-action="invoice">Invoice</button></div></div>' +
+          '</div>' +
+        '</section>';
       }
 
       function invoiceStatusForOrder(order) {
@@ -6052,6 +6268,96 @@ const seed = {
             render();
           });
         });
+
+
+        const listSearch = document.querySelector("[data-so-list-search]");
+        if (listSearch) {
+          listSearch.addEventListener("input", function() {
+            salesOrderListSearch = listSearch.value;
+            clearTimeout(window.__poolShedSalesOrderListSearchTimer);
+            window.__poolShedSalesOrderListSearchTimer = setTimeout(function() {
+              if (active !== "salesorders" || salesOrderView !== "list") return;
+              render();
+              const next = document.querySelector("[data-so-list-search]");
+              if (next) {
+                next.focus();
+                const end = next.value.length;
+                if (typeof next.setSelectionRange === "function") next.setSelectionRange(end, end);
+              }
+            }, 120);
+          });
+        }
+
+        document.querySelectorAll("[data-so-list-status]").forEach(function(select) {
+          select.addEventListener("change", function() {
+            salesOrderListStatus = select.value;
+            if (salesOrderFilter.indexOf("status:") === 0) salesOrderFilter = "active";
+            render();
+          });
+        });
+
+        document.querySelectorAll("[data-so-list-due]").forEach(function(select) {
+          select.addEventListener("change", function() {
+            salesOrderListDue = select.value || "all";
+            render();
+          });
+        });
+
+        document.querySelectorAll("[data-so-list-stock]").forEach(function(select) {
+          select.addEventListener("change", function() {
+            salesOrderListStock = select.value || "all";
+            render();
+          });
+        });
+
+        document.querySelectorAll("[data-so-list-source]").forEach(function(select) {
+          select.addEventListener("change", function() {
+            salesOrderListSource = select.value;
+            render();
+          });
+        });
+
+        document.querySelectorAll("[data-so-list-channel]").forEach(function(select) {
+          select.addEventListener("change", function() {
+            salesOrderListChannel = select.value;
+            render();
+          });
+        });
+
+        document.querySelectorAll("[data-so-list-more]").forEach(function(button) {
+          button.addEventListener("click", function() {
+            salesOrderListMoreFiltersOpen = !salesOrderListMoreFiltersOpen;
+            render();
+          });
+        });
+
+        document.querySelectorAll("[data-so-list-clear]").forEach(function(button) {
+          button.addEventListener("click", function() {
+            salesOrderListSearch = "";
+            salesOrderListStatus = "";
+            salesOrderListDue = "all";
+            salesOrderListStock = "all";
+            salesOrderListSource = "";
+            salesOrderListChannel = "";
+            if (salesOrderFilter.indexOf("status:") === 0) salesOrderFilter = "active";
+            render();
+          });
+        });
+
+        const selectAllSalesOrders = document.querySelector("[data-so-list-select-all]");
+        if (selectAllSalesOrders) {
+          selectAllSalesOrders.addEventListener("change", function() {
+            document.querySelectorAll("[data-so-select]").forEach(function(input) {
+              input.checked = selectAllSalesOrders.checked;
+            });
+            refreshSalesOrderBulkBar();
+          });
+        }
+
+        document.querySelectorAll("[data-so-select]").forEach(function(input) {
+          input.addEventListener("change", refreshSalesOrderBulkBar);
+        });
+        refreshSalesOrderBulkBar();
 
         document.querySelectorAll("[data-open-so]").forEach(function(button) {
           button.addEventListener("click", function(event) {
@@ -13515,15 +13821,22 @@ const seed = {
 
 
       function visibleSalesOrders() {
-        return data.salesOrders.filter(function(order) {
-          const completed = ["Shipped", "Completed", "Invoiced"].includes(order.status);
-          if (salesOrderFilter === "active") return !completed;
-          if (salesOrderFilter === "completed") return completed;
-          if (salesOrderFilter === "backorder") return order.tags.includes("Backorder") || order.status === "Part Stock" || order.status === "Part Shipped";
-          if (salesOrderFilter === "ready") return ["Ready To Pick", "Ready To Ship"].includes(order.status);
-          if (salesOrderFilter.indexOf("status:") === 0) return order.status === salesOrderFilter.slice(7);
-          return true;
-        });
+        return salesOrderListFilteredOrders();
+      }
+
+      function refreshSalesOrderBulkBar() {
+        const selected = selectedSalesOrderIdsFromList();
+        const bar = document.querySelector("[data-so-list-bulk]");
+        const count = document.querySelector("[data-so-list-selected-count]");
+        if (count) count.textContent = String(selected.length);
+        if (bar) bar.hidden = selected.length === 0;
+        const selectAll = document.querySelector("[data-so-list-select-all]");
+        const rowChecks = Array.from(document.querySelectorAll("[data-so-select]"));
+        if (selectAll) {
+          const checked = rowChecks.filter(function(input) { return input.checked; }).length;
+          selectAll.checked = rowChecks.length > 0 && checked === rowChecks.length;
+          selectAll.indeterminate = checked > 0 && checked < rowChecks.length;
+        }
       }
 
       function selectedSalesOrderIdsFromList() {
@@ -13541,9 +13854,9 @@ const seed = {
 
       function runSalesListAction(action) {
         if (action === "filter") {
-          const search = document.getElementById("globalSearch");
+          const search = document.querySelector("[data-so-list-search]") || document.getElementById("globalSearch");
           if (search) search.focus();
-          toast("Use the top search plus the status chips to filter sales orders.");
+          toast("Search or filter the sales order queue.");
           return;
         }
         if (action === "export") return exportSalesOrdersCsv();

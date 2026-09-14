@@ -9053,6 +9053,560 @@ body.so-batch-open{overflow:hidden}
 }
 
 
+/* ==========================================================================
+   SALES ORDER LIST — Option A · Order Queue
+   Approved Design Lab direction. Presentation only: existing Sales Order,
+   stock, allocation, fulfilment, Goods Note and invoice engines stay authoritative.
+   ========================================================================== */
+
+#screen-salesorders .so-list-page{
+  display:grid;
+  gap:13px;
+  min-width:0;
+}
+
+#screen-salesorders .so-list-commandbar{
+  display:flex;
+  align-items:center;
+  gap:14px;
+  min-height:64px;
+  padding:11px 13px;
+  border:1px solid var(--color-border-default);
+  border-radius:8px;
+  background:var(--color-surface-default);
+  box-shadow:none;
+}
+
+#screen-salesorders .so-list-command-copy{
+  display:grid;
+  gap:2px;
+  min-width:0;
+}
+
+#screen-salesorders .so-list-command-copy>span{
+  color:var(--color-text-secondary);
+  font-size:10px;
+  font-weight:900;
+  letter-spacing:.07em;
+  text-transform:uppercase;
+}
+
+#screen-salesorders .so-list-command-copy>strong{
+  color:var(--color-text-primary);
+  font-size:16px;
+  font-weight:800;
+  line-height:1.2;
+}
+
+#screen-salesorders .so-list-command-copy>small{
+  color:var(--color-text-secondary);
+  font-size:11px;
+  line-height:1.35;
+}
+
+#screen-salesorders .so-list-page-actions{
+  display:flex;
+  gap:7px;
+  align-items:center;
+  margin-left:auto;
+  flex:none;
+}
+
+#screen-salesorders .so-list-page-actions button{
+  min-height:34px;
+  height:34px;
+  border-radius:5px;
+}
+
+#screen-salesorders .so-list-kpis{
+  display:grid;
+  grid-template-columns:repeat(4,minmax(0,1fr));
+  gap:10px;
+  min-width:0;
+}
+
+#screen-salesorders .so-list-kpi{
+  min-width:0;
+  min-height:78px;
+  padding:10px 12px;
+  border:1px solid var(--color-border-default);
+  border-radius:7px;
+  background:var(--color-surface-default);
+  box-shadow:none;
+}
+
+#screen-salesorders .so-list-kpi>span{
+  display:block;
+  color:var(--color-text-secondary);
+  font-size:10px;
+  font-weight:900;
+  line-height:1.2;
+  letter-spacing:.05em;
+}
+
+#screen-salesorders .so-list-kpi>strong{
+  display:block;
+  margin:5px 0 2px;
+  color:var(--color-text-primary);
+  font-size:20px;
+  font-weight:850;
+  line-height:1.1;
+}
+
+#screen-salesorders .so-list-kpi>small{
+  display:block;
+  color:var(--color-text-secondary);
+  font-size:10px;
+  line-height:1.3;
+}
+
+#screen-salesorders .so-list-kpi.attention{
+  border-color:var(--color-status-attention-line);
+  background:var(--color-status-attention-bg);
+}
+
+#screen-salesorders .so-list-kpi.attention>strong{
+  color:var(--color-status-attention-text);
+}
+
+#screen-salesorders .so-list-card{
+  min-width:0;
+  overflow:hidden;
+  border:1px solid var(--color-border-default);
+  border-radius:8px;
+  background:var(--color-surface-default);
+  box-shadow:none;
+}
+
+#screen-salesorders .so-list-tabs{
+  display:flex;
+  align-items:center;
+  gap:0;
+  min-width:0;
+  overflow-x:auto;
+  padding:0 10px;
+  border-bottom:1px solid var(--color-border-default);
+  background:var(--color-surface-default);
+  scrollbar-width:thin;
+}
+
+#screen-salesorders .so-list-tab{
+  display:inline-flex;
+  align-items:center;
+  gap:6px;
+  flex:none;
+  min-height:40px;
+  height:40px;
+  padding:0 10px;
+  border:0;
+  border-bottom:2px solid transparent;
+  border-radius:0;
+  background:transparent;
+  color:var(--color-text-secondary);
+  font-size:11px;
+  font-weight:750;
+  box-shadow:none;
+}
+
+#screen-salesorders .so-list-tab:hover{
+  background:var(--color-surface-subtle);
+  color:var(--color-text-primary);
+}
+
+#screen-salesorders .so-list-tab.active{
+  border-bottom-color:var(--color-action-primary);
+  background:transparent;
+  color:var(--color-action-primary);
+  font-weight:850;
+}
+
+#screen-salesorders .so-list-tab>span{
+  display:inline-flex;
+  align-items:center;
+  justify-content:center;
+  min-width:22px;
+  height:20px;
+  padding:0 6px;
+  border:1px solid var(--color-border-default);
+  border-radius:999px;
+  background:var(--color-surface-subtle);
+  color:var(--color-text-secondary);
+  font-size:10px;
+  font-weight:850;
+}
+
+#screen-salesorders .so-list-tab.active>span{
+  border-color:var(--color-action-primary);
+  background:var(--color-action-soft);
+  color:var(--color-action-primary);
+}
+
+#screen-salesorders .so-list-filters{
+  display:grid;
+  grid-template-columns:minmax(260px,1fr) minmax(135px,160px) minmax(135px,160px) minmax(145px,170px) auto;
+  gap:7px;
+  align-items:end;
+  padding:10px;
+  border-bottom:1px solid var(--color-border-default);
+  background:var(--color-surface-default);
+}
+
+#screen-salesorders .so-list-filters label,
+#screen-salesorders .so-list-extra-filters label{
+  display:grid;
+  gap:4px;
+  min-width:0;
+  color:var(--color-text-secondary);
+}
+
+#screen-salesorders .so-list-filters label>span,
+#screen-salesorders .so-list-extra-filters label>span{
+  color:var(--color-text-secondary);
+  font-size:10px;
+  font-weight:850;
+  line-height:1.2;
+}
+
+#screen-salesorders .so-list-filters :is(input,select),
+#screen-salesorders .so-list-extra-filters select{
+  min-height:36px;
+  height:36px;
+  border:1px solid var(--color-border-default);
+  border-radius:5px;
+  background:var(--color-surface-default);
+  color:var(--color-text-primary);
+  font-size:12px;
+  box-shadow:none;
+}
+
+#screen-salesorders .so-list-filters input::placeholder{
+  color:var(--color-text-secondary);
+  opacity:.72;
+}
+
+#screen-salesorders .so-list-more-filter{
+  min-height:36px;
+  height:36px;
+  white-space:nowrap;
+}
+
+#screen-salesorders .so-list-extra-filters{
+  display:grid;
+  grid-template-columns:minmax(150px,190px) minmax(150px,190px) minmax(220px,1fr) auto;
+  gap:8px;
+  align-items:end;
+  padding:9px 10px 10px;
+  border-bottom:1px solid var(--color-border-default);
+  background:var(--color-surface-subtle);
+}
+
+#screen-salesorders .so-list-extra-filters[hidden]{
+  display:none;
+}
+
+#screen-salesorders .so-list-filter-summary{
+  display:grid;
+  gap:2px;
+  align-self:center;
+  min-width:0;
+  padding:2px 0;
+}
+
+#screen-salesorders .so-list-filter-summary>strong{
+  color:var(--color-text-primary);
+  font-size:11px;
+}
+
+#screen-salesorders .so-list-filter-summary>span{
+  color:var(--color-text-secondary);
+  font-size:10px;
+}
+
+#screen-salesorders .so-list-table-wrap{
+  max-height:clamp(360px,58vh,680px);
+  overflow:auto;
+  overscroll-behavior:contain;
+  background:var(--color-surface-default);
+}
+
+#screen-salesorders .so-list-table{
+  width:100%;
+  min-width:980px;
+  border-collapse:separate;
+  border-spacing:0;
+  table-layout:auto;
+}
+
+#screen-salesorders .so-list-table th{
+  position:sticky;
+  top:0;
+  z-index:4;
+  height:34px;
+  padding:0 8px;
+  border-bottom:1px solid var(--color-border-default);
+  background:var(--color-surface-subtle);
+  color:var(--color-text-secondary);
+  font-size:10px;
+  font-weight:850;
+  line-height:1.2;
+  letter-spacing:.04em;
+  text-align:left;
+  text-transform:uppercase;
+  white-space:nowrap;
+}
+
+#screen-salesorders .so-list-table td{
+  min-height:54px;
+  padding:8px;
+  border-bottom:1px solid var(--color-border-default);
+  background:var(--color-surface-default);
+  color:var(--color-text-primary);
+  font-size:11px;
+  line-height:1.3;
+  vertical-align:middle;
+}
+
+#screen-salesorders .so-list-table tbody tr:last-child td{
+  border-bottom:0;
+}
+
+#screen-salesorders .so-list-table tbody tr:hover td{
+  background:var(--color-surface-subtle);
+}
+
+#screen-salesorders .so-list-table td>strong{
+  display:block;
+  color:var(--color-text-primary);
+  font-size:12px;
+  font-weight:800;
+}
+
+#screen-salesorders .so-list-table .muted{
+  display:block;
+  margin-top:2px;
+  color:var(--color-text-secondary);
+  font-size:10px;
+  line-height:1.3;
+}
+
+#screen-salesorders .so-list-table .so-list-overdue{
+  color:var(--color-status-danger-text);
+  font-weight:800;
+}
+
+#screen-salesorders .so-list-check{
+  width:38px;
+  min-width:38px;
+  text-align:center;
+}
+
+#screen-salesorders .so-list-check input{
+  width:18px;
+  height:18px;
+  min-height:18px !important;
+  margin:0;
+  padding:0;
+  accent-color:var(--color-action-primary);
+}
+
+#screen-salesorders .so-list-order{
+  min-width:260px;
+}
+
+#screen-salesorders .so-list-order-link{
+  width:auto;
+  min-height:0;
+  height:auto;
+  margin:0;
+  padding:0;
+  border:0;
+  border-radius:0;
+  background:transparent;
+  color:var(--color-text-primary);
+  text-align:left;
+  box-shadow:none;
+}
+
+#screen-salesorders .so-list-order-link:hover{
+  background:transparent;
+  color:var(--color-action-primary);
+}
+
+#screen-salesorders .so-list-order-link strong{
+  display:block;
+  font-size:12px;
+  font-weight:800;
+  line-height:1.25;
+}
+
+#screen-salesorders .so-list-progress{
+  width:98px;
+  height:6px;
+  margin-top:5px;
+  overflow:hidden;
+  border-radius:999px;
+  background:var(--color-border-default);
+}
+
+#screen-salesorders .so-list-progress>span{
+  display:block;
+  height:100%;
+  border-radius:inherit;
+  background:var(--color-action-primary);
+}
+
+#screen-salesorders .so-list-table td.right,
+#screen-salesorders .so-list-table th.right{
+  text-align:right;
+}
+
+#screen-salesorders .so-list-table td.right>button{
+  min-height:32px;
+  height:32px;
+  padding:0 10px;
+}
+
+#screen-salesorders .so-list-empty{
+  display:grid;
+  gap:3px;
+  justify-items:center;
+  padding:28px 16px;
+  color:var(--color-text-secondary);
+  text-align:center;
+}
+
+#screen-salesorders .so-list-empty strong{
+  color:var(--color-text-primary);
+  font-size:12px;
+}
+
+#screen-salesorders .so-list-empty span{
+  font-size:11px;
+}
+
+#screen-salesorders .so-list-bulk{
+  position:sticky;
+  bottom:0;
+  z-index:6;
+  display:flex;
+  align-items:center;
+  gap:10px;
+  min-height:52px;
+  padding:8px 10px;
+  border-top:1px solid var(--color-action-primary);
+  background:var(--color-action-soft);
+  box-shadow:0 -8px 18px rgba(16,43,58,.06);
+}
+
+#screen-salesorders .so-list-bulk[hidden]{
+  display:none;
+}
+
+#screen-salesorders .so-list-bulk>strong{
+  color:var(--color-text-primary);
+  font-size:11px;
+  margin-right:auto;
+}
+
+#screen-salesorders .so-list-bulk>div{
+  display:flex;
+  gap:6px;
+  align-items:center;
+  flex-wrap:wrap;
+  justify-content:flex-end;
+}
+
+#screen-salesorders .so-list-bulk button{
+  min-height:34px;
+  height:34px;
+}
+
+/* Approved light workspace palette: ordinary form fields should never acquire
+   command-surface navy merely because older Sales Order rules still exist. */
+body:not([data-theme="dark"]) #screen-salesorders .so-list-page :is(input,select){
+  background:var(--color-surface-default);
+  color:var(--color-text-primary);
+  border-color:var(--color-border-default);
+}
+
+@media (max-width:1100px){
+  #screen-salesorders .so-list-filters{
+    grid-template-columns:minmax(260px,1fr) repeat(2,minmax(130px,1fr));
+  }
+  #screen-salesorders .so-list-search{
+    grid-column:1/-2;
+  }
+  #screen-salesorders .so-list-more-filter{
+    grid-column:-2/-1;
+  }
+  #screen-salesorders .so-list-extra-filters{
+    grid-template-columns:1fr 1fr;
+  }
+}
+
+@media (max-width:780px){
+  #screen-salesorders .so-list-commandbar{
+    align-items:flex-start;
+    flex-direction:column;
+  }
+  #screen-salesorders .so-list-page-actions{
+    width:100%;
+    margin-left:0;
+  }
+  #screen-salesorders .so-list-page-actions button{
+    flex:1;
+  }
+  #screen-salesorders .so-list-kpis{
+    grid-template-columns:1fr 1fr;
+  }
+  #screen-salesorders .so-list-filters{
+    grid-template-columns:1fr 1fr;
+  }
+  #screen-salesorders .so-list-search{
+    grid-column:1/-1;
+  }
+  #screen-salesorders .so-list-more-filter{
+    grid-column:auto;
+  }
+  #screen-salesorders .so-list-extra-filters{
+    grid-template-columns:1fr 1fr;
+  }
+  #screen-salesorders .so-list-bulk{
+    align-items:flex-start;
+    flex-direction:column;
+  }
+  #screen-salesorders .so-list-bulk>div{
+    width:100%;
+    justify-content:flex-start;
+  }
+}
+
+@media (max-width:560px){
+  #screen-salesorders .so-list-kpis{
+    grid-template-columns:1fr;
+  }
+  #screen-salesorders .so-list-filters,
+  #screen-salesorders .so-list-extra-filters{
+    grid-template-columns:1fr;
+  }
+  #screen-salesorders .so-list-search,
+  #screen-salesorders .so-list-more-filter{
+    grid-column:auto;
+  }
+  #screen-salesorders .so-list-page-actions{
+    display:grid;
+    grid-template-columns:1fr 1fr;
+  }
+  #screen-salesorders .so-list-table-wrap{
+    max-height:none;
+  }
+  #screen-salesorders .so-list-bulk>div{
+    display:grid;
+    grid-template-columns:1fr 1fr;
+  }
+}
+
+
 /* ===== MODULE: system/33-workspace-polish.css ===== */
 /*
  Pool Shed maintained CSS module: 33-workspace-polish.css
@@ -11423,3 +11977,40 @@ table th {
   }
 }
 
+
+
+/* ========================================================================
+   UPDATED PAGE PALETTE GUARD — Sales Order List implementation
+   Dashboard keeps its intentional dark command surfaces. CRM and Sales Orders
+   use calm light controls in light mode so legacy dark-form rules cannot leak
+   into approved workspaces.
+   ======================================================================== */
+
+body:not([data-theme="dark"]) #screen-crm :is(input:not([type="checkbox"]):not([type="radio"]),select,textarea),
+body:not([data-theme="dark"]) #screen-salesorders :is(input:not([type="checkbox"]):not([type="radio"]),select,textarea){
+  background:var(--color-surface-default) !important;
+  color:var(--color-text-primary) !important;
+  border-color:var(--color-border-default) !important;
+  box-shadow:none;
+}
+
+body:not([data-theme="dark"]) #screen-crm :is(input,textarea)::placeholder,
+body:not([data-theme="dark"]) #screen-salesorders :is(input,textarea)::placeholder{
+  color:var(--color-text-secondary) !important;
+  opacity:.72;
+}
+
+body:not([data-theme="dark"]) #screen-crm :is(input[readonly],textarea[readonly],input:disabled,select:disabled,textarea:disabled),
+body:not([data-theme="dark"]) #screen-salesorders :is(input[readonly],textarea[readonly],input:disabled,select:disabled,textarea:disabled){
+  background:var(--color-surface-subtle) !important;
+  color:var(--color-text-secondary) !important;
+}
+
+body:not([data-theme="dark"]) #screen-salesorders .so-list-kpi.attention{
+  background:var(--color-status-attention-bg) !important;
+  border-color:var(--color-status-attention-line) !important;
+}
+
+body:not([data-theme="dark"]) #screen-salesorders .so-list-kpi.attention>strong{
+  color:var(--color-status-attention-text) !important;
+}

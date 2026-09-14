@@ -2107,3 +2107,40 @@ table th {
   }
 }
 
+
+
+/* ========================================================================
+   UPDATED PAGE PALETTE GUARD — Sales Order List implementation
+   Dashboard keeps its intentional dark command surfaces. CRM and Sales Orders
+   use calm light controls in light mode so legacy dark-form rules cannot leak
+   into approved workspaces.
+   ======================================================================== */
+
+body:not([data-theme="dark"]) #screen-crm :is(input:not([type="checkbox"]):not([type="radio"]),select,textarea),
+body:not([data-theme="dark"]) #screen-salesorders :is(input:not([type="checkbox"]):not([type="radio"]),select,textarea){
+  background:var(--color-surface-default) !important;
+  color:var(--color-text-primary) !important;
+  border-color:var(--color-border-default) !important;
+  box-shadow:none;
+}
+
+body:not([data-theme="dark"]) #screen-crm :is(input,textarea)::placeholder,
+body:not([data-theme="dark"]) #screen-salesorders :is(input,textarea)::placeholder{
+  color:var(--color-text-secondary) !important;
+  opacity:.72;
+}
+
+body:not([data-theme="dark"]) #screen-crm :is(input[readonly],textarea[readonly],input:disabled,select:disabled,textarea:disabled),
+body:not([data-theme="dark"]) #screen-salesorders :is(input[readonly],textarea[readonly],input:disabled,select:disabled,textarea:disabled){
+  background:var(--color-surface-subtle) !important;
+  color:var(--color-text-secondary) !important;
+}
+
+body:not([data-theme="dark"]) #screen-salesorders .so-list-kpi.attention{
+  background:var(--color-status-attention-bg) !important;
+  border-color:var(--color-status-attention-line) !important;
+}
+
+body:not([data-theme="dark"]) #screen-salesorders .so-list-kpi.attention>strong{
+  color:var(--color-status-attention-text) !important;
+}
