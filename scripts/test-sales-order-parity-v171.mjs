@@ -24,9 +24,9 @@ need(cssBuild.includes("system/42-sales-order-parity.css"),
 need(css.includes(".so4-finder-shell") && css.includes(".so-finder-mega-grid") &&
      css.includes(".so2-lines-table") && css.includes(".so3-summary-grid"),
   "Parity CSS must own finder, item lines and Sales Order summary surfaces");
-need(index.includes("app.css?v=1.7.3") && index.includes("sales-workspace.js?v=1.7.3"),
+need(index.includes("app.css?v=1.7.4") && index.includes("sales-workspace.js?v=1.7.4"),
   "Critical Sales Order assets must be release-versioned");
-need(serviceWorker.includes("pool-shed-v1.7.3-sales-order-finder-polish") &&
-     serviceWorker.includes("app.css?v=1.7.3") && serviceWorker.includes("sales-workspace.js?v=1.7.3"),
+need(serviceWorker.includes("pool-shed-v1.7.4-ui-ownership") &&
+     serviceWorker.includes("app.css?v=1.7.4") && serviceWorker.includes("sales-workspace.js?v=1.7.4"),
   "Service worker must invalidate the previous Sales Order asset generation");
 console.log("Sales Order v1.7.2 Design Lab parity checks passed.");

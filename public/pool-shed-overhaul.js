@@ -57,6 +57,7 @@
 
   function decorateSalesToolbar(){
     var screen=document.getElementById('screen-salesorders');if(!screen)return;
+    if(screen.querySelector('.sales-command-page'))return;
     var top=screen.querySelector('.record-card.sales-order-compact > .record-top');if(!top)return;
     var print=top.querySelector('[data-email-print-order]');if(print){print.textContent='Email / Print';print.title='Email or print the sales order';}
     var alloc=top.querySelector('[data-allocate-order]');if(alloc){alloc.textContent='Allocate all';alloc.title='Allocate available stock';}
@@ -68,6 +69,7 @@
 
   function decorateBundleRows(){
     var screen=document.getElementById('screen-salesorders');if(!screen)return;
+    if(screen.querySelector('.sales-command-page'))return;
     var order=currentSalesOrder();if(!order)return;
     var rows=Array.from(screen.querySelectorAll('.order-lines-table tbody tr'));
     if(!rows.length)return;
@@ -101,6 +103,7 @@
   }
 
   function setupComposer(){
+    var screen=document.getElementById('screen-salesorders');if(screen&&screen.querySelector('.sales-command-page'))return;
     var comp=document.querySelector('#screen-salesorders .so-line-composer');if(!comp)return;
     var head=comp.querySelector('.so-line-composer-head');if(!head)return;
     if(!head.querySelector('.ps-line-composer-toggle')){

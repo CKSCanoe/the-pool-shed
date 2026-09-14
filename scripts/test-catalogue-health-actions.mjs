@@ -3,7 +3,7 @@ import vm from 'node:vm';
 
 const publicRoot = new URL('../public/', import.meta.url);
 const html = fs.readFileSync(new URL('index.html', publicRoot), 'utf8');
-const assetFiles = [...html.matchAll(/src=\"\.\/([^\"]+\.js)\"/g)].map(m => new URL(m[1], publicRoot));
+const assetFiles = [...html.matchAll(/src="\.\/([^\"]+\.js)(?:\?[^\"]*)?"/g)].map(m => new URL(m[1], publicRoot));
 const appSource = html + '\n' + assetFiles.filter(url => fs.existsSync(url)).map(url => fs.readFileSync(url, 'utf8')).join('\n');
 function extract(name, nextName) {
   const start = appSource.indexOf(`      function ${name}`);

@@ -25,7 +25,7 @@ const checks = [
   ['selected Concept A items workspace', workspace.includes('so2-items-workspace') && workspace.includes('so2-entry-grid')],
   ['selected Concept A readable table', workspace.includes('so2-lines-table') && workspace.includes('so2-variant-control') && css.includes('min-width:1080px')],
   ['selected Concept A live totals rail', workspace.includes('so2-totals-card') && workspace.includes('Take / Record Payment') && css.includes('.so2-totals-card')],
-  ['service worker invalidated', sw.includes('pool-shed-v1.7.1-asset-freshness')]
+  ['service worker invalidated', sw.includes('pool-shed-v1.7.4-ui-ownership')]
 ];
 
 let failed = false;

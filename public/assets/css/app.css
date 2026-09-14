@@ -4083,7 +4083,7 @@
 strong {letter-spacing:-.015em}
 .muted,.panel-head p{color:var(--pb-muted)!important}
 .button, [role="button"] {border-radius:12px!important;font-weight:800!important;transition:transform .16s ease,box-shadow .16s ease,filter .16s ease}
-button:hover,.button:hover,[role="button"]:hover{transform:translateY(-1px);filter:saturate(1.04);box-shadow:0 8px 18px color-mix(in srgb, var(--color-action-primary) 16%, transparent)}
+/* Shared button hover behaviour is owned by 40-design-system.css. */
 button:focus-visible,input:focus-visible,select:focus-visible,textarea:focus-visible{outline:3px solid color-mix(in srgb, var(--color-action-focus) 28%, transparent)!important;outline-offset:2px!important}
 
 
@@ -10506,6 +10506,8 @@ input:not([type="checkbox"]):not([type="radio"]) {
 
 button:hover {
   transform: none !important;
+  filter: none;
+  box-shadow: none;
 }
 
 button.secondary,
@@ -10956,6 +10958,9 @@ button {
 }
 
 button:hover {
+  transform: none !important;
+  filter: none;
+  box-shadow: none;
   background: var(--color-action-primary-hover);
   border-color: var(--color-action-primary-hover);
 }

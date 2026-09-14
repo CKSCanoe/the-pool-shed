@@ -11,7 +11,7 @@ const checks=[
   ['single app stylesheet remains authoritative',index.includes('assets/css/app.css?v=1.7.1') && !index.includes('sales-order-command.css')],
   ['final sales-order module is last in css build order',fs.readFileSync('scripts/build-css.mjs','utf8').indexOf('41-sales-order-command.css')>fs.readFileSync('scripts/build-css.mjs','utf8').indexOf('40-design-system.css')],
   ['sales workspace versioned',index.includes('sales-workspace.js?v=1.7.1')],
-  ['service worker cache advanced',sw.includes('pool-shed-v1.7.1-asset-freshness')],
+  ['service worker cache advanced',sw.includes('pool-shed-v1.7.4-ui-ownership')],
   ['service worker precaches versioned app css',sw.includes('assets/css/app.css?v=1.7.1')],
   ['direct command shell',js.includes('so3-command-header') && js.includes('so3-summary-grid') && js.includes('so3-order-workspace')],
   ['three core cards',js.includes('so2CustomerCard(order,c)') && js.includes('so3-order-details') && js.includes('so3-fulfilment')],

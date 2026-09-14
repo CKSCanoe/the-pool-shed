@@ -6,11 +6,11 @@ const css=fs.readFileSync("public/assets/css/system/42-sales-order-parity.css","
 
 const must=(ok,msg)=>{ if(!ok){ console.error("FAIL:",msg); process.exitCode=1; } else console.log("PASS:",msg); };
 
-must(index.includes("./assets/js/01-legacy-01.js?v=1.7.3"),"critical Sales Order finder runtime is release-versioned");
-must(index.includes("./sales-workspace.js?v=1.7.3"),"Sales Order workspace runtime is release-versioned");
-must(index.includes("./assets/css/app.css?v=1.7.3"),"compiled UI stylesheet is release-versioned");
-must(sw.includes("pool-shed-v1.7.3-sales-order-finder-polish"),"service worker cache namespace advanced");
-must(sw.includes("./assets/js/01-legacy-01.js?v=1.7.3"),"service worker precaches versioned finder runtime");
+must(index.includes("./assets/js/01-legacy-01.js?v=1.7.4"),"critical Sales Order finder runtime is release-versioned");
+must(index.includes("./sales-workspace.js?v=1.7.4"),"Sales Order workspace runtime is release-versioned");
+must(index.includes("./assets/css/app.css?v=1.7.4"),"compiled UI stylesheet is release-versioned");
+must(sw.includes("pool-shed-v1.7.4-ui-ownership"),"service worker cache namespace advanced");
+must(sw.includes("./assets/js/01-legacy-01.js?v=1.7.4"),"service worker precaches versioned finder runtime");
 must(legacy.includes("Smart product finder"),"smart finder mega menu exists");
 must(legacy.includes("Frequently ordered"),"customer frequently ordered mode exists");
 must(legacy.includes("Customer history"),"customer history mode exists");

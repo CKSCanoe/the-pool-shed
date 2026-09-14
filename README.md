@@ -1,3 +1,18 @@
+# Pool Shed v1.7.4 — UI Ownership & Legacy Isolation
+
+This release fixes a mixed-generation UI problem rather than adding another cosmetic layer. Dashboard, Customers and Sales Orders keep the approved Design Lab direction, while deployment/runtime ownership is tightened so older cached scripts and legacy DOM polish cannot visually win after the newer workspace renders.
+
+Key changes:
+- every local runtime JavaScript file and the application CSS bundle now use the same `?v=1.7.4` release token, eliminating mixed old/new presentation assets during deployment;
+- the service worker uses the matching `pool-shed-v1.7.4-ui-ownership` cache and precaches the exact URLs loaded by `index.html`;
+- service-worker registration itself is release-versioned and continues to use `updateViaCache: "none"`;
+- old `pool-shed-overhaul.js` Sales Order toolbar, bundle-row and line-composer decorators explicitly stop when the approved `.sales-command-page` is present;
+- shared button hover behaviour is owned by the Precision Operations design system, removing the legacy global saturation/lift/shadow rule that could leak into newer workspaces;
+- CSS architecture coverage now includes Customer Workspace and all late Sales Order authority modules, closing the test blind spot that previously let final cascade layers escape ownership checks;
+- a new v1.7.4 regression asserts coherent runtime assets, cache alignment, modern Sales Order fencing and shared hover ownership.
+
+No stock, allocation, pricing, VAT, CRM, Goods Note, fulfilment, accounting, project or offline sync business engine was replaced by this patch.
+
 # Pool Shed v1.7.3 — Product Finder & Precision Line Polish
 
 This patch implements the approved high-fidelity Smart Product Finder treatment directly in the Sales Order and brings the added order-line row to the same visual standard. Product selection uses calm aqua/blue-grey interaction states; semantic green is restricted to stock/readiness signals.

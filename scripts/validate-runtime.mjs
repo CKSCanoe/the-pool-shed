@@ -75,8 +75,9 @@ new vm.Script(swSource, { filename: 'service-worker.js' });
 for (const asset of ['product-images.js', 'sales-order-search.js', 'partial-fulfilment.js', 'catalogue-intelligence.js']) {
   if (!swSource.includes(asset)) throw new Error(`Offline cache is missing ${asset}`);
 }
-if (!swSource.includes('pool-shed-v1.7.3-sales-order-finder-polish')) {
-  throw new Error('Service worker cache key is not set for the current release');
+const releaseVersion = html.match(/assets\/css\/app\.css\?v=([0-9.]+)/)?.[1];
+if (!releaseVersion || !swSource.includes(`pool-shed-v${releaseVersion}-`)) {
+  throw new Error(`Service worker cache key is not set for the current release ${releaseVersion || 'unknown'}`);
 }
 for (const asset of ['bundle-studio.js']) {
   if (!swSource.includes(asset)) throw new Error(`Offline cache is missing ${asset}`);

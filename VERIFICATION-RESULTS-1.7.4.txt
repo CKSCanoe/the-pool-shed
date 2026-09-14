@@ -1,0 +1,41 @@
+Pool Shed v1.7.4 final focused verification
+UTC 2026-09-14T20:30:36Z
+UI ownership v1.7.4 checks passed: coherent assets, modern Sales Order fence, authoritative hover ownership, full CSS module coverage.
+CSS architecture checks passed: 1 runtime bundle, 15 ownership modules, 6 separate print styles, shared primitives owned by design system.
+Customer Design Lab parity checks passed: master-detail directory, light account header, dashboard-aligned tabs/summary, readable core record, supporting overview cards, depth cards, 560px editor and responsive structure are present.
+Final Dashboard composition checks passed: only approved commercial content and right-rail quick actions/review remain.
+Sales Order finder polish v1.7.4 passed.
+PASS release version
+PASS smart customer intelligence
+PASS first class save action preserved
+PASS payment beside totals
+PASS clear operational tabs
+PASS precision order line
+PASS dedicated variant column
+PASS variant lifecycle safeguard
+PASS variant duplicate safeguard
+PASS line action dropdown is viewport layer
+PASS line menu uses real engines
+PASS catalogue stays neutral
+PASS product search engine preserved
+PASS allocation engine preserved
+PASS goods note engine preserved
+PASS custom and shipping engines preserved
+PASS responsive layout
+PASS release version
+PASS service worker cache namespace advanced
+PASS service worker update bypasses HTTP cache
+PASS approved Sales workspace loads after fulfilment and customer picker
+PASS critical presentation CSS is versioned
+PASS critical Sales workspace is versioned
+PASS critical versioned presentation assets are precached
+PASS every local JS/CSS shell asset is represented in precache
+PASS legacy runtime remains loaded before the Sales workspace
+
+> the-pool-shed@1.7.4 build
+> bash scripts/build.sh
+
+Built app.css from 15 maintained CSS modules.
+Runtime validation passed: 0 inline scripts, service worker, offline sales search, catalogue intelligence, PO supplier-offer search, partial shipment balance test, solid catalogue search UI and required app functions.
+Built deployable static application into /mnt/data/poolshed_audit/Pool-Shed-1.7.4-Legacy-Isolation/dist
+All 30 referenced assets exist; every public/server/API JavaScript file parses.

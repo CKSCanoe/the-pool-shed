@@ -15,7 +15,11 @@ const modules = [
   "system/31-project-workspace.css",
   "system/32-sales-workspace.css",
   "system/33-workspace-polish.css",
+  "system/34-customer-workspace.css",
   "system/40-design-system.css",
+  "system/41-sales-order-command.css",
+  "system/42-sales-order-parity.css",
+  "system/43-sales-order-finder-polish.css",
 ];
 const failures = [];
 
@@ -75,4 +79,4 @@ if (failures.length) {
   console.error(failures.join("\n"));
   process.exit(1);
 }
-console.log("CSS architecture checks passed: 1 runtime bundle, 11 ownership modules, 6 separate print styles, shared primitives owned by design system.");
+console.log(`CSS architecture checks passed: 1 runtime bundle, ${modules.length} ownership modules, 6 separate print styles, shared primitives owned by design system.`);

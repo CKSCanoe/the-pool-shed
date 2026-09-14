@@ -14658,5 +14658,5 @@ const seed = {
         updateOfflineStatus();
         restoreOfflineSnapshotIfNeeded();
         syncPendingOfflineData();
-        if ("serviceWorker" in navigator && location.protocol !== "file:") navigator.serviceWorker.register("./service-worker.js", { updateViaCache:"none" }).catch(function() {});
+        if ("serviceWorker" in navigator && location.protocol !== "file:") navigator.serviceWorker.register("./service-worker.js?v=1.7.4", { updateViaCache:"none" }).catch(function() {});
       });

@@ -375,6 +375,8 @@ input:not([type="checkbox"]):not([type="radio"]) {
 
 button:hover {
   transform: none !important;
+  filter: none;
+  box-shadow: none;
 }
 
 button.secondary,
@@ -825,6 +827,9 @@ button {
 }
 
 button:hover {
+  transform: none !important;
+  filter: none;
+  box-shadow: none;
   background: var(--color-action-primary-hover);
   border-color: var(--color-action-primary-hover);
 }
