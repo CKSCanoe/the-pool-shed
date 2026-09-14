@@ -131,12 +131,26 @@
       }).join('') + '</select><small>' + escapeHtml(p.sku || p.id || '') + (locked ? ' · locked by stock activity' : '') + '</small></label>';
   }
 
+
+  function so5ProductThumb(p) {
+    if (!p || !p.id || String(p.id).indexOf('CUSTOM-')===0) return '<span class="so5-line-thumb"><span aria-hidden="true">PB</span></span>';
+    let url='';
+    try {
+      if (window.PoolShedProductImages) {
+        url=window.PoolShedProductImages.variantImageUrl(p) || window.PoolShedProductImages.parentImageUrl(p) || '';
+      }
+    } catch (_) {}
+    if (!url) url=p.variantImageUrl || p.variant_image_url || p.imageUrl || p.image_url || '';
+    return '<span class="so5-line-thumb">' + (url ? '<img src="' + escapeHtml(url) + '" alt="" loading="lazy" decoding="async">' : '<span aria-hidden="true">PB</span>') + '</span>';
+  }
+
   function so2LineRows(order) {
     return order.lines.map(function(line) {
       const p = product(line.productId) || { id:line.productId, sku:'CUSTOM', name:line.description || 'Custom sales line', category:'Non-stock' };
       const nonStock = isNonStockSalesLine(line);
       const coverage = salesLineCoverage(line, order.id);
       const health = salesLineHealth(line, order.id);
+      const stockInfo = nonStock ? null : salesOrderProductStockInfo(p);
       const unitNet = salesOrderLinePrice(order, line);
       const vatRate = vatRateForLine(line);
       const lineGross = (unitNet * Number(line.qty || 0)) * (1 + vatRate);
@@ -147,14 +161,14 @@
       const menuId = 'so2-menu-' + String(order.id + '-' + line.productId).replace(/[^a-z0-9_-]/gi,'-');
       return '<tr class="so2-line-row ' + health.className + '">' +
         '<td class="so2-check"><input type="checkbox" data-sales-line-select="' + order.id + '|' + line.productId + '" aria-label="Select ' + escapeHtml(p.sku || p.name) + '"></td>' +
-        '<td class="so2-product-cell"><strong>' + escapeHtml(family) + '</strong><small>' + escapeHtml(nonStock ? (line.description || p.name) : (p.brand || p.category || 'Catalogue product')) + '</small>' + (!nonStock ? '<button type="button" class="link-button" data-open-product="' + escapeHtml(p.id) + '">View product</button>' : '') + '</td>' +
+        '<td class="so2-product-cell"><div class="so5-line-product">' + so5ProductThumb(p) + '<div class="so5-line-product-copy"><strong>' + escapeHtml(family) + '</strong><small>' + escapeHtml(nonStock ? (line.description || p.name) : (p.name || p.brand || p.category || 'Catalogue product')) + '</small>' + (!nonStock ? '<button type="button" class="link-button" data-open-product="' + escapeHtml(p.id) + '">View product</button>' : '') + '</div></div></td>' +
         '<td class="so2-variant-cell">' + so2VariantSelect(order,line,p,locked) + '</td>' +
-        '<td class="so2-stock-cell">' + (nonStock ? '<span class="muted">Not stock controlled</span>' : '<strong class="' + (coverage.free > 0 ? 'so2-stock-good' : 'so2-stock-warn') + '">' + coverage.free + ' free</strong><small>' + escapeHtml(allocationSourceLabel(order.id)) + (coverage.onPo ? ' · ' + coverage.onPo + ' on PO' : '') + '</small>') + '</td>' +
+        '<td class="so2-stock-cell">' + (nonStock ? '<span class="muted">Not stock controlled</span>' : '<strong class="' + (coverage.free > 0 ? 'so2-stock-good' : 'so2-stock-warn') + '">' + coverage.free + ' free</strong><small>' + escapeHtml(stockInfo ? stockInfo.location : allocationSourceLabel(order.id)) + ' · ' + (stockInfo ? stockInfo.onHand : 0) + ' physical' + (coverage.onPo ? ' · ' + coverage.onPo + ' on PO' : '') + '</small>') + '</td>' +
         '<td><input class="qty-input so2-qty" data-line-field="' + order.id + '|' + line.productId + '|qty" type="number" min="0" value="' + Number(line.qty||0) + '"></td>' +
         '<td class="so2-allocated"><strong>' + (nonStock ? '—' : Number(line.allocated||0) + ' / ' + Number(line.qty||0)) + '</strong><small>' + (nonStock ? 'Not required' : (Number(line.allocated||0) ? 'Allocated' : 'Not allocated')) + '</small></td>' +
-        '<td class="right so2-money"><strong>' + so2Money(unitNet) + '</strong><small>net</small></td>' +
+        '<td class="right so2-money"><strong>' + so2Money(unitNet) + '</strong><small>net unit</small></td>' +
         '<td class="so2-vat">' + Math.round(vatRate*100) + '%</td>' +
-        '<td class="right so2-money"><strong>' + so2Money(lineGross) + '</strong><small>inc VAT</small></td>' +
+        '<td class="right so2-money so5-line-total"><strong>' + so2Money(lineGross) + '</strong><small>inc VAT</small></td>' +
         '<td class="so2-actions-cell"><button type="button" class="secondary so2-menu-button" data-so2-line-menu="' + menuId + '" aria-haspopup="menu" aria-expanded="false">•••</button>' +
           '<div id="' + menuId + '" class="so2-line-menu" data-so2-menu role="menu" hidden>' +
             (!nonStock ? '<button type="button" role="menuitem" data-allocate-line="' + order.id + '|' + line.productId + '">Allocate</button><button type="button" role="menuitem" data-unallocate-line="' + order.id + '|' + line.productId + '">Unallocate</button><button type="button" role="menuitem" data-open-product="' + escapeHtml(p.id) + '">View product</button><button type="button" role="menuitem" data-so-tab="fulfilment">Fulfilment details</button><div class="so2-menu-separator"></div>' : '') +

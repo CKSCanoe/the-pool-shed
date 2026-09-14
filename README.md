@@ -1,7 +1,25 @@
-# Pool Shed Uniform System — 1.7.1
+# Pool Shed v1.7.3 — Product Finder & Precision Line Polish
+
+This patch implements the approved high-fidelity Smart Product Finder treatment directly in the Sales Order and brings the added order-line row to the same visual standard. Product selection uses calm aqua/blue-grey interaction states; semantic green is restricted to stock/readiness signals.
+
+Key changes:
+- polished three-column Smart Product Finder with customer context, recommendations, team popularity and customer history;
+- live typo-tolerant search, exact SKU/barcode priority, "Why shown" reasoning and product imagery/fallbacks;
+- selected-product confirmation bar before commit;
+- customer and team recommendations derive from existing Sales Order history rather than parallel data;
+- added Sales Order lines now include a polished product thumbnail, dedicated editable Variant column, warehouse/free-stock context, net/VAT totals and the existing floating action menu;
+- removed dark-green product hover/selection treatment in favour of the locked teal/aqua interaction language;
+- v1.7.3 asset/service-worker cache namespace prevents stale finder presentation from surviving deployment.
 
 
-## 1.7.1 — Sales Order Design Lab Parity
+This patch forces the browser/service worker to load the same Sales Order finder runtime that owns the approved Smart Product Finder. The core legacy runtime asset now carries the release query version alongside `app.css` and `sales-workspace.js`, preventing an older cached product-finder implementation from running inside the new Sales Order shell.
+
+The Sales Order Smart Product Finder remains the approved design: live results while typing, typo/common-term suggestions, Best Matches with Why Shown, customer Frequently Ordered and Customer History recommendations, stock/location/price enrichment, full catalogue access and exact-variant selection.
+
+# Pool Shed Uniform System — 1.7.2
+
+
+## 1.7.2 — Sales Order Design Lab Parity
 
 - Makes the approved Sales Order Command layout the direct Items & Pricing render path instead of extracting it back through the legacy record shell.
 - Pulls the product finder, order lines, totals/payment and secondary line tools into one coherent presentation layer.

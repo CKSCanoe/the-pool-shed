@@ -6756,6 +6756,8 @@ const seed = {
             addLineInput.dataset.selectedProductId = "";
             addLineInput.dataset.finderMode = "";
             addLineInput.classList.remove("has-selection");
+            const selectedBar=document.querySelector("[data-so-selected-product]");
+            if (selectedBar) selectedBar.hidden=true;
             scheduleSalesOrderProductSearch(false);
           });
           addLineInput.addEventListener("focus", function() {
@@ -6817,6 +6819,15 @@ const seed = {
             addLineInput.dataset.selectedProductId = p.id;
             addLineInput.dataset.finderMode="";
             addLineInput.classList.add("has-selection");
+            const selectedBar=document.querySelector("[data-so-selected-product]");
+            const selectedCopy=selectedBar && selectedBar.querySelector("[data-so-selected-product-copy]");
+            if (selectedBar && selectedCopy) {
+              const stock=salesOrderProductStockInfo(p);
+              const priceList=orderPriceList(salesOrder(parts[0]));
+              const price=Number(p[priceList] || p.rrp || p.rrpPrice || p.rrp_price || p.trade || p.tradePrice || p.trade_price || 0);
+              selectedCopy.textContent=(p.name || p.sku || "Product") + " · " + (p.sku || p.code || "") + " · " + stock.available + " free · " + money(price) + " net";
+              selectedBar.hidden=false;
+            }
             addLineResults.hidden = true;
             addLineInput.focus();
           });
@@ -7958,7 +7969,8 @@ const seed = {
         return '<div class="po-add-items so-add-items so-smart-finder-entry"><div class="po-add-copy"><span>Stock item</span><strong>Add products</strong><p>Start typing and the best products appear immediately. Search by product family, exact variant, SKU, barcode, size or a common trade term.</p></div>' +
           '<div class="po-add-controls so-smart-add-controls"><div class="po-product-search so-smart-product-search"><label class="sr-only" for="salesOrderProductSearch">Find product, variant, SKU, barcode or keyword</label><input id="salesOrderProductSearch" data-order-id="' + order.id + '" autocomplete="off" placeholder="Try product name, SKU, barcode, size or keyword"><div id="salesOrderProductResults" class="po-product-results so-product-results" hidden></div></div>' +
           '<input id="salesOrderProductQty" class="po-add-qty" type="number" min="1" value="1" aria-label="Quantity"><button type="button" data-add-line-order="' + order.id + '">Add selected item</button><button type="button" class="secondary" data-open-so-batch="' + order.id + '">Add multiple items</button></div>' +
-          '<div class="so-smart-search-hints"><span>Try:</span><button type="button" data-so-inline-search-fill="chlorine">chlorine</button><button type="button" data-so-inline-search-fill="shock">shock</button><button type="button" data-so-inline-search-fill="hypo">hypo</button><button type="button" data-so-inline-search-fill="20 litre">20 litre</button><small>Typos, word order and common trade terms are supported.</small></div></div>' +
+          '<div class="so-smart-search-hints"><span>Try:</span><button type="button" data-so-inline-search-fill="chlorine">chlorine</button><button type="button" data-so-inline-search-fill="shock">shock</button><button type="button" data-so-inline-search-fill="hypo">hypo</button><button type="button" data-so-inline-search-fill="20 litre">20 litre</button><small>Typos, word order and common trade terms are supported.</small></div>' +
+          '<div class="so5-selected-product" data-so-selected-product hidden><strong>Selected</strong><span data-so-selected-product-copy></span><button type="button" data-add-line-order="' + order.id + '">Add to order</button></div></div>' +
         salesOrderBatchPicker(order) +
         '<section class="so-line-composer"><div class="so-line-composer-head"><div><span>Additional charges</span><strong>Add a non-stock sales line</strong><p>Use this for one-off work, labour, call-out charges, discounts, delivery and other items that must not affect inventory.</p></div><div class="so-line-choice"><button type="button" class="secondary active" data-line-composer-tab="custom">Custom sales line</button><button type="button" class="secondary" data-line-composer-tab="shipping">Shipping charge</button></div></div>' +
         '<div class="so-line-form" data-line-composer-panel="custom"><label class="so-line-description"><span>Description</span><input id="customLineDescription" placeholder="Example: Additional installation labour"></label><label><span>Quantity</span><input id="customLineQty" type="number" min="1" step="1" value="1"></label><label><span>Unit price net</span><input id="customLinePrice" type="number" min="0" step="0.01" value="0.00"></label><label><span>Unit cost</span><input id="customLineCost" type="number" min="0" step="0.01" value="0.00"></label><label><span>Tax</span><select id="customLineTax">' + optionList(["20% VAT","Zero rated","Not rated"],"20% VAT") + '</select></label><label><span>Sales account</span><select id="customLineAccount">' + optionList(["4010 Service Upsell","4030 Labour Income","4050 Call-out Charges","4060 Miscellaneous Sales"],"4010 Service Upsell") + '</select></label><label class="so-line-note"><span>Internal note (optional)</span><textarea id="customLineNote" placeholder="Reason, engineer detail or approval note"></textarea></label><button type="button" class="primary-action" data-add-custom-line="' + order.id + '">Add custom line</button></div>' +
@@ -8191,6 +8203,50 @@ const seed = {
         return { onHand:onHand, allocated:allocated, available:available, cls:cls, label:label, location:bestLoc ? (bestLoc.name || bestLoc.code || bestLoc.id) : "Main warehouse" };
       }
 
+
+      function salesOrderFinderProductImage(p, className) {
+        let url="";
+        try {
+          if (window.PoolShedProductImages) {
+            url=window.PoolShedProductImages.variantImageUrl(p) || window.PoolShedProductImages.parentImageUrl(p) || "";
+          }
+        } catch (_) {}
+        if (!url) url=p && (p.variantImageUrl || p.variant_image_url || p.imageUrl || p.image_url || "");
+        const label=String((p && (p.name || p.sku)) || "Product");
+        return '<span class="' + escapeHtml(className || "so5-product-thumb") + '">' +
+          (url ? '<img src="' + escapeHtml(url) + '" alt="" loading="lazy" decoding="async">' : '<span aria-hidden="true">PB</span>') +
+        '</span>';
+      }
+
+      function salesOrderTeamProductStats(order) {
+        const map=Object.create(null);
+        (data.salesOrders || []).forEach(function(candidate){
+          if (!candidate || candidate.id === (order && order.id) || !Array.isArray(candidate.lines)) return;
+          const seen=new Set();
+          candidate.lines.forEach(function(line){
+            if (!line || isNonStockSalesLine(line) || !line.productId) return;
+            const p=product(line.productId);
+            if (!p) return;
+            const stat=map[line.productId] || (map[line.productId]={product:p,orders:0,qty:0,lastDate:""});
+            stat.qty += Number(line.qty||0);
+            if (!seen.has(line.productId)) { stat.orders += 1; seen.add(line.productId); }
+            const d=String(candidate.created || candidate.date || "");
+            if (d > stat.lastDate) stat.lastDate=d;
+          });
+        });
+        return Object.keys(map).map(function(key){return map[key];})
+          .sort(function(a,b){return b.orders-a.orders || b.qty-a.qty || String(b.lastDate).localeCompare(String(a.lastDate));})
+          .slice(0,8);
+      }
+
+      function salesOrderFinderResultCount(order, mode) {
+        const stats=salesOrderCustomerProductStats(order);
+        if (mode === "frequent") return stats.frequent.length;
+        if (mode === "recent") return stats.recent.length;
+        if (mode === "stock") return salesOrderCatalogueProducts().reduce(function(n,p){return n + (salesOrderProductStockInfo(p).available > 0 ? 1 : 0);},0);
+        return salesOrderCatalogueProducts().length;
+      }
+
       function positionSalesOrderProductResults(input, box) {
         if (!input || !box || box.hidden) return;
         const rect = input.getBoundingClientRect();
@@ -8227,19 +8283,37 @@ const seed = {
       function salesOrderFinderCustomerPanel(order) {
         const c=customer(order.customerId);
         const stats=salesOrderCustomerProductStats(order);
+        const team=salesOrderTeamProductStats(order);
+        const customerName=c ? (c.company || c.companyName || c.name || c.id) : "No customer linked";
+        const customerCode=c ? (c.code || c.id || "") : "";
+        const priceList=String(orderPriceList(order) || "RRP").toUpperCase();
+
         function item(stat,label) {
           if (!stat || !stat.product) return "";
           const p=stat.product;
-          return '<div class="so-finder-customer-item"><div><strong>' + escapeHtml(p.name || p.sku || "Product") + '</strong><small>' + escapeHtml(p.sku || "") + ' · ' + escapeHtml(label) + '</small></div><button type="button" data-so-select-product="' + escapeHtml(order.id) + '|' + escapeHtml(p.id) + '">Use</button></div>';
+          return '<div class="so-finder-customer-item">' +
+            salesOrderFinderProductImage(p,"so5-mini-thumb") +
+            '<div><strong>' + escapeHtml(p.name || p.sku || "Product") + '</strong><small>' + escapeHtml(p.sku || "") + ' · ' + escapeHtml(label) + '</small></div>' +
+            '<button type="button" data-so-select-product="' + escapeHtml(order.id) + '|' + escapeHtml(p.id) + '">Use</button></div>';
         }
-        const frequent=stats.frequent.slice(0,3).map(function(stat){ return item(stat,"ordered on "+stat.orders+" previous order"+(stat.orders===1?"":"s")); }).join("");
-        const recent=stats.recent.slice(0,3).map(function(stat){ return item(stat,stat.lastDate ? "last ordered "+stat.lastDate : "ordered before"); }).join("");
+
+        const recommended=stats.frequent.slice(0,2).map(function(stat){
+          const last=stat.lastDate ? " · last " + stat.lastDate : "";
+          return item(stat,"bought on "+stat.orders+" previous order"+(stat.orders===1?"":"s")+last);
+        }).join("");
+        const popular=team.filter(function(stat){
+          return !stats.frequent.some(function(cstat){return cstat.product.id===stat.product.id;});
+        }).slice(0,2).map(function(stat){return item(stat,"used on "+stat.orders+" sales order"+(stat.orders===1?"":"s"));}).join("");
+
         return '<aside class="so-finder-customer-panel">' +
-          '<section><h4>Recommended for ' + escapeHtml(c ? (c.company || c.name || c.id) : "this customer") + '</h4>' +
-          (frequent || '<p>No previous product history yet. Recommendations will build automatically as orders are placed.</p>') + '</section>' +
-          '<section><h4>Recently ordered</h4>' +
-          (recent || '<p>No previous stock-item orders for this customer.</p>') + '</section>' +
-          '<section><h4>New user shortcuts</h4><button type="button" class="so-finder-wide-action" data-so-search-fill="">Browse product families</button><button type="button" class="so-finder-wide-action" data-open-so-batch="' + escapeHtml(order.id) + '">Open full catalogue</button></section>' +
+          '<section class="so5-customer-context"><div class="so5-context-icon">◉</div><div><h4>Customer context</h4><strong>' + escapeHtml(customerName) + '</strong><small>' + escapeHtml(customerCode) + (customerCode ? ' · ' : '') + escapeHtml(priceList) + ' pricing</small></div></section>' +
+          '<section><div class="so5-panel-title"><h4>Recommended for this customer</h4><button type="button" data-so-customer-products="frequent">See all</button></div>' +
+          (recommended || '<p>No previous product history yet. Recommendations will build automatically as orders are placed.</p>') + '</section>' +
+          '<section><div class="so5-panel-title"><h4>Popular with your team</h4></div>' +
+          (popular || '<p>Team-wide recommendations will appear as sales history builds.</p>') + '</section>' +
+          '<section><div class="so5-panel-title"><h4>Recently ordered</h4><button type="button" data-so-customer-products="recent">See history</button></div>' +
+          (stats.recent.slice(0,2).map(function(stat){return item(stat,stat.lastDate ? "last ordered "+stat.lastDate : "ordered before");}).join("") || '<p>No previous stock-item orders for this customer.</p>') + '</section>' +
+          '<section><h4>Need help finding the right product?</h4><button type="button" class="so-finder-wide-action" data-open-so-batch="' + escapeHtml(order.id) + '">Browse product families</button><button type="button" class="so-finder-wide-action" data-open-so-batch="' + escapeHtml(order.id) + '">Browse exact variants</button></section>' +
         '</aside>';
       }
 
@@ -8250,9 +8324,10 @@ const seed = {
         if (!box || !order) return;
         const clean = String(query || "").trim();
         const mode = input.dataset.finderMode || "";
+        const customerStats=salesOrderCustomerProductStats(order);
         let entries;
+
         if (mode === "frequent" || mode === "recent") {
-          const customerStats=salesOrderCustomerProductStats(order);
           entries=customerStats[mode].slice(0,12).map(function(stat,index){
             return { product:stat.product, score:12000-index, reason:mode === "frequent" ? "Frequently ordered" : "Customer history" };
           });
@@ -8261,40 +8336,57 @@ const seed = {
         } else {
           entries=salesOrderProductMatchEntries(order, clean);
         }
+
         const priceList = orderPriceList(order);
         if (box.parentElement !== document.body) document.body.appendChild(box);
         box.hidden = false;
 
+        const corrected=salesOrderDidYouMean(clean);
+        const correction=corrected && corrected.length ? corrected[0] : "";
         const resultHtml = entries.length ? entries.map(function(entry,index) {
           const p=entry.product;
           const stock=salesOrderProductStockInfo(p);
           const price=Number(p[priceList] || p.rrp || p.rrpPrice || p.rrp_price || p.trade || p.tradePrice || p.trade_price || 0);
+          const rawVat=Number((p && (p.taxRate || p.vatRate || p.vat_rate)) || 0.2); const vat=rawVat > 1 ? rawVat/100 : (rawVat || 0.2);
           const variant=salesOrderVariantMeta(p);
           const family=p.parentName && p.parentName !== p.name ? p.parentName : p.category;
           return '<button type="button" class="so-finder-result ' + (index===0?'active':'') + '" data-so-select-product="' + escapeHtml(order.id) + '|' + escapeHtml(p.id) + '">' +
+            salesOrderFinderProductImage(p,"so5-product-thumb") +
             '<span class="so-finder-product"><strong>' + escapeHtml(p.name || "Unnamed product") + '</strong>' +
               '<small>' + escapeHtml(p.sku || p.code || "No SKU") + (family ? " · " + escapeHtml(family) : "") + '</small>' +
               (variant ? '<span class="so-variant-chips">' + variant.split(" · ").map(function(v){ return '<i>'+escapeHtml(v)+'</i>'; }).join("") + '</span>' : '') +
             '</span>' +
             '<span class="so-finder-stock"><strong class="' + stock.cls + '">' + stock.available + ' free</strong><small>' + escapeHtml(stock.location) + ' · ' + stock.onHand + ' physical</small></span>' +
-            '<span class="so-finder-price"><strong>' + money(price) + '</strong><small>net unit</small></span>' +
+            '<span class="so-finder-price"><strong>' + money(price) + '</strong><small>net unit · ' + money(price*(1+vat)) + ' inc VAT</small></span>' +
             '<span class="so-finder-reason"><strong>' + escapeHtml(entry.reason) + '</strong><small>Why shown</small></span>' +
             '<span class="so-finder-select">Select</span>' +
           '</button>';
         }).join("") : '<div class="so-finder-empty"><strong>No direct match yet</strong><span>Try a broader product name, SKU, barcode, size, or one of the suggested terms.</span></div>';
 
+        const leftNav =
+          '<button type="button" class="so5-nav-item ' + (!mode?'active':'') + '" data-so-customer-products=""><span>▦</span><strong>All results</strong><em>' + salesOrderFinderResultCount(order,"all") + '</em></button>' +
+          '<button type="button" class="so5-nav-item" data-so-customer-products="frequent"><span>♙</span><strong>Recommended for this customer</strong><em>' + customerStats.frequent.length + '</em></button>' +
+          '<button type="button" class="so5-nav-item ' + (mode==='frequent'?'active':'') + '" data-so-customer-products="frequent"><span>★</span><strong>Frequently ordered</strong><em>' + customerStats.frequent.length + '</em></button>' +
+          '<button type="button" class="so5-nav-item ' + (mode==='recent'?'active':'') + '" data-so-customer-products="recent"><span>↻</span><strong>Customer history</strong><em>' + customerStats.recent.length + '</em></button>' +
+          '<button type="button" class="so5-nav-item" data-open-so-batch="' + escapeHtml(order.id) + '"><span>▣</span><strong>Product families</strong><em>›</em></button>' +
+          '<div class="so5-nav-sep"></div>' +
+          '<button type="button" class="so5-nav-item ' + (mode==='stock'?'active':'') + '" data-so-customer-products="stock"><span>✓</span><strong>In stock now</strong><em>' + salesOrderFinderResultCount(order,"stock") + '</em></button>';
+
+        const correctionHtml = clean ? '<div class="so5-did-you-mean"><span>⌕</span><div><strong>' +
+          (correction ? 'Did you mean “' + escapeHtml(correction) + '”?' : 'Searching for “' + escapeHtml(clean) + '”') +
+          '</strong><small>' + (correction ? 'Showing useful results while also searching your original wording.' : 'Results update as you type; exact SKU and barcode remain highest priority.') + '</small></div></div>' : '';
+
         box.innerHTML =
-          '<div class="so-finder-mega-head"><div><strong>Smart product finder</strong><span>' + (clean ? 'Useful matches update as you type' : 'Customer favourites and useful catalogue matches') + '</span></div><span class="so-finder-speed">Fast local index · ' + entries.length + ' shown</span></div>' +
-          '<div class="so-finder-mega-grid">' +
-            '<aside class="so-finder-left"><h4>What you may mean</h4>' + salesOrderFinderSuggestionButtons(clean) +
-              '<h4>Quick find</h4><button type="button" class="so-finder-suggestion" data-so-customer-products="stock"><span>✓</span><strong>In stock now</strong></button>' +
-              '<button type="button" class="so-finder-suggestion" data-so-customer-products="frequent"><span>★</span><strong>Frequently ordered</strong></button>' +
-              '<button type="button" class="so-finder-suggestion" data-so-customer-products="recent"><span>↻</span><strong>Customer history</strong></button>' +
-            '</aside>' +
-            '<main class="so-finder-center"><div class="so-finder-group-head"><strong>Best matches</strong><span>' + (entries.length ? entries.length + ' ranked result' + (entries.length===1?'':'s') : 'Try another phrase') + '</span></div>' + resultHtml + '</main>' +
+          '<div class="so-finder-mega-head"><div><strong>Smart product finder</strong><span>Best match first · exact SKU and barcode always outrank fuzzy matches</span></div><span class="so-finder-speed">Instant local index · richer stock data progressively enriched</span></div>' +
+          '<div class="so-finder-mega-grid so5-mega-grid">' +
+            '<aside class="so-finder-left so5-finder-nav">' + leftNav + '</aside>' +
+            '<main class="so-finder-center">' + correctionHtml +
+              '<div class="so-finder-group-head"><strong>' + (mode==='frequent'?'Frequently ordered':mode==='recent'?'Customer history':mode==='stock'?'In-stock matches':'Best matches') + '</strong><span>' +
+              (entries.length ? entries.length + ' useful result' + (entries.length===1?'':'s') + ' · sorted by relevance' : 'Try another phrase') +
+              '</span></div>' + resultHtml + '</main>' +
             salesOrderFinderCustomerPanel(order) +
           '</div>' +
-          '<div class="so-finder-mega-foot"><span><kbd>↑ ↓</kbd> move</span><span><kbd>Enter</kbd> select</span><span><kbd>Esc</kbd> close</span><small>Only the best matches are rendered; stock and price are enriched for visible results.</small><button type="button" data-open-so-batch="' + escapeHtml(order.id) + '">Open full catalogue</button></div>';
+          '<div class="so-finder-mega-foot"><span><kbd>↑ ↓</kbd> navigate</span><span><kbd>Enter</kbd> select</span><span><kbd>Esc</kbd> close</span><small>Only the best matches render immediately. Use filters or browse for more.</small><button type="button" data-open-so-batch="' + escapeHtml(order.id) + '">Open full catalogue</button></div>';
         positionSalesOrderProductResults(input, box);
       }
 

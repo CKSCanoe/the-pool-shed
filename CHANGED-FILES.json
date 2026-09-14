@@ -4,6 +4,14 @@
     "status": "modified"
   },
   {
+    "path": "dist/index.html",
+    "status": "modified"
+  },
+  {
+    "path": "dist/service-worker.js",
+    "status": "modified"
+  },
+  {
     "path": "package.json",
     "status": "modified"
   },
@@ -16,43 +24,7 @@
     "status": "modified"
   },
   {
-    "path": "public/sales-workspace.js",
-    "status": "modified"
-  },
-  {
-    "path": "public/assets/css/app.css",
-    "status": "modified"
-  },
-  {
-    "path": "public/assets/css/system/41-sales-order-command.css",
-    "status": "modified"
-  },
-  {
-    "path": "scripts/build-css.mjs",
-    "status": "modified"
-  },
-  {
-    "path": "scripts/validate-runtime.mjs",
-    "status": "modified"
-  },
-  {
-    "path": "scripts/test-sales-order-design-parity-v163.mjs",
-    "status": "modified"
-  },
-  {
-    "path": "scripts/test-sales-order-command.mjs",
-    "status": "modified"
-  },
-  {
-    "path": "scripts/test-sales-order-detail-v162.mjs",
-    "status": "modified"
-  },
-  {
-    "path": "scripts/test-sales-order-list-option-a.mjs",
-    "status": "modified"
-  },
-  {
-    "path": "scripts/test-sales-order-asset-freshness-v162.mjs",
+    "path": "scripts/test-release-cleanup.mjs",
     "status": "modified"
   },
   {
@@ -60,35 +32,27 @@
     "status": "modified"
   },
   {
-    "path": "scripts/test-sales-table-header.mjs",
+    "path": "scripts/test-sales-order-detail-v162.mjs",
     "status": "modified"
   },
   {
-    "path": "scripts/test-po-picker-ui.mjs",
+    "path": "scripts/test-sales-order-finder-parity-v172.mjs",
+    "status": "added"
+  },
+  {
+    "path": "scripts/test-sales-order-list-option-a.mjs",
     "status": "modified"
   },
   {
-    "path": "scripts/test-release-cleanup.mjs",
+    "path": "scripts/test-sales-order-parity-v171.mjs",
     "status": "modified"
   },
   {
-    "path": "dist/index.html",
+    "path": "scripts/test-sales-order-smart-product-finder-v170.mjs",
     "status": "modified"
   },
   {
-    "path": "dist/service-worker.js",
-    "status": "modified"
-  },
-  {
-    "path": "dist/sales-workspace.js",
-    "status": "modified"
-  },
-  {
-    "path": "dist/assets/css/app.css",
-    "status": "modified"
-  },
-  {
-    "path": "dist/assets/css/system/41-sales-order-command.css",
+    "path": "scripts/validate-runtime.mjs",
     "status": "modified"
   }
 ]
