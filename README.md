@@ -1,4 +1,12 @@
-# Pool Shed Uniform System — 1.6.0
+# Pool Shed Uniform System — 1.6.1
+
+## 1.6.1 — Sales Order Detail Command
+
+- Rebuilt the Sales Order detail presentation around the approved Order Command design while preserving the existing stock, allocation, VAT, Goods Note, payment, CRM and fulfilment engines.
+- Added a smarter customer intelligence summary, clearer operational tabs, neutral connected product catalogue presentation, live totals with Take / Record Payment, and first-class Save Order action.
+- Reworked order lines into the selected Precision Row with a dedicated exact-variant/SKU column, safe variant switching before stock activity, and a viewport-safe actions menu.
+- Product Intelligence now supplies catalogue/search/stock intelligence without owning the Sales Order surface styling.
+
 
 Sales Orders now use the approved Option A **Order Queue** list before the order detail workspace: operational KPIs, Needs Action / Ready / Backorders queue tabs, smart order/customer/product/Goods Note search, stock/due/status filters, VAT-inclusive order value and selection-only bulk actions. The list continues to use the existing stock, allocation, fulfilment, Goods Note and invoice engines. Light-mode CRM and Sales Order form fields are explicitly protected from legacy dark-form palette rules; Dashboard command surfaces remain unchanged.
 

@@ -7,7 +7,7 @@ const pkg = JSON.parse(fs.readFileSync("package.json","utf8"));
 const sw = fs.readFileSync("public/service-worker.js","utf8");
 
 const checks = [
-  ["release version", pkg.version === "1.6.0"],
+  ["release version", pkg.version === "1.6.1"],
   ["Option A order queue shell", js.includes('class="so-list-page"') && js.includes('>Order queue<')],
   ["operational KPI strip", js.includes("so-list-kpis") && js.includes("ACTIVE ORDERS") && js.includes("NEED ACTION") && js.includes("READY TO PROCESS") && js.includes("DUE TODAY")],
   ["queue tabs include action views", js.includes('{ id: "needs", label: "Needs action"') && js.includes('{ id: "backorder", label: "Backorders"')],
