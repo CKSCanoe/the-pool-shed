@@ -24,14 +24,14 @@ must(sales.includes("so2-line-menu"),"three-dot line action menu remains availab
 must(css.includes(".so-finder-result:hover"),"finder hover state explicitly styled");
 must(css.includes("background:#F2F9FB!important"),"selected/hover state uses calm blue-grey rather than success green");
 must(css.includes(".so5-line-product"),"order-line product presentation is polished");
-must(index.includes("./assets/css/app.css?v=1.7.4"),"versioned stylesheet loaded");
-must(index.includes("./assets/js/01-legacy-01.js?v=1.7.4"),"versioned finder runtime loaded");
-must(index.includes("./sales-workspace.js?v=1.7.4"),"versioned Sales Order workspace loaded");
-must(sw.includes("pool-shed-v1.7.4-ui-ownership"),"service worker cache namespace advanced");
+must(index.includes("./assets/css/app.css?v=1.7.5"),"versioned stylesheet loaded");
+must(index.includes("./assets/js/01-legacy-01.js?v=1.7.5"),"versioned finder runtime loaded");
+must(index.includes("./sales-workspace.js?v=1.7.5"),"versioned Sales Order workspace loaded");
+must(sw.includes("pool-shed-v1.7.5-ui-ownership"),"service worker cache namespace advanced");
 
 if(failures.length){
-  console.error("Sales Order finder polish v1.7.4 failed:");
+  console.error("Sales Order finder polish v1.7.5 failed:");
   failures.forEach(x=>console.error(" - "+x));
   process.exit(1);
 }
-console.log("Sales Order finder polish v1.7.4 passed.");
+console.log("Sales Order finder polish v1.7.5 passed.");

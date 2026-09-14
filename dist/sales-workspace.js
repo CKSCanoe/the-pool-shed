@@ -20,33 +20,22 @@
     if (!c) return originalCustomer.apply(this, arguments);
     const finance = customerFinancialSummary(c.id);
     const company = c.companyName || c.name || 'Customer';
-    const contact = [c.firstName, c.lastName].filter(Boolean).join(' ') || c.name || company;
+    const contact = [c.firstName, c.lastName].filter(Boolean).join(' ') || c.contactName || c.name || company;
     const initials = ((c.firstName || company || 'C').charAt(0) + (c.lastName || company.split(' ')[1] || '').charAt(0)).toUpperCase();
     const balance = Number(finance && finance.balance || 0);
     const creditLimit = Number(c.creditLimit || 0);
-    const headroom = creditLimit > 0 ? Math.max(0, creditLimit - Math.max(0, balance)) : 0;
     const onHold = String(c.status || 'Active').toLowerCase() !== 'active' || (creditLimit > 0 && balance > creditLimit);
-    const terms = (c.creditTermType || 'Net') + ' ' + Number(c.creditDays || 0);
-    const delivery = addressText(c, 'delivery') || addressText(c, 'primary') || 'No default delivery address';
+    const terms = Number(c.creditDays || 0) > 0 ? ((c.creditTermType || 'Net') + ' ' + Number(c.creditDays) + ' days') : 'Standard terms';
     const priceList = String(c.priceList || orderPriceList(order) || 'RRP').toUpperCase();
+    const identityMeta = [contact !== company ? contact : '', c.code || c.id, priceList, terms].filter(Boolean).join(' · ');
+    const contactMeta = [c.email || '', c.phone || c.mobile || ''].filter(Boolean).join(' · ') || 'Contact details not recorded';
 
     return '<section class="so2-summary-card so2-customer-card">' +
       '<div class="so2-card-body">' +
         '<div class="so2-kicker">Customer</div>' +
-        '<div class="so2-customer-title"><span class="so2-avatar">' + escapeHtml(initials) + '</span><div><h3>' + escapeHtml(company) + '</h3><p>' + escapeHtml(c.code || c.id) + ' · ' + escapeHtml(c.customerType || 'Customer') + '</p></div>' +
-          '<span class="pill ' + (onHold ? 'warn' : 'good') + '">' + (onHold ? 'Needs attention' : 'Healthy') + '</span></div>' +
-        '<div class="smart-customer-select so2-customer-search"><label><span class="sr-only">Select customer</span><input list="salesOrderCustomerOptions" data-customer-smart-input="' + order.id + '" value="' + escapeHtml(customerSmartValue(c)) + '" placeholder="Search name, company, email, phone or code"></label><button class="secondary" data-apply-order-customer="' + order.id + '">Change</button><button type="button" class="secondary" data-sales-edit-customer="' + escapeHtml(c.id) + '">Open CRM</button></div>' + customerSmartOptions(order.customerId) +
-      '</div>' +
-      '<div class="so2-customer-facts">' +
-        '<div><span>Primary contact</span><strong>' + escapeHtml(contact) + '</strong><small>' + escapeHtml(c.email || 'No email') + ' · ' + escapeHtml(c.phone || c.mobile || 'No phone') + '</small></div>' +
-        '<div><span>Account owner</span><strong>' + escapeHtml(c.owner || 'Office') + '</strong><small>' + escapeHtml(c.status || 'Active') + ' account</small></div>' +
-        '<div><span>Delivery default</span><strong>' + escapeHtml(delivery) + '</strong><small>' + (c.vatNumber ? 'VAT ' + escapeHtml(c.vatNumber) : 'VAT details not recorded') + '</small></div>' +
-        '<div><span>Commercial terms</span><strong>' + escapeHtml(priceList) + ' · ' + escapeHtml(terms) + '</strong><small>' + (creditLimit > 0 ? 'Credit limit ' + so2Money(creditLimit) : 'No credit limit set') + '</small></div>' +
-      '</div>' +
-      '<div class="so2-customer-commercial">' +
-        '<div><span>Outstanding</span><strong>' + so2Money(balance) + '</strong></div>' +
-        '<div><span>Credit headroom</span><strong>' + (creditLimit > 0 ? so2Money(headroom) : '—') + '</strong></div>' +
-        '<div class="so2-account-state ' + (onHold ? 'warn' : 'good') + '"><span>' + (onHold ? 'Review account before progressing' : 'Account in good standing') + '</span></div>' +
+        '<div class="so2-customer-title"><span class="so2-avatar">' + escapeHtml(initials) + '</span><div class="so2-customer-title-copy"><h3>' + escapeHtml(company) + '</h3><p>' + escapeHtml(identityMeta) + '</p><small class="so2-customer-contact">' + escapeHtml(contactMeta) + '</small></div>' +
+          '<span class="pill ' + (onHold ? 'warn' : 'good') + '">' + (onHold ? 'Needs attention' : 'CRM linked') + '</span></div>' +
+        '<div class="smart-customer-select so2-customer-search"><label><span class="sr-only">Select customer</span><input list="salesOrderCustomerOptions" data-customer-smart-input="' + order.id + '" value="' + escapeHtml(customerSmartValue(c)) + '" placeholder="Change customer — search name, email, postcode or customer code"></label><button class="secondary" data-apply-order-customer="' + order.id + '">Change</button><button type="button" class="secondary" data-sales-edit-customer="' + escapeHtml(c.id) + '">Open CRM</button></div>' + customerSmartOptions(order.customerId) +
       '</div>' +
     '</section>';
   }
@@ -285,7 +274,6 @@
               '<div><span>Shipped</span><strong>' + shipped + '</strong></div>' +
             '</div>' +
             '<label class="so3-source"><span>Allocation source</span><select data-order-field="' + escapeHtml(order.id) + '" data-field="carrier">' + locationOptionsSelected(order.carrier) + '</select></label>' +
-            '<div class="so3-goods-notes">' + salesOrderGoodsNotesDirectory(order) + '</div>' +
           '</div></section>' +
         '</section>' +
 

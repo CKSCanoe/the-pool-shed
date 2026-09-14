@@ -7,7 +7,7 @@ const pkg = JSON.parse(fs.readFileSync('package.json','utf8'));
 const sw = fs.readFileSync('public/service-worker.js','utf8');
 
 const checks = [
-  ['release version', pkg.version === '1.7.1'],
+  ['release version', pkg.version === '1.7.5'],
   ['smart product ranking', js.includes('function salesOrderProductMatches(query)') && js.includes('score += 10000')],
   ['search covers variant and SKU fields', js.includes('p.variantValue') && js.includes('p.supplierSku')],
   ['product dropdown is viewport portal', js.includes('function positionSalesOrderProductResults') && css.includes('.so-product-results-portal')],
@@ -25,7 +25,7 @@ const checks = [
   ['selected Concept A items workspace', workspace.includes('so2-items-workspace') && workspace.includes('so2-entry-grid')],
   ['selected Concept A readable table', workspace.includes('so2-lines-table') && workspace.includes('so2-variant-control') && css.includes('min-width:1080px')],
   ['selected Concept A live totals rail', workspace.includes('so2-totals-card') && workspace.includes('Take / Record Payment') && css.includes('.so2-totals-card')],
-  ['service worker invalidated', sw.includes('pool-shed-v1.7.4-ui-ownership')]
+  ['service worker invalidated', sw.includes('pool-shed-v1.7.5-ui-ownership')]
 ];
 
 let failed = false;

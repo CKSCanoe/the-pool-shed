@@ -1,0 +1,22 @@
+Pool Shed v1.7.5 final verification
+Generated: 2026-09-14
+
+Build: PASS
+Runtime validation: PASS
+UI ownership v1.7.5: PASS
+Compact Sales Order command regression: PASS
+CSS architecture: PASS
+Dashboard focused regressions: PASS
+Customer focused regressions: PASS
+Sales Order focused regressions: PASS
+Full validation: PASSES through accounting core, then BLOCKED by missing dev dependency @electric-sql/pglite before database tests execute
+Vercel discovery: BLOCKED - connector returns zero accessible teams/projects
+
+Production/release files changed from v1.7.4:
+- Files /mnt/data/poolshed_audit/livecheck/Pool-Shed-1.7.4-Legacy-Isolation/public/assets/css/app.css and /mnt/data/poolshed_audit/Pool-Shed-1.7.5-Order-Command-Parity/public/assets/css/app.css differ
+- Files /mnt/data/poolshed_audit/livecheck/Pool-Shed-1.7.4-Legacy-Isolation/public/assets/css/system/42-sales-order-parity.css and /mnt/data/poolshed_audit/Pool-Shed-1.7.5-Order-Command-Parity/public/assets/css/system/42-sales-order-parity.css differ
+- Files /mnt/data/poolshed_audit/livecheck/Pool-Shed-1.7.4-Legacy-Isolation/public/assets/js/01-legacy-01.js and /mnt/data/poolshed_audit/Pool-Shed-1.7.5-Order-Command-Parity/public/assets/js/01-legacy-01.js differ
+- Files /mnt/data/poolshed_audit/livecheck/Pool-Shed-1.7.4-Legacy-Isolation/public/index.html and /mnt/data/poolshed_audit/Pool-Shed-1.7.5-Order-Command-Parity/public/index.html differ
+- Files /mnt/data/poolshed_audit/livecheck/Pool-Shed-1.7.4-Legacy-Isolation/public/sales-workspace.js and /mnt/data/poolshed_audit/Pool-Shed-1.7.5-Order-Command-Parity/public/sales-workspace.js differ
+- Files /mnt/data/poolshed_audit/livecheck/Pool-Shed-1.7.4-Legacy-Isolation/public/service-worker.js and /mnt/data/poolshed_audit/Pool-Shed-1.7.5-Order-Command-Parity/public/service-worker.js differ
+- package.json

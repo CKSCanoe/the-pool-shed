@@ -5,7 +5,7 @@ const index = fs.readFileSync('public/index.html','utf8');
 const sw = fs.readFileSync('public/service-worker.js','utf8');
 const legacy = fs.readFileSync('public/assets/js/01-legacy-01.js','utf8');
 
-const version = '1.7.4';
+const version = '1.7.5';
 const indexLocal = [...index.matchAll(/(?:src|href)="(\.\/[^"]+)"/g)]
   .map(m => m[1])
   .filter(asset => /\.(?:js|css)(?:\?|$)/.test(asset));
