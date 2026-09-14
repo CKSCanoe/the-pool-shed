@@ -7,12 +7,12 @@ const js=fs.readFileSync('public/sales-workspace.js','utf8');
 const css=fs.readFileSync('public/assets/css/system/41-sales-order-command.css','utf8');
 
 const checks=[
-  ['release version',pkg.version==='1.6.3'],
-  ['single app stylesheet remains authoritative',index.includes('assets/css/app.css?v=1.6.3') && !index.includes('sales-order-command.css')],
+  ['release version',pkg.version==='1.7.0'],
+  ['single app stylesheet remains authoritative',index.includes('assets/css/app.css?v=1.7.0') && !index.includes('sales-order-command.css')],
   ['final sales-order module is last in css build order',fs.readFileSync('scripts/build-css.mjs','utf8').indexOf('41-sales-order-command.css')>fs.readFileSync('scripts/build-css.mjs','utf8').indexOf('40-design-system.css')],
-  ['sales workspace versioned',index.includes('sales-workspace.js?v=1.6.3')],
-  ['service worker cache advanced',sw.includes('pool-shed-v1.6.3-asset-freshness')],
-  ['service worker precaches versioned app css',sw.includes('assets/css/app.css?v=1.6.3')],
+  ['sales workspace versioned',index.includes('sales-workspace.js?v=1.7.0')],
+  ['service worker cache advanced',sw.includes('pool-shed-v1.7.0-asset-freshness')],
+  ['service worker precaches versioned app css',sw.includes('assets/css/app.css?v=1.7.0')],
   ['direct command shell',js.includes('so3-command-header') && js.includes('so3-summary-grid') && js.includes('so3-order-workspace')],
   ['three core cards',js.includes('so2CustomerCard(order,c)') && js.includes('so3-order-details') && js.includes('so3-fulfilment')],
   ['save order command',js.includes('data-save-order=') && js.includes('Save Order')],

@@ -6743,39 +6743,92 @@ const seed = {
 
         const addLineInput = document.getElementById("salesOrderProductSearch");
         const addLineResults = document.getElementById("salesOrderProductResults");
+        let salesOrderSearchTimer = 0;
+        function scheduleSalesOrderProductSearch(immediate) {
+          if (!addLineInput) return;
+          window.clearTimeout(salesOrderSearchTimer);
+          const run=function(){ renderSalesOrderProductResults(addLineInput.dataset.orderId, addLineInput.value); };
+          if (immediate) run();
+          else salesOrderSearchTimer=window.setTimeout(run,90);
+        }
         if (addLineInput) {
           addLineInput.addEventListener("input", function() {
             addLineInput.dataset.selectedProductId = "";
+            addLineInput.dataset.finderMode = "";
             addLineInput.classList.remove("has-selection");
-            renderSalesOrderProductResults(addLineInput.dataset.orderId, addLineInput.value);
+            scheduleSalesOrderProductSearch(false);
           });
           addLineInput.addEventListener("focus", function() {
-            renderSalesOrderProductResults(addLineInput.dataset.orderId, addLineInput.value);
+            scheduleSalesOrderProductSearch(true);
           });
           addLineInput.addEventListener("keydown", function(event) {
             if (event.key === "ArrowDown" && addLineResults && !addLineResults.hidden) {
               const first = addLineResults.querySelector("[data-so-select-product]");
               if (first) { event.preventDefault(); first.focus(); }
             }
-            if (event.key === "Enter") {
+            if (event.key === "Enter" && addLineInput.dataset.selectedProductId) {
               event.preventDefault();
               addProductToSalesOrder(addLineInput.dataset.orderId);
             }
             if (event.key === "Escape" && addLineResults) addLineResults.hidden = true;
           });
         }
+        document.querySelectorAll("[data-so-inline-search-fill]").forEach(function(button){
+          button.addEventListener("click",function(){
+            if (!addLineInput) return;
+            addLineInput.value=button.dataset.soInlineSearchFill || "";
+            addLineInput.dataset.finderMode="";
+            addLineInput.dataset.selectedProductId="";
+            addLineInput.focus();
+            scheduleSalesOrderProductSearch(true);
+          });
+        });
         if (addLineResults) {
           addLineResults.addEventListener("click", function(event) {
+            if (!addLineInput) return;
+            const fill = event.target.closest("[data-so-search-fill]");
+            if (fill) {
+              addLineInput.value=fill.dataset.soSearchFill || "";
+              addLineInput.dataset.finderMode="";
+              addLineInput.dataset.selectedProductId="";
+              scheduleSalesOrderProductSearch(true);
+              addLineInput.focus();
+              return;
+            }
+            const modeButton=event.target.closest("[data-so-customer-products]");
+            if (modeButton) {
+              addLineInput.dataset.finderMode=modeButton.dataset.soCustomerProducts || "";
+              addLineInput.dataset.selectedProductId="";
+              scheduleSalesOrderProductSearch(true);
+              return;
+            }
+            const fullCatalogue=event.target.closest("[data-open-so-batch]");
+            if (fullCatalogue) {
+              addLineResults.hidden=true;
+              setSalesBatchOpen(fullCatalogue.dataset.openSoBatch,true);
+              return;
+            }
             const button = event.target.closest("[data-so-select-product]");
-            if (!button || !addLineInput) return;
+            if (!button) return;
             const parts = button.dataset.soSelectProduct.split("|");
             const p = product(parts[1]);
             if (!p) return;
             addLineInput.value = (p.sku || p.code || "") + " · " + (p.name || "");
             addLineInput.dataset.selectedProductId = p.id;
+            addLineInput.dataset.finderMode="";
             addLineInput.classList.add("has-selection");
             addLineResults.hidden = true;
             addLineInput.focus();
+          });
+          addLineResults.addEventListener("keydown",function(event){
+            const current=event.target.closest("[data-so-select-product]");
+            if (!current || (event.key!=="ArrowDown" && event.key!=="ArrowUp")) return;
+            const items=[].slice.call(addLineResults.querySelectorAll("[data-so-select-product]"));
+            const index=items.indexOf(current);
+            if (index<0) return;
+            event.preventDefault();
+            const next=event.key==="ArrowDown" ? items[Math.min(items.length-1,index+1)] : items[Math.max(0,index-1)];
+            if (next) next.focus();
           });
         }
 
@@ -6850,10 +6903,12 @@ const seed = {
             const qty=Math.max(0,Math.floor(Number(input.value)||0));
             if(qty) store[input.dataset.soBatchQty]=qty;
           });
-          const selectedTab = els.drawer.querySelector('[data-so-batch-tab="selected"].active');
+          const activeTab = els.drawer.querySelector("[data-so-batch-tab].active");
+          const tabMode = activeTab ? activeTab.dataset.soBatchTab : "all";
+          const selectedTab = tabMode === "selected";
           const query = selectedTab ? "" : (els.search ? els.search.value : "");
           const stock = selectedTab ? "all" : (els.filter ? els.filter.value : "all");
-          els.results.innerHTML = salesOrderBatchProductRows(order, query, stock, Boolean(selectedTab));
+          els.results.innerHTML = salesOrderBatchProductRows(order, query, stock, Boolean(selectedTab), tabMode);
           els.results.querySelectorAll("[data-so-batch-qty]").forEach(function(input){
             if (store[input.dataset.soBatchQty] != null) input.value = store[input.dataset.soBatchQty];
           });
@@ -7600,29 +7655,36 @@ const seed = {
           '<aside class="so-batch-drawer" data-so-batch-drawer="' + order.id + '" aria-label="Add multiple items" aria-hidden="true">' +
             '<div class="so-batch-head"><div><span>PRODUCT CATALOGUE</span><strong>Add multiple items</strong><p>Search once, set quantities, then add everything to ' + order.id + ' together.</p></div><button type="button" class="secondary" data-close-so-batch="' + order.id + '">Close</button></div>' +
             '<div class="so-batch-tools"><div class="so-batch-search-row"><input type="search" data-so-batch-search="' + order.id + '" placeholder="Search product, variant, SKU, barcode or description"><select data-so-batch-stock-filter="' + order.id + '"><option value="all">All stock</option><option value="in">In stock</option><option value="low">Low stock</option><option value="out">Out of stock</option></select></div>' +
-              '<div class="so-batch-tabs"><button type="button" class="active" data-so-batch-tab="all">All products</button><button type="button" data-so-batch-tab="selected">Selected <span data-so-batch-selected-count>0</span></button></div></div>' +
+              '<div class="so-batch-tabs"><button type="button" class="active" data-so-batch-tab="all">All products</button><button type="button" data-so-batch-tab="frequent">Frequently ordered</button><button type="button" data-so-batch-tab="history">Customer history</button><button type="button" data-so-batch-tab="selected">Selected <span data-so-batch-selected-count>0</span></button></div></div>' +
             '<div class="so-batch-body"><div class="so-batch-hint"><strong>Fast entry</strong><span>Type to bring the best matches to the top. Use quantity controls to build the order. Stock is not allocated until you use the Sales Order allocation action.</span></div><div data-so-batch-results="' + order.id + '"></div></div>' +
             '<div class="so-batch-footer"><div><strong data-so-batch-summary>0 lines · 0 units</strong><small data-so-batch-value>£0.00 net before VAT</small></div><button type="button" class="primary-action" data-commit-so-batch="' + order.id + '" disabled>Add items to order</button></div>' +
           '</aside>';
       }
 
-      function salesOrderBatchProductRows(order, query, stockFilter, selectedOnly) {
+      function salesOrderBatchProductRows(order, query, stockFilter, selectedOnly, tabMode) {
         const clean = String(query || "").trim();
-        const terms = clean.toLowerCase().split(/\s+/).filter(Boolean);
+        const terms = salesOrderNormaliseSearch(clean).split(/\s+/).filter(Boolean);
         const priceList = orderPriceList(order);
+        const customerStats = salesOrderCustomerProductStats(order);
+        const customerRank = Object.create(null);
+        if (tabMode === "frequent") customerStats.frequent.forEach(function(stat,index){ customerRank[stat.product.id]=10000-index; });
+        if (tabMode === "history") customerStats.recent.forEach(function(stat,index){ customerRank[stat.product.id]=10000-index; });
         const candidates = salesOrderCatalogueProducts().map(function(p,index){
-          const text = salesOrderProductSearchText(p);
-          const name = String(p.name || "").toLowerCase();
-          const sku = String(p.sku || p.code || "").toLowerCase();
-          let score = clean ? 0 : (1000-index);
+          const text = salesOrderNormaliseSearch(salesOrderProductSearchText(p));
+          const name = salesOrderNormaliseSearch(String(p.name || ""));
+          const sku = salesOrderNormaliseSearch(String(p.sku || p.code || ""));
+          if ((tabMode === "frequent" || tabMode === "history") && !customerRank[p.id]) return null;
+          let score = customerRank[p.id] || (clean ? 0 : (1000-index));
           if (clean) {
-            if (sku === clean.toLowerCase() || name === clean.toLowerCase()) score = 10000;
-            else if (sku.indexOf(clean.toLowerCase()) === 0) score = 9000;
-            else if (name.indexOf(clean.toLowerCase()) === 0) score = 8000;
-            else if (terms.every(function(term){ return text.indexOf(term) !== -1; })) score = 5000 + terms.length;
+            const normalizedClean=salesOrderNormaliseSearch(clean);
+            if (sku === normalizedClean || name === normalizedClean) score += 10000;
+            else if (sku.indexOf(normalizedClean) === 0) score += 9000;
+            else if (name.indexOf(normalizedClean) === 0) score += 8000;
+            else if (terms.every(function(term){ return text.indexOf(term) !== -1; })) score += 5000 + terms.length;
+            else return null;
           }
           return { product:p, score:score };
-        }).filter(function(entry){ return clean ? entry.score > 0 : true; })
+        }).filter(Boolean).filter(function(entry){ return clean ? entry.score > 0 : true; })
           .sort(function(a,b){ return b.score-a.score || String(a.product.name||"").localeCompare(String(b.product.name||"")); })
           .slice(0, 80);
 
@@ -7893,9 +7955,10 @@ const seed = {
       }
 
       function salesOrderAddRow(order) {
-        return '<div class="po-add-items so-add-items"><div class="po-add-copy"><span>Stock item</span><strong>Add products</strong><p>Type to bring the best product and variant matches to the top, or use Add multiple items for a larger order.</p></div>' +
-          '<div class="po-add-controls so-smart-add-controls"><div class="po-product-search so-smart-product-search"><input id="salesOrderProductSearch" data-order-id="' + order.id + '" autocomplete="off" placeholder="Search product, variant, SKU, barcode or description"><div id="salesOrderProductResults" class="po-product-results so-product-results" hidden></div></div>' +
-          '<input id="salesOrderProductQty" class="po-add-qty" type="number" min="1" value="1" aria-label="Quantity"><button type="button" data-add-line-order="' + order.id + '">Add stock item</button><button type="button" class="secondary" data-open-so-batch="' + order.id + '">Add multiple items</button></div></div>' +
+        return '<div class="po-add-items so-add-items so-smart-finder-entry"><div class="po-add-copy"><span>Stock item</span><strong>Add products</strong><p>Start typing and the best products appear immediately. Search by product family, exact variant, SKU, barcode, size or a common trade term.</p></div>' +
+          '<div class="po-add-controls so-smart-add-controls"><div class="po-product-search so-smart-product-search"><label class="sr-only" for="salesOrderProductSearch">Find product, variant, SKU, barcode or keyword</label><input id="salesOrderProductSearch" data-order-id="' + order.id + '" autocomplete="off" placeholder="Try product name, SKU, barcode, size or keyword"><div id="salesOrderProductResults" class="po-product-results so-product-results" hidden></div></div>' +
+          '<input id="salesOrderProductQty" class="po-add-qty" type="number" min="1" value="1" aria-label="Quantity"><button type="button" data-add-line-order="' + order.id + '">Add selected item</button><button type="button" class="secondary" data-open-so-batch="' + order.id + '">Add multiple items</button></div>' +
+          '<div class="so-smart-search-hints"><span>Try:</span><button type="button" data-so-inline-search-fill="chlorine">chlorine</button><button type="button" data-so-inline-search-fill="shock">shock</button><button type="button" data-so-inline-search-fill="hypo">hypo</button><button type="button" data-so-inline-search-fill="20 litre">20 litre</button><small>Typos, word order and common trade terms are supported.</small></div></div>' +
         salesOrderBatchPicker(order) +
         '<section class="so-line-composer"><div class="so-line-composer-head"><div><span>Additional charges</span><strong>Add a non-stock sales line</strong><p>Use this for one-off work, labour, call-out charges, discounts, delivery and other items that must not affect inventory.</p></div><div class="so-line-choice"><button type="button" class="secondary active" data-line-composer-tab="custom">Custom sales line</button><button type="button" class="secondary" data-line-composer-tab="shipping">Shipping charge</button></div></div>' +
         '<div class="so-line-form" data-line-composer-panel="custom"><label class="so-line-description"><span>Description</span><input id="customLineDescription" placeholder="Example: Additional installation labour"></label><label><span>Quantity</span><input id="customLineQty" type="number" min="1" step="1" value="1"></label><label><span>Unit price net</span><input id="customLinePrice" type="number" min="0" step="0.01" value="0.00"></label><label><span>Unit cost</span><input id="customLineCost" type="number" min="0" step="0.01" value="0.00"></label><label><span>Tax</span><select id="customLineTax">' + optionList(["20% VAT","Zero rated","Not rated"],"20% VAT") + '</select></label><label><span>Sales account</span><select id="customLineAccount">' + optionList(["4010 Service Upsell","4030 Labour Income","4050 Call-out Charges","4060 Miscellaneous Sales"],"4010 Service Upsell") + '</select></label><label class="so-line-note"><span>Internal note (optional)</span><textarea id="customLineNote" placeholder="Reason, engineer detail or approval note"></textarea></label><button type="button" class="primary-action" data-add-custom-line="' + order.id + '">Add custom line</button></div>' +
@@ -7915,42 +7978,201 @@ const seed = {
         });
       }
 
+      function salesOrderSearchAliases(text) {
+        const source = String(text || "").toLowerCase();
+        const aliases = [];
+        if (/hypochlorite|sod(ium)?\s+hypo|liquid\s+shock/.test(source)) aliases.push("hypo","chlorine","liquid shock","sodium hypochlorite","sod hypo");
+        if (/chlorine/.test(source)) aliases.push("chlor","sanitiser","sanitizer");
+        if (/ph\s*minus|ph\s*reducer|dry\s*acid|sodium\s*bisul/.test(source)) aliases.push("ph minus","ph reducer","dry acid");
+        if (/ph\s*plus|ph\s*increaser|soda\s*ash/.test(source)) aliases.push("ph plus","ph increaser","soda ash");
+        if (/alkalinity|bicarbonate/.test(source)) aliases.push("alkalinity","bicarb","bicarbonate");
+        if (/algaecide|algicide/.test(source)) aliases.push("algaecide","algicide","algae");
+        if (/tablet/.test(source)) aliases.push("tabs","tablets");
+        return aliases.join(" ");
+      }
+
       function salesOrderProductSearchText(p) {
-        return [
+        const base = [
           p.parentName, p.parent_name, p.parentSku, p.parent_sku,
           p.variantName, p.variant_name, p.variantValue, p.variant_value, p.variantLabel, p.variant_label,
           p.name, p.sku, p.code, p.itemCode, p.item_code, p.barcode,
           p.brand, p.category, p.reportingCategory, p.reporting_category,
           p.vendor, p.supplier, p.supplierName, p.supplier_name,
           p.supplierSku, p.supplier_sku, p.description, p.mainDescription, p.main_description
-        ].filter(Boolean).join(" ").toLowerCase();
+        ].filter(Boolean).join(" ");
+        return (base + " " + salesOrderSearchAliases(base)).toLowerCase();
+      }
+
+      function salesOrderNormaliseSearch(value) {
+        let out = String(value || "").toLowerCase().trim()
+          .replace(/(\d+)\s*(litres?|liters?)\b/g, "$1ltr")
+          .replace(/\bshok\b/g, "shock")
+          .replace(/\bclorine\b/g, "chlorine")
+          .replace(/\bhypo\b/g, "hypochlorite")
+          .replace(/\bsod\s+hypo\b/g, "sodium hypochlorite")
+          .replace(/[^a-z0-9/._-]+/g, " ")
+          .replace(/\s+/g, " ")
+          .trim();
+        return out;
+      }
+
+      function salesOrderProductSearchIndex() {
+        const products = salesOrderCatalogueProducts();
+        const cache = window.__salesOrderProductSearchIndex;
+        if (cache && cache.source === data.products && cache.length === products.length) return cache;
+        const tokenCounts = Object.create(null);
+        const rows = products.map(function(p,index) {
+          const text = salesOrderProductSearchText(p);
+          text.split(/[^a-z0-9]+/).filter(function(token){ return token.length > 2; }).forEach(function(token) {
+            tokenCounts[token] = (tokenCounts[token] || 0) + 1;
+          });
+          return {
+            product:p,
+            index:index,
+            text:text,
+            normalised:salesOrderNormaliseSearch(text),
+            sku:String(p.sku || p.code || "").toLowerCase(),
+            barcode:String(p.barcode || "").toLowerCase(),
+            name:String(p.name || p.parentName || "").toLowerCase(),
+            variant:String(salesOrderVariantMeta(p) || "").toLowerCase()
+          };
+        });
+        window.__salesOrderProductSearchIndex = { source:data.products, length:products.length, rows:rows, tokenCounts:tokenCounts };
+        return window.__salesOrderProductSearchIndex;
+      }
+
+      function salesOrderEditDistance(a,b) {
+        a=String(a||""); b=String(b||"");
+        if (a===b) return 0;
+        if (!a.length) return b.length;
+        if (!b.length) return a.length;
+        if (Math.abs(a.length-b.length)>2) return 3;
+        const prev = Array.from({length:b.length+1},function(_,i){return i;});
+        for (let i=1;i<=a.length;i+=1) {
+          const curr=[i];
+          let rowMin=curr[0];
+          for (let j=1;j<=b.length;j+=1) {
+            const v=Math.min(curr[j-1]+1,prev[j]+1,prev[j-1]+(a[i-1]===b[j-1]?0:1));
+            curr[j]=v; rowMin=Math.min(rowMin,v);
+          }
+          if (rowMin>2) return 3;
+          for (let j=0;j<curr.length;j+=1) prev[j]=curr[j];
+        }
+        return prev[b.length];
+      }
+
+      function salesOrderDidYouMean(query) {
+        const raw = String(query || "").toLowerCase().trim();
+        if (!raw) return [];
+        const replacements = {
+          "shok":"shock","clorine":"chlorine","chlorin":"chlorine","hypo":"sodium hypochlorite",
+          "sod hypo":"sodium hypochlorite","ph-":"ph minus","ph +":"ph plus"
+        };
+        const suggestions = [];
+        Object.keys(replacements).forEach(function(key){
+          if (raw.indexOf(key) !== -1) suggestions.push(raw.replace(key,replacements[key]));
+        });
+        const parts=raw.split(/\s+/).filter(Boolean);
+        const last=parts[parts.length-1] || "";
+        if (last.length >= 4) {
+          const counts=salesOrderProductSearchIndex().tokenCounts;
+          let best="", bestDistance=3, bestCount=0;
+          Object.keys(counts).forEach(function(token){
+            if (Math.abs(token.length-last.length)>2 || token[0]!==last[0]) return;
+            const d=salesOrderEditDistance(last,token);
+            if (d<bestDistance || (d===bestDistance && counts[token]>bestCount)) {
+              best=token; bestDistance=d; bestCount=counts[token];
+            }
+          });
+          if (best && bestDistance<=2 && best!==last) {
+            suggestions.push(parts.slice(0,-1).concat(best).join(" "));
+          }
+        }
+        return suggestions.filter(function(value,index,arr){ return value && value!==raw && arr.indexOf(value)===index; }).slice(0,3);
+      }
+
+      function salesOrderCustomerProductStats(order) {
+        if (!order || !order.customerId) return { frequent:[], recent:[] };
+        const orders=(data.salesOrders || []).filter(function(candidate){
+          return candidate && candidate.id !== order.id && candidate.customerId === order.customerId && Array.isArray(candidate.lines);
+        });
+        const signature=orders.length + "|" + orders.map(function(o){ return String(o.id)+"@"+String(o.created||o.date||""); }).join(",");
+        window.__salesOrderCustomerProductStats = window.__salesOrderCustomerProductStats || {};
+        const cached=window.__salesOrderCustomerProductStats[order.customerId];
+        if (cached && cached.signature===signature) return cached.value;
+        const map=Object.create(null);
+        orders.forEach(function(o){
+          const seen=new Set();
+          (o.lines||[]).forEach(function(line){
+            if (!line || isNonStockSalesLine(line) || !line.productId) return;
+            const p=product(line.productId);
+            if (!p) return;
+            const stat=map[line.productId] || (map[line.productId]={ product:p, orders:0, qty:0, lastDate:"", lastOrderId:"" });
+            stat.qty += Number(line.qty||0);
+            if (!seen.has(line.productId)) { stat.orders += 1; seen.add(line.productId); }
+            const d=String(o.created || o.date || "");
+            if (d >= stat.lastDate) { stat.lastDate=d; stat.lastOrderId=o.id; }
+          });
+        });
+        const values=Object.keys(map).map(function(k){return map[k];});
+        const frequent=values.slice().sort(function(a,b){ return b.orders-a.orders || b.qty-a.qty || String(b.lastDate).localeCompare(String(a.lastDate)); }).slice(0,8);
+        const recent=values.slice().sort(function(a,b){ return String(b.lastDate).localeCompare(String(a.lastDate)) || b.qty-a.qty; }).slice(0,8);
+        const value={ frequent:frequent, recent:recent };
+        window.__salesOrderCustomerProductStats[order.customerId]={signature:signature,value:value};
+        return value;
+      }
+
+      function salesOrderProductMatchEntries(order, query) {
+        const raw = String(query || "").trim();
+        const q = salesOrderNormaliseSearch(raw);
+        const terms = q.split(/\s+/).filter(Boolean);
+        const history=salesOrderCustomerProductStats(order);
+        const frequentRank=Object.create(null), recentRank=Object.create(null);
+        history.frequent.forEach(function(stat,index){ frequentRank[stat.product.id]=Math.max(1,8-index); });
+        history.recent.forEach(function(stat,index){ recentRank[stat.product.id]=Math.max(1,8-index); });
+
+        return salesOrderProductSearchIndex().rows.map(function(row){
+          let score=0, reason="";
+          const haystack=row.normalised;
+          if (!q) {
+            score=(frequentRank[row.product.id]||0)*180 + (recentRank[row.product.id]||0)*50 + Math.max(0,500-row.index);
+            reason=frequentRank[row.product.id] ? "Frequently ordered" : (recentRank[row.product.id] ? "Customer history" : "Catalogue");
+          } else {
+            const skuNorm=salesOrderNormaliseSearch(row.sku);
+            const barcodeNorm=salesOrderNormaliseSearch(row.barcode);
+            const nameNorm=salesOrderNormaliseSearch(row.name);
+            const variantNorm=salesOrderNormaliseSearch(row.variant);
+            if (skuNorm && skuNorm===q) { score+=20000; reason="Exact SKU"; }
+            else if (barcodeNorm && barcodeNorm===q) { score+=19500; reason="Exact barcode"; }
+            else if (nameNorm===q) { score+=16000; reason="Exact product"; }
+            else if (skuNorm && skuNorm.indexOf(q)===0) { score+=12000; reason="SKU starts with search"; }
+            else if (nameNorm && nameNorm.indexOf(q)===0) { score+=10500; reason="Best name match"; }
+            else if (variantNorm && variantNorm.indexOf(q)===0) { score+=9000; reason="Exact variant"; }
+
+            let matched=0;
+            terms.forEach(function(term){
+              if (haystack.indexOf(term)!==-1) {
+                matched+=1; score+=1200;
+                if (nameNorm.indexOf(term)===0) score+=500;
+                if (skuNorm.indexOf(term)===0) score+=650;
+                if (variantNorm.indexOf(term)!==-1) score+=350;
+              }
+            });
+            if (terms.length && matched!==terms.length) return null;
+            if (!reason && matched) reason=matched===terms.length ? "Keyword match" : "Related match";
+            if (frequentRank[row.product.id]) { score+=frequentRank[row.product.id]*90; if (!reason || reason==="Keyword match") reason="Customer favourite"; }
+            if (recentRank[row.product.id]) score+=recentRank[row.product.id]*25;
+          }
+          if (!score) return null;
+          return { product:row.product, score:score, reason:reason || "Best match" };
+        }).filter(Boolean).sort(function(a,b){
+          return b.score-a.score || String(a.product.name||"").localeCompare(String(b.product.name||""));
+        }).slice(0,12);
       }
 
       function salesOrderProductMatches(query) {
-        const q = String(query || "").trim().toLowerCase();
-        const products = salesOrderCatalogueProducts();
-        if (!q) return products.slice(0, 14);
-        const terms = q.split(/\s+/).filter(Boolean);
-        return products.map(function(p,index){
-          const haystack = salesOrderProductSearchText(p);
-          const sku = String(p.sku || p.code || "").toLowerCase();
-          const name = String(p.name || p.parentName || "").toLowerCase();
-          const variant = String(salesOrderVariantMeta(p) || "").toLowerCase();
-          if (!terms.every(function(term){ return haystack.indexOf(term) !== -1; })) return null;
-          let score = 1000-index;
-          if (sku === q || name === q) score += 10000;
-          else if (sku.indexOf(q) === 0) score += 8000;
-          else if (name.indexOf(q) === 0) score += 7000;
-          else if (variant.indexOf(q) === 0) score += 5000;
-          terms.forEach(function(term){
-            if (sku.indexOf(term) === 0) score += 700;
-            if (name.indexOf(term) === 0) score += 500;
-            if (variant.indexOf(term) !== -1) score += 300;
-          });
-          return { product:p, score:score };
-        }).filter(Boolean).sort(function(a,b){
-          return b.score-a.score || String(a.product.name||"").localeCompare(String(b.product.name||""));
-        }).slice(0, 24).map(function(entry){ return entry.product; });
+        const order = arguments.length > 1 ? arguments[1] : null;
+        return salesOrderProductMatchEntries(order || null, query).map(function(entry){ return entry.product; });
       }
 
       function salesOrderProductStockInfo(p) {
@@ -7964,31 +8186,61 @@ const seed = {
         const min = Number(p.min || p.minimum || p.reorderPoint || 0);
         const cls = available <= 0 ? "bad" : (min > 0 && available <= min ? "warn" : "good");
         const label = available <= 0 ? "Out of stock" : (min > 0 && available <= min ? "Low stock" : "In stock");
-        return { onHand: onHand, available: available, cls: cls, label: label };
+        const bestRow=rows.slice().sort(function(a,b){ return Number(b.qty||0)-Number(a.qty||0); })[0];
+        const bestLoc=bestRow ? location(bestRow.locationId) : null;
+        return { onHand:onHand, allocated:allocated, available:available, cls:cls, label:label, location:bestLoc ? (bestLoc.name || bestLoc.code || bestLoc.id) : "Main warehouse" };
       }
 
       function positionSalesOrderProductResults(input, box) {
         if (!input || !box || box.hidden) return;
         const rect = input.getBoundingClientRect();
         const pad = 12;
-        const gap = 4;
-        const width = Math.min(Math.max(rect.width, 620), window.innerWidth - pad * 2);
+        const gap = 5;
+        const width = Math.min(Math.max(rect.width + 420, 980), window.innerWidth - pad * 2);
         const left = Math.min(Math.max(pad, rect.left), Math.max(pad, window.innerWidth - width - pad));
         const below = window.innerHeight - rect.bottom - pad;
         const above = rect.top - pad;
-        const openAbove = below < 260 && above > below;
-        box.classList.add("so-product-results-portal");
+        const openAbove = below < 360 && above > below;
+        box.classList.add("so-product-results-portal","so-smart-mega-results");
         box.style.width = width + "px";
         box.style.left = left + "px";
         if (openAbove) {
           box.style.top = "auto";
           box.style.bottom = (window.innerHeight - rect.top + gap) + "px";
-          box.style.maxHeight = Math.max(180, above - gap) + "px";
+          box.style.maxHeight = Math.max(280, Math.min(640, above - gap)) + "px";
         } else {
           box.style.bottom = "auto";
           box.style.top = (rect.bottom + gap) + "px";
-          box.style.maxHeight = Math.max(180, below - gap) + "px";
+          box.style.maxHeight = Math.max(280, Math.min(640, below - gap)) + "px";
         }
+      }
+
+      function salesOrderFinderSuggestionButtons(query) {
+        const corrected=salesOrderDidYouMean(query);
+        const quick = corrected.length ? corrected : (String(query||"").trim() ? ["chlorine","shock","hypo","20 litre"] : ["chlorine","shock","hypo","20 litre","pH minus"]);
+        return quick.slice(0,5).map(function(value,index){
+          const prefix=index===0 && corrected.length ? "Did you mean " : "";
+          return '<button type="button" class="so-finder-suggestion' + (index===0?' active':'') + '" data-so-search-fill="' + escapeHtml(value) + '"><span>' + (index===0 && corrected.length ? "≈" : "⌕") + '</span><strong>' + escapeHtml(prefix + value) + '</strong></button>';
+        }).join("");
+      }
+
+      function salesOrderFinderCustomerPanel(order) {
+        const c=customer(order.customerId);
+        const stats=salesOrderCustomerProductStats(order);
+        function item(stat,label) {
+          if (!stat || !stat.product) return "";
+          const p=stat.product;
+          return '<div class="so-finder-customer-item"><div><strong>' + escapeHtml(p.name || p.sku || "Product") + '</strong><small>' + escapeHtml(p.sku || "") + ' · ' + escapeHtml(label) + '</small></div><button type="button" data-so-select-product="' + escapeHtml(order.id) + '|' + escapeHtml(p.id) + '">Use</button></div>';
+        }
+        const frequent=stats.frequent.slice(0,3).map(function(stat){ return item(stat,"ordered on "+stat.orders+" previous order"+(stat.orders===1?"":"s")); }).join("");
+        const recent=stats.recent.slice(0,3).map(function(stat){ return item(stat,stat.lastDate ? "last ordered "+stat.lastDate : "ordered before"); }).join("");
+        return '<aside class="so-finder-customer-panel">' +
+          '<section><h4>Recommended for ' + escapeHtml(c ? (c.company || c.name || c.id) : "this customer") + '</h4>' +
+          (frequent || '<p>No previous product history yet. Recommendations will build automatically as orders are placed.</p>') + '</section>' +
+          '<section><h4>Recently ordered</h4>' +
+          (recent || '<p>No previous stock-item orders for this customer.</p>') + '</section>' +
+          '<section><h4>New user shortcuts</h4><button type="button" class="so-finder-wide-action" data-so-search-fill="">Browse product families</button><button type="button" class="so-finder-wide-action" data-open-so-batch="' + escapeHtml(order.id) + '">Open full catalogue</button></section>' +
+        '</aside>';
       }
 
       function renderSalesOrderProductResults(orderId, query) {
@@ -7997,25 +8249,52 @@ const seed = {
         const order = salesOrder(orderId);
         if (!box || !order) return;
         const clean = String(query || "").trim();
-        const matches = salesOrderProductMatches(clean);
+        const mode = input.dataset.finderMode || "";
+        let entries;
+        if (mode === "frequent" || mode === "recent") {
+          const customerStats=salesOrderCustomerProductStats(order);
+          entries=customerStats[mode].slice(0,12).map(function(stat,index){
+            return { product:stat.product, score:12000-index, reason:mode === "frequent" ? "Frequently ordered" : "Customer history" };
+          });
+        } else if (mode === "stock") {
+          entries=salesOrderProductMatchEntries(order, clean).filter(function(entry){ return salesOrderProductStockInfo(entry.product).available > 0; }).slice(0,12);
+        } else {
+          entries=salesOrderProductMatchEntries(order, clean);
+        }
         const priceList = orderPriceList(order);
         if (box.parentElement !== document.body) document.body.appendChild(box);
         box.hidden = false;
-        box.innerHTML = '<div class="so-product-results-head"><div><strong>Best matches</strong><span>' + (clean ? 'Results reorder as you type' : 'Start typing to narrow the catalogue') + '</span></div><span>' + matches.length + ' result' + (matches.length===1?'':'s') + '</span></div>' +
-          (matches.length ? matches.map(function(p,index) {
-            const stock = salesOrderProductStockInfo(p);
-            const price = Number(p[priceList] || p.rrp || p.rrpPrice || p.rrp_price || p.trade || p.tradePrice || p.trade_price || 0);
-            const variant = salesOrderVariantMeta(p);
-            const family = p.parentName && p.parentName !== p.name ? p.parentName : p.category;
-            return '<button type="button" class="so-smart-product-result ' + stock.cls + (index===0?' active':'') + '" data-so-select-product="' + order.id + '|' + p.id + '">' +
-              '<span class="so-smart-result-main"><strong>' + escapeHtml(p.name || 'Unnamed product') + '</strong>' +
-              (variant ? '<span class="so-variant-chips">' + variant.split(" · ").map(function(v){return '<i>'+escapeHtml(v)+'</i>';}).join("") + '</span>' : '') +
-              '<small>' + escapeHtml(p.sku || p.code || 'No SKU') + (family ? ' · ' + escapeHtml(family) : '') + '</small></span>' +
-              '<span class="so-smart-result-price"><strong>' + money(price) + '</strong><small>net · ' + escapeHtml(String(priceList || 'RRP').toUpperCase()) + '</small></span>' +
-              '<span class="so-smart-result-stock"><strong class="' + stock.cls + '">' + stock.available + ' free</strong><small>' + stock.onHand + ' on hand</small></span>' +
-              '<span class="so-smart-result-action">Select</span>' +
-            '</button>';
-          }).join('') : '<div class="empty-state"><strong>No matching products</strong><p>Try a parent product, variant, Pool Bros SKU, supplier SKU, barcode, brand or category.</p></div>');
+
+        const resultHtml = entries.length ? entries.map(function(entry,index) {
+          const p=entry.product;
+          const stock=salesOrderProductStockInfo(p);
+          const price=Number(p[priceList] || p.rrp || p.rrpPrice || p.rrp_price || p.trade || p.tradePrice || p.trade_price || 0);
+          const variant=salesOrderVariantMeta(p);
+          const family=p.parentName && p.parentName !== p.name ? p.parentName : p.category;
+          return '<button type="button" class="so-finder-result ' + (index===0?'active':'') + '" data-so-select-product="' + escapeHtml(order.id) + '|' + escapeHtml(p.id) + '">' +
+            '<span class="so-finder-product"><strong>' + escapeHtml(p.name || "Unnamed product") + '</strong>' +
+              '<small>' + escapeHtml(p.sku || p.code || "No SKU") + (family ? " · " + escapeHtml(family) : "") + '</small>' +
+              (variant ? '<span class="so-variant-chips">' + variant.split(" · ").map(function(v){ return '<i>'+escapeHtml(v)+'</i>'; }).join("") + '</span>' : '') +
+            '</span>' +
+            '<span class="so-finder-stock"><strong class="' + stock.cls + '">' + stock.available + ' free</strong><small>' + escapeHtml(stock.location) + ' · ' + stock.onHand + ' physical</small></span>' +
+            '<span class="so-finder-price"><strong>' + money(price) + '</strong><small>net unit</small></span>' +
+            '<span class="so-finder-reason"><strong>' + escapeHtml(entry.reason) + '</strong><small>Why shown</small></span>' +
+            '<span class="so-finder-select">Select</span>' +
+          '</button>';
+        }).join("") : '<div class="so-finder-empty"><strong>No direct match yet</strong><span>Try a broader product name, SKU, barcode, size, or one of the suggested terms.</span></div>';
+
+        box.innerHTML =
+          '<div class="so-finder-mega-head"><div><strong>Smart product finder</strong><span>' + (clean ? 'Useful matches update as you type' : 'Customer favourites and useful catalogue matches') + '</span></div><span class="so-finder-speed">Fast local index · ' + entries.length + ' shown</span></div>' +
+          '<div class="so-finder-mega-grid">' +
+            '<aside class="so-finder-left"><h4>What you may mean</h4>' + salesOrderFinderSuggestionButtons(clean) +
+              '<h4>Quick find</h4><button type="button" class="so-finder-suggestion" data-so-customer-products="stock"><span>✓</span><strong>In stock now</strong></button>' +
+              '<button type="button" class="so-finder-suggestion" data-so-customer-products="frequent"><span>★</span><strong>Frequently ordered</strong></button>' +
+              '<button type="button" class="so-finder-suggestion" data-so-customer-products="recent"><span>↻</span><strong>Customer history</strong></button>' +
+            '</aside>' +
+            '<main class="so-finder-center"><div class="so-finder-group-head"><strong>Best matches</strong><span>' + (entries.length ? entries.length + ' ranked result' + (entries.length===1?'':'s') : 'Try another phrase') + '</span></div>' + resultHtml + '</main>' +
+            salesOrderFinderCustomerPanel(order) +
+          '</div>' +
+          '<div class="so-finder-mega-foot"><span><kbd>↑ ↓</kbd> move</span><span><kbd>Enter</kbd> select</span><span><kbd>Esc</kbd> close</span><small>Only the best matches are rendered; stock and price are enriched for visible results.</small><button type="button" data-open-so-batch="' + escapeHtml(order.id) + '">Open full catalogue</button></div>';
         positionSalesOrderProductResults(input, box);
       }
 

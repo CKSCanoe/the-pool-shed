@@ -1,4 +1,13 @@
-# Pool Shed Uniform System — 1.6.3
+# Pool Shed Uniform System — 1.7.0
+
+## 1.7.0 — Smart Sales Order Product Finder
+
+- Replaces the basic Sales Order catalogue result list with a fast recommendation-first mega menu.
+- Live results update while typing with a short debounce, cached catalogue search index, typo/common-term support and ranked matches.
+- Adds customer-specific Frequently Ordered and Recently Ordered recommendations derived from existing Sales Order history; no duplicate customer-product store is introduced.
+- Adds “Why shown” context, visible stock/location/price, new-user keyword suggestions, keyboard navigation and an Open Full Catalogue escape hatch.
+- Keeps exact SKU/variant selection, pricing, stock and Sales Order engines authoritative.
+
 
 ## 1.6.3 — Sales Order Design Parity
 

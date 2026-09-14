@@ -6,7 +6,7 @@ const legacy = fs.readFileSync('public/assets/js/01-legacy-01.js','utf8');
 const pkg = JSON.parse(fs.readFileSync('package.json','utf8'));
 
 const checks = [
-  ['release version', pkg.version === '1.6.3'],
+  ['release version', pkg.version === '1.7.0'],
   ['smart customer intelligence', workspace.includes('so2CustomerCard') && workspace.includes('Credit headroom') && workspace.includes('Open CRM')],
   ['first class save action preserved', workspace.includes('so3-save so-action-save') && workspace.includes('Save Order') && legacy.includes('data-save-order')],
   ['payment beside totals', workspace.includes('Take / Record Payment') && workspace.includes('data-open-payment') && workspace.includes('View payment history')],

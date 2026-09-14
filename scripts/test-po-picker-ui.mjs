@@ -11,7 +11,7 @@ const checks = [
   ['sticky visible action area', css.includes('.ci-search-popover-po .ci-po-actionbar') && css.includes('flex:0 0 auto !important')],
   ['selected basket visible on tablet', css.includes('display:flex !important; max-height:34vh')],
   ['modal input wired', js.includes("event.target.closest('#ciPoModalSearch')")],
-  ['service cache updated', fs.readFileSync('public/service-worker.js','utf8').includes('pool-shed-v1.6.3-asset-freshness')]
+  ['service cache updated', fs.readFileSync('public/service-worker.js','utf8').includes('pool-shed-v1.7.0-asset-freshness')]
 ];
 for (const [name, ok] of checks) {
   if (!ok) { console.error('FAIL', name); process.exit(1); }
