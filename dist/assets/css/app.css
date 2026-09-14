@@ -9608,7 +9608,7 @@ body:not([data-theme="dark"]) #screen-salesorders .so-list-page :is(input,select
 
 
 /* ========================================================================== */
-/* Sales Order Command v1.6.1 — approved top-end detail                       */
+/* Sales Order Command v1.6.2 — approved top-end detail                       */
 /* Unique so2-* ownership prevents older Sales Order/Product Intelligence CSS  */
 /* from redefining the approved presentation.                                 */
 /* ========================================================================== */

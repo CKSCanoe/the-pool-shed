@@ -22,7 +22,8 @@ for (const file of [htmlPath, swPath, configPath, salesSearchPath, salesSearchCs
 
 const html = fs.readFileSync(htmlPath, 'utf8');
 const assetRoot = root;
-const localAssetPaths = [...html.matchAll(/(?:src|href)=\"\.\/([^\"]+\.(?:js|css))\"/g)].map(m => path.join(assetRoot, m[1]));
+const localAssetPaths = [...html.matchAll(/(?:src|href)=\"\.\/([^\"]+\.(?:js|css)(?:\?[^\"]*)?)\"/g)]
+  .map(m => path.join(assetRoot, m[1].split('?')[0].split('#')[0]));
 const localAssetSource = localAssetPaths.filter(fs.existsSync).map(file => fs.readFileSync(file, 'utf8')).join('\n');
 const appSource = html + '\n' + localAssetSource;
 if (!appSource.includes('<!doctype html>') || !appSource.includes('The Pool Shed')) {
@@ -74,8 +75,8 @@ new vm.Script(swSource, { filename: 'service-worker.js' });
 for (const asset of ['product-images.js', 'sales-order-search.js', 'partial-fulfilment.js', 'catalogue-intelligence.js']) {
   if (!swSource.includes(asset)) throw new Error(`Offline cache is missing ${asset}`);
 }
-if (!swSource.includes('pool-shed-app-v1')) {
-  throw new Error('Service worker cache key is not set for the Version 1 release');
+if (!swSource.includes('pool-shed-v1.6.2-asset-freshness')) {
+  throw new Error('Service worker cache key is not set for the current release');
 }
 for (const asset of ['bundle-studio.js']) {
   if (!swSource.includes(asset)) throw new Error(`Offline cache is missing ${asset}`);

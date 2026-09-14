@@ -1,4 +1,12 @@
-# Pool Shed Uniform System — 1.6.1
+# Pool Shed Uniform System — 1.6.2
+
+## 1.6.2 — Sales Order Asset Freshness & Release Audit
+
+- Versioned every local runtime CSS/JavaScript URL used by the application shell so a deployment cannot silently reuse a previous Sales Order presentation layer.
+- Aligned the service-worker precache with the actual application shell, including the legacy runtime modules that were previously omitted from first-install offline precache.
+- Service-worker registration now bypasses the browser HTTP cache when checking for a worker update.
+- Preserves the approved Sales Order Detail Command, Precision Row variant selector, CRM intelligence, Product Catalogue, payment/totals, stock/allocation, Goods Note and fulfilment engines unchanged.
+- Release package hygiene was tightened by excluding repository metadata and macOS packaging artefacts.
 
 ## 1.6.1 — Sales Order Detail Command
 
