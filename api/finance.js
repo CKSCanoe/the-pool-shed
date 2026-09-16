@@ -1,8 +1,8 @@
 import {randomUUID,randomBytes} from 'node:crypto';
-import {hash,seal,unseal,validSignature,validateInvoice,db,eq,audit,tokenRequest,xero,applyRemote} from '../server/accounting.js';
+import {hash,seal,unseal,validSignature,validateInvoice,db,eq,audit,tokenRequest,xero,applyRemote,XERO_SCOPES,xeroIntegrationReadiness,requireXeroLive} from '../server/accounting.js';
 export const config={api:{bodyParser:false},maxDuration:60};
-const scopes='offline_access accounting.invoices accounting.contacts.read accounting.settings.read accounting.payments.read';
-const configured=()=>['SUPABASE_URL','SUPABASE_SERVICE_ROLE_KEY','XERO_CLIENT_ID','XERO_CLIENT_SECRET','XERO_TOKEN_KEY','APP_ORIGIN','CRON_SECRET','XERO_WEBHOOK_KEY'].every(k=>process.env[k]);
+const scopes=XERO_SCOPES.join(' ');
+const coreConfigured=()=>['SUPABASE_URL','SUPABASE_SERVICE_ROLE_KEY','APP_ORIGIN'].every(k=>process.env[k]);
 const send=(res,status,value)=>res.status(status).json(value);
 async function rawBody(req){let chunks=[],n=0;for await(const b of req){n+=b.length;if(n>256000)throw Error('Request too large');chunks.push(b);}return Buffer.concat(chunks);}
 async function identity(req,w,write=false){
@@ -53,8 +53,10 @@ async function worker(w){return withConnection(w,async c=>{
 export default async function handler(req,res){
  res.setHeader('Cache-Control','no-store');res.setHeader('X-Content-Type-Options','nosniff');
  const url=new URL(req.url,process.env.APP_ORIGIN||'http://localhost'),action=url.searchParams.get('action')||'status';
- if(!configured())return send(res,503,{error:'Accounting is not configured. Follow ACCOUNTING-SETUP.md on the server.'});
+ const integration=xeroIntegrationReadiness();
+ if(!coreConfigured())return send(res,503,{error:'Accounting platform is not configured. Follow ACCOUNTING-SETUP.md on the server.',integration});
  try{
+  if(['webhook','callback','cron'].includes(action))requireXeroLive();
   if(action==='webhook'){
    if(req.method!=='POST')return send(res,405,{error:'POST required'});
    const raw=await rawBody(req);if(!validSignature(raw,req.headers['x-xero-signature'],process.env.XERO_WEBHOOK_KEY))return send(res,401,{error:'Invalid signature'});
@@ -90,8 +92,10 @@ export default async function handler(req,res){
   const body=write?JSON.parse((await rawBody(req)).toString()||'{}'):{};
   if(action==='status'&&!write){
    const [connections,documents,jobs]=await Promise.all([db('ps_finance_connections?workspace_id=eq.'+eq(w)+'&select=tenant_id,tenant_name,last_sync,last_error'),db('ps_finance_documents?workspace_id=eq.'+eq(w)+'&select=id,source_id,kind,xero_id,xero_number,status,amount_due,amount_paid,amount_credited,currency,payload,remote,checked_at,updated_at&order=created_at.desc&limit=250'),db('ps_finance_jobs?workspace_id=eq.'+eq(w)+'&state=neq.done&select=id,document_id,state,last_error&limit=250')]);
-   return send(res,200,{connection:connections[0]||null,documents,jobs,role:u.financeRole});
+   return send(res,200,{connection:connections[0]||null,documents,jobs,role:u.financeRole,integration});
   }
+  const liveActions=new Set(['connect','tenants','tenant','lookups','refresh-document','queue','reconcile','sync']);
+  if(liveActions.has(action))requireXeroLive();
   if(action==='connect'&&write){
    if(u.financeRole!=='admin')throw Error('A finance administrator must connect Xero');
    const state=randomBytes(32).toString('hex');await db('ps_finance_oauth',{method:'POST',body:{state_hash:hash(state),workspace_id:w,user_id:u.id,expires_at:new Date(Date.now()+600000).toISOString()}});
@@ -134,5 +138,5 @@ export default async function handler(req,res){
   }));
   if(action==='sync'&&write)return send(res,200,await worker(w));
   return send(res,404,{error:'Unknown accounting action'});
- }catch(e){return send(res,400,{error:e.message||'Accounting operation failed'});}
+ }catch(e){return send(res,e.statusCode||400,{error:e.message||'Accounting operation failed',...(e.readiness?{integration:e.readiness}:{})});}
 }

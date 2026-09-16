@@ -11,83 +11,88 @@
 :root {
   color-scheme: light;
 
-  /* Approved Pool Shed palette */
-  --ps-palette-navy: #102B3A;
-  --ps-palette-teal: #007A8C;
-  --ps-palette-aqua: #00A7C4;
-  --ps-palette-ink: #17252E;
-  --ps-palette-slate: #5B6972;
-  --ps-palette-canvas: #F3F6F8;
-  --ps-palette-soft-blue: #EAF1F4;
-  --ps-palette-border: #D7E0E5;
-  --ps-palette-white: #FFFFFF;
-  --ps-palette-success: #218653;
-  --ps-palette-attention: #B36A05;
-  --ps-palette-danger: #B83A43;
-  --ps-palette-info: #176B91;
+  /* Executive Premium Steel Blue — canonical semantic colour authority. */
+  --color-shell: #101820;
+  --color-shell-secondary: #17232D;
+  --color-surface-canvas: #F5F7F8;
+  --color-surface-default: #FFFFFF;
+  --color-surface-subtle: #EEF2F4;
+  --color-surface-raised: #E5EAED;
+  --color-text-primary: #18242C;
+  --color-text-secondary: #5F6D75;
+  --color-text-muted: #89959C;
+  --color-text-inverse: #FFFFFF;
+  --color-shell-text: #EEF3F5;
+  --color-shell-text-muted: #A9B5BB;
+  --color-logo-surface: #FFFFFF;
+  --color-text-disabled: #89959C;
+  --color-border-default: #D8E0E4;
+  --color-border-strong: #C2CCD1;
+  --color-action-primary: #2F6B84;
+  --color-action-primary-hover: #24566A;
+  --color-action-soft: #E7F0F4;
+  --color-action-ink: #173847;
+  --color-action-contrast: #FFFFFF;
+  --color-action-focus: var(--color-action-primary);
+  --color-action-line: color-mix(in srgb, var(--color-action-primary) 34%, var(--color-surface-default));
+  --color-hover-surface: color-mix(in srgb, var(--color-action-primary) 5%, var(--color-surface-default));
+  --color-selected-surface: var(--color-action-soft);
+  --color-selected-edge: var(--color-action-primary);
+  --color-focus-ring: color-mix(in srgb, var(--color-action-primary) 26%, transparent);
+  --color-surface-selected: var(--color-selected-surface);
 
-  /* Approved dark palette */
-  --ps-palette-dark-canvas: #0C1821;
-  --ps-palette-dark-surface: #12232E;
-  --ps-palette-dark-raised: #172B37;
-  --ps-palette-dark-border: #29404D;
-  --ps-palette-dark-text: #EDF4F7;
-  --ps-palette-dark-muted: #A7B7C0;
-
-  /* Semantic colour layer */
-  --color-brand-navy: var(--ps-palette-navy);
-  --color-action-primary: var(--ps-palette-teal);
-  --color-action-primary-hover: color-mix(in srgb, var(--ps-palette-teal) 82%, var(--ps-palette-navy));
-  --color-action-focus: var(--ps-palette-aqua);
-  --color-action-soft: color-mix(in srgb, var(--ps-palette-teal) 9%, var(--ps-palette-white));
-  --color-action-line: color-mix(in srgb, var(--ps-palette-teal) 30%, var(--ps-palette-white));
-
-  --color-text-primary: var(--ps-palette-ink);
-  --color-text-secondary: var(--ps-palette-slate);
-  --color-text-inverse: var(--ps-palette-white);
-  --color-text-disabled: color-mix(in srgb, var(--ps-palette-slate) 62%, var(--ps-palette-white));
-
-  --color-surface-canvas: var(--ps-palette-canvas);
-  --color-surface-default: var(--ps-palette-white);
-  --color-surface-subtle: var(--ps-palette-soft-blue);
-  --color-surface-raised: var(--ps-palette-white);
-  --color-surface-selected: var(--color-action-soft);
-
-  --color-border-default: var(--ps-palette-border);
-  --color-border-strong: color-mix(in srgb, var(--ps-palette-slate) 48%, var(--ps-palette-white));
-
-  --color-status-success: var(--ps-palette-success);
+  /* Semantic status colours are reserved for real state meaning. */
+  --color-status-success: #1F8A5B;
   --color-status-success-text: #176B42;
-  --color-status-success-bg: #EAF7EF;
-  --color-status-success-line: #BBDDC8;
+  --color-status-success-bg: #E6F5EE;
+  --color-status-success-line: #B9DEC9;
+  --color-status-attention: #B56A14;
+  --color-status-attention-text: #89500A;
+  --color-status-attention-bg: #FFF3DF;
+  --color-status-attention-line: #E9CEA4;
+  --color-status-danger: #B13B46;
+  --color-status-danger-text: #91303A;
+  --color-status-danger-bg: #FDEBED;
+  --color-status-danger-line: #E6BBC0;
+  --color-status-info: #2F6F9F;
+  --color-status-info-text: #245A7F;
+  --color-status-info-bg: #E8F2F9;
+  --color-status-info-line: #B8D3E5;
 
-  --color-status-attention: var(--ps-palette-attention);
-  --color-status-attention-text: #895005;
-  --color-status-attention-bg: #FFF5DA;
-  --color-status-attention-line: #E8CF8E;
-
-  --color-status-danger: var(--ps-palette-danger);
-  --color-status-danger-text: #9E3039;
-  --color-status-danger-bg: #FDEDEF;
-  --color-status-danger-line: #E9BEC2;
-
-  --color-status-info: var(--ps-palette-info);
-  --color-status-info-text: #145F80;
-  --color-status-info-bg: #EAF5FA;
-  --color-status-info-line: #BBDCE9;
-
-  --color-overlay-scrim: color-mix(in srgb, var(--ps-palette-navy) 72%, transparent);
-  --color-overlay-soft: color-mix(in srgb, var(--ps-palette-navy) 10%, transparent);
-  --shadow-color: color-mix(in srgb, var(--ps-palette-navy) 12%, transparent);
-  --shadow-color-strong: color-mix(in srgb, var(--ps-palette-navy) 24%, transparent);
-
-  /* Geometry / interaction foundation */
-  --focus-ring: 0 0 0 3px color-mix(in srgb, var(--color-action-focus) 28%, transparent);
+  --color-overlay-scrim: color-mix(in srgb, var(--color-shell) 72%, transparent);
+  --color-overlay-soft: color-mix(in srgb, var(--color-shell) 10%, transparent);
+  --shadow-color: color-mix(in srgb, var(--color-shell) 12%, transparent);
+  --shadow-color-strong: color-mix(in srgb, var(--color-shell) 24%, transparent);
+  --focus-ring: 0 0 0 3px var(--color-focus-ring);
   --shadow-panel: 0 1px 3px var(--shadow-color);
   --shadow-raised: 0 8px 24px var(--shadow-color);
   --shadow-dialog: 0 24px 64px var(--shadow-color-strong);
 
-  /* Compatibility aliases. Legacy component names resolve to the one semantic system. */
+  /* Historical palette names remain compatibility aliases only. */
+  --ps-palette-navy: var(--color-shell);
+  --ps-palette-teal: var(--color-action-primary);
+  --ps-palette-aqua: var(--color-action-primary);
+  --ps-palette-ink: var(--color-text-primary);
+  --ps-palette-slate: var(--color-text-secondary);
+  --ps-palette-canvas: var(--color-surface-canvas);
+  --ps-palette-soft-blue: var(--color-surface-subtle);
+  --ps-palette-border: var(--color-border-default);
+  --ps-palette-white: var(--color-surface-default);
+  --ps-palette-success: var(--color-status-success);
+  --ps-palette-attention: var(--color-status-attention);
+  --ps-palette-danger: var(--color-status-danger);
+  --ps-palette-info: var(--color-status-info);
+  --ps-palette-dark-canvas: #0F1419;
+  --ps-palette-dark-surface: #161D23;
+  --ps-palette-dark-raised: #263039;
+  --ps-palette-dark-border: #2C3841;
+  --ps-palette-dark-text: #EEF3F5;
+  --ps-palette-dark-muted: #A9B5BB;
+
+  --color-brand-navy: var(--color-shell);
+  --color-brand-aqua: var(--color-action-primary);
+
+  /* Compatibility aliases. Every old name resolves into the semantic system. */
   --ink: var(--color-text-primary);
   --muted: var(--color-text-secondary);
   --line: var(--color-border-default);
@@ -95,17 +100,17 @@
   --panel: var(--color-surface-default);
   --brand: var(--color-action-primary);
   --brand-dark: var(--color-action-primary-hover);
-  --accent: var(--color-action-focus);
-  --navy: var(--color-brand-navy);
+  --accent: var(--color-action-primary);
+  --navy: var(--color-shell);
   --shadow: var(--shadow-panel);
 
   --ps-ink: var(--color-text-primary);
   --ps-muted: var(--color-text-secondary);
   --ps-line: var(--color-border-default);
   --ps-soft: var(--color-surface-subtle);
-  --ps-cyan: var(--color-action-focus);
+  --ps-cyan: var(--color-action-primary);
   --ps-teal: var(--color-action-primary);
-  --ps-navy: var(--color-brand-navy);
+  --ps-navy: var(--color-shell);
   --ps-green: var(--color-status-success);
   --ps-amber: var(--color-status-attention);
   --ps-red: var(--color-status-danger);
@@ -115,9 +120,9 @@
   --pb-muted: var(--color-text-secondary);
   --pb-line: var(--color-border-default);
   --pb-soft: var(--color-surface-subtle);
-  --pb-cyan: var(--color-action-focus);
+  --pb-cyan: var(--color-action-primary);
   --pb-teal: var(--color-action-primary);
-  --pb-navy: var(--color-brand-navy);
+  --pb-navy: var(--color-shell);
   --pb-blue: var(--color-status-info);
   --pb-green: var(--color-status-success);
   --pb-yellow: var(--color-status-attention);
@@ -130,14 +135,14 @@
   --pool-yellow: var(--color-status-attention);
   --pool-red: var(--color-status-danger);
 
-  --ci-navy: var(--color-brand-navy);
-  --ci-cyan: var(--color-action-focus);
+  --ci-navy: var(--color-shell);
+  --ci-cyan: var(--color-action-primary);
   --ci-teal: var(--color-action-primary);
   --ci-green: var(--color-status-success);
   --ci-yellow: var(--color-status-attention);
   --ci-red: var(--color-status-danger);
 
-  --bs-navy: var(--color-brand-navy);
+  --bs-navy: var(--color-shell);
   --bs-blue: var(--color-action-primary);
   --bs-cyan: var(--color-action-soft);
   --bs-line: var(--color-border-default);
@@ -146,7 +151,7 @@
   --bs-red: var(--color-status-danger);
 
   --b2-blue: var(--color-action-primary);
-  --b2-navy: var(--color-brand-navy);
+  --b2-navy: var(--color-shell);
   --b2-amber: var(--color-status-attention);
   --b2-line: var(--color-border-default);
 
@@ -159,35 +164,55 @@ html[data-theme="dark"],
 body[data-theme="dark"],
 [data-theme="dark"] {
   color-scheme: dark;
-  --color-text-primary: var(--ps-palette-dark-text);
-  --color-text-secondary: var(--ps-palette-dark-muted);
-  --color-text-inverse: var(--ps-palette-white);
-  --color-text-disabled: color-mix(in srgb, var(--ps-palette-dark-muted) 58%, var(--ps-palette-dark-surface));
-  --color-surface-canvas: var(--ps-palette-dark-canvas);
-  --color-surface-default: var(--ps-palette-dark-surface);
-  --color-surface-subtle: var(--ps-palette-dark-raised);
-  --color-surface-raised: var(--ps-palette-dark-raised);
-  --color-surface-selected: color-mix(in srgb, var(--ps-palette-teal) 18%, var(--ps-palette-dark-surface));
-  --color-border-default: var(--ps-palette-dark-border);
-  --color-border-strong: color-mix(in srgb, var(--ps-palette-dark-muted) 42%, var(--ps-palette-dark-surface));
-  --color-action-primary-hover: var(--ps-palette-aqua);
-  --color-action-soft: color-mix(in srgb, var(--ps-palette-teal) 16%, var(--ps-palette-dark-surface));
-  --color-action-line: color-mix(in srgb, var(--ps-palette-teal) 46%, var(--ps-palette-dark-surface));
+  --color-shell: #0B1015;
+  --color-shell-secondary: #121920;
+  --color-surface-canvas: #0F1419;
+  --color-surface-default: #161D23;
+  --color-surface-subtle: #1D252C;
+  --color-surface-raised: #263039;
+  --color-text-primary: #EEF3F5;
+  --color-text-secondary: #A9B5BB;
+  --color-text-muted: #7F8C93;
+  --color-text-inverse: #0B1015;
+  --color-text-disabled: #7F8C93;
+  --color-border-default: #2C3841;
+  --color-border-strong: #3A4852;
+  --color-action-primary: #69A8C2;
+  --color-action-primary-hover: #4E8DA7;
+  --color-action-soft: #17313D;
+  --color-action-ink: #DFF3FB;
+  --color-action-contrast: #0B1015;
+  --color-action-focus: var(--color-action-primary);
+  --color-action-line: color-mix(in srgb, var(--color-action-primary) 46%, var(--color-surface-default));
+  --color-hover-surface: color-mix(in srgb, var(--color-action-primary) 9%, var(--color-surface-default));
+  --color-selected-surface: var(--color-action-soft);
+  --color-selected-edge: var(--color-action-primary);
+  --color-focus-ring: color-mix(in srgb, var(--color-action-primary) 28%, transparent);
+  --color-surface-selected: var(--color-selected-surface);
 
-  --color-status-success-text: color-mix(in srgb, var(--ps-palette-success) 42%, var(--ps-palette-dark-text));
-  --color-status-success-bg: color-mix(in srgb, var(--ps-palette-success) 16%, var(--ps-palette-dark-surface));
-  --color-status-success-line: color-mix(in srgb, var(--ps-palette-success) 38%, var(--ps-palette-dark-surface));
-  --color-status-attention-text: color-mix(in srgb, var(--ps-palette-attention) 50%, var(--ps-palette-dark-text));
-  --color-status-attention-bg: color-mix(in srgb, var(--ps-palette-attention) 16%, var(--ps-palette-dark-surface));
-  --color-status-attention-line: color-mix(in srgb, var(--ps-palette-attention) 38%, var(--ps-palette-dark-surface));
-  --color-status-danger-text: color-mix(in srgb, var(--ps-palette-danger) 46%, var(--ps-palette-dark-text));
-  --color-status-danger-bg: color-mix(in srgb, var(--ps-palette-danger) 16%, var(--ps-palette-dark-surface));
-  --color-status-danger-line: color-mix(in srgb, var(--ps-palette-danger) 38%, var(--ps-palette-dark-surface));
-  --color-status-info-text: color-mix(in srgb, var(--ps-palette-info) 38%, var(--ps-palette-dark-text));
-  --color-status-info-bg: color-mix(in srgb, var(--ps-palette-info) 18%, var(--ps-palette-dark-surface));
-  --color-status-info-line: color-mix(in srgb, var(--ps-palette-info) 42%, var(--ps-palette-dark-surface));
+  --color-status-success: #55C68A;
+  --color-status-success-text: #55C68A;
+  --color-status-success-bg: #173226;
+  --color-status-success-line: color-mix(in srgb, var(--color-status-success) 42%, var(--color-surface-default));
+  --color-status-attention: #E2A451;
+  --color-status-attention-text: #E2A451;
+  --color-status-attention-bg: #3A2C18;
+  --color-status-attention-line: color-mix(in srgb, var(--color-status-attention) 42%, var(--color-surface-default));
+  --color-status-danger: #E07079;
+  --color-status-danger-text: #E07079;
+  --color-status-danger-bg: #3A2024;
+  --color-status-danger-line: color-mix(in srgb, var(--color-status-danger) 42%, var(--color-surface-default));
+  --color-status-info: #6FA9D3;
+  --color-status-info-text: #6FA9D3;
+  --color-status-info-bg: #183044;
+  --color-status-info-line: color-mix(in srgb, var(--color-status-info) 42%, var(--color-surface-default));
 
-  /* Reassert legacy aliases at the themed element so scoped historical aliases cannot diverge. */
+  --color-overlay-scrim: color-mix(in srgb, #000000 64%, transparent);
+  --color-overlay-soft: color-mix(in srgb, #000000 14%, transparent);
+  --shadow-color: color-mix(in srgb, #000000 28%, transparent);
+  --shadow-color-strong: color-mix(in srgb, #000000 48%, transparent);
+
+  /* Reassert compatibility aliases at the themed element. */
   --ink: var(--color-text-primary);
   --muted: var(--color-text-secondary);
   --line: var(--color-border-default);
@@ -195,8 +220,19 @@ body[data-theme="dark"],
   --panel: var(--color-surface-default);
   --brand: var(--color-action-primary);
   --brand-dark: var(--color-action-primary-hover);
-  --accent: var(--color-action-focus);
-  --navy: var(--color-brand-navy);
+  --accent: var(--color-action-primary);
+  --navy: var(--color-shell);
+  --ps-cyan: var(--color-action-primary);
+  --ps-teal: var(--color-action-primary);
+  --ps-navy: var(--color-shell);
+  --pb-cyan: var(--color-action-primary);
+  --pb-teal: var(--color-action-primary);
+  --pb-navy: var(--color-shell);
+  --ci-cyan: var(--color-action-primary);
+  --ci-teal: var(--color-action-primary);
+  --ci-navy: var(--color-shell);
+  --bs-blue: var(--color-action-primary);
+  --b2-blue: var(--color-action-primary);
 }
 
 /* Core surfaces are deliberately tied to semantic roles. */
@@ -392,6 +428,42 @@ button.ghost:hover {
   border-color: var(--color-border-strong);
 }
 
+
+/* v1.23 utility hierarchy: navigation and shell utilities are intentionally neutral. */
+.page-back-row button,
+.page-back-row .dashboard-back-button,
+.page-back-row .section-home-button {
+  background: var(--color-surface-default) !important;
+  color: var(--color-text-primary) !important;
+  border: 1px solid var(--color-border-default) !important;
+  box-shadow: none !important;
+}
+.page-back-row button:hover,
+.page-back-row .dashboard-back-button:hover,
+.page-back-row .section-home-button:hover {
+  background: var(--color-surface-subtle) !important;
+  border-color: var(--color-border-strong) !important;
+}
+
+.top-utility-row :is(.theme-toggle,.icon-button,.notification-button,.reset-btn),
+.user-chip-button {
+  background: var(--color-surface-default);
+  color: var(--color-text-primary);
+  border-color: var(--color-border-default);
+  box-shadow: none;
+}
+.top-utility-row :is(.theme-toggle,.icon-button,.notification-button,.reset-btn):hover,
+.user-chip-button:hover {
+  background: var(--color-surface-subtle);
+  color: var(--color-text-primary);
+  border-color: var(--color-border-strong);
+}
+.user-avatar {
+  background: var(--color-action-soft);
+  color: var(--color-action-primary);
+  border: 1px solid var(--color-action-line);
+}
+
 button:disabled,
 input:disabled,
 select:disabled,
@@ -556,7 +628,7 @@ label.field-label {
 }
 
 tbody tr:hover {
-  background: color-mix(in srgb, var(--color-action-primary) 3%, var(--color-surface-default));
+  background: color-mix(in srgb, var(--color-action-primary) 4%, var(--color-surface-default));
 }
 
 /* Status: compact text + colour + shape cue. */
@@ -1105,6 +1177,22 @@ td {
   color: var(--color-text-primary);
   font-size: var(--ps-font-table);
   line-height: 1.35;
+}
+
+
+/* Quiet operational tables: colour marks state, it does not become the table. */
+thead th {
+  background: var(--color-surface-subtle) !important;
+  color: var(--color-text-secondary) !important;
+}
+tbody tr:hover > td {
+  background: color-mix(in srgb, var(--color-action-primary) 4%, var(--color-surface-default)) !important;
+}
+tbody tr:is(.selected,.is-selected,[aria-selected="true"]) > td {
+  background: var(--color-surface-selected) !important;
+}
+tbody tr:is(.selected,.is-selected,[aria-selected="true"]) > td:first-child {
+  box-shadow: inset 3px 0 0 var(--color-action-primary);
 }
 
 /* Dialog shell */

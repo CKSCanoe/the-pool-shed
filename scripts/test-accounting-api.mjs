@@ -3,7 +3,7 @@ import {Readable} from 'node:stream';
 import {randomBytes,createHmac} from 'node:crypto';
 import handler from '../api/finance.js';
 import {seal} from '../server/accounting.js';
-Object.assign(process.env,{SUPABASE_URL:'https://database.invalid',SUPABASE_SERVICE_ROLE_KEY:'server-test',XERO_CLIENT_ID:'test',XERO_CLIENT_SECRET:'test',XERO_TOKEN_KEY:randomBytes(32).toString('base64'),APP_ORIGIN:'https://app.invalid',CRON_SECRET:'cron-test',XERO_WEBHOOK_KEY:'webhook-test'});
+Object.assign(process.env,{XERO_INTEGRATION_MODE:'live',SUPABASE_URL:'https://database.invalid',SUPABASE_SERVICE_ROLE_KEY:'server-test',XERO_CLIENT_ID:'test',XERO_CLIENT_SECRET:'test',XERO_TOKEN_KEY:randomBytes(32).toString('base64'),APP_ORIGIN:'https://app.invalid',CRON_SECRET:'cron-test',XERO_WEBHOOK_KEY:'webhook-test'});
 let role='accountant',creates=0,ambiguous=false,oauth=null;
 const doc={id:'11111111-1111-1111-1111-111111111111',workspace_id:'pool-bros-main',source_id:'SO-1',kind:'ACCREC',payload:{Type:'ACCREC',Contact:{ContactID:'22222222-2222-2222-2222-222222222222'}},xero_id:null};
 const job={id:doc.id,document_id:doc.id,state:'pending',attempts:0};

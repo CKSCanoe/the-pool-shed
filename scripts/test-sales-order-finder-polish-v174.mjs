@@ -24,7 +24,9 @@ must(sales.includes("so5-line-thumb"),"added Sales Order line receives polished 
 must(sales.includes("so2-variant-cell"),"variant remains a dedicated column");
 must(sales.includes("so2-line-menu"),"three-dot line action menu remains available");
 must(css.includes(".so-finder-result:hover"),"finder hover state explicitly styled");
-must(css.includes("background:#F2F9FB!important"),"selected/hover state uses calm blue-grey rather than success green");
+must(css.includes("background:var(--color-hover-surface)!important"),"finder hover/focus state uses the shared Executive Premium hover surface");
+must(css.includes("background:var(--color-selected-surface)!important"),"finder selected state uses the shared Executive Premium selected surface");
+must(css.includes("box-shadow:inset 3px 0 0 var(--color-selected-edge)!important"),"finder selected state uses the restrained Steel Blue edge marker");
 must(css.includes(".so5-line-product"),"order-line product presentation is polished");
 must(index.includes(`./assets/css/app.css?v=${release}`),"versioned stylesheet loaded");
 must(index.includes(`./assets/js/01-legacy-01.js?v=${release}`),"versioned finder runtime loaded");

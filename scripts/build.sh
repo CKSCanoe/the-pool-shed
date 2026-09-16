@@ -5,8 +5,6 @@ DIST="$ROOT/dist"
 
 node "$ROOT/scripts/build-css.mjs"
 test -f "$ROOT/public/production-readiness-engine.js"
-test -f "$ROOT/public/legacy-migration-engine.js"
-test -f "$ROOT/public/legacy-recovery-engine.js"
 
 rm -rf "$DIST"
 mkdir -p "$DIST"

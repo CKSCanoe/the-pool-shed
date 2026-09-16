@@ -1,6 +1,6 @@
-# Pool Shed v1.22.0 Full System
+# Pool Shed v1.24.0 Executive Premium Steel Blue
 
-This is the consolidated Pool Shed system release.
+This is the consolidated Pool Shed system release built from the v1.23 visual baseline, with the approved Executive Premium Steel Blue light/dark design system applied across the maintained application.
 
 ## Main navigation
 
@@ -23,13 +23,20 @@ Dashboard → CRM → Projects → Sales Orders → Engineer Requests → Produc
 - Automation Command and Pool Shed-only Smart Assistant
 - Settings, users, roles, permissions, approval limits and Production Readiness
 - Xero integration prepared in Ready mode but deliberately not connected live
-
+- v1.24 Executive Premium Steel Blue visual system with neutral tables, controlled action hierarchy, restrained selection states and first-class light/dark mode
+- Project detail workspace is staff-facing as **Project Details**
 
 ## Sign-in and authentication
 
-Pool Shed v1.22.0 uses the premium staff login as the production entry point. Staff see only Pool Bros branding, sign-in/recovery controls and a discreet version footer. Technical platform details are not exposed on the login screen.
+Pool Shed uses the premium staff login introduced in v1.22. Staff see only Pool Bros branding, sign-in/recovery controls and a discreet version footer. Technical platform details are not exposed on the login screen.
 
-Supabase remains the authentication provider. Existing email/password and password-recovery flows are retained, with additional safety around session authority, inactive profiles and already-enrolled authenticator MFA. See `SUPABASE-AUTH-CHANGE-NOTE-1.22.0.md`.
+Supabase remains the authentication provider. The v1.22 safety improvements remain: Supabase session validation is authoritative, inactive profiles are denied, and existing enrolled TOTP MFA/AAL2 requirements are respected. v1.24 makes no additional Supabase project/schema migration. The v1.23 auth status remains the unchanged baseline; see `SUPABASE-AUTH-STATUS-1.23.0.md`.
+
+## Visual system
+
+The internal application now uses a restrained navy/teal operational palette. Aqua is reserved for focus/accent rather than large table/header/row fills. Tables, secondary navigation, utility controls and back buttons use quiet neutral surfaces, while green/amber/red remain semantic state colours.
+
+See `EXECUTIVE-PREMIUM-AUDIT-1.24.0.md` for the current visual release and `VISUAL-SYSTEM-AUDIT-1.23.0.md` for the baseline.
 
 ## Build
 
@@ -55,7 +62,7 @@ Server-side accounting/Xero values are documented in `ACCOUNTING-SETUP.md` and `
 npm run validate
 ```
 
-In this extracted execution environment the application suite passes until the database-only tests attempt to import `@electric-sql/pglite`. The dependency is declared in `package.json`, but could not be installed in the current environment. The non-database tests after that point are run separately in the release audit.
+In this extracted execution environment the application suite passes until the database-only tests attempt to import `@electric-sql/pglite`. The remaining non-database tests after that point are run separately in the release audit.
 
 Browser automation also requires Playwright, which is not installed in this extracted environment.
 
@@ -67,7 +74,7 @@ Keep:
 XERO_INTEGRATION_MODE=ready
 ```
 
-Do not change it to `live` until the rest of Pool Shed has completed real browser/device, database, role, backup/restore and Xero Demo Company acceptance.
+Do not change it to `live` until real browser/device, database, role, backup/restore and Xero Demo Company acceptance are complete.
 
 ## Operational data authority
 
@@ -81,4 +88,4 @@ Do not change it to `live` until the rest of Pool Shed has completed real browse
 
 ## Release evidence
 
-Read `LOGIN-COMMAND-AUDIT-1.22.0.md` for the current release verification record and `FULL-SYSTEM-RELEASE-AUDIT-1.21.0.md` for the prior full-system baseline.
+Read `EXECUTIVE-PREMIUM-AUDIT-1.24.0.md` for this release, `LOGIN-COMMAND-AUDIT-1.22.0.md` for the premium login implementation, and `FULL-SYSTEM-RELEASE-AUDIT-1.21.0.md` for the consolidated system baseline.

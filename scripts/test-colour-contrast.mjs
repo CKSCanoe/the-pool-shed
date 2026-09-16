@@ -1,13 +1,19 @@
 const pairs = [
-  ["selection white on Pool Teal", "#FFFFFF", "#007A8C", 4.5],
-  ["navy on Aqua", "#102B3A", "#00A7C4", 4.5],
-  ["success text/background", "#176B42", "#EAF7EF", 4.5],
-  ["attention text/background", "#895005", "#FFF5DA", 4.5],
-  ["danger text/background", "#9E3039", "#FDEDEF", 4.5],
-  ["info text/background", "#145F80", "#EAF5FA", 4.5],
-  ["primary text/canvas", "#17252E", "#F3F6F8", 4.5],
-  ["secondary text/canvas", "#5B6972", "#F3F6F8", 4.5],
-  ["dark secondary/canvas", "#A7B7C0", "#0C1821", 4.5],
+  ['white on steel-blue primary', '#FFFFFF', '#2F6B84', 4.5],
+  ['white on steel-blue hover', '#FFFFFF', '#24566A', 4.5],
+  ['primary text on light canvas', '#18242C', '#F5F7F8', 4.5],
+  ['secondary text on light canvas', '#5F6D75', '#F5F7F8', 4.5],
+  ['dark primary text on dark canvas', '#EEF3F5', '#0F1419', 4.5],
+  ['dark secondary text on dark canvas', '#A9B5BB', '#0F1419', 4.5],
+  ['dark steel-blue ink on dark soft selection', '#DFF3FB', '#17313D', 4.5],
+  ['success text/background', '#176B42', '#E6F5EE', 4.5],
+  ['warning text/background', '#89500A', '#FFF3DF', 4.5],
+  ['danger text/background', '#91303A', '#FDEBED', 4.5],
+  ['info text/background', '#245A7F', '#E8F2F9', 4.5],
+  ['dark success/background', '#55C68A', '#173226', 4.5],
+  ['dark warning/background', '#E2A451', '#3A2C18', 4.5],
+  ['dark danger/background', '#E07079', '#3A2024', 4.5],
+  ['dark info/background', '#6FA9D3', '#183044', 4.5],
 ];
 
 function luminance(hex) {

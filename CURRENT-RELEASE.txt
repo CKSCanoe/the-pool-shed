@@ -1,3 +1,6 @@
-Pool Shed v1.22.0 Login Command
-Premium staff login + Supabase MFA-aware authentication UX.
+Pool Shed v1.24.0 Executive Premium Steel Blue
+Built from the preserved v1.23.0 Visual System Overhaul baseline.
+Premium staff login retained. Staff project detail workspace is named Project Details.
+Light and dark mode now resolve through the shared Executive Premium semantic colour authority.
+Supabase authentication/data contracts are unchanged by v1.24.0.
 Xero remains Ready to Connect and locked.

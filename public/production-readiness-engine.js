@@ -1,12 +1,12 @@
 (function(global){
 'use strict';
-const VERSION='1.20.0';
+const VERSION='1.24.0';
 const TERMINOLOGY={customerFinance:['Paid','Part Paid','Overdue'],fulfilment:['Shipped','Collected'],purchasing:['Short','BLOCK PAYMENT'],automation:['Approval Required']};
 const JOURNEYS=[
  {id:'order-to-cash',label:'Order to Cash',module:'accounting',page:'Invoice Ready'},
  {id:'procure-to-pay',label:'Procure to Pay',module:'purchase',page:'Purchase Orders'},
  {id:'project-commercial',label:'Project Commercial',module:'jobs',page:'Projects'},
- {id:'returns-credits',label:'Returns & Credits',module:'warehouse',page:'Goods In'},
+ {id:'returns-credits',label:'Returns & Credits',module:'warehouse',page:'Inbound'},
  {id:'engineer-stock',label:'Engineer & Van Stock',module:'locations',page:'Engineer Vans'},
  {id:'automation-assistant',label:'Automation & Assistant',module:'automation',page:'Overview'},
  {id:'reporting-export',label:'Reporting & Export',module:'analytics',page:'Reports & Data Export'}
@@ -32,7 +32,7 @@ function inspect(opts){opts=opts||{};const data=d(),today=opts.today||new Date()
  arr(data.stock).forEach(s=>{if(num(s.qty)<0)issue(issues,'engineer-stock','negative-stock','blocker','Negative physical stock detected',(s.productId||'Product')+' at '+(s.locationId||'location')+' has '+num(s.qty)+' on hand.',s.productId,{module:'locations',page:'Stock Movements',id:s.productId});if(num(s.allocated)>num(s.qty)&&num(s.qty)>=0)issue(issues,'engineer-stock','over-allocation','blocker','Allocated stock exceeds on-hand stock',(s.productId||'Product')+' is over-allocated at '+(s.locationId||'location')+'.',s.productId,{module:'locations',page:'Stock Overview',id:s.productId});});
  arr(data.automationLogs).filter(x=>/fail|error|blocked/i.test(text(x.status||x.result))).forEach(x=>issue(issues,'automation-assistant','automation-failure','attention','Automation run needs review',text(x.message||x.ruleId||x.id),x.id,{module:'automation',page:'Activity Log',id:x.id}));
  try{const ss=global.PoolShedSettingsPermissions&&global.PoolShedSettingsPermissions.securitySummary&&global.PoolShedSettingsPermissions.securitySummary();if(ss&&num(ss.approvalGaps)>0)issue(issues,'automation-assistant','approval-gap','blocker','Approval authority has gaps',ss.approvalGaps+' active user/role approval configurations need review.','approval-gaps',{module:'settings',page:'Approval Limits'});if(ss&&num(ss.inactiveAdmins)>0)issue(issues,'automation-assistant','inactive-admin','blocker','Inactive Admin access detected',ss.inactiveAdmins+' inactive Admin account(s) need review.','inactive-admin',{module:'settings',page:'Users'});}catch(_){}
- const integrations=arr(data.integrations);integrations.filter(x=>!/connected|healthy/i.test(text(x.status))).forEach(x=>issue(issues,'reporting-export','integration-health','attention',(x.name||x.id||'Integration')+' needs connection review','Status: '+(x.status||'Not connected'),x.id,{module:'settings',page:'Integrations',id:x.id}));
+ const integrations=arr(data.integrations);integrations.filter(x=>!/connected|healthy|ready to connect/i.test(text(x.status))).forEach(x=>issue(issues,'reporting-export','integration-health','attention',(x.name||x.id||'Integration')+' needs connection review','Status: '+(x.status||'Not connected'),x.id,{module:'settings',page:'Integrations',id:x.id}));
  const journeys=JOURNEYS.map(j=>{const ji=issues.filter(x=>x.journey===j.id),blockers=ji.filter(x=>x.severity==='blocker').length,attention=ji.filter(x=>x.severity!=='blocker').length;return Object.assign({},j,{state:blockers?'blocked':attention?'attention':'ready',blockers,attention,issues:ji});});
  const blockers=issues.filter(x=>x.severity==='blocker'),attention=issues.filter(x=>x.severity!=='blocker');const systemBlockers=checks.filter(x=>x.state==='blocker').length+blockers.length;const score=Math.max(0,100-systemBlockers*12-Math.min(20,attention.length*2));
  return {version:VERSION,answerPolicy:'Pool Shed only',generatedAt:new Date().toISOString(),today,terminology:TERMINOLOGY,systemChecks:checks,journeys,issues,blockers,attention,score,status:systemBlockers?'Blocked':attention.length?'Ready with attention':'Ready',environment:{databaseAutomation:opts.databaseAutomation||'Not verified in browser runtime',browserAutomation:opts.browserAutomation||'Not verified in browser runtime'},summary:{journeysReady:journeys.filter(x=>x.state==='ready').length,journeysTotal:journeys.length,blockers:blockers.length,attention:attention.length}};

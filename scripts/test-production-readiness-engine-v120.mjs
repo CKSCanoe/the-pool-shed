@@ -23,7 +23,7 @@ ctx.PoolShedProductHub={};ctx.PoolShedInventoryControl={};ctx.PoolShedFulfilment
 vm.createContext(ctx);vm.runInContext(fs.readFileSync('public/production-readiness-engine.js','utf8'),ctx);
 const r=ctx.PoolShedProductionReadiness;assert(r,'PoolShedProductionReadiness missing');
 const snap=r.inspect({today:'2026-09-16'});
-assert.equal(snap.version,'1.20.0');
+assert.equal(snap.version,JSON.parse(fs.readFileSync('package.json','utf8')).version);
 assert.equal(snap.systemChecks.filter(x=>x.state==='pass').length,snap.systemChecks.length,'all required authority engines should be recognised');
 assert.equal(snap.journeys.length,7,'seven critical acceptance journeys required');
 for(const id of ['order-to-cash','procure-to-pay','project-commercial','returns-credits','engineer-stock','automation-assistant','reporting-export'])assert(snap.journeys.some(j=>j.id===id),`missing journey ${id}`);

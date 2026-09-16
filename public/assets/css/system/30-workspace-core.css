@@ -52,7 +52,7 @@ button:hover {transform:none!important;}
 button.secondary,button.ghost {background:var(--panel);color:var(--ink);border:1px solid var(--line);box-shadow:none;}
 button.secondary:hover,button.ghost:hover {background:var(--soft);border-color:var(--color-dark-muted);}
 button:disabled {opacity:.5;}
-button.success,button.green-action {background:var(--color-status-success);box-shadow:none;}
+button.success,button.green-action {background:var(--color-status-success-bg);box-shadow:none;}
 button:focus-visible,input:focus-visible,select:focus-visible,textarea:focus-visible,summary:focus-visible,a:focus-visible {outline:3px solid var(--color-action-primary);outline-offset:3px;}
 
 input[type="checkbox"],input[type="radio"] {min-height:18px;width:18px;height:18px;padding:0;accent-color:var(--brand);flex:none;}
@@ -91,7 +91,7 @@ html[data-density="comfortable"] td {padding-block:17px;}
 html[data-density="comfortable"] .panel {padding:24px;}
 
 .ps-section-nav button {background:var(--panel);color:var(--muted);border:1px solid var(--line);}
-.ps-section-nav button.active {background:var(--brand);color:var(--color-action-primary);border-color:var(--brand);border-bottom-color:var(--color-action-primary);}
+.ps-section-nav button.active {background:var(--color-action-soft);color:var(--color-text-primary);border-color:var(--brand);border-bottom-color:var(--color-action-primary);}
 .ps-tool-layout {display:grid;grid-template-columns:minmax(0,1fr) minmax(300px,380px);gap:20px;grid-column:1/-1;}
 .ps-tool-form {display:grid;gap:14px;}
 .ps-tool-history {max-height:300px;overflow:auto;}

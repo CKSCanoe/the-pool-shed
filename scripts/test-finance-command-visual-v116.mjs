@@ -1,6 +1,10 @@
-import fs from 'node:fs';import assert from 'node:assert/strict';const css=fs.readFileSync('public/finance-command.css','utf8');
-assert(css.includes('#102b3a')||css.includes('#102B3A'),'Finance Command must retain Pool Shed navy authority');
-assert(css.includes('#007a8c')||css.includes('#007A8C'),'Finance Command must retain restrained Pool Shed teal accent');
+import fs from 'node:fs';
+import assert from 'node:assert/strict';
+const css=fs.readFileSync('public/finance-command.css','utf8');
+assert(css.includes('var(--color-shell)') || css.includes('var(--color-text-primary)') || css.includes('var(--color-action-primary)'), 'Finance Command compatibility CSS must consume the shared semantic colour authority');
+assert(css.includes('var(--color-action-primary)'), 'Finance Command must use the selected Steel Blue action token');
+assert(css.includes('var(--color-selected-surface)'), 'Finance Command selected navigation must use the shared selected surface');
+assert(!/#[0-9a-fA-F]{3,8}\b/.test(css), 'Finance Command compatibility CSS must not own fixed hex colours');
 assert(!/linear-gradient|radial-gradient/i.test(css),'Finance Command must not introduce generic SaaS gradients');
 assert(!/font-size\s*:\s*[0-9](?:px)?\s*[;}]/i.test(css),'Finance Command must not introduce unreadably small text');
-console.log('PASS Finance Command visual authority guard');
+console.log('PASS Finance Command semantic visual authority guard');

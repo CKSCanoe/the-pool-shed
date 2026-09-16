@@ -1,3 +1,11 @@
+# Pool Shed v1.22.0 Full System
+
+This repository contains the consolidated Pool Shed operational system. Start with [`START-HERE.md`](START-HERE.md) for the current architecture, build instructions, Xero safety state and verification notes.
+
+The primary runtime is in `public/`; `npm run build` produces `dist/`. Xero remains deliberately locked in **Ready to Connect** mode.
+
+## Historical release notes
+
 
 ## v1.10.0 Project 360 Commercial Control
 

@@ -17,7 +17,7 @@ const checks = [
   ['variant duplicate safeguard', workspace.includes('That exact variant is already on this order')],
   ['line action dropdown is viewport layer', workspace.includes('positionLineMenu') && css.includes('z-index:100000') && css.includes('position:fixed')],
   ['line menu uses real engines', workspace.includes('data-allocate-line') && workspace.includes('data-unallocate-line') && workspace.includes('data-remove-sales-line') && workspace.includes('data-open-product')],
-  ['catalogue stays neutral', css.includes('.so-smart-product-result.good') && css.includes('background:#fff!important')],
+  ['catalogue stays neutral', css.includes('.so-smart-product-result.good') && css.includes('.so-smart-product-result.bad{background:var(--color-surface-default)!important}') && css.includes('.so-smart-product-result.active{background:var(--color-hover-surface)!important}') && !css.includes('.so-smart-product-result.bad{background:var(--color-status-danger-bg)!important}')],
   ['product search engine preserved', legacy.includes('function salesOrderProductMatches(query)') && legacy.includes('function renderSalesOrderProductResults')],
   ['allocation engine preserved', legacy.includes('function allocateSalesOrder') && legacy.includes('function allocateSalesOrderLine')],
   ['goods note engine preserved', legacy.includes('function salesOrderGoodsNotesDirectory') && legacy.includes('goodsNotesForOrder')],

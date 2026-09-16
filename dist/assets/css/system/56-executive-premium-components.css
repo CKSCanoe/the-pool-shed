@@ -1,0 +1,85 @@
+/*
+ Pool Shed v1.24 Executive Premium component authority.
+ This file owns shared presentation only. It consumes semantic tokens from
+ 40-design-system.css and deliberately contains no independent palette values.
+ Feature modules continue to own workflow layout and geometry.
+*/
+
+html,body{background:var(--color-surface-canvas);color:var(--color-text-primary)}
+body .main{background:var(--color-surface-canvas);color:var(--color-text-primary)}
+
+/* Shell + navigation */
+body .sidebar{background:var(--color-shell);color:var(--color-shell-text);border-color:color-mix(in srgb,var(--color-shell-text) 8%,transparent)}
+body .sidebar :where(.brand,strong){color:var(--color-shell-text)}
+body .sidebar :where(.brand span,.nav-label,.nav-section-label){color:var(--color-shell-text-muted)}
+body .sidebar nav button{background:transparent;color:var(--color-shell-text-muted);border-color:transparent;box-shadow:none}
+body .sidebar nav button:hover{background:color-mix(in srgb,var(--color-shell-text) 6%,transparent);color:var(--color-shell-text);border-color:transparent}
+body .sidebar nav button.active,
+body .sidebar nav button.on,
+body .sidebar nav button[aria-current="page"]{background:color-mix(in srgb,var(--color-action-primary) 18%,transparent);color:var(--color-shell-text);box-shadow:inset 3px 0 0 var(--color-selected-edge)}
+
+/* Top bars and global utility controls */
+body .main :where(.topbar,.top-bar,.workspace-topbar,.command-topbar,.crm-create-topbar){background:var(--color-surface-default);color:var(--color-text-primary);border-color:var(--color-border-default);box-shadow:none}
+body .main :where(.topbar,.top-bar,.workspace-topbar,.command-topbar,.crm-create-topbar) :where(button,.icon-button,.notification-button,.user-chip-button){background:var(--color-surface-default);color:var(--color-text-secondary);border-color:var(--color-border-default)}
+body .main :where(.topbar,.top-bar,.workspace-topbar,.command-topbar,.crm-create-topbar) :where(button,.icon-button,.notification-button,.user-chip-button):hover{background:var(--color-surface-subtle);color:var(--color-text-primary);border-color:var(--color-border-strong)}
+
+/* Shared operational surfaces */
+body .main :where(.card,.panel,.workspace-card,.command-card,.metric-card,.summary-card,.detail-card,.location-card,.approval-card,.az-panel,.settings-card,.finance-card,.analytics-card,.supplier-card,.inventory-card,.ff-card,.po-card,.ph-card){background:var(--color-surface-default);color:var(--color-text-primary);border-color:var(--color-border-default);box-shadow:var(--shadow-panel)}
+body .main :where(.card,.panel,.workspace-card,.command-card,.metric-card,.summary-card,.detail-card) :where(p,small,.muted,.meta,.helper){color:var(--color-text-secondary)}
+
+/* Forms */
+body .main :where(input,select,textarea){background:var(--color-surface-default);color:var(--color-text-primary);border-color:var(--color-border-default)}
+body .main :where(input,select,textarea):hover{border-color:var(--color-border-strong)}
+body .main :where(input,select,textarea):focus{background:var(--color-surface-default);color:var(--color-text-primary);border-color:var(--color-action-primary);box-shadow:var(--focus-ring);outline:none}
+body .main :where(input,textarea)::placeholder{color:var(--color-text-muted)}
+body .main :where(input,select,textarea):disabled{background:var(--color-surface-subtle);color:var(--color-text-disabled);border-color:var(--color-border-default);cursor:not-allowed}
+
+/* Neutral button authority */
+body .main button:not(.ps-login-primary):not([class*="danger"]):not([class*="warning"]):not([class*="success"]):not(.primary):not(.primary-action):not([data-tone="primary"]){background:var(--color-surface-default);color:var(--color-text-primary);border-color:var(--color-border-default)}
+body .main button:not(.ps-login-primary):not([class*="danger"]):not([class*="warning"]):not([class*="success"]):not(.primary):not(.primary-action):not([data-tone="primary"]):hover{background:var(--color-surface-subtle);color:var(--color-text-primary);border-color:var(--color-border-strong)}
+body .main :where(button.primary,.primary-action,[data-tone="primary"],.az-btn.primary){background:var(--color-action-primary);color:var(--color-action-contrast);border-color:var(--color-action-primary)}
+body .main :where(button.primary,.primary-action,[data-tone="primary"],.az-btn.primary):hover{background:var(--color-action-primary-hover);color:var(--color-action-contrast);border-color:var(--color-action-primary-hover)}
+body .main :where(button,[role="button"],a,input,select,textarea,summary):focus-visible{outline:none;box-shadow:var(--focus-ring);border-color:var(--color-action-primary)}
+body .main :where(button,[role="button"]):disabled{background:var(--color-surface-subtle);color:var(--color-text-disabled);border-color:var(--color-border-default);box-shadow:none;cursor:not-allowed}
+
+/* Tables */
+body .main :where(.table-wrap,.table-region,.ps-table-region,[class*="table-wrap"]){background:var(--color-surface-default);border-color:var(--color-border-default)}
+body .main table{background:var(--color-surface-default);color:var(--color-text-primary)}
+body .main table thead th{background:var(--color-surface-subtle);color:var(--color-text-secondary);border-color:var(--color-border-default)}
+body .main table tbody td{background:transparent;color:var(--color-text-primary);border-color:var(--color-border-default)}
+body .main table tbody tr:hover,
+body .main table tbody tr:hover td{background:var(--color-hover-surface);color:var(--color-text-primary)}
+body .main table tbody tr:is(.selected,.is-selected,.active-row,[aria-selected="true"]),
+body .main table tbody tr:is(.selected,.is-selected,.active-row,[aria-selected="true"]) td{background:var(--color-selected-surface);color:var(--color-text-primary)}
+body .main table tbody tr:is(.selected,.is-selected,.active-row,[aria-selected="true"]) td:first-child{box-shadow:inset 3px 0 0 var(--color-selected-edge)}
+
+/* Tabs and segmented navigation */
+body .main :where(.tabs,.tab-list,.ps-section-nav,.ph-section-nav,.subnav,.analytics-subnav,.automation-subnav,.finance-command-subnav,.inventory-subnav,.ff-subnav){background:var(--color-surface-subtle);border-color:var(--color-border-default)}
+body .main :where(.tab,.tab-chip,.ps-section-nav button,.ph-section-nav button,.subnav button,.analytics-subnav button,.automation-subnav button,.finance-command-subnav button,.inventory-subnav button,.ff-subnav button){background:transparent;color:var(--color-text-secondary);border-color:transparent;box-shadow:none}
+body .main :where(.tab,.tab-chip,.ps-section-nav button,.ph-section-nav button,.subnav button,.analytics-subnav button,.automation-subnav button,.finance-command-subnav button,.inventory-subnav button,.ff-subnav button):hover{background:var(--color-hover-surface);color:var(--color-text-primary)}
+body .main :where(.tab.active,.tab-chip.active,.tab.on,.ps-section-nav button.active,.ps-section-nav button.on,.ph-section-nav button.active,.ph-section-nav button.on,.subnav button.active,.subnav button.on,.analytics-subnav button.on,.automation-subnav button.on,.finance-command-subnav button.on,.inventory-subnav button.on,.ff-subnav button.on){background:var(--color-surface-default);color:var(--color-text-primary);border-color:var(--color-selected-edge);box-shadow:inset 0 -2px 0 var(--color-selected-edge)}
+
+/* Selected tiles/cards use two cues: soft fill plus explicit edge. */
+body .main :where(.selected,.is-selected,.has-selection,[aria-selected="true"]):not(tr):not(option){background:var(--color-selected-surface);color:var(--color-text-primary);border-color:var(--color-selected-edge)}
+
+/* Status pills: category/metadata remains neutral; semantic states own semantic colour. */
+body .main :where(.pill,.badge,[class*="-pill"],[class*="-badge"]){background:var(--color-surface-subtle);color:var(--color-text-secondary);border-color:var(--color-border-default)}
+body .main :where(.pill.good,.pill.success,.badge.good,.badge.success,.status-good,.is-success,[data-status="success"]){background:var(--color-status-success-bg);color:var(--color-status-success-text);border-color:var(--color-status-success-line)}
+body .main :where(.pill.warn,.pill.warning,.badge.warn,.badge.warning,.status-warn,.is-warning,[data-status="warning"]){background:var(--color-status-attention-bg);color:var(--color-status-attention-text);border-color:var(--color-status-attention-line)}
+body .main :where(.pill.bad,.pill.danger,.badge.bad,.badge.danger,.status-bad,.is-danger,[data-status="danger"]){background:var(--color-status-danger-bg);color:var(--color-status-danger-text);border-color:var(--color-status-danger-line)}
+body .main :where(.pill.info,.badge.info,.status-info,[data-status="info"]){background:var(--color-status-info-bg);color:var(--color-status-info-text);border-color:var(--color-status-info-line)}
+
+/* Semantic callouts and semantic action controls */
+body .main :where(.success,.is-success):not(.pill):not(.badge):not(tr){color:var(--color-status-success-text);border-color:var(--color-status-success-line)}
+body .main :where(.warning,.attention,.is-warning):not(.pill):not(.badge):not(tr){color:var(--color-status-attention-text);border-color:var(--color-status-attention-line)}
+body .main :where(.danger,.is-danger):not(.pill):not(.badge):not(tr){color:var(--color-status-danger-text);border-color:var(--color-status-danger-line)}
+body .main button[class*="danger"]{background:var(--color-status-danger);color:var(--color-action-contrast);border-color:var(--color-status-danger)}
+body .main button[class*="warning"]{background:var(--color-status-attention-bg);color:var(--color-status-attention-text);border-color:var(--color-status-attention-line)}
+
+/* Modal, drawer, menu and popover hierarchy */
+body :where(.modal-backdrop,.settings-modal-backdrop,[class*="modal-backdrop"],[class*="drawer-backdrop"]){background:var(--color-overlay-scrim)}
+body :where(.modal,[class*="-modal"],.drawer,[class*="-drawer"],.dropdown,[class*="-popover"],[class*="-menu"]){background:var(--color-surface-raised);color:var(--color-text-primary);border-color:var(--color-border-default);box-shadow:var(--shadow-dialog)}
+body :where(.modal,[class*="-modal"],.drawer,[class*="-drawer"],.dropdown,[class*="-popover"],[class*="-menu"]) :where(p,small,.muted){color:var(--color-text-secondary)}
+
+/* Scroll/selection polish */
+body ::selection{background:var(--color-selected-surface);color:var(--color-text-primary)}

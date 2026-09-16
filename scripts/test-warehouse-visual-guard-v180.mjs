@@ -8,5 +8,11 @@ assert(css.includes('.wh-work-layout'),'Desktop work queue/inspector layout miss
 assert(css.includes('@media') && css.includes('max-width: 1100px'),'Warehouse responsive inspector collapse missing');
 assert(css.includes('max-width: 720px'),'Warehouse mobile guard missing');
 assert(!/\.warehouse-precision-page[^}]*overflow\s*:\s*hidden[^}]*}/.test(css),'Warehouse root must not clip dropdowns/overlays');
-assert(css.includes('background:#f2f7f8') || css.includes('background: #f2f7f8'),'Warehouse hover state must use the calm blue-grey treatment');
+assert(css.includes('.wh-table tbody tr:hover td{background:var(--color-hover-surface)}'),'Warehouse hover state must use the shared semantic hover surface');
+assert(css.includes('.wh-table tbody tr.selected td{background:var(--color-selected-surface)}'),'Warehouse selected rows must use the shared selected surface');
+assert(css.includes('--wh-green-bg:var(--color-status-success-bg)'),'Warehouse success surfaces must use the soft semantic success background');
+assert(css.includes('--wh-amber-bg:var(--color-status-attention-bg)'),'Warehouse warning surfaces must use the soft semantic warning background');
+assert(css.includes('--wh-red-bg:var(--color-status-danger-bg)'),'Warehouse danger surfaces must use the soft semantic danger background');
+assert(css.includes('--wh-blue-bg:var(--color-status-info-bg)'),'Warehouse information surfaces must use the soft semantic info background');
+assert(css.includes('.wh-command-strip') && css.includes('color:var(--color-shell-text)'),'Warehouse dark command strip must use shell-safe text');
 console.log('Warehouse Precision Desk visual guard passed.');

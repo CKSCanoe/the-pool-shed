@@ -1,3 +1,5 @@
+> **v1.21.0 safety gate:** keep `XERO_INTEGRATION_MODE=ready` until Pool Shed production acceptance is complete. Ready mode blocks all live Xero provider calls. See `XERO-CONNECTION-READY.md`.
+
 > For project phase invoices, also follow PROJECT-SETUP-AND-USER-GUIDE.md and apply the project migrations. The full-order limitation below describes the standalone sales-order invoice form.
 
 # Accounting connection setup
@@ -23,10 +25,12 @@ This release adds a server-backed Xero draft-invoice and payment-status integrat
 | XERO_WEBHOOK_KEY | Signing key from Xero webhook configuration |
 | CRON_SECRET | A long random scheduler authentication secret |
 | FINANCE_WORKSPACE_ID | `pool-bros-main` unless deliberately using another workspace |
+| XERO_INTEGRATION_MODE | Keep `ready` until the production-acceptance gate is explicitly approved |
 
-6. In the Xero developer portal register the exact callback `https://YOUR-HOST/api/finance?action=callback`. Configure the webhook destination `https://YOUR-HOST/api/finance?action=webhook` for invoice events. Complete Xero's signed webhook verification. The handler stores accepted events before responding and prioritises linked records for the worker.
-7. Open Dashboard → Accounting & Xero → Connect Xero. Authorise, return to the app, refresh, and explicitly select the organisation. Reconnecting cannot silently switch a workspace to another organisation.
-8. Configure a scheduler to call `/api/finance?action=cron` every minute with `Authorization: Bearer <CRON_SECRET>`. A Vercel cron example is in `vercel-accounting-schedule.example.json`; merge its `crons` entry into `vercel.json` only when the hosting plan supports it. Vercel Hobby does not support minute scheduling. No paid plan has been purchased or enabled. Without the scheduler, use “Check for updates”; automatic background synchronisation will not run.
+6. In the Xero developer portal, prepare the Web App with the exact callback `https://YOUR-HOST/api/finance?action=callback` and the granular scopes documented in `XERO-CONNECTION-READY.md`. Do not authorise the live Pool Bros organisation yet.
+7. Keep `XERO_INTEGRATION_MODE=ready`. In this mode Pool Shed reports configuration readiness but rejects OAuth authorisation, tenant selection, webhooks, Xero lookups, document export, reconciliation calls and scheduled sync with a locked status.
+8. Prepare the future webhook URL `https://YOUR-HOST/api/finance?action=webhook` and scheduler route `/api/finance?action=cron`, but do not activate either against the live organisation yet. The example schedule remains in `vercel-accounting-schedule.example.json`.
+9. When the rest of Pool Shed has passed production acceptance, use a Xero Demo Company first. Only after the demo acceptance checklist passes should an authorised Finance Admin change the secure deployment setting to `XERO_INTEGRATION_MODE=live`, complete OAuth and explicitly select the intended organisation.
 
 ## What synchronises
 

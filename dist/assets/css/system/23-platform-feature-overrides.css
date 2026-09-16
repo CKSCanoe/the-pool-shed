@@ -23,7 +23,7 @@
 /* Prevent legacy screens flashing behind the current application while booting. */
 html.ps-booting body { overflow:hidden; }
 html.ps-booting #appShell, html.ps-booting #loginScreen { visibility:hidden !important; }
-#psBootScreen { position:fixed; inset:0; z-index:99999; display:grid; place-items:center; background:var(--color-surface-default); color:var(--color-surface-default); transition:opacity .22s ease,visibility .22s ease; }
+#psBootScreen { position:fixed; inset:0; z-index:99999; display:grid; place-items:center; background:var(--color-surface-default); color:var(--color-text-primary); transition:opacity .22s ease,visibility .22s ease; }
 #psBootScreen.is-ready { opacity:0; visibility:hidden; pointer-events:none; }
 .ps-boot-card { width:min(430px,calc(100vw - 40px)); padding:32px; border:1px solid color-mix(in srgb, var(--color-surface-default) 20%, transparent); border-radius:var(--ps-radius-panel); background:color-mix(in srgb, var(--color-surface-default) 8%, transparent); backdrop-filter:blur(14px); box-shadow:none; }
 .ps-boot-brand { display:flex; align-items:center; gap:15px; }
@@ -88,12 +88,12 @@ button.secondary:hover { background:var(--color-action-focus); transform:none; }
   z-index:9;
   padding:10px 9px;
   white-space:nowrap;
-  background:var(--color-surface-subtle);
-  color:var(--color-text-secondary);
+  background:var(--color-action-focus);
+  color:var(--color-status-info);
   font-size:.75rem;
   letter-spacing:.045em;
   text-transform:uppercase;
-  border-bottom:1px solid var(--color-border-default);
+  border-bottom:1px solid var(--color-action-focus);
   box-shadow:0 1px 0 color-mix(in srgb, var(--color-dark-muted) 18%, transparent);
 }
 #screen-salesorders .order-lines-table thead th:first-child { border-top-left-radius:14px; }
@@ -112,7 +112,7 @@ button.secondary:hover { background:var(--color-action-focus); transform:none; }
 #screen-salesorders tr.bundle-line-head { background:var(--color-surface-default); }
 #screen-salesorders tr.bundle-line-head > td { border-top:2px solid color-mix(in srgb, var(--color-action-primary) 35%, transparent); }
 #screen-salesorders tr.bundle-line-head td:nth-child(4) strong { font-size:1rem; }
-#screen-salesorders tr.bundle-line-child { background:var(--color-status-info); }
+#screen-salesorders tr.bundle-line-child { background:var(--color-status-info-bg); }
 #screen-salesorders tr.bundle-line-child > td:first-child { border-left:4px solid var(--color-action-focus); }
 #screen-salesorders tr.bundle-line-child td:nth-child(3),
 #screen-salesorders tr.bundle-line-child td:nth-child(4) { padding-left:18px; }
@@ -162,8 +162,8 @@ tr.ps-bundle-collapsed { display:none; }
 #screen-fulfilment .panel:first-child::before { content:"PRINT  →  PICK  →  PACK  →  SHIP"; display:block; margin:0 0 12px; padding:8px 12px; border-radius:var(--ps-radius-panel); background:var(--color-surface-default); color:var(--color-action-primary); font-size:.78rem; font-weight:900; letter-spacing:.08em; }
 
 /* Accounting/Jobs are denser and more software-like without inventing fake integrations. */
-#screen-accounting .panel, #screen-jobs .panel { border:1px solid var(--color-border-default); }
-#screen-accounting table thead th, #screen-jobs table thead th { background:var(--color-surface-subtle); color:var(--color-text-secondary); }
+#screen-accounting .panel, #screen-jobs .panel { border:1px solid var(--color-action-focus); }
+#screen-accounting table thead th, #screen-jobs table thead th { background:var(--color-action-focus); }
 #screen-accounting .profile-stat-grid, #screen-jobs .profile-stat-grid { gap:10px; }
 #screen-accounting .profile-stat, #screen-jobs .profile-stat { min-height:88px; border-radius:var(--ps-radius-panel); }
 
@@ -171,7 +171,7 @@ tr.ps-bundle-collapsed { display:none; }
 [data-theme="dark"] #screen-salesorders .so-line-composer,
 [data-theme="dark"] #screen-salesorders tr.bundle-line-child { background:var(--color-brand-navy); }
 [data-theme="dark"] #screen-salesorders .tab-chip { background:var(--color-brand-navy); color:var(--color-action-focus); border-color:var(--color-action-primary); }
-[data-theme="dark"] #screen-salesorders .tab-chip.active { background:var(--color-surface-default); color:var(--color-surface-default); }
+[data-theme="dark"] #screen-salesorders .tab-chip.active { background:var(--color-surface-default); color:var(--color-text-primary); }
 [data-theme="dark"] #screen-salesorders .order-lines-table thead th { background:var(--color-brand-navy); color:var(--color-action-focus); }
 [data-theme="dark"] #screen-salesorders .order-lines-table tbody td { border-bottom-color:var(--color-brand-navy); }
 
@@ -229,7 +229,7 @@ img { content-visibility: auto; }
 .so-customer-picker-head > div { display: grid; gap: 1px; }
 .so-customer-picker-head span { color: var(--color-text-secondary); font-size: 11px; font-weight: 800; letter-spacing: .08em; text-transform: uppercase; }
 .so-customer-picker-head strong { color: var(--color-brand-navy); font-size: 15px; }
-.so-customer-linked-chip { padding: 6px 10px; border-radius: 999px; background: var(--color-status-success); color: var(--color-status-success) !important; letter-spacing: 0 !important; text-transform: none !important; white-space: nowrap; }
+.so-customer-linked-chip { padding: 6px 10px; border-radius: 999px; background: var(--color-status-success-bg); color: var(--color-status-success-text)!important; letter-spacing: 0 !important; text-transform: none !important; white-space: nowrap; }
 .so-customer-search-row { gap: 9px; }
 .so-customer-search-field { flex: 1 1 auto; min-width: 0; height: 48px; display: flex; align-items: center; gap: 9px; padding: 0 12px; border: 1px solid var(--color-action-focus); border-radius:var(--ps-radius-control); background: var(--color-surface-default); transition: box-shadow .16s ease, border-color .16s ease; }
 .so-customer-search-field:focus-within { border-color: var(--color-action-primary); box-shadow: 0 0 0 4px color-mix(in srgb, var(--color-action-primary) 12%, transparent); }
@@ -273,7 +273,7 @@ img { content-visibility: auto; }
 .so-customer-drawer-shell.open { pointer-events: auto; visibility: visible; }
 .so-customer-drawer-backdrop { position: absolute; inset: 0; background: color-mix(in srgb, var(--color-brand-navy) 48%, transparent); opacity: 0; transition: opacity .18s ease; backdrop-filter: blur(2px); }
 .so-customer-drawer-shell.open .so-customer-drawer-backdrop { opacity: 1; }
-.so-customer-drawer { position: absolute; top: 0; right: 0; bottom: 0; width: min(540px, 94vw); display: grid; grid-template-rows: auto minmax(0,1fr); background: var(--color-status-info); box-shadow: -24px 0 70px color-mix(in srgb, var(--color-brand-navy) 24%, transparent); transform: translateX(102%); transition: transform .22s cubic-bezier(.2,.8,.2,1); }
+.so-customer-drawer { position: absolute; top: 0; right: 0; bottom: 0; width: min(540px, 94vw); display: grid; grid-template-rows: auto minmax(0,1fr); background:var(--color-status-info-bg); box-shadow: -24px 0 70px color-mix(in srgb, var(--color-brand-navy) 24%, transparent); transform: translateX(102%); transition: transform .22s cubic-bezier(.2,.8,.2,1); }
 .so-customer-drawer-shell.open .so-customer-drawer { transform: translateX(0); }
 .so-customer-drawer > header { display: flex; justify-content: space-between; gap: 18px; padding: 24px 24px 20px; background:var(--color-brand-navy); color: var(--color-surface-default); }
 .so-customer-drawer > header > div { display: grid; gap: 4px; }
@@ -295,12 +295,12 @@ img { content-visibility: auto; }
 .so-customer-form-grid.two { display: grid; grid-template-columns: minmax(0,1fr) minmax(0,1fr); gap: 10px; }
 .so-customer-drawer footer { display: flex; justify-content: flex-end; gap: 9px; padding: 14px 20px; border-top: 1px solid var(--color-action-focus); background: color-mix(in srgb, var(--color-surface-default) 96%, transparent); box-shadow: 0 -8px 22px color-mix(in srgb, var(--color-brand-navy) 5%, transparent); }
 .so-create-link-button { min-width: 190px; background: var(--color-action-primary) !important; border-color: var(--color-action-primary) !important; color: var(--color-surface-default) !important; }
-.so-customer-duplicate { display: flex; align-items: center; justify-content: space-between; gap: 10px; padding: 10px 11px; margin-top: 4px; border: 1px solid var(--color-status-attention); border-radius:var(--ps-radius-panel); background: var(--color-status-attention); }
+.so-customer-duplicate { display: flex; align-items: center; justify-content: space-between; gap: 10px; padding: 10px 11px; margin-top: 4px; border: 1px solid var(--color-status-attention); border-radius:var(--ps-radius-panel); background:var(--color-status-attention-bg); }
 .so-customer-duplicate[hidden] { display: none !important; }
 .so-customer-duplicate > div { display: grid; gap: 2px; }
 .so-customer-duplicate strong { color: var(--color-status-attention); font-size: 11px; }
 .so-customer-duplicate span { color: var(--color-status-attention); font-size: 10px; }
-.so-customer-duplicate button { flex: 0 0 auto; padding: 7px 10px !important; border-radius:var(--ps-radius-control)!important; background: var(--color-surface-default) !important; color: var(--color-status-attention) !important; border: 1px solid var(--color-status-attention) !important; box-shadow: none !important; }
+.so-customer-duplicate button { flex: 0 0 auto; padding: 7px 10px !important; border-radius:var(--ps-radius-control)!important; background: var(--color-surface-default) !important; color: var(--color-text-primary)!important; border: 1px solid var(--color-status-attention) !important; box-shadow: none !important; }
 body.so-customer-drawer-open { overflow: hidden; }
 
 @media (max-width: 900px) {
