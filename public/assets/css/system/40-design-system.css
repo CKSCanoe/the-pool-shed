@@ -24,6 +24,7 @@
   --color-text-inverse: #FFFFFF;
   --color-shell-text: #EEF3F5;
   --color-shell-text-muted: #A9B5BB;
+  --color-shell-text-subnav: #B9C4CA;
   --color-logo-surface: #FFFFFF;
   --color-text-disabled: #89959C;
   --color-border-default: #D8E0E4;
@@ -178,6 +179,7 @@ body[data-theme="dark"],
   --color-text-primary: #EEF3F5;
   --color-text-secondary: #A9B5BB;
   --color-text-muted: #7F8C93;
+  --color-shell-text-subnav: #B9C4CA;
   --color-text-inverse: #0B1015;
   --color-text-disabled: #7F8C93;
   --color-border-default: #2C3841;

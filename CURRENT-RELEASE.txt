@@ -1,2 +1,10 @@
-Pool Shed v1.24.1 — Executive Premium Contrast Authority
-Project Details wording retained. Steel Blue semantic light/dark system with corrected shell/text contrast authority.
+Pool Shed v1.24.2 — Interaction & Navigation Authority
+
+Baseline: v1.24.1 Executive Premium Contrast Authority
+
+Purpose:
+- Primary actions use Executive Premium Steel Blue, including New Sales Order and Save customer.
+- Green is reserved for semantic success status, not creation/save CTAs.
+- Sidebar submenu text has a dedicated readable shell foreground.
+- Active submenu items use high-contrast shell text with a restrained Steel Blue selection cue.
+- Hover, focus and selected states remain consistent in light and dark mode.

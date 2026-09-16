@@ -23,7 +23,7 @@ body[data-theme="dark"], [data-theme="dark"] {--ink:var(--color-text-primary);--
 .sidebar nav button.active {background:var(--color-brand-navy);color:var(--color-shell-text);border-color:var(--color-text-secondary);box-shadow:inset 3px 0 var(--color-action-focus);}
 .sidebar .nav-subgroups {margin:6px 0 10px 18px;padding-left:10px;border-left:1px solid var(--color-text-secondary);display:grid;gap:2px;}
 .sidebar .nav-subgroups button {font-size:14px;min-height:36px;padding:7px 10px;}
-.sidebar .nav-subgroups button.active {background:color-mix(in srgb, var(--color-surface-default) 5.1%, transparent);box-shadow:none;border-color:transparent;color:var(--color-action-focus);}
+.sidebar .nav-subgroups button.active {background:color-mix(in srgb, var(--color-action-primary) 18%, transparent);box-shadow:inset 3px 0 0 var(--color-selected-edge);border-color:transparent;color:var(--color-shell-text);}
 .main {padding:28px 32px;max-width:none;min-width:0;}
 
 .topbar .title {flex:1;min-width:200px;}
@@ -137,8 +137,8 @@ body[data-theme="dark"] .main .muted,body[data-theme="dark"] .main p.muted {colo
 body[data-theme="dark"] .main .ps-section-nav button.active {background:var(--color-selected-surface)!important;color:var(--color-action-primary)!important;border-color:var(--color-selected-edge)!important;}
 body[data-theme="dark"] .main .tab-chip.active {background:var(--color-selected-surface)!important;color:var(--color-action-primary)!important;border-color:var(--color-selected-edge)!important;}
 .sidebar .nav-subgroups {opacity:1!important;}
-.sidebar .nav-subgroups button {opacity:1;color:var(--color-dark-muted)!important;}
-.sidebar .nav-subgroups button.active {color:var(--color-action-focus)!important;}
+.sidebar .nav-subgroups button {opacity:1;color:var(--color-shell-text-subnav);}
+.sidebar .nav-subgroups button.active {color:var(--color-shell-text);}
 
 /* Finance shares the workspace scale and preserves horizontal scrolling on phones. */
 #psFinance details { margin: 1.25rem 0; }

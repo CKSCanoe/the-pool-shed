@@ -18,6 +18,13 @@ body .sidebar nav button.active,
 body .sidebar nav button.on,
 body .sidebar nav button[aria-current="page"]{background:color-mix(in srgb,var(--color-action-primary) 18%,transparent);color:var(--color-shell-text);box-shadow:inset 3px 0 0 var(--color-selected-edge)}
 
+body .sidebar .nav-subgroups{border-left-color:color-mix(in srgb,var(--color-shell-text) 16%,transparent)}
+body .sidebar .nav-subgroups button{background:transparent;color:var(--color-shell-text-subnav);border-color:transparent;box-shadow:none}
+body .sidebar .nav-subgroups button:hover{background:color-mix(in srgb,var(--color-shell-text) 7%,transparent);color:var(--color-shell-text);border-color:transparent}
+body .sidebar .nav-subgroups button.active,
+body .sidebar .nav-subgroups button.on,
+body .sidebar .nav-subgroups button[aria-current="page"]{background:color-mix(in srgb,var(--color-action-primary) 18%,transparent);color:var(--color-shell-text);border-color:transparent;box-shadow:inset 3px 0 0 var(--color-selected-edge)}
+
 /* Top bars and global utility controls */
 body .main :where(.topbar,.top-bar,.workspace-topbar,.command-topbar,.crm-create-topbar){background:var(--color-surface-default);color:var(--color-text-primary);border-color:var(--color-border-default);box-shadow:none}
 body .main :where(.topbar,.top-bar,.workspace-topbar,.command-topbar,.crm-create-topbar) :where(button,.icon-button,.notification-button,.user-chip-button){background:var(--color-surface-default);color:var(--color-text-secondary);border-color:var(--color-border-default)}
@@ -39,6 +46,9 @@ body .main button:not(.ps-login-primary):not([class*="danger"]):not([class*="war
 body .main button:not(.ps-login-primary):not([class*="danger"]):not([class*="warning"]):not([class*="success"]):not(.primary):not(.primary-action):not([data-tone="primary"]):hover{background:var(--color-surface-subtle);color:var(--color-text-primary);border-color:var(--color-border-strong)}
 body .main :where(button.primary,.primary-action,[data-tone="primary"],.az-btn.primary){background:var(--color-action-primary);color:var(--color-action-contrast);border-color:var(--color-action-primary)}
 body .main :where(button.primary,.primary-action,[data-tone="primary"],.az-btn.primary):hover{background:var(--color-action-primary-hover);color:var(--color-action-contrast);border-color:var(--color-action-primary-hover)}
+/* Legacy action names are presentation-safe: green is reserved for status, not primary CTAs. */
+body .main :where(button.success,button.green-action){background:var(--color-action-primary);color:var(--color-action-contrast);border-color:var(--color-action-primary);box-shadow:none}
+body .main :where(button.success,button.green-action):hover{background:var(--color-action-primary-hover);color:var(--color-action-contrast);border-color:var(--color-action-primary-hover);box-shadow:none}
 body .main :where(button,[role="button"],a,input,select,textarea,summary):focus-visible{outline:none;box-shadow:var(--focus-ring);border-color:var(--color-action-primary)}
 body .main :where(button,[role="button"]):disabled{background:var(--color-surface-subtle);color:var(--color-text-disabled);border-color:var(--color-border-default);box-shadow:none;cursor:not-allowed}
 
@@ -70,9 +80,9 @@ body .main :where(.pill.bad,.pill.danger,.badge.bad,.badge.danger,.status-bad,.i
 body .main :where(.pill.info,.badge.info,.status-info,[data-status="info"]){background:var(--color-status-info-bg);color:var(--color-status-info-text);border-color:var(--color-status-info-line)}
 
 /* Semantic callouts and semantic action controls */
-body .main :where(.success,.is-success):not(.pill):not(.badge):not(tr){color:var(--color-status-success-text);border-color:var(--color-status-success-line)}
-body .main :where(.warning,.attention,.is-warning):not(.pill):not(.badge):not(tr){color:var(--color-status-attention-text);border-color:var(--color-status-attention-line)}
-body .main :where(.danger,.is-danger):not(.pill):not(.badge):not(tr){color:var(--color-status-danger-text);border-color:var(--color-status-danger-line)}
+body .main :where(.success,.is-success):not(.pill):not(.badge):not(tr):not(button){color:var(--color-status-success-text);border-color:var(--color-status-success-line)}
+body .main :where(.warning,.attention,.is-warning):not(.pill):not(.badge):not(tr):not(button){color:var(--color-status-attention-text);border-color:var(--color-status-attention-line)}
+body .main :where(.danger,.is-danger):not(.pill):not(.badge):not(tr):not(button){color:var(--color-status-danger-text);border-color:var(--color-status-danger-line)}
 body .main button[class*="danger"]{background:var(--color-status-danger);color:var(--color-action-contrast);border-color:var(--color-status-danger)}
 body .main button[class*="warning"]{background:var(--color-status-attention-bg);color:var(--color-status-attention-text);border-color:var(--color-status-attention-line)}
 
