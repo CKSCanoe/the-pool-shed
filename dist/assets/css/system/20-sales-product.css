@@ -408,9 +408,9 @@ body.dark .so-selected-product strong,
   top: 0;
   z-index: 2;
   padding: .78rem .72rem;
-  background: var(--color-action-focus);
-  color: var(--color-status-info);
-  border-bottom: 1px solid var(--color-action-focus);
+  background: var(--color-surface-subtle);
+  color: var(--color-text-secondary);
+  border-bottom: 1px solid var(--color-border-default);
   font-size:var(--ps-font-micro);
   letter-spacing: .055em;
   white-space: nowrap;

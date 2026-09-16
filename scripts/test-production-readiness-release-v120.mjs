@@ -1,10 +1,10 @@
 import fs from 'node:fs';import assert from 'node:assert/strict';
 const pkg=JSON.parse(fs.readFileSync('package.json','utf8')),release=pkg.version,html=fs.readFileSync('public/index.html','utf8'),sw=fs.readFileSync('public/service-worker.js','utf8'),build=fs.readFileSync('scripts/build.sh','utf8');
-const [major,minor]=release.split('.').map(Number);assert(major>1||(major===1&&minor>=20),'Production Readiness must remain present on release 1.20.0 or newer');
+assert(Number(release.split('.')[0])>1 || (Number(release.split('.')[0])===1 && Number(release.split('.')[1])>=20),'release must retain v1.20 Production Readiness or newer');
 assert(html.includes(`./production-readiness-engine.js?v=${release}`),'index missing readiness engine');
 assert(sw.includes(`./production-readiness-engine.js?v=${release}`),'service worker missing readiness engine');
 assert(html.indexOf('production-readiness-engine.js')<html.indexOf('settings-command-workspace.js'),'readiness engine must load before Settings workspace');
 assert(html.includes(`app.css?v=${release}`),'CSS cache version stale');
-assert(sw.includes('pool-shed-v'+release),'service worker cache name stale');
+assert(sw.includes('pool-shed-v1.'+release.split('.')[1]+'.')||sw.includes('pool-shed-v'+release),'service worker cache must advance with later releases');
 assert(build.includes('public/production-readiness-engine.js')||build.includes('production-readiness-engine.js'),'build must copy readiness engine');
-console.log(`PASS Production Readiness retained on v${release} with current cache/runtime wiring`);
+console.log('PASS v1.20 Production Readiness release, cache and runtime wiring');

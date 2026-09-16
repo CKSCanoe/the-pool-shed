@@ -1,0 +1,13 @@
+import fs from 'node:fs';import assert from 'node:assert/strict';
+const pkg=JSON.parse(fs.readFileSync('package.json','utf8')),release=pkg.version,html=fs.readFileSync('public/index.html','utf8'),sw=fs.readFileSync('public/service-worker.js','utf8'),build=fs.readFileSync('scripts/build.sh','utf8');
+assert(Number(release.split('.')[0])>1 || (Number(release.split('.')[0])===1 && Number(release.split('.')[1])>=21),'release must remain v1.21+');
+assert(html.includes(`./legacy-migration-engine.js?v=${release}`),'index missing migration engine');
+assert(html.indexOf('legacy-migration-engine.js')<html.indexOf('settings-command-workspace.js'),'migration engine must load before Settings workspace');
+assert(sw.includes(`./legacy-migration-engine.js?v=${release}`),'service worker missing migration engine');
+assert(sw.includes('pool-shed-v1.'),'service worker cache identity stale');
+assert(html.includes(`app.css?v=${release}`),'CSS cache version stale');
+assert(build.includes('legacy-migration-engine.js'),'build must guard migration engine');
+assert(pkg.scripts.validate.includes('test-legacy-migration-engine-v121.mjs'),'validate chain missing migration engine test');
+assert(pkg.scripts.validate.includes('test-legacy-migration-workspace-v121.mjs'),'validate chain missing migration workspace test');
+assert(pkg.scripts.validate.includes('test-legacy-migration-release-v121.mjs'),'validate chain missing migration release test');
+console.log('PASS v1.21 Legacy Data Migration release, cache, build and validation wiring');

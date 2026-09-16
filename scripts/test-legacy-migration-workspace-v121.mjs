@@ -1,0 +1,14 @@
+import fs from 'node:fs';
+import assert from 'node:assert/strict';
+const ws=fs.readFileSync('public/settings-command-workspace.js','utf8');
+const cssPath='public/assets/css/system/55-legacy-migration.css';
+assert(ws.includes("'Legacy Data Migration'"),'Settings page list must include Legacy Data Migration');
+for(const token of ['legacyMigrationPage','scan-legacy-data','preview-legacy-migration','apply-legacy-migration','download-migration-backup','legacyMigrationFile','PoolShedLegacyMigration']) assert(ws.includes(token),`migration workspace missing ${token}`);
+assert(ws.includes('migrationPreview'),'migration must keep explicit dry-run preview state');
+assert(ws.includes('confirm('),'apply must require explicit confirmation');
+assert(fs.existsSync(cssPath),'migration CSS module must exist');
+const css=fs.readFileSync(cssPath,'utf8');
+for(const token of ['.migration-source','.migration-report','.migration-conflict','.migration-guard']) assert(css.includes(token),`migration CSS missing ${token}`);
+const buildCss=fs.readFileSync('scripts/build-css.mjs','utf8');
+assert(buildCss.includes('system/55-legacy-migration.css'),'CSS build must include migration module');
+console.log('PASS v1.21 Legacy Data Migration Settings control surface and visual module');

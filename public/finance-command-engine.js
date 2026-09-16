@@ -111,7 +111,7 @@
     tw.filter(function(x){return x.status==='BLOCK PAYMENT';}).forEach(function(x){attention.push({type:'three-way',severity:'critical',poId:x.poId,title:'Supplier bill blocked',detail:x.reasons.join(', '),action:'Review match'});});
     ready.forEach(function(x){attention.push({type:'invoice-ready',severity:'warning',orderId:x.orderId,title:'Sales Order ready to invoice',amount:x.value,action:'Create invoice'});});
     rec.filter(function(x){return x.type==='sync-review'||x.type==='value-mismatch';}).forEach(function(x){attention.push({type:'reconciliation',severity:'warning',sourceId:x.sourceId,title:x.title,action:'Review reconciliation'});});
-    return {today:t,metrics:metrics,attention:attention,connection:finance().connection||null,integration:finance().integration||{},monthEnd:monthEndRows(opts)};
+    return {today:t,metrics:metrics,attention:attention,connection:finance().connection||null,monthEnd:monthEndRows(opts)};
   }
   global.PoolShedFinanceCommand={store:store,financeSnapshot:finance,financeCommand:financeCommand,orderValue:orderValue,poValue:poValue,documentForSource:documentForSource,customerAccount:customerAccount,customerInvoices:invoiceRows,salesOrderFinanceStatus:salesOrderFinanceStatus,suggestAllocation:suggestAllocation,threeWayRows:threeWayRows,supplierAccount:supplierAccount,invoiceReadyRows:invoiceReadyRows,reconciliationRows:reconciliationRows,monthEndRows:monthEndRows,snapshot:snapshot,customerPolicy:customerPolicy};
 })(typeof globalThis!=='undefined'?globalThis:window);

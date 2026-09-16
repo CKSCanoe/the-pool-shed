@@ -51,7 +51,7 @@ const seed = {
         automationRules: [],
         integrations: [
           { name: "Quotient", purpose: "Accepted quotes create sales orders", status: "Not connected" },
-          { name: "Xero", purpose: "Invoices, payments, credits and supplier bills", status: "Ready to Connect" },
+          { name: "Xero", purpose: "Invoices, payments, credits and supplier bills", status: "Not connected" },
           { name: "WooCommerce", purpose: "Website products, stock and orders", status: "Not connected" },
           { name: "Shipping carrier hub", purpose: "Carrier labels, tracking and dispatch updates", status: "Not connected" }
         ],
@@ -78,10 +78,10 @@ const seed = {
 
       const tabs = [
         { id: "dashboard", label: "Dashboard", title: "The Pool Shed", intro: "A clear live view of sales, stock, vans, purchasing, fulfilment and anything that needs action today." },
-        { id: "crm", label: "CRM", title: "CRM", intro: "Customers, contacts, account context, supplier relationships and connected commercial history." },
+        { id: "crm", label: "Customers & Suppliers", title: "Customers", intro: "Customer profile, price list, order history, VIP tags and sales order history." },
         { id: "salesorders", label: "Sales Orders", title: "Sales Orders", intro: "Quotient, WooCommerce and manual orders with custom tags, allocation and status flow." },
-        { id: "jobs", label: "Projects", title: "Projects", intro: "Plan and control projects, linked customer orders, job stock, purchasing, delivery and commercial review in one place." },
-        { id: "engineer", label: "Engineer Requests", title: "Engineer Requests", intro: "Request products and materials against existing projects, route approvals and track linked purchasing through receiving." },
+        { id: "jobs", label: "Jobs / Projects", title: "Jobs / Projects", intro: "Create the job once, link the customer, job bin, order requests, POs, received stock and invoice review in one place." },
+        { id: "engineer", label: "Order Requests", title: "Product & Material Requests", intro: "Engineers, office, sales, warehouse and management can request products against existing jobs. Admin approves, raises linked POs and tracks them through receiving." },
         { id: "products", label: "Product Hub", title: "Product Hub", intro: "Product profiles, WooCommerce data, prices, barcodes, batches, serials and movement history." },
         { id: "locations", label: "Inventory", title: "Inventory Tracker", intro: "Traffic-light stock by product, location, value, allocation and restock thresholds." },
         { id: "purchase", label: "Purchasing", title: "Purchasing and Forecasting", intro: "Purchase orders, supplier backorders, linked SO allocation and reorder suggestions." },
@@ -190,11 +190,9 @@ const seed = {
       }
 
       migrateOperationalStorageToV172();
-      let activeUserId = localStorage.getItem("poolshed:v169:activeUserId") || "user-aaron";
-      let isAuthenticated = false;
+      let activeUserId = localStorage.getItem("poolshed:v169:sessionUserId") || localStorage.getItem("poolshed:v169:activeUserId") || "user-aaron";
+      let isAuthenticated = !!localStorage.getItem("poolshed:v169:sessionUserId");
       let loginSelectedEmail = "";
-      let loginMfaFactorId = "";
-      let loginAuthInProgress = false;
       const poolShedConfig = window.POOL_SHED_CONFIG || {};
       const supabaseClient = (window.supabase && poolShedConfig.supabaseUrl && poolShedConfig.supabasePublishableKey)
         ? window.supabase.createClient(poolShedConfig.supabaseUrl, poolShedConfig.supabasePublishableKey, { auth: { persistSession: true, autoRefreshToken: true, detectSessionInUrl: true } })
@@ -567,6 +565,105 @@ const seed = {
         return true;
       }
 
+      // Read-only recovery bridge. It can read both legacy full snapshots and the
+      // older normalized Supabase tables, but never writes to any legacy table.
+      async function readLegacyTable(tableName) {
+        const rows = [];
+        const pageSize = 1000;
+        for (let from = 0; from < 100000; from += pageSize) {
+          const response = await supabaseClient.from(tableName).select("*").range(from, from + pageSize - 1);
+          if (response.error) throw response.error;
+          const page = Array.isArray(response.data) ? response.data : [];
+          rows.push.apply(rows, page);
+          if (page.length < pageSize) break;
+        }
+        return rows;
+      }
+
+      window.__POOL_SHED_READ_LEGACY_REMOTE__ = async function() {
+        if (!supabaseClient || !supabaseSession) return [];
+        const found = [];
+        const diagnostics = { checkedAt: new Date().toISOString(), snapshot: "not checked", tables: {} };
+
+        try {
+          const response = await supabaseClient
+            .from("offline_sync_snapshots")
+            .select("device_id,user_id,payload,updated_at")
+            .order("updated_at", { ascending: false })
+            .limit(20);
+          if (response.error) throw response.error;
+          const rows = (response.data || []).filter(function(row) { return row && row.payload && typeof row.payload === "object"; });
+          diagnostics.snapshot = rows.length ? (rows.length + " snapshot(s)") : "empty";
+          rows.forEach(function(row, index) {
+            found.push({
+              id: "legacy-remote:" + (row.device_id || index),
+              label: "Legacy Supabase snapshot" + (row.device_id ? " · " + row.device_id : ""),
+              source: "Supabase snapshot",
+              updatedAt: row.updated_at || "",
+              data: row.payload
+            });
+          });
+        } catch (error) {
+          diagnostics.snapshot = "unavailable: " + (error && error.message ? error.message : "read failed");
+          console.warn("Legacy snapshot read was unavailable", error);
+        }
+
+        const tableNames = [
+          "suppliers", "products", "customers", "customer_addresses", "locations", "projects",
+          "purchase_orders", "purchase_order_items", "sales_orders", "sales_order_items",
+          "goods_out_notes", "goods_out_note_items", "notification_events",
+          "stock_balances", "location_restock_rules", "stock_allocations", "stock_movements",
+          "supplier_bills", "product_import_batches"
+        ];
+        const bundle = {};
+        for (const tableName of tableNames) {
+          try {
+            const rows = await readLegacyTable(tableName);
+            bundle[tableName] = rows;
+            diagnostics.tables[tableName] = { ok: true, rows: rows.length };
+          } catch (error) {
+            bundle[tableName] = [];
+            diagnostics.tables[tableName] = { ok: false, rows: 0, message: error && error.message ? error.message : "read failed" };
+          }
+        }
+
+        try {
+          if (window.PoolShedLegacyRecovery && typeof window.PoolShedLegacyRecovery.fromSupabaseTables === "function") {
+            const recovered = window.PoolShedLegacyRecovery.fromSupabaseTables(bundle);
+            const count = window.PoolShedLegacyRecovery.businessCount(recovered);
+            if (count > 0) {
+              found.push({
+                id: "legacy-remote:normalized-tables",
+                label: "Legacy Supabase tables · " + count + " business record(s)",
+                source: "Supabase tables",
+                updatedAt: recovered.recoveryMeta && recovered.recoveryMeta.updatedAt || "",
+                data: recovered,
+                diagnostics: diagnostics
+              });
+            }
+          }
+        } catch (error) {
+          diagnostics.transform = error && error.message ? error.message : "Legacy table transform failed";
+          console.warn("Legacy normalized table recovery was unavailable", error);
+        }
+        window.__POOL_SHED_LEGACY_REMOTE_DIAGNOSTICS__ = diagnostics;
+        return found;
+      };
+
+      async function runLegacyAutoRecovery() {
+        if (typeof window.PoolShedLegacyAutoRecovery !== "function") return { ok: false, reason: "recovery-engine-unavailable" };
+        try {
+          const result = await window.PoolShedLegacyAutoRecovery();
+          if (result && result.ok) {
+            console.info("Pool Shed recovered legacy data", { source: result.sourceLabel, recoveredCount: result.recoveredCount });
+          }
+          return result || { ok: false, reason: "no-result" };
+        } catch (error) {
+          console.warn("Legacy automatic recovery failed safely", error);
+          return { ok: false, reason: "recovery-error", message: error && error.message ? error.message : "Unknown recovery error" };
+        }
+      }
+
       async function applySupabaseSession(session) {
         supabaseSession = session || null;
         if (!session || !session.user) return false;
@@ -576,14 +673,6 @@ const seed = {
           const response = await supabaseClient.from("user_profiles").select("*").eq("id", authUser.id).maybeSingle();
           if (!response.error) profile = response.data;
         } catch (error) { void error; }
-        if (profile && profile.active === false) {
-          supabaseSession = null;
-          isAuthenticated = false;
-          localStorage.removeItem("poolshed:v169:sessionUserId");
-          try { await supabaseClient.auth.signOut(); } catch (error) { void error; }
-          showLogin("denied", "This account is currently inactive. Contact your Pool Shed administrator if you need access restored.");
-          return false;
-        }
         const users = loadUsers();
         const nextUser = {
           id: authUser.id,
@@ -1810,35 +1899,19 @@ const seed = {
         const screen = document.getElementById("loginScreen");
         if (!screen) return;
         const effectiveMode = mode || "login";
-        const modeMeta = {
-          login: { eyebrow: "Secure staff access", heading: "Welcome back", intro: "Sign in to continue to your authorised Pool Shed workspace." },
-          forgot: { eyebrow: "Account recovery", heading: "Reset your password", intro: "Enter your work email and we will send password reset instructions." },
-          update: { eyebrow: "Account recovery", heading: "Choose a new password", intro: "Create a new password for your Pool Shed account." },
-          mfa: { eyebrow: "Extra verification", heading: "Enter your security code", intro: "Open your authenticator app and enter the 6-digit code to finish signing in." },
-          session: { eyebrow: "Session ended", heading: "Sign in again", intro: "Your previous session has ended. Sign in again to continue securely." },
-          denied: { eyebrow: "Access unavailable", heading: "You cannot access this workspace", intro: "Your identity was verified, but this account is not currently permitted to enter Pool Shed." }
-        };
-        const meta = modeMeta[effectiveMode] || modeMeta.login;
-        let fields = "";
+        const heading = effectiveMode === "forgot" ? "Reset password" : effectiveMode === "update" ? "Choose a new password" : "Welcome back";
+        const intro = effectiveMode === "forgot" ? "Enter your email and we will send a secure reset link." : effectiveMode === "update" ? "Create a new password for your Pool Shed account." : "Sign in securely with your Pool Shed account.";
+        let fields = '';
         if (!supabaseClient) {
-          fields = '<div class="ps-login-message">Sign-in is temporarily unavailable. Please contact your Pool Shed administrator.</div>';
+          fields = '<div class="login-message">Supabase is not configured. Add SUPABASE_URL and SUPABASE_PUBLISHABLE_KEY in Vercel and redeploy.</div>';
         } else if (effectiveMode === "forgot") {
-          fields = '<label class="ps-login-label">Work email<input id="loginEmail" type="email" autocomplete="email" required placeholder="name@poolbros.co.uk"></label><button class="ps-login-primary" type="submit">Send reset instructions</button>';
+          fields = '<label>Email address<input id="loginEmail" type="email" autocomplete="email" required placeholder="name@poolbros.co.uk"></label><button type="submit">Send reset link</button>';
         } else if (effectiveMode === "update") {
-          fields = '<label class="ps-login-label">New password<div class="ps-login-input-wrap"><input id="loginPassword" type="password" autocomplete="new-password" minlength="8" required placeholder="At least 8 characters"><button class="ps-login-password-toggle" type="button" data-login-password-toggle aria-label="Show password">Show</button></div></label><button class="ps-login-primary" type="submit">Update password</button>';
-        } else if (effectiveMode === "mfa") {
-          fields = '<label class="ps-login-label">Authenticator code<input id="loginMfaCode" class="ps-login-code" inputmode="numeric" autocomplete="one-time-code" pattern="[0-9]{6}" maxlength="6" required placeholder="000000"></label><button class="ps-login-primary" type="submit">Verify and continue</button>';
-        } else if (effectiveMode === "denied") {
-          fields = '<div class="ps-login-denied"><strong>Access has not been granted.</strong><span>Contact your Pool Shed administrator if you believe this is incorrect.</span></div><button class="ps-login-primary" type="button" data-login-mode="login">Return to sign in</button>';
+          fields = '<label>New password<input id="loginPassword" type="password" autocomplete="new-password" minlength="8" required placeholder="At least 8 characters"></label><button type="submit">Update password</button>';
         } else {
-          fields = '<label class="ps-login-label">Work email<input id="loginEmail" type="email" autocomplete="email" required placeholder="name@poolbros.co.uk" value="' + escapeHtml(loginSelectedEmail || "") + '"></label><label class="ps-login-label">Password<div class="ps-login-input-wrap"><input id="loginPassword" type="password" autocomplete="current-password" required placeholder="Enter your password"><button class="ps-login-password-toggle" type="button" data-login-password-toggle aria-label="Show password">Show</button></div></label><button class="ps-login-primary" type="submit">Sign in</button>';
+          fields = '<label>Email address<input id="loginEmail" type="email" autocomplete="email" required placeholder="name@poolbros.co.uk"></label><label>Password<input id="loginPassword" type="password" autocomplete="current-password" required placeholder="Enter password"></label><button type="submit">Sign in to The Pool Shed</button>';
         }
-        const helper = effectiveMode === "login" || effectiveMode === "session"
-          ? '<span>Pool Bros staff only</span><button class="ps-login-link" type="button" data-login-mode="forgot">Forgot password?</button>'
-          : effectiveMode === "mfa"
-            ? '<button class="ps-login-link" type="button" data-login-cancel-mfa>Use a different account</button><span>Authenticator verification</span>'
-            : effectiveMode === "denied" ? '<span></span>' : '<button class="ps-login-link" type="button" data-login-mode="login">Back to sign in</button><span></span>';
-        screen.innerHTML = '<main class="ps-login-stage"><section class="ps-login-shell"><aside class="ps-login-brand"><div><div class="ps-login-lockup"><span class="ps-login-logo"><img src="' + DEFAULT_POOL_BROS_LOGO + '" alt="Pool Bros logo"></span><div><span class="ps-login-kicker">Pool Bros</span><strong>THE POOL SHED</strong></div></div><div class="ps-login-hero"><span class="ps-login-kicker">Operations Command System</span><h1>One secure place to <span>run the operation.</span></h1><p>Secure access to the Pool Bros operations workspace. Sign in to continue to your authorised tools, tasks and information.</p></div></div><div class="ps-login-staff-note"><strong>Pool Bros staff access</strong><span>Your workspace and available tools are tailored to your account after sign-in.</span></div></aside><section class="ps-login-auth"><div class="ps-login-card"><div class="ps-login-card-head"><span class="ps-login-kicker">' + escapeHtml(meta.eyebrow) + '</span><h2>' + escapeHtml(meta.heading) + '</h2><p>' + escapeHtml(meta.intro) + '</p></div><form id="loginForm">' + fields + '<div id="loginMessage" class="ps-login-message' + (good ? ' good' : '') + '">' + escapeHtml(message || '') + '</div></form><div class="ps-login-helper">' + helper + '</div></div></section></section><footer class="ps-login-footer">Pool Shed v1.22.0 · Pool Bros Ltd</footer></main>';
+        screen.innerHTML = '<div class="login-shell"><div class="login-brand-panel"><div><div class="login-logo-lockup"><span class="login-logo"><img src="' + DEFAULT_POOL_BROS_LOGO + '" alt="Pool Bros logo"></span><div><strong>The Pool Shed</strong><br><span style="color:color-mix(in srgb, var(--color-surface-default) 72%, transparent)">Pool Bros operations</span></div></div><h1>Stock, vans and orders in one place.</h1><p>A secure shared workspace for customers, stock, purchasing, jobs, fulfilment and accounts.</p></div><div class="login-feature-grid"><div class="login-feature"><strong>Secure access</strong><span>Supabase authentication and role-based permissions.</span></div><div class="login-feature"><strong>Offline ready</strong><span>Changes save locally and upload when back online.</span></div><div class="login-feature"><strong>Connected records</strong><span>Sales, POs, stock and fulfilment stay linked.</span></div></div></div><div class="login-card"><h2>' + heading + '</h2><p>' + intro + '</p><form id="loginForm">' + fields + '<div id="loginMessage" class="login-message' + (good ? ' good' : '') + '">' + escapeHtml(message || '') + '</div></form><div class="login-helper-row">' + (effectiveMode !== 'login' ? '<button class="link-button" type="button" data-login-mode="login">Back to login</button>' : '<span></span><button class="link-button" type="button" data-login-mode="forgot">Forgot password?</button>') + '</div></div></div>';
         bindLoginScreen(effectiveMode);
       }
 
@@ -1858,65 +1931,21 @@ const seed = {
         render();
       }
 
-      async function pendingMfaFactor() {
-        if (!supabaseClient || !supabaseClient.auth || !supabaseClient.auth.mfa) return "";
-        const assurance = await supabaseClient.auth.mfa.getAuthenticatorAssuranceLevel();
-        if (assurance.error) throw assurance.error;
-        if (!assurance.data || assurance.data.currentLevel !== "aal1" || assurance.data.nextLevel !== "aal2") return "";
-        const factors = await supabaseClient.auth.mfa.listFactors();
-        if (factors.error) throw factors.error;
-        const verified = ((factors.data && factors.data.totp) || []).find(function(factor) { return factor.status === "verified"; });
-        return verified ? verified.id : "";
-      }
-
-      async function completeSupabaseSignIn(session) {
-        if (!session) return false;
-        const factorId = await pendingMfaFactor();
-        if (factorId) {
-          loginMfaFactorId = factorId;
-          showLogin("mfa");
-          return false;
-        }
-        const applied = await applySupabaseSession(session);
-        if (!applied) return false;
-        await loadRemoteWorkspace();
-        showApp();
-        return true;
-      }
-
       function bindLoginScreen(mode) {
         document.querySelectorAll("[data-login-mode]").forEach(function(button) { button.addEventListener("click", function() { showLogin(button.dataset.loginMode); }); });
-        const cancelMfa = document.querySelector("[data-login-cancel-mfa]");
-        if (cancelMfa) cancelMfa.addEventListener("click", async function() {
-          loginMfaFactorId = "";
-          try { await supabaseClient.auth.signOut(); } catch (error) { void error; }
-          showLogin("login");
-        });
-        const toggle = document.querySelector("[data-login-password-toggle]");
-        if (toggle) toggle.addEventListener("click", function() {
-          const input = document.getElementById("loginPassword");
-          if (!input) return;
-          const show = input.type === "password";
-          input.type = show ? "text" : "password";
-          toggle.textContent = show ? "Hide" : "Show";
-          toggle.setAttribute("aria-label", show ? "Hide password" : "Show password");
-          input.focus();
-        });
         const form = document.getElementById("loginForm");
         if (!form || !supabaseClient) return;
         form.addEventListener("submit", async function(event) {
           event.preventDefault();
           const messageEl = document.getElementById("loginMessage");
-          const submit = form.querySelector('button[type="submit"]');
-          if (submit) submit.disabled = true;
-          if (messageEl) { messageEl.textContent = "Please wait…"; messageEl.classList.remove("good"); }
+          if (messageEl) messageEl.textContent = "Please wait…";
           try {
             if (mode === "forgot") {
               const email = document.getElementById("loginEmail").value.trim();
               const redirectTo = location.origin + location.pathname;
               const result = await supabaseClient.auth.resetPasswordForEmail(email, { redirectTo: redirectTo });
               if (result.error) throw result.error;
-              return showLogin("login", "If that email belongs to a Pool Shed account, reset instructions are on the way.", true);
+              return showLogin("login", "Password reset email sent. Check your inbox.", true);
             }
             if (mode === "update") {
               const password = document.getElementById("loginPassword").value;
@@ -1924,64 +1953,38 @@ const seed = {
               if (result.error) throw result.error;
               return showLogin("login", "Password updated. Sign in with your new password.", true);
             }
-            if (mode === "mfa") {
-              const code = document.getElementById("loginMfaCode").value.replace(/\D/g, "");
-              if (code.length !== 6) throw new Error("Enter the 6-digit code from your authenticator app.");
-              if (!loginMfaFactorId) loginMfaFactorId = await pendingMfaFactor();
-              if (!loginMfaFactorId) throw new Error("No verified authenticator is available for this account.");
-              const verification = await supabaseClient.auth.mfa.challengeAndVerify({ factorId: loginMfaFactorId, code: code });
-              if (verification.error) throw verification.error;
-              const current = await supabaseClient.auth.getSession();
-              if (current.error) throw current.error;
-              loginMfaFactorId = "";
-              const applied = await applySupabaseSession(current.data && current.data.session);
-              if (!applied) return;
-              await loadRemoteWorkspace();
-              return showApp();
-            }
             const email = document.getElementById("loginEmail").value.trim();
             const password = document.getElementById("loginPassword").value;
-            loginAuthInProgress = true;
             const result = await supabaseClient.auth.signInWithPassword({ email: email, password: password });
             if (result.error) throw result.error;
-            loginSelectedEmail = email;
-            await completeSupabaseSignIn(result.data.session);
+            await applySupabaseSession(result.data.session);
+            await loadRemoteWorkspace();
+            await runLegacyAutoRecovery();
+            showApp();
           } catch (error) {
-            const safeMessage = mode === "login" ? "We could not sign you in. Check your details and try again." : (error && error.message ? error.message : "This request could not be completed.");
-            showLogin(mode, safeMessage);
-          } finally {
-            loginAuthInProgress = false;
-            if (submit && document.body.contains(submit)) submit.disabled = false;
+            showLogin(mode, error && error.message ? error.message : "Sign in failed.");
           }
         });
       }
 
       async function bootApp() {
-        const hadPreviousSession = !!localStorage.getItem("poolshed:v169:sessionUserId");
         if (!supabaseClient) return showLogin("login");
         const result = await supabaseClient.auth.getSession();
-        if (result.error) {
-          isAuthenticated = false;
-          localStorage.removeItem("poolshed:v169:sessionUserId");
-          return showLogin(hadPreviousSession ? "session" : "login");
-        }
         const session = result.data && result.data.session;
         if (session) {
-          await completeSupabaseSignIn(session);
+          await applySupabaseSession(session);
+          await loadRemoteWorkspace();
+          await runLegacyAutoRecovery();
+          showApp();
         } else {
           isAuthenticated = false;
           localStorage.removeItem("poolshed:v169:sessionUserId");
-          showLogin(hadPreviousSession ? "session" : "login");
+          showLogin("login");
         }
         supabaseClient.auth.onAuthStateChange(function(event, sessionValue) {
-          if (event === "PASSWORD_RECOVERY") return showLogin("update");
-          if (event === "SIGNED_OUT") {
-            if (!document.getElementById("loginScreen")?.classList.contains("hidden")) return;
-            return showLogin("session");
-          }
-          if (event === "SIGNED_IN" && sessionValue && !loginAuthInProgress && !isAuthenticated) {
-            completeSupabaseSignIn(sessionValue).catch(function() { showLogin("login", "We could not complete sign-in. Please try again."); });
-          }
+          if (event === "PASSWORD_RECOVERY") showLogin("update");
+          if (event === "SIGNED_OUT") showLogin("login", "You have been signed out.", true);
+          if (event === "SIGNED_IN" && sessionValue) applySupabaseSession(sessionValue);
         });
       }
 
@@ -3172,7 +3175,7 @@ const seed = {
           const tab = byId[id];
           return '<div class="menu-layout-row" data-menu-row="' + tab.id + '" draggable="true"><span class="pill blue">' + String(index + 1).padStart(2, "0") + '</span><div><strong>' + escapeHtml(tab.label) + '</strong><small>' + escapeHtml(tab.intro) + '</small></div><div class="menu-order-buttons"><button type="button" class="secondary" data-menu-move="' + tab.id + '|up">↑</button><button type="button" class="secondary" data-menu-move="' + tab.id + '|down">↓</button></div></div>';
         }).join("");
-        return '<div class="notice-row"><div class="notice-item"><strong>Your menu order</strong><p class="muted">Drag sections or use the arrow buttons to put the sidebar into the order that makes most sense for your day. This saves only for the logged-in user.</p></div><div class="notice-item"><strong>Suggested operational flow</strong><p class="muted">Dashboard → CRM → Projects → Sales Orders → Engineer Requests → Product Hub → Inventory → Purchasing → Warehouse → Fulfilment → Accounting → Analytics → Automation → Settings.</p></div></div><div class="menu-layout-list" id="menuLayoutList">' + rows + '</div><div class="action-row" style="margin-top:1rem"><button type="button" data-save-menu-order="true">Save menu order</button></div>';
+        return '<div class="notice-row"><div class="notice-item"><strong>Your menu order</strong><p class="muted">Drag sections or use the arrow buttons to put the sidebar into the order that makes most sense for your day. This saves only for the logged-in user.</p></div><div class="notice-item"><strong>Suggested operational flow</strong><p class="muted">Dashboard → CRM → Jobs / Projects → Sales Orders → Order Requests → Product Hub → Inventory → Purchasing → Warehouse → Fulfilment → Accounting → Analytics → Settings.</p></div></div><div class="menu-layout-list" id="menuLayoutList">' + rows + '</div><div class="action-row" style="margin-top:1rem"><button type="button" data-save-menu-order="true">Save menu order</button></div>';
       }
 
       function permissionsSettingsPanel() {
@@ -3189,7 +3192,7 @@ const seed = {
           return '<div class="permission-user-card"><div class="permission-user-head"><div class="profile-hero" style="margin:0;padding:0"><span class="profile-avatar-preview" style="width:52px;height:52px;border-radius:16px">' + userAvatarHtml(user) + '</span><div><strong>' + escapeHtml(user.name) + '</strong><br><span class="muted">' + escapeHtml(user.email) + ' · ' + escapeHtml(user.role) + '</span></div></div><span class="pill ' + (user.status === "Active" ? "good" : "warn") + '">' + escapeHtml(user.status || "Active") + '</span></div><table class="permission-table"><thead><tr><th>Section</th><th>Permission</th></tr></thead><tbody>' + sectionRows(user) + '</tbody></table></div>';
         }).join("");
         const adminNote = isAdmin ? '<button type="button" data-save-user-permissions="true">Save permissions</button>' : '<span class="pill warn">Admin only</span>';
-        return '<div class="notice-row"><div class="notice-item"><strong>Section access</strong><p class="muted">Choose which areas each user can see in the left menu. Hidden sections cannot be opened from the sidebar. Operational users should only have the sections needed for their role, including Engineer Requests where appropriate, Inventory, Warehouse and Fulfilment only.</p></div><div class="notice-item"><strong>Admin control</strong><p class="muted">Only Admin/Manager-style users should change access. Dashboard is always visible and the current user cannot remove their own Settings access in the system.</p></div></div><div class="action-row" style="margin-bottom:1rem">' + adminNote + '</div><div class="permission-grid">' + cards + '</div>';
+        return '<div class="notice-row"><div class="notice-item"><strong>Section access</strong><p class="muted">Choose which areas each user can see in the left menu. Hidden sections cannot be opened from the sidebar. Operational users should only have the sections needed for their role, including Order Requests where appropriate, Inventory, Warehouse and Fulfilment only.</p></div><div class="notice-item"><strong>Admin control</strong><p class="muted">Only Admin/Manager-style users should change access. Dashboard is always visible and the current user cannot remove their own Settings access in the system.</p></div></div><div class="action-row" style="margin-bottom:1rem">' + adminNote + '</div><div class="permission-grid">' + cards + '</div>';
       }
 
       function usersSettingsPanel() {
@@ -5349,7 +5352,7 @@ const seed = {
           return '<tr><td><select name="productId' + i + '">' + engineerProductOptions("") + '</select></td><td><input name="qty' + i + '" type="number" min="0" step="1" value=""></td><td><input name="lineNote' + i + '" placeholder="Why this item is needed"></td></tr>';
         }).join("");
         return '<form id="engineerRequestForm" class="forms">' +
-          '<div class="notice-row compact-notice"><div class="notice-item"><strong>Use an existing job reference</strong><p class="muted">Jobs are created once in Projects. Engineer Requests only asks for parts against that job, so requests, POs, receiving, job bin stock and invoice review stay linked without duplicate work.</p></div><div class="notice-item right"><button type="button" class="secondary" data-engineer-open-jobs="true">Create / manage projects</button></div></div>' +
+          '<div class="notice-row compact-notice"><div class="notice-item"><strong>Use an existing job reference</strong><p class="muted">Jobs are created once in Jobs / Projects. Order Requests only asks for parts against that job, so requests, POs, receiving, job bin stock and invoice review stay linked without duplicate work.</p></div><div class="notice-item right"><button type="button" class="secondary" data-engineer-open-jobs="true">Create / manage jobs</button></div></div>' +
           '<div class="form-grid four"><label>Engineer<input value="' + escapeHtml(current.name) + '" disabled></label><label>Job / project reference<select name="jobId">' + engineerJobOptions("") + '</select></label><label>Needed by<input name="neededBy" type="date" value="' + addDays(todayIso(), 3) + '"></label><label>Priority<select name="priority">' + optionList(["Normal", "Urgent", "Critical"], "Normal") + '</select></label></div>' +
           '<div class="form-grid two"><label>Deliver to<select name="deliveryLocation">' + engineerLocationOptions(defaultLocation ? defaultLocation.id : "") + '</select></label><label>Visit / phase note<input name="projectName" placeholder="Optional phase, visit or install note"></label></div>' +
           '<label>Request notes<textarea name="notes" placeholder="Add supplier preference, site access note, install date or why this is required"></textarea></label>' +
@@ -5464,7 +5467,7 @@ const seed = {
         const value = data.engineerRequests.reduce(function(t, r) { return t + engineerRequestValue(r); }, 0);
         let body = '';
         if (sub === "Request Products") {
-          body = panel("Engineer Product Request", "Request parts against an existing job. Job creation, job bins and invoice costing are controlled from Projects so the same job reference is only maintained once.", engineerRequestForm());
+          body = panel("Engineer Product Order Form", "Request parts against an existing job. Job creation, job bins and invoice costing are controlled from Jobs / Projects so the same job reference is only maintained once.", engineerRequestForm());
         } else {
           body = panel(sub, "Track order requests from submitted request through approval, linked PO, supplier order, goods-in and final invoice/job-costing review.", engineerRequestFilters() + engineerRequestTable(requests));
         }
@@ -5724,10 +5727,10 @@ const seed = {
           const requestDetail = selectedJobId && selectedJobId !== "__new" ? '<div style="height:1rem"></div>' + panel("Linked order requests", "Requests and POs linked to this job. Complete requests here once received so the job can move to invoice review.", engineerRequestTable(selectedJobRequests)) : '';
           body = panel("Project Costing / Invoice Review", "Review requested materials, held stock and tool costs separately. Requested and held stock can overlap, so they are not added together as an actual job cost.", jobCostingPanel(selectedJobId && selectedJobId !== "__new" ? selectedJobId : "")) + requestDetail;
         } else {
-          const controls = '<div class="job-list-toolbar"><div><span class="job-editor-kicker">Projects</span><h2>Manage active jobs</h2><p>Create the job once, then requests, POs, receiving and invoice review stay linked to the same record.</p></div><div class="action-row"><button data-job-new="true">Create job</button><button class="secondary" data-engineer-open-request-products="true">New order request</button><button class="secondary" data-engineer-action="export">Export</button></div></div>';
+          const controls = '<div class="job-list-toolbar"><div><span class="job-editor-kicker">Jobs / Projects</span><h2>Manage active jobs</h2><p>Create the job once, then requests, POs, receiving and invoice review stay linked to the same record.</p></div><div class="action-row"><button data-job-new="true">Create job</button><button class="secondary" data-engineer-open-request-products="true">New order request</button><button class="secondary" data-engineer-action="export">Export</button></div></div>';
           body = panel("Job List", "Search and manage every customer job or project from one clear workspace.", controls + jobRowsTable(jobs));
         }
-        screen.innerHTML = kpi("Open projects", openJobs, "Active projects") + kpi("Job bins", data.locations.filter(function(l) { return l.type === "Job Bin"; }).length, missingBins + " missing") + kpi("Request value", money(requestValue), "Requested material value") + kpi("PO pending", poPending, "Units still outstanding") + body;
+        screen.innerHTML = kpi("Open jobs", openJobs, "Active project references") + kpi("Job bins", data.locations.filter(function(l) { return l.type === "Job Bin"; }).length, missingBins + " missing") + kpi("Request value", money(requestValue), "Order requested materials") + kpi("PO pending", poPending, "Units still outstanding") + body;
         bindJobs();
       }
 
@@ -10109,7 +10112,7 @@ const seed = {
           { title: "Goods-in receiving", steps: ["Open Warehouse > Goods In.", "Select or scan the supplier PO.", "Enter only the quantities that arrived; leave outstanding quantities on the PO.", "Choose a final bin for fast receipt, Receiving Bay for staged putaway, or Quarantine for damaged goods.", "Move staged goods using Guided Putaway; do not receive them again.", "Allocate linked or matching sales orders before completing goods-in."] },
           { title: "Sales order fulfilment", steps: ["Create or open the sales order.", "Allocate physical stock only; labour and custom non-stock lines do not use warehouse allocation.", "Create partial goods notes for available stock; keep the remainder open.", "Create/print the goods note, pick, pack and ship.", "Invoice when the order reaches the invoice-ready stage."] },
           { title: "Short-stock purchasing", steps: ["Open a red/short sales order line.", "Clone the line to a draft PO.", "Admin reviews supplier, qty, cost and linked customer/job.", "Prepare supplier email, then mark the PO as sent.", "Receive the PO and allocate back to the sales order or job."] },
-          { title: "Product and material requests", steps: ["Engineer logs in and opens Engineer Requests.", "Request products against the job/project reference.", "Admin approves or rejects the request.", "Admin raises the linked PO.", "Goods-in receives to site/job, then admin completes for invoice review."] },
+          { title: "Product and material requests", steps: ["Engineer logs in and opens Order Requests.", "Request products against the job/project reference.", "Admin approves or rejects the request.", "Admin raises the linked PO.", "Goods-in receives to site/job, then admin completes for invoice review."] },
           { title: "Van stock control", steps: ["Use Inventory > Van Top-Ups for warehouse-to-van replenishment.", "Use Location Thresholds for van-specific min/max/restock-to rules.", "Return uncommon or over-max van stock back to warehouse.", "Run weekly van stock takes and submit variances for admin approval."] },
           { title: "Stock take and missing stock", steps: ["Open Inventory > Stock Take and select the location.", "Print a blank count sheet or count on screen.", "Enter counted quantities and reasons for differences.", "Submit for approval before stock is posted.", "Use Missing Stock to review engineer/location losses and value impact."] }
         ];

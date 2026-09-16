@@ -32,7 +32,7 @@ const sources = [
   "system/52-automation-command.css",
   "system/53-settings-command.css",
   "system/54-production-readiness.css",
-  "system/55-login-command.css",
+  "system/55-legacy-migration.css",
 ];
 const banner = `/*
  Pool Shed application stylesheet.

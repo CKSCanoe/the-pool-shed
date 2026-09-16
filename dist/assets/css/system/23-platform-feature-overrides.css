@@ -88,12 +88,12 @@ button.secondary:hover { background:var(--color-action-focus); transform:none; }
   z-index:9;
   padding:10px 9px;
   white-space:nowrap;
-  background:var(--color-action-focus);
-  color:var(--color-status-info);
+  background:var(--color-surface-subtle);
+  color:var(--color-text-secondary);
   font-size:.75rem;
   letter-spacing:.045em;
   text-transform:uppercase;
-  border-bottom:1px solid var(--color-action-focus);
+  border-bottom:1px solid var(--color-border-default);
   box-shadow:0 1px 0 color-mix(in srgb, var(--color-dark-muted) 18%, transparent);
 }
 #screen-salesorders .order-lines-table thead th:first-child { border-top-left-radius:14px; }
@@ -162,8 +162,8 @@ tr.ps-bundle-collapsed { display:none; }
 #screen-fulfilment .panel:first-child::before { content:"PRINT  →  PICK  →  PACK  →  SHIP"; display:block; margin:0 0 12px; padding:8px 12px; border-radius:var(--ps-radius-panel); background:var(--color-surface-default); color:var(--color-action-primary); font-size:.78rem; font-weight:900; letter-spacing:.08em; }
 
 /* Accounting/Jobs are denser and more software-like without inventing fake integrations. */
-#screen-accounting .panel, #screen-jobs .panel { border:1px solid var(--color-action-focus); }
-#screen-accounting table thead th, #screen-jobs table thead th { background:var(--color-action-focus); }
+#screen-accounting .panel, #screen-jobs .panel { border:1px solid var(--color-border-default); }
+#screen-accounting table thead th, #screen-jobs table thead th { background:var(--color-surface-subtle); color:var(--color-text-secondary); }
 #screen-accounting .profile-stat-grid, #screen-jobs .profile-stat-grid { gap:10px; }
 #screen-accounting .profile-stat, #screen-jobs .profile-stat { min-height:88px; border-radius:var(--ps-radius-panel); }
 

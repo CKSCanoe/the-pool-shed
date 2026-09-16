@@ -1,23 +1,4 @@
 import {createCipheriv,createDecipheriv,randomBytes,createHash,createHmac,timingSafeEqual} from 'node:crypto';
-export const XERO_SCOPES=['offline_access','accounting.invoices','accounting.contacts.read','accounting.settings.read','accounting.payments.read'];
-export function xeroIntegrationReadiness(env=process.env){
- const required=['SUPABASE_URL','SUPABASE_SERVICE_ROLE_KEY','APP_ORIGIN','XERO_CLIENT_ID','XERO_CLIENT_SECRET','XERO_TOKEN_KEY','CRON_SECRET','XERO_WEBHOOK_KEY'];
- const missing=required.filter(k=>!String(env[k]||'').trim());
- const mode=String(env.XERO_INTEGRATION_MODE||'ready').trim().toLowerCase()==='live'?'live':'ready';
- const origin=String(env.APP_ORIGIN||'').replace(/\/$/,'');
- const tokenKeyOk=(()=>{try{return Buffer.from(env.XERO_TOKEN_KEY||'','base64').length===32}catch{return false}})();
- const appConfigured=!missing.includes('XERO_CLIENT_ID')&&!missing.includes('XERO_CLIENT_SECRET')&&!missing.includes('APP_ORIGIN')&&tokenKeyOk;
- const securityConfigured=tokenKeyOk&&!missing.includes('XERO_WEBHOOK_KEY')&&!missing.includes('CRON_SECRET');
- const platformConfigured=!missing.includes('SUPABASE_URL')&&!missing.includes('SUPABASE_SERVICE_ROLE_KEY');
- const readyToConnect=missing.length===0&&tokenKeyOk;
- return {mode,liveEnabled:mode==='live'&&readyToConnect,readyToConnect,appConfigured,securityConfigured,platformConfigured,missing:tokenKeyOk?missing:[...new Set([...missing,'XERO_TOKEN_KEY'])],scopes:[...XERO_SCOPES],redirectUri:origin?origin+'/api/finance?action=callback':'',secretsExposed:false};
-}
-export function requireXeroLive(env=process.env){
- const state=xeroIntegrationReadiness(env);
- if(!state.liveEnabled){const e=Error(state.readyToConnect?'Xero is Ready to Connect but live connection is locked until production acceptance.':'Xero live connection is locked because integration prerequisites are incomplete.');e.statusCode=423;e.readiness=state;throw e;}
- return state;
-}
-
 export const hash = value => createHash('sha256').update(value).digest('hex');
 export function seal(value,key=process.env.XERO_TOKEN_KEY){
  const k=Buffer.from(key||'','base64');if(k.length!==32)throw Error('Token encryption key must contain 32 bytes');
