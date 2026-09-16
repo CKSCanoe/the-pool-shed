@@ -29,6 +29,8 @@ const featureModules = [
   "31-project-workspace.css",
   "32-sales-workspace.css",
   "33-workspace-polish.css",
+  "45-project-360-command.css",
+  "46-product-hub-command.css",
 ];
 
 for (const rel of featureModules) {

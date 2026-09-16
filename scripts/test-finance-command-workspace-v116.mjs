@@ -1,0 +1,13 @@
+import fs from 'node:fs';import assert from 'node:assert/strict';
+assert(fs.existsSync('public/finance-command-workspace.js'),'Finance Command workspace must exist');
+assert(fs.existsSync('public/finance-command.css'),'Finance Command CSS must exist');
+const js=fs.readFileSync('public/finance-command-workspace.js','utf8');
+const css=fs.readFileSync('public/finance-command.css','utf8');
+for(const token of ['Finance Command','Customer Accounts','Customer Invoices','Payments & Allocations','Credit Control','Supplier Accounts','Supplier Bills','Payment Runs','Credits & Returns','Three-Way Match','Invoice Ready','Xero Sync','Reconciliation','Month End','Reports'])assert(js.includes(token),`Finance Command missing ${token}`);
+for(const token of ['Customers Owe Us','Overdue','Due This Week','Supplier Bills Due','Supplier Bills Overdue','Unallocated Credits','Xero Exceptions','What needs money attention today?'])assert(js.includes(token),`Overview missing ${token}`);
+for(const token of ['Projected Exposure','Credit Limit','Open Order Exposure','Unallocated Payments','Unallocated Credits','Allocate Payment / Credit','Record Chase','Credit Hold'])assert(js.includes(token),`Customer Account missing ${token}`);
+for(const token of ['Purchase Order','Goods-In','Supplier Bill','BLOCK PAYMENT','Payment Run','Request Credit'])assert(js.includes(token),`Supplier control missing ${token}`);
+for(const token of ['Stable Xero IDs','No silent overwrite','Refresh from Xero','Connected organisation'])assert(js.includes(token),`Xero/reconciliation copy missing ${token}`);
+assert(!/12m Spend|12-month spend/.test(js),'Operational Finance Command must not use 12m spend as a daily KPI');
+for(const token of ['.finance-command','.finance-command-metrics','.finance-account-layout','.finance-attention','.finance-table'])assert(css.includes(token),`Finance Command CSS missing ${token}`);
+new Function(js);console.log('PASS Finance Command Option C workspace structure and user-facing finance controls');

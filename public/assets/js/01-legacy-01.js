@@ -51,7 +51,7 @@ const seed = {
         automationRules: [],
         integrations: [
           { name: "Quotient", purpose: "Accepted quotes create sales orders", status: "Not connected" },
-          { name: "Xero", purpose: "Invoices, payments, credits and supplier bills", status: "Not connected" },
+          { name: "Xero", purpose: "Invoices, payments, credits and supplier bills", status: "Ready to Connect" },
           { name: "WooCommerce", purpose: "Website products, stock and orders", status: "Not connected" },
           { name: "Shipping carrier hub", purpose: "Carrier labels, tracking and dispatch updates", status: "Not connected" }
         ],
@@ -78,10 +78,10 @@ const seed = {
 
       const tabs = [
         { id: "dashboard", label: "Dashboard", title: "The Pool Shed", intro: "A clear live view of sales, stock, vans, purchasing, fulfilment and anything that needs action today." },
-        { id: "crm", label: "Customers & Suppliers", title: "Customers", intro: "Customer profile, price list, order history, VIP tags and sales order history." },
+        { id: "crm", label: "CRM", title: "CRM", intro: "Customers, contacts, account context, supplier relationships and connected commercial history." },
         { id: "salesorders", label: "Sales Orders", title: "Sales Orders", intro: "Quotient, WooCommerce and manual orders with custom tags, allocation and status flow." },
-        { id: "jobs", label: "Jobs / Projects", title: "Jobs / Projects", intro: "Create the job once, link the customer, job bin, order requests, POs, received stock and invoice review in one place." },
-        { id: "engineer", label: "Order Requests", title: "Product & Material Requests", intro: "Engineers, office, sales, warehouse and management can request products against existing jobs. Admin approves, raises linked POs and tracks them through receiving." },
+        { id: "jobs", label: "Projects", title: "Projects", intro: "Plan and control projects, linked customer orders, job stock, purchasing, delivery and commercial review in one place." },
+        { id: "engineer", label: "Engineer Requests", title: "Engineer Requests", intro: "Request products and materials against existing projects, route approvals and track linked purchasing through receiving." },
         { id: "products", label: "Product Hub", title: "Product Hub", intro: "Product profiles, WooCommerce data, prices, barcodes, batches, serials and movement history." },
         { id: "locations", label: "Inventory", title: "Inventory Tracker", intro: "Traffic-light stock by product, location, value, allocation and restock thresholds." },
         { id: "purchase", label: "Purchasing", title: "Purchasing and Forecasting", intro: "Purchase orders, supplier backorders, linked SO allocation and reorder suggestions." },
@@ -89,6 +89,7 @@ const seed = {
         { id: "fulfilment", label: "Fulfilment", title: "Print, Pick, Pack & Ship", intro: "Print picking lists first, then pick, pack and dispatch with full stock and courier history." },
         { id: "accounting", label: "Accounting", title: "Retail Accounting", intro: "Stock valuation, COGS, invoice-ready orders, Xero refs and supplier bill control." },
         { id: "analytics", label: "Analytics", title: "Data Insights", intro: "Retail analytics, stock value, margins, stock ageing, supplier and fulfilment performance." },
+        { id: "automation", label: "Automation", title: "Automation Command", intro: "Smart workflows, approvals, training and the Pool Shed assistant." },
         { id: "settings", label: "Settings", title: "System Settings", intro: "Custom statuses, coloured tags, users, roles, integrations, locations and barcode templates." }
       ];
 
@@ -97,6 +98,11 @@ const seed = {
       // `data` is a global lexical binding and therefore is not reliably exposed as window.data.
       window.__POOL_SHED_GET_DATA__ = function(){ return data; };
       window.__POOL_SHED_GET_PRODUCTS__ = function(){ return Array.isArray(data && data.products) ? data.products : []; };
+      window.__POOL_SHED_CURRENT_USER__ = function(){ return currentUser(); };
+      window.__POOL_SHED_ALL_USERS__ = function(){ return allUsers(); };
+      window.__POOL_SHED_SAVE_USERS__ = function(users){ saveUsers(users); };
+      window.__POOL_SHED_IS_ADMIN__ = function(){ return isAdminUser(currentUser()); };
+      window.__POOL_SHED_CAN_ACCESS__ = function(tabId){ return canAccessTab(tabId, currentUser()); };
       let active = "dashboard";
       let selectedProductId = "";
       let productView = "list";
@@ -184,9 +190,11 @@ const seed = {
       }
 
       migrateOperationalStorageToV172();
-      let activeUserId = localStorage.getItem("poolshed:v169:sessionUserId") || localStorage.getItem("poolshed:v169:activeUserId") || "user-aaron";
-      let isAuthenticated = !!localStorage.getItem("poolshed:v169:sessionUserId");
+      let activeUserId = localStorage.getItem("poolshed:v169:activeUserId") || "user-aaron";
+      let isAuthenticated = false;
       let loginSelectedEmail = "";
+      let loginMfaFactorId = "";
+      let loginAuthInProgress = false;
       const poolShedConfig = window.POOL_SHED_CONFIG || {};
       const supabaseClient = (window.supabase && poolShedConfig.supabaseUrl && poolShedConfig.supabasePublishableKey)
         ? window.supabase.createClient(poolShedConfig.supabaseUrl, poolShedConfig.supabasePublishableKey, { auth: { persistSession: true, autoRefreshToken: true, detectSessionInUrl: true } })
@@ -254,8 +262,8 @@ const seed = {
         const all = {};
         ids.forEach(function(id) { all[id] = true; });
         if (role === "Admin") return all;
-        if (role === "Engineer") return { dashboard: true, engineer: true, jobs: true, locations: true, warehouse: true, fulfilment: true, settings: true, salesorders: false, crm: false, products: false, purchase: false, accounting: false, analytics: false };
-        return { dashboard: true, settings: true, engineer: true, jobs: true };
+        if (role === "Engineer") return { dashboard: true, engineer: true, jobs: true, locations: true, warehouse: true, fulfilment: true, settings: true, salesorders: false, crm: false, products: false, purchase: false, accounting: false, analytics: false, automation: true };
+        return { dashboard: true, settings: true, engineer: true, jobs: true, automation: true };
       }
 
       function userPermissions(user) {
@@ -265,7 +273,13 @@ const seed = {
 
       function canAccessTab(tabId, user) {
         if (tabId === "dashboard") return true;
-        const permissions = userPermissions(user || currentUser());
+        const targetUser = user || currentUser();
+        try {
+          if (window.PoolShedSettingsPermissions && typeof window.PoolShedSettingsPermissions.can === "function") {
+            return !!window.PoolShedSettingsPermissions.can(tabId, "view", targetUser);
+          }
+        } catch (error) { void error; }
+        const permissions = userPermissions(targetUser);
         return !!permissions[tabId];
       }
 
@@ -273,13 +287,13 @@ const seed = {
         const order = readPreference("menuOrder", []);
         const byId = {};
         tabs.forEach(function(tab) { byId[tab.id] = tab; });
-        const orderedIds = Array.isArray(order) && order.length ? order.filter(function(id) { return id !== "automation" && byId[id]; }) : tabs.map(function(tab) { return tab.id; }).filter(function(id) { return id !== "automation"; });
+        const orderedIds = Array.isArray(order) && order.length ? order.filter(function(id) { return byId[id]; }) : tabs.map(function(tab) { return tab.id; });
         tabs.forEach(function(tab) { if (!orderedIds.includes(tab.id)) orderedIds.push(tab.id); });
         return orderedIds.map(function(id) { return byId[id]; }).filter(function(tab) { return canAccessTab(tab.id); });
       }
 
       function ensureActiveAllowed() {
-        if (active !== "automation" && canAccessTab(active)) return;
+        if (canAccessTab(active)) return;
         const first = visibleTabs()[0] || tabs[0];
         active = first.id;
       }
@@ -562,6 +576,14 @@ const seed = {
           const response = await supabaseClient.from("user_profiles").select("*").eq("id", authUser.id).maybeSingle();
           if (!response.error) profile = response.data;
         } catch (error) { void error; }
+        if (profile && profile.active === false) {
+          supabaseSession = null;
+          isAuthenticated = false;
+          localStorage.removeItem("poolshed:v169:sessionUserId");
+          try { await supabaseClient.auth.signOut(); } catch (error) { void error; }
+          showLogin("denied", "This account is currently inactive. Contact your Pool Shed administrator if you need access restored.");
+          return false;
+        }
         const users = loadUsers();
         const nextUser = {
           id: authUser.id,
@@ -1344,6 +1366,7 @@ const seed = {
       }
 
       function goodsNoteStatus(note) {
+        if (note.hold) return "On Hold";
         if (note.shipped) return "Shipped";
         if (note.packed) return "Packed";
         if (note.picked) return "Picked";
@@ -1352,6 +1375,7 @@ const seed = {
       }
 
       function goodsNoteQueueStage(note) {
+        if (note.hold) return "blocked";
         if (note.shipped) return "shipped";
         if (note.packed) return "dueShip";
         if (note.picked) return "duePack";
@@ -1786,19 +1810,35 @@ const seed = {
         const screen = document.getElementById("loginScreen");
         if (!screen) return;
         const effectiveMode = mode || "login";
-        const heading = effectiveMode === "forgot" ? "Reset password" : effectiveMode === "update" ? "Choose a new password" : "Welcome back";
-        const intro = effectiveMode === "forgot" ? "Enter your email and we will send a secure reset link." : effectiveMode === "update" ? "Create a new password for your Pool Shed account." : "Sign in securely with your Pool Shed account.";
-        let fields = '';
+        const modeMeta = {
+          login: { eyebrow: "Secure staff access", heading: "Welcome back", intro: "Sign in to continue to your authorised Pool Shed workspace." },
+          forgot: { eyebrow: "Account recovery", heading: "Reset your password", intro: "Enter your work email and we will send password reset instructions." },
+          update: { eyebrow: "Account recovery", heading: "Choose a new password", intro: "Create a new password for your Pool Shed account." },
+          mfa: { eyebrow: "Extra verification", heading: "Enter your security code", intro: "Open your authenticator app and enter the 6-digit code to finish signing in." },
+          session: { eyebrow: "Session ended", heading: "Sign in again", intro: "Your previous session has ended. Sign in again to continue securely." },
+          denied: { eyebrow: "Access unavailable", heading: "You cannot access this workspace", intro: "Your identity was verified, but this account is not currently permitted to enter Pool Shed." }
+        };
+        const meta = modeMeta[effectiveMode] || modeMeta.login;
+        let fields = "";
         if (!supabaseClient) {
-          fields = '<div class="login-message">Supabase is not configured. Add SUPABASE_URL and SUPABASE_PUBLISHABLE_KEY in Vercel and redeploy.</div>';
+          fields = '<div class="ps-login-message">Sign-in is temporarily unavailable. Please contact your Pool Shed administrator.</div>';
         } else if (effectiveMode === "forgot") {
-          fields = '<label>Email address<input id="loginEmail" type="email" autocomplete="email" required placeholder="name@poolbros.co.uk"></label><button type="submit">Send reset link</button>';
+          fields = '<label class="ps-login-label">Work email<input id="loginEmail" type="email" autocomplete="email" required placeholder="name@poolbros.co.uk"></label><button class="ps-login-primary" type="submit">Send reset instructions</button>';
         } else if (effectiveMode === "update") {
-          fields = '<label>New password<input id="loginPassword" type="password" autocomplete="new-password" minlength="8" required placeholder="At least 8 characters"></label><button type="submit">Update password</button>';
+          fields = '<label class="ps-login-label">New password<div class="ps-login-input-wrap"><input id="loginPassword" type="password" autocomplete="new-password" minlength="8" required placeholder="At least 8 characters"><button class="ps-login-password-toggle" type="button" data-login-password-toggle aria-label="Show password">Show</button></div></label><button class="ps-login-primary" type="submit">Update password</button>';
+        } else if (effectiveMode === "mfa") {
+          fields = '<label class="ps-login-label">Authenticator code<input id="loginMfaCode" class="ps-login-code" inputmode="numeric" autocomplete="one-time-code" pattern="[0-9]{6}" maxlength="6" required placeholder="000000"></label><button class="ps-login-primary" type="submit">Verify and continue</button>';
+        } else if (effectiveMode === "denied") {
+          fields = '<div class="ps-login-denied"><strong>Access has not been granted.</strong><span>Contact your Pool Shed administrator if you believe this is incorrect.</span></div><button class="ps-login-primary" type="button" data-login-mode="login">Return to sign in</button>';
         } else {
-          fields = '<label>Email address<input id="loginEmail" type="email" autocomplete="email" required placeholder="name@poolbros.co.uk"></label><label>Password<input id="loginPassword" type="password" autocomplete="current-password" required placeholder="Enter password"></label><button type="submit">Sign in to The Pool Shed</button>';
+          fields = '<label class="ps-login-label">Work email<input id="loginEmail" type="email" autocomplete="email" required placeholder="name@poolbros.co.uk" value="' + escapeHtml(loginSelectedEmail || "") + '"></label><label class="ps-login-label">Password<div class="ps-login-input-wrap"><input id="loginPassword" type="password" autocomplete="current-password" required placeholder="Enter your password"><button class="ps-login-password-toggle" type="button" data-login-password-toggle aria-label="Show password">Show</button></div></label><button class="ps-login-primary" type="submit">Sign in</button>';
         }
-        screen.innerHTML = '<div class="login-shell"><div class="login-brand-panel"><div><div class="login-logo-lockup"><span class="login-logo"><img src="' + DEFAULT_POOL_BROS_LOGO + '" alt="Pool Bros logo"></span><div><strong>The Pool Shed</strong><br><span style="color:color-mix(in srgb, var(--color-surface-default) 72%, transparent)">Pool Bros operations</span></div></div><h1>Stock, vans and orders in one place.</h1><p>A secure shared workspace for customers, stock, purchasing, jobs, fulfilment and accounts.</p></div><div class="login-feature-grid"><div class="login-feature"><strong>Secure access</strong><span>Supabase authentication and role-based permissions.</span></div><div class="login-feature"><strong>Offline ready</strong><span>Changes save locally and upload when back online.</span></div><div class="login-feature"><strong>Connected records</strong><span>Sales, POs, stock and fulfilment stay linked.</span></div></div></div><div class="login-card"><h2>' + heading + '</h2><p>' + intro + '</p><form id="loginForm">' + fields + '<div id="loginMessage" class="login-message' + (good ? ' good' : '') + '">' + escapeHtml(message || '') + '</div></form><div class="login-helper-row">' + (effectiveMode !== 'login' ? '<button class="link-button" type="button" data-login-mode="login">Back to login</button>' : '<span></span><button class="link-button" type="button" data-login-mode="forgot">Forgot password?</button>') + '</div></div></div>';
+        const helper = effectiveMode === "login" || effectiveMode === "session"
+          ? '<span>Pool Bros staff only</span><button class="ps-login-link" type="button" data-login-mode="forgot">Forgot password?</button>'
+          : effectiveMode === "mfa"
+            ? '<button class="ps-login-link" type="button" data-login-cancel-mfa>Use a different account</button><span>Authenticator verification</span>'
+            : effectiveMode === "denied" ? '<span></span>' : '<button class="ps-login-link" type="button" data-login-mode="login">Back to sign in</button><span></span>';
+        screen.innerHTML = '<main class="ps-login-stage"><section class="ps-login-shell"><aside class="ps-login-brand"><div><div class="ps-login-lockup"><span class="ps-login-logo"><img src="' + DEFAULT_POOL_BROS_LOGO + '" alt="Pool Bros logo"></span><div><span class="ps-login-kicker">Pool Bros</span><strong>THE POOL SHED</strong></div></div><div class="ps-login-hero"><span class="ps-login-kicker">Operations Command System</span><h1>One secure place to <span>run the operation.</span></h1><p>Secure access to the Pool Bros operations workspace. Sign in to continue to your authorised tools, tasks and information.</p></div></div><div class="ps-login-staff-note"><strong>Pool Bros staff access</strong><span>Your workspace and available tools are tailored to your account after sign-in.</span></div></aside><section class="ps-login-auth"><div class="ps-login-card"><div class="ps-login-card-head"><span class="ps-login-kicker">' + escapeHtml(meta.eyebrow) + '</span><h2>' + escapeHtml(meta.heading) + '</h2><p>' + escapeHtml(meta.intro) + '</p></div><form id="loginForm">' + fields + '<div id="loginMessage" class="ps-login-message' + (good ? ' good' : '') + '">' + escapeHtml(message || '') + '</div></form><div class="ps-login-helper">' + helper + '</div></div></section></section><footer class="ps-login-footer">Pool Shed v1.22.0 · Pool Bros Ltd</footer></main>';
         bindLoginScreen(effectiveMode);
       }
 
@@ -1818,21 +1858,65 @@ const seed = {
         render();
       }
 
+      async function pendingMfaFactor() {
+        if (!supabaseClient || !supabaseClient.auth || !supabaseClient.auth.mfa) return "";
+        const assurance = await supabaseClient.auth.mfa.getAuthenticatorAssuranceLevel();
+        if (assurance.error) throw assurance.error;
+        if (!assurance.data || assurance.data.currentLevel !== "aal1" || assurance.data.nextLevel !== "aal2") return "";
+        const factors = await supabaseClient.auth.mfa.listFactors();
+        if (factors.error) throw factors.error;
+        const verified = ((factors.data && factors.data.totp) || []).find(function(factor) { return factor.status === "verified"; });
+        return verified ? verified.id : "";
+      }
+
+      async function completeSupabaseSignIn(session) {
+        if (!session) return false;
+        const factorId = await pendingMfaFactor();
+        if (factorId) {
+          loginMfaFactorId = factorId;
+          showLogin("mfa");
+          return false;
+        }
+        const applied = await applySupabaseSession(session);
+        if (!applied) return false;
+        await loadRemoteWorkspace();
+        showApp();
+        return true;
+      }
+
       function bindLoginScreen(mode) {
         document.querySelectorAll("[data-login-mode]").forEach(function(button) { button.addEventListener("click", function() { showLogin(button.dataset.loginMode); }); });
+        const cancelMfa = document.querySelector("[data-login-cancel-mfa]");
+        if (cancelMfa) cancelMfa.addEventListener("click", async function() {
+          loginMfaFactorId = "";
+          try { await supabaseClient.auth.signOut(); } catch (error) { void error; }
+          showLogin("login");
+        });
+        const toggle = document.querySelector("[data-login-password-toggle]");
+        if (toggle) toggle.addEventListener("click", function() {
+          const input = document.getElementById("loginPassword");
+          if (!input) return;
+          const show = input.type === "password";
+          input.type = show ? "text" : "password";
+          toggle.textContent = show ? "Hide" : "Show";
+          toggle.setAttribute("aria-label", show ? "Hide password" : "Show password");
+          input.focus();
+        });
         const form = document.getElementById("loginForm");
         if (!form || !supabaseClient) return;
         form.addEventListener("submit", async function(event) {
           event.preventDefault();
           const messageEl = document.getElementById("loginMessage");
-          if (messageEl) messageEl.textContent = "Please wait…";
+          const submit = form.querySelector('button[type="submit"]');
+          if (submit) submit.disabled = true;
+          if (messageEl) { messageEl.textContent = "Please wait…"; messageEl.classList.remove("good"); }
           try {
             if (mode === "forgot") {
               const email = document.getElementById("loginEmail").value.trim();
               const redirectTo = location.origin + location.pathname;
               const result = await supabaseClient.auth.resetPasswordForEmail(email, { redirectTo: redirectTo });
               if (result.error) throw result.error;
-              return showLogin("login", "Password reset email sent. Check your inbox.", true);
+              return showLogin("login", "If that email belongs to a Pool Shed account, reset instructions are on the way.", true);
             }
             if (mode === "update") {
               const password = document.getElementById("loginPassword").value;
@@ -1840,36 +1924,64 @@ const seed = {
               if (result.error) throw result.error;
               return showLogin("login", "Password updated. Sign in with your new password.", true);
             }
+            if (mode === "mfa") {
+              const code = document.getElementById("loginMfaCode").value.replace(/\D/g, "");
+              if (code.length !== 6) throw new Error("Enter the 6-digit code from your authenticator app.");
+              if (!loginMfaFactorId) loginMfaFactorId = await pendingMfaFactor();
+              if (!loginMfaFactorId) throw new Error("No verified authenticator is available for this account.");
+              const verification = await supabaseClient.auth.mfa.challengeAndVerify({ factorId: loginMfaFactorId, code: code });
+              if (verification.error) throw verification.error;
+              const current = await supabaseClient.auth.getSession();
+              if (current.error) throw current.error;
+              loginMfaFactorId = "";
+              const applied = await applySupabaseSession(current.data && current.data.session);
+              if (!applied) return;
+              await loadRemoteWorkspace();
+              return showApp();
+            }
             const email = document.getElementById("loginEmail").value.trim();
             const password = document.getElementById("loginPassword").value;
+            loginAuthInProgress = true;
             const result = await supabaseClient.auth.signInWithPassword({ email: email, password: password });
             if (result.error) throw result.error;
-            await applySupabaseSession(result.data.session);
-            await loadRemoteWorkspace();
-            showApp();
+            loginSelectedEmail = email;
+            await completeSupabaseSignIn(result.data.session);
           } catch (error) {
-            showLogin(mode, error && error.message ? error.message : "Sign in failed.");
+            const safeMessage = mode === "login" ? "We could not sign you in. Check your details and try again." : (error && error.message ? error.message : "This request could not be completed.");
+            showLogin(mode, safeMessage);
+          } finally {
+            loginAuthInProgress = false;
+            if (submit && document.body.contains(submit)) submit.disabled = false;
           }
         });
       }
 
       async function bootApp() {
+        const hadPreviousSession = !!localStorage.getItem("poolshed:v169:sessionUserId");
         if (!supabaseClient) return showLogin("login");
         const result = await supabaseClient.auth.getSession();
+        if (result.error) {
+          isAuthenticated = false;
+          localStorage.removeItem("poolshed:v169:sessionUserId");
+          return showLogin(hadPreviousSession ? "session" : "login");
+        }
         const session = result.data && result.data.session;
         if (session) {
-          await applySupabaseSession(session);
-          await loadRemoteWorkspace();
-          showApp();
+          await completeSupabaseSignIn(session);
         } else {
           isAuthenticated = false;
           localStorage.removeItem("poolshed:v169:sessionUserId");
-          showLogin("login");
+          showLogin(hadPreviousSession ? "session" : "login");
         }
         supabaseClient.auth.onAuthStateChange(function(event, sessionValue) {
-          if (event === "PASSWORD_RECOVERY") showLogin("update");
-          if (event === "SIGNED_OUT") showLogin("login", "You have been signed out.", true);
-          if (event === "SIGNED_IN" && sessionValue) applySupabaseSession(sessionValue);
+          if (event === "PASSWORD_RECOVERY") return showLogin("update");
+          if (event === "SIGNED_OUT") {
+            if (!document.getElementById("loginScreen")?.classList.contains("hidden")) return;
+            return showLogin("session");
+          }
+          if (event === "SIGNED_IN" && sessionValue && !loginAuthInProgress && !isAuthenticated) {
+            completeSupabaseSignIn(sessionValue).catch(function() { showLogin("login", "We could not complete sign-in. Please try again."); });
+          }
         });
       }
 
@@ -1925,6 +2037,7 @@ const seed = {
         if (active === "fulfilment") return renderFulfilment();
         if (active === "crm") return renderCrm();
         if (active === "analytics") return renderAnalytics();
+        if (active === "automation") return renderAutomation();
         if (active === "accounting") return renderAccounting();
         if (active === "settings") return renderSettings();
         if (active === "barcodes") return renderBarcodes();
@@ -3059,7 +3172,7 @@ const seed = {
           const tab = byId[id];
           return '<div class="menu-layout-row" data-menu-row="' + tab.id + '" draggable="true"><span class="pill blue">' + String(index + 1).padStart(2, "0") + '</span><div><strong>' + escapeHtml(tab.label) + '</strong><small>' + escapeHtml(tab.intro) + '</small></div><div class="menu-order-buttons"><button type="button" class="secondary" data-menu-move="' + tab.id + '|up">↑</button><button type="button" class="secondary" data-menu-move="' + tab.id + '|down">↓</button></div></div>';
         }).join("");
-        return '<div class="notice-row"><div class="notice-item"><strong>Your menu order</strong><p class="muted">Drag sections or use the arrow buttons to put the sidebar into the order that makes most sense for your day. This saves only for the logged-in user.</p></div><div class="notice-item"><strong>Suggested operational flow</strong><p class="muted">Dashboard → CRM → Jobs / Projects → Sales Orders → Order Requests → Product Hub → Inventory → Purchasing → Warehouse → Fulfilment → Accounting → Analytics → Settings.</p></div></div><div class="menu-layout-list" id="menuLayoutList">' + rows + '</div><div class="action-row" style="margin-top:1rem"><button type="button" data-save-menu-order="true">Save menu order</button></div>';
+        return '<div class="notice-row"><div class="notice-item"><strong>Your menu order</strong><p class="muted">Drag sections or use the arrow buttons to put the sidebar into the order that makes most sense for your day. This saves only for the logged-in user.</p></div><div class="notice-item"><strong>Suggested operational flow</strong><p class="muted">Dashboard → CRM → Projects → Sales Orders → Engineer Requests → Product Hub → Inventory → Purchasing → Warehouse → Fulfilment → Accounting → Analytics → Automation → Settings.</p></div></div><div class="menu-layout-list" id="menuLayoutList">' + rows + '</div><div class="action-row" style="margin-top:1rem"><button type="button" data-save-menu-order="true">Save menu order</button></div>';
       }
 
       function permissionsSettingsPanel() {
@@ -3076,7 +3189,7 @@ const seed = {
           return '<div class="permission-user-card"><div class="permission-user-head"><div class="profile-hero" style="margin:0;padding:0"><span class="profile-avatar-preview" style="width:52px;height:52px;border-radius:16px">' + userAvatarHtml(user) + '</span><div><strong>' + escapeHtml(user.name) + '</strong><br><span class="muted">' + escapeHtml(user.email) + ' · ' + escapeHtml(user.role) + '</span></div></div><span class="pill ' + (user.status === "Active" ? "good" : "warn") + '">' + escapeHtml(user.status || "Active") + '</span></div><table class="permission-table"><thead><tr><th>Section</th><th>Permission</th></tr></thead><tbody>' + sectionRows(user) + '</tbody></table></div>';
         }).join("");
         const adminNote = isAdmin ? '<button type="button" data-save-user-permissions="true">Save permissions</button>' : '<span class="pill warn">Admin only</span>';
-        return '<div class="notice-row"><div class="notice-item"><strong>Section access</strong><p class="muted">Choose which areas each user can see in the left menu. Hidden sections cannot be opened from the sidebar. Operational users should only have the sections needed for their role, including Order Requests where appropriate, Inventory, Warehouse and Fulfilment only.</p></div><div class="notice-item"><strong>Admin control</strong><p class="muted">Only Admin/Manager-style users should change access. Dashboard is always visible and the current user cannot remove their own Settings access in the system.</p></div></div><div class="action-row" style="margin-bottom:1rem">' + adminNote + '</div><div class="permission-grid">' + cards + '</div>';
+        return '<div class="notice-row"><div class="notice-item"><strong>Section access</strong><p class="muted">Choose which areas each user can see in the left menu. Hidden sections cannot be opened from the sidebar. Operational users should only have the sections needed for their role, including Engineer Requests where appropriate, Inventory, Warehouse and Fulfilment only.</p></div><div class="notice-item"><strong>Admin control</strong><p class="muted">Only Admin/Manager-style users should change access. Dashboard is always visible and the current user cannot remove their own Settings access in the system.</p></div></div><div class="action-row" style="margin-bottom:1rem">' + adminNote + '</div><div class="permission-grid">' + cards + '</div>';
       }
 
       function usersSettingsPanel() {
@@ -4184,7 +4297,7 @@ const seed = {
 
           '<section class="product-wizard-panel blue active" data-product-step-panel="identity"><div class="product-step-heading"><span>01</span><div><h2>Product identity</h2><p>Create the master product record used across Sales Orders, Purchase Orders, Warehouse and reporting.</p></div></div><div class="product-step-layout"><div class="forms"><label>Product name *<input name="name" required placeholder="Example: 1.5 inch Ball Valve"></label><div class="form-grid three"><label>SKU *<input name="sku" required placeholder="VALVE-15-BALL"></label><label>Barcode<input name="barcode" placeholder="Scan or enter barcode"></label><label>Supplier SKU<input name="supplierSku" placeholder="Supplier item code"></label></div><div class="form-grid three"><label>Product type<select name="productType"><option>Default</option><option>Service</option><option>Bundle</option><option>Drop ship</option></select></label><label>Status<select name="status"><option>Live</option><option>Draft</option><option>Archived</option></select></label><label>Featured<select name="featured"><option>No</option><option>Yes</option></select></label></div><div class="form-grid three"><label>Brand<input name="brand" placeholder="Certikin"></label><label>Collection<input name="collection" placeholder="Optional collection"></label><label>Condition<select name="condition"><option>New</option><option>Used</option><option>Refurbished</option></select></label></div><div class="form-grid two"><label>Categories *<input name="category" required placeholder="Pipework, Valves"></label><label>Reporting category<input name="reportingCategory" placeholder="Pipework"></label></div><div class="form-grid four"><label>UPC<input name="upc"></label><label>EAN<input name="ean"></label><label>ISBN<input name="isbn"></label><label>MPN<input name="mpn"></label></div><div class="form-grid two"><label>Season(s)<input name="season" placeholder="Summer, Winter"></label><label>Reporting subcategory<input name="reportingSubcategory"></label></div></div><aside class="product-live-preview"><span class="eyebrow">LIVE PREVIEW</span><h3 id="productPreviewName">New product</h3><dl><div><dt>SKU</dt><dd id="productPreviewSku">Not set</dd></div><div><dt>Brand</dt><dd id="productPreviewBrand">Not set</dd></div><div><dt>Category</dt><dd id="productPreviewCategory">Not set</dd></div><div><dt>Status</dt><dd id="productPreviewStatus">Live</dd></div></dl></aside></div></section>' +
 
-          '<section class="product-wizard-panel yellow" data-product-step-panel="inventory"><div class="product-step-heading"><span>02</span><div><h2>Inventory & warehouse</h2><p>Define how the item is stored, replenished, measured and controlled across locations.</p></div></div><div class="form-grid four"><label>Stock tracked?<select name="stockTracked"><option value="true">Yes</option><option value="false">No</option></select></label><label>Track batch?<select name="trackBatch"><option value="false">No</option><option value="true">Yes</option></select></label><label>Track serial?<select name="trackSerial"><option value="false">No</option><option value="true">Yes</option></select></label><label>Unit<input name="unit" value="Each"></label></div><div class="form-grid five"><label>Weight kg<input name="weight" type="number" min="0" step="0.001"></label><label>Height cm<input name="height" type="number" min="0" step="0.1"></label><label>Width cm<input name="width" type="number" min="0" step="0.1"></label><label>Length cm<input name="length" type="number" min="0" step="0.1"></label><label>Volume cm³<input name="volume" id="productVolume" readonly></label></div><div class="form-grid four"><label>Initial warehouse<select name="locationId">' + locationOptions() + '</select></label><label>Opening stock<input name="qty" type="number" min="0" value="0"></label><label>Reorder level<input name="reorder" type="number" min="0" value="5"></label><label>Restock to<input name="restockTo" type="number" min="0" value="12"></label></div><label>Warehouse instruction<textarea name="warehouseMessage" rows="3" placeholder="Shown to warehouse users when handling this product"></textarea></label><div class="product-warehouse-grid">' + warehouseCards + '</div></section>' +
+          '<section class="product-wizard-panel yellow" data-product-step-panel="inventory"><div class="product-step-heading"><span>02</span><div><h2>Inventory & warehouse</h2><p>Define how the item is stored, replenished, measured and controlled across locations.</p></div></div><div class="form-grid four"><label>Stock tracked?<select name="stockTracked"><option value="true">Yes</option><option value="false">No</option></select></label><label>Track batch?<select name="trackBatch"><option value="false">No</option><option value="true">Yes</option></select></label><label>Track serial?<select name="trackSerial"><option value="false">No</option><option value="true">Yes</option></select></label><label>Unit<input name="unit" value="Each"></label></div><div class="form-grid five"><label>Weight kg<input name="weight" type="number" min="0" step="0.001"></label><label>Height cm<input name="height" type="number" min="0" step="0.1"></label><label>Width cm<input name="width" type="number" min="0" step="0.1"></label><label>Length cm<input name="length" type="number" min="0" step="0.1"></label><label>Volume cm³<input name="volume" id="productVolume" readonly></label></div><div class="form-grid five"><label>Initial warehouse<select name="locationId">' + locationOptions() + '</select></label><label>Opening stock<input name="qty" type="number" min="0" value="0"></label><label>Replenishment?<select name="replenishmentEnabled"><option value="true">Enabled</option><option value="false">Disabled</option></select></label><label>Reorder level<input name="reorder" type="number" min="0" value="5"></label><label>Restock to<input name="restockTo" type="number" min="0" value="12"></label></div><label>Warehouse instruction<textarea name="warehouseMessage" rows="3" placeholder="Shown to warehouse users when handling this product"></textarea></label><div class="product-warehouse-grid">' + warehouseCards + '</div></section>' +
 
           '<section class="product-wizard-panel green" data-product-step-panel="pricing"><div class="product-step-heading"><span>03</span><div><h2>Pricing & accounting</h2><p>Set buying cost, customer prices, volume breaks, tax and accounting codes.</p></div></div><div class="product-price-dashboard"><div><span>Cost</span><strong id="productCostPreview">£0.00</strong></div><div><span>RRP</span><strong id="productRrpPreview">£0.00</strong></div><div><span>Profit</span><strong id="productProfitPreview">£0.00</strong></div><div><span>Margin</span><strong id="productMarginPreview">0%</strong></div></div><div class="form-grid five"><label>Cost<input name="cost" type="number" min="0" step="0.01" value="0"></label><label>RRP<input name="rrp" type="number" min="0" step="0.01" value="0"></label><label>Trade<input name="trade" type="number" min="0" step="0.01" value="0"></label><label>Wholesale<input name="wholesale" type="number" min="0" step="0.01" value="0"></label><label>Special<input name="special" type="number" min="0" step="0.01" value="0"></label></div><label>Price breaks<textarea name="priceBreaks" rows="4" placeholder="1=20.00\n10=18.50\n25=17.00"></textarea><small>Enter one quantity and price per line.</small></label><div class="form-grid four"><label>Taxable?<select name="taxable"><option>Yes</option><option>No</option></select></label><label>Tax code<select name="taxCode"><option>T20</option><option>T0</option><option>T1</option></select></label><label>Sales account<select name="salesAccount"><option>4000 Merchandise Sales</option><option>4010 Service Upsell</option><option>4020 Trade Sales</option></select></label><label>Purchase account<select name="purchaseAccount"><option>5000 Cost of Goods Sold</option><option>5100 Materials</option><option>5200 Delivery</option></select></label></div><label>Stock account<select name="stockAccount"><option>1200 Stock/Inventory</option><option>1210 Quarantine</option><option>1220 Van stock</option></select></label></section>' +
 
@@ -5236,7 +5349,7 @@ const seed = {
           return '<tr><td><select name="productId' + i + '">' + engineerProductOptions("") + '</select></td><td><input name="qty' + i + '" type="number" min="0" step="1" value=""></td><td><input name="lineNote' + i + '" placeholder="Why this item is needed"></td></tr>';
         }).join("");
         return '<form id="engineerRequestForm" class="forms">' +
-          '<div class="notice-row compact-notice"><div class="notice-item"><strong>Use an existing job reference</strong><p class="muted">Jobs are created once in Jobs / Projects. Order Requests only asks for parts against that job, so requests, POs, receiving, job bin stock and invoice review stay linked without duplicate work.</p></div><div class="notice-item right"><button type="button" class="secondary" data-engineer-open-jobs="true">Create / manage jobs</button></div></div>' +
+          '<div class="notice-row compact-notice"><div class="notice-item"><strong>Use an existing job reference</strong><p class="muted">Jobs are created once in Projects. Engineer Requests only asks for parts against that job, so requests, POs, receiving, job bin stock and invoice review stay linked without duplicate work.</p></div><div class="notice-item right"><button type="button" class="secondary" data-engineer-open-jobs="true">Create / manage projects</button></div></div>' +
           '<div class="form-grid four"><label>Engineer<input value="' + escapeHtml(current.name) + '" disabled></label><label>Job / project reference<select name="jobId">' + engineerJobOptions("") + '</select></label><label>Needed by<input name="neededBy" type="date" value="' + addDays(todayIso(), 3) + '"></label><label>Priority<select name="priority">' + optionList(["Normal", "Urgent", "Critical"], "Normal") + '</select></label></div>' +
           '<div class="form-grid two"><label>Deliver to<select name="deliveryLocation">' + engineerLocationOptions(defaultLocation ? defaultLocation.id : "") + '</select></label><label>Visit / phase note<input name="projectName" placeholder="Optional phase, visit or install note"></label></div>' +
           '<label>Request notes<textarea name="notes" placeholder="Add supplier preference, site access note, install date or why this is required"></textarea></label>' +
@@ -5351,7 +5464,7 @@ const seed = {
         const value = data.engineerRequests.reduce(function(t, r) { return t + engineerRequestValue(r); }, 0);
         let body = '';
         if (sub === "Request Products") {
-          body = panel("Engineer Product Order Form", "Request parts against an existing job. Job creation, job bins and invoice costing are controlled from Jobs / Projects so the same job reference is only maintained once.", engineerRequestForm());
+          body = panel("Engineer Product Request", "Request parts against an existing job. Job creation, job bins and invoice costing are controlled from Projects so the same job reference is only maintained once.", engineerRequestForm());
         } else {
           body = panel(sub, "Track order requests from submitted request through approval, linked PO, supplier order, goods-in and final invoice/job-costing review.", engineerRequestFilters() + engineerRequestTable(requests));
         }
@@ -5547,7 +5660,7 @@ const seed = {
       function jobManagerForm(jobItem) {
         const editing = jobItem && jobItem.id && jobItem.id !== "__new";
         const j = editing ? jobItem : { id: nextJobId(), customerId: jobCreateCustomerId || (data.customers[0] || {}).id || '', name: '', status: 'Planning', locationId: '', owner: currentUser().name, notes: '' };
-        const statusOptions = ["Planning", "Approved", "Pending Parts", "In Progress", "Ready To Invoice", "Invoiced", "Completed", "On Hold"];
+        const statusOptions = ["Planning", "Approved", "Procurement", "Ready for Site", "In Progress", "Commercial Review", "Ready to Invoice", "Completed", "On Hold", "Cancelled"];
         const locationOptions = '<option value="">Create/select later</option>' + data.locations.filter(function(loc) { return ["Job Bin", "Customer Site", "Warehouse Shelf"].includes(loc.type); }).map(function(loc) { return '<option value="' + loc.id + '"' + (loc.id === j.locationId ? ' selected' : '') + '>' + escapeHtml(loc.name + ' · ' + loc.type) + '</option>'; }).join('');
         const customerOptions = data.customers.length ? data.customers.map(function(c) { return '<option value="' + c.id + '"' + (c.id === j.customerId ? ' selected' : '') + '>' + escapeHtml(c.name || c.companyName || c.email) + '</option>'; }).join('') : '<option value="">Create a customer first</option>';
         return '<form id="jobManagerForm" class="job-editor">' +
@@ -5611,10 +5724,10 @@ const seed = {
           const requestDetail = selectedJobId && selectedJobId !== "__new" ? '<div style="height:1rem"></div>' + panel("Linked order requests", "Requests and POs linked to this job. Complete requests here once received so the job can move to invoice review.", engineerRequestTable(selectedJobRequests)) : '';
           body = panel("Project Costing / Invoice Review", "Review requested materials, held stock and tool costs separately. Requested and held stock can overlap, so they are not added together as an actual job cost.", jobCostingPanel(selectedJobId && selectedJobId !== "__new" ? selectedJobId : "")) + requestDetail;
         } else {
-          const controls = '<div class="job-list-toolbar"><div><span class="job-editor-kicker">Jobs / Projects</span><h2>Manage active jobs</h2><p>Create the job once, then requests, POs, receiving and invoice review stay linked to the same record.</p></div><div class="action-row"><button data-job-new="true">Create job</button><button class="secondary" data-engineer-open-request-products="true">New order request</button><button class="secondary" data-engineer-action="export">Export</button></div></div>';
+          const controls = '<div class="job-list-toolbar"><div><span class="job-editor-kicker">Projects</span><h2>Manage active jobs</h2><p>Create the job once, then requests, POs, receiving and invoice review stay linked to the same record.</p></div><div class="action-row"><button data-job-new="true">Create job</button><button class="secondary" data-engineer-open-request-products="true">New order request</button><button class="secondary" data-engineer-action="export">Export</button></div></div>';
           body = panel("Job List", "Search and manage every customer job or project from one clear workspace.", controls + jobRowsTable(jobs));
         }
-        screen.innerHTML = kpi("Open jobs", openJobs, "Active project references") + kpi("Job bins", data.locations.filter(function(l) { return l.type === "Job Bin"; }).length, missingBins + " missing") + kpi("Request value", money(requestValue), "Order requested materials") + kpi("PO pending", poPending, "Units still outstanding") + body;
+        screen.innerHTML = kpi("Open projects", openJobs, "Active projects") + kpi("Job bins", data.locations.filter(function(l) { return l.type === "Job Bin"; }).length, missingBins + " missing") + kpi("Request value", money(requestValue), "Requested material value") + kpi("PO pending", poPending, "Units still outstanding") + body;
         bindJobs();
       }
 
@@ -6180,13 +6293,13 @@ const seed = {
         const rows = credit.lines.map(function(line) {
           const p = product(line.productId);
           const pending = Math.max(0, line.qty - line.received);
-          return '<tr class="' + (line.damaged ? "line-row-bad" : line.restock ? "line-row-ok" : "line-row-warn") + '"><td><strong>' + p.sku + '</strong><br><span class="muted">' + p.name + '</span></td><td>' + line.qty + '</td><td><input class="qty-input" data-credit-line-qty="' + credit.id + '|' + line.productId + '" type="number" min="0" max="' + line.qty + '" value="' + pending + '"><br><span class="muted">' + line.received + ' received</span></td><td><select class="inline-edit" data-credit-line-condition="' + credit.id + '|' + line.productId + '">' + optionList(["Pending", "Good", "Damaged", "Wrong item", "Warranty"], line.condition || "Pending") + '</select></td><td class="right">' + money(line.unitPrice) + '</td><td class="right">' + money(line.unitPrice * line.qty) + '</td><td><span class="pill ' + (line.restock ? "good" : line.damaged ? "bad" : "warn") + '">' + (line.restock ? "Restocked" : line.damaged ? "Quarantine" : "Pending") + '</span></td><td class="compact-actions"><div class="line-actions"><button class="secondary" data-credit-line-action="' + credit.id + '|' + line.productId + '|restock">Receive and restock</button><button class="secondary" data-credit-line-action="' + credit.id + '|' + line.productId + '|quarantine">Receive damaged</button></div></td></tr>';
+          return '<tr class="' + (line.damaged ? "line-row-bad" : line.restock ? "line-row-ok" : "line-row-warn") + '"><td><strong>' + p.sku + '</strong><br><span class="muted">' + p.name + '</span></td><td>' + line.qty + '</td><td><input class="qty-input" data-credit-line-qty="' + credit.id + '|' + line.productId + '" type="number" min="0" max="' + line.qty + '" value="' + pending + '"><br><span class="muted">' + line.received + ' received</span></td><td><select class="inline-edit" data-credit-line-condition="' + credit.id + '|' + line.productId + '">' + optionList(["Pending", "Good", "Damaged", "Wrong item", "Warranty"], line.condition || "Pending") + '</select></td><td class="right">' + money(line.unitPrice) + '</td><td class="right">' + money(line.unitPrice * line.qty) + '</td><td><span class="pill ' + (line.restock ? "good" : line.damaged ? "bad" : "warn") + '">' + (line.restock ? "Restocked" : line.damaged ? "Quarantine" : "Pending") + '</span></td><td class="compact-actions"><div class="line-actions"><button class="secondary" data-credit-line-action="' + credit.id + '|' + line.productId + '|restock">Book in & QC pass</button><button class="secondary" data-credit-line-action="' + credit.id + '|' + line.productId + '|quarantine">Book in to Quarantine</button></div></td></tr>';
         }).join("");
         return '<div class="record-card sales-order-compact">' +
           '<div class="record-top"><div class="record-id"><button class="secondary" data-sales-subview="credits">Back to credits</button><strong>' + credit.id + '</strong><span class="pill ' + statusClass(credit.status) + '">' + credit.status + '</span></div><div class="detail-actions"><button data-complete-sales-credit="' + credit.id + '">Complete sales credit</button></div></div>' +
           '<div class="record-card-body">' +
             '<div class="profile-stat-grid"><div class="profile-stat"><span>Customer</span><strong>' + c.name + '</strong></div><div class="profile-stat"><span>Original SO</span><strong>' + (order ? order.id : credit.originalSalesOrderId) + '</strong></div><div class="profile-stat"><span>Received</span><strong>' + summary.received + '/' + summary.qty + '</strong></div><div class="profile-stat"><span>Credit Net</span><strong>' + money(summary.net) + '</strong></div></div>' +
-            '<div class="action-row" style="margin:1rem 0"><label>Return/restock location<select class="inline-edit" data-credit-location="' + credit.id + '">' + locationOptionsWithSelected(credit.restockLocationId || "L-WH-A1") + '</select></label><span class="pill warn">Damaged goods go to Quarantine Hold</span></div>' +
+            '<div class="action-row" style="margin:1rem 0"><label>QC passed restock location<select class="inline-edit" data-credit-location="' + credit.id + '">' + locationOptionsWithSelected(credit.restockLocationId || "L-WH-A1") + '</select></label><span class="pill warn">Damaged goods go to Quarantine Hold</span></div>' +
             '<table><thead><tr><th>Item</th><th>Credit Qty</th><th>Receive Now</th><th>Condition</th><th class="right">Unit Net</th><th class="right">Line Net</th><th>Status</th><th>Action</th></tr></thead><tbody>' + rows + '</tbody></table>' +
           '</div></div>';
       }
@@ -9996,7 +10109,7 @@ const seed = {
           { title: "Goods-in receiving", steps: ["Open Warehouse > Goods In.", "Select or scan the supplier PO.", "Enter only the quantities that arrived; leave outstanding quantities on the PO.", "Choose a final bin for fast receipt, Receiving Bay for staged putaway, or Quarantine for damaged goods.", "Move staged goods using Guided Putaway; do not receive them again.", "Allocate linked or matching sales orders before completing goods-in."] },
           { title: "Sales order fulfilment", steps: ["Create or open the sales order.", "Allocate physical stock only; labour and custom non-stock lines do not use warehouse allocation.", "Create partial goods notes for available stock; keep the remainder open.", "Create/print the goods note, pick, pack and ship.", "Invoice when the order reaches the invoice-ready stage."] },
           { title: "Short-stock purchasing", steps: ["Open a red/short sales order line.", "Clone the line to a draft PO.", "Admin reviews supplier, qty, cost and linked customer/job.", "Prepare supplier email, then mark the PO as sent.", "Receive the PO and allocate back to the sales order or job."] },
-          { title: "Product and material requests", steps: ["Engineer logs in and opens Order Requests.", "Request products against the job/project reference.", "Admin approves or rejects the request.", "Admin raises the linked PO.", "Goods-in receives to site/job, then admin completes for invoice review."] },
+          { title: "Product and material requests", steps: ["Engineer logs in and opens Engineer Requests.", "Request products against the job/project reference.", "Admin approves or rejects the request.", "Admin raises the linked PO.", "Goods-in receives to site/job, then admin completes for invoice review."] },
           { title: "Van stock control", steps: ["Use Inventory > Van Top-Ups for warehouse-to-van replenishment.", "Use Location Thresholds for van-specific min/max/restock-to rules.", "Return uncommon or over-max van stock back to warehouse.", "Run weekly van stock takes and submit variances for admin approval."] },
           { title: "Stock take and missing stock", steps: ["Open Inventory > Stock Take and select the location.", "Print a blank count sheet or count on screen.", "Enter counted quantities and reasons for differences.", "Submit for approval before stock is posted.", "Use Missing Stock to review engineer/location losses and value impact."] }
         ];
@@ -10975,7 +11088,7 @@ const seed = {
           return '<tr class="' + health.className + '"><td><span class="pill ' + health.pillClass + '">' + health.label + '</span></td><td><strong>' + p.name + '</strong><br><span class="muted">' + p.sku + '</span></td><td>' + line.qty + '</td><td>' + line.picked + '</td><td>' + line.packed + '</td><td>' + line.shipped + '</td><td>' + source + '</td></tr>';
         }).join("");
         return '<div class="goods-note">' +
-          '<div class="goods-toolbar"><div class="action-row"><button class="secondary" data-print-note="' + note.id + '">Print picking list</button><button class="secondary" data-print-delivery-note="' + note.id + '"' + (note.packed ? '' : ' disabled') + '>Print delivery note</button><button class="secondary" data-email-note="' + note.id + '">Email</button><button class="ghost" data-change-note-template="' + note.id + '">Change template</button><button class="ghost" data-edit-note-template="' + note.id + '">Edit template</button></div><button class="ghost" data-close-goods-note="' + note.id + '">Close</button></div>' +
+          '<div class="goods-toolbar"><div class="action-row"><button class="secondary" data-print-note="' + note.id + '">Print picking list</button><button class="secondary" data-print-delivery-note="' + note.id + '"' + (note.packed ? '' : ' disabled') + '>Print Parcel Goods Note</button><button class="secondary" data-email-note="' + note.id + '">Email</button><button class="ghost" data-change-note-template="' + note.id + '">Change template</button><button class="ghost" data-edit-note-template="' + note.id + '">Edit template</button></div><button class="ghost" data-close-goods-note="' + note.id + '">Close</button></div>' +
           '<div class="goods-titlebar"><div><h2>Goods Out Note ' + note.id + '</h2><div class="goods-meta"><span>Sales order: <strong>' + order.id + '</strong></span><span>Customer: <strong>' + c.name + '</strong></span><span>Tracking ref: <strong>' + (note.trackingRef || "Not set") + '</strong></span><span>Shipping method: <strong>' + note.shippingMethod + '</strong></span><span>Boxes: <strong>' + note.boxes + '</strong></span><span>Weight: <strong>' + note.weight + '</strong></span></div></div><div class="action-row"><button class="secondary" data-open-pack="' + note.id + '">Update shipping details</button><button class="secondary" data-priority-note="' + note.id + '">' + (note.priority ? "Priority on" : "Upgrade to priority") + '</button><button class="secondary" data-export-goods-note="' + note.id + '">Export as CSV</button></div></div>' +
           '<div class="stage-grid">' +
             stageCard("Print", note.printed, "Print", "Picking list printed with ordered and allocated quantities.", "data-print-note", note.id) +
@@ -11031,10 +11144,10 @@ const seed = {
           return '<tr><td>' + p.sku + '</td><td>' + p.name + '</td><td>' + line.qty + '</td></tr>';
         }).join("");
         const pickedBy = note.pickedBy || currentUser().name || "Pool Bros staff";
-        const html = '<!doctype html><html><head><title>Delivery Note ' + note.id + '</title><link rel="stylesheet" href="./assets/css/06-legacy-06.css"></head><body><div class="head"><div><h1>Delivery Note</h1><strong class="brand">Pool Bros</strong><p class="muted">' + poolBrosAddress + '<br>' + (company.phone || '') + (company.email ? ' · ' + company.email : '') + '</p></div><div class="right"><h2>' + note.id + '</h2><p>Sales order: <strong>' + order.id + '</strong><br>Date: ' + new Date().toISOString().slice(0, 10) + '</p></div></div>' +
+        const html = '<!doctype html><html><head><title>Parcel Goods Note ' + note.id + '</title><link rel="stylesheet" href="./assets/css/06-legacy-06.css"></head><body><div class="head"><div><h1>Parcel Goods Note</h1><strong class="brand">Pool Bros</strong><p class="muted">' + poolBrosAddress + '<br>' + (company.phone || '') + (company.email ? ' · ' + company.email : '') + '</p></div><div class="right"><h2>' + note.id + '</h2><p>Sales order: <strong>' + order.id + '</strong><br>Date: ' + new Date().toISOString().slice(0, 10) + '</p></div></div>' +
           '<div class="box"><strong>Deliver to</strong><p>' + c.name + '<br>' + [delivery.line1, delivery.line2, delivery.city, delivery.postcode, delivery.country].filter(Boolean).join('<br>') + (delivery.phone ? '<br>Phone: ' + delivery.phone : '') + '</p></div>' +
           '<div class="shipping"><div class="box"><strong>Courier</strong><p>' + (note.courier || note.shippingMethod || 'Not set') + '</p></div><div class="box"><strong>Tracking reference</strong><p>' + (note.trackingRef || 'Not set') + '</p></div></div>' +
-          '<div class="box"><strong>Goods packed for delivery</strong><table><thead><tr><th>SKU</th><th>Product</th><th>Quantity</th></tr></thead><tbody>' + rows + '</tbody></table></div>' +
+          '<div class="box"><strong>Goods in this shipment</strong><table><thead><tr><th>SKU</th><th>Product</th><th>Quantity</th></tr></thead><tbody>' + rows + '</tbody></table></div>' +
           '<p class="muted">' + company.deliveryNoteFooter + '</p><div class="sig"><strong>Picked and signed by Pool Bros</strong><p>' + pickedBy + ' &nbsp; Signature: ______________________________</p></div><scr' + 'ipt>window.print();</scr' + 'ipt></body></html>';
         const win = window.open("", "_blank");
         if (!win) {
@@ -11135,7 +11248,7 @@ const seed = {
       }
 
       function markGoodsNotePrinted(note, printed, notify, openPrintWindow) {
-        if (note.shipped) return false;
+        if (note.shipped || note.hold) return false;
         note.printed = printed;
         note.printedAt = printed ? new Date().toISOString() : "";
         syncSalesOrderStatusFromGoodsNotes(salesOrder(note.salesOrderId));
@@ -11145,33 +11258,42 @@ const seed = {
       }
 
       function markGoodsNotePicked(note, picked, notify) {
-        if (note.shipped) return false;
+        if (note.shipped || note.shipmentLocked || note.hold) return false;
+        if (picked && globalThis.PoolShedFulfilmentControl && typeof globalThis.PoolShedFulfilmentControl.isFullyAllocated === "function" && !globalThis.PoolShedFulfilmentControl.isFullyAllocated(note)) return false;
+        const order = salesOrder(note.salesOrderId);
         note.printed = picked ? true : note.printed;
         note.picked = picked;
         note.pickedAt = picked ? new Date().toISOString() : "";
         note.pickedBy = picked ? currentUser().name : "";
-        note.lines.forEach(function(line) { line.picked = picked ? line.qty : 0; });
-        syncSalesOrderStatusFromGoodsNotes(salesOrder(note.salesOrderId));
+        note.lines.forEach(function(line) {
+          line.picked = picked ? line.qty : 0;
+          if (!picked) { line.pickLocations = []; return; }
+          let remaining = Number(line.qty || 0);
+          line.pickLocations = allocationRowsForSalesOrder(line.productId, order.id).slice().sort(function(a,b){ return Number(b.allocated||0)-Number(a.allocated||0); }).map(function(row){
+            if (remaining <= 0) return null;
+            const qty = Math.min(remaining, Number(row.qty || 0));
+            if (qty <= 0) return null;
+            remaining -= qty;
+            return { locationId: row.locationId, qty: qty, pickedAt: note.pickedAt, pickedBy: note.pickedBy };
+          }).filter(Boolean);
+          if (remaining > 0) { note.picked = false; line.picked = 0; line.pickLocations = []; }
+        });
+        if (picked && !note.picked) return false;
+        syncSalesOrderStatusFromGoodsNotes(order);
         if (picked && notify) addNotification(note, "Pick", "Your order is being picked in the warehouse", "Ready to send");
         return true;
       }
 
       function markGoodsNotePacked(note, notify) {
-        if (note.shipped) return false;
+        if (note.shipped || note.shipmentLocked || note.hold) return false;
+        if (!note.picked || note.lines.some(function(line){ return Number(line.picked||0) < Number(line.qty||0); })) return false;
         note.printed = true;
-        note.picked = true;
         note.packed = true;
         note.packedAt = new Date().toISOString();
-        note.pickedBy = note.pickedBy || currentUser().name;
         note.packedBy = currentUser().name;
-        note.courier = note.courier || "Courier";
-        note.trackingRef = note.trackingRef || "Tracking pending";
-        note.lines.forEach(function(line) {
-          line.picked = line.qty;
-          line.packed = line.qty;
-        });
+        note.lines.forEach(function(line) { line.packed = line.qty; });
         syncSalesOrderStatusFromGoodsNotes(salesOrder(note.salesOrderId));
-        if (notify) addNotification(note, "Pack", "Your order is packed with " + note.courier + " tracking " + note.trackingRef, "Ready to send");
+        if (notify) addNotification(note, "Pack", "Your order is packed and awaiting dispatch confirmation", "Ready to send");
         return true;
       }
 
@@ -11222,10 +11344,15 @@ const seed = {
       }
 
       function shipGoodsNote(note) {
-        if (note.shipped) return false;
+        if (globalThis.PoolShedFulfilmentControl && typeof globalThis.PoolShedFulfilmentControl.atomicShip === "function") {
+          const result = globalThis.PoolShedFulfilmentControl.atomicShip(note);
+          return !!(result && result.ok);
+        }
+        if (note.shipped || note.hold) return false;
         if (!note.packed) return false;
         const order = salesOrder(note.salesOrderId);
         note.shipped = true;
+        note.shipmentLocked = true;
         note.shippedAt = new Date().toISOString();
         note.lines.forEach(function(line) { line.shipped = line.qty; });
         syncSalesOrderStatusFromGoodsNotes(order);
@@ -11252,6 +11379,10 @@ const seed = {
           return;
         }
         if (action === "shippingDetails") {
+          if (notes[0] && notes[0].hold) {
+            toast("Release the hold before updating shipping details for " + notes[0].id + ".");
+            return;
+          }
           packingGoodsNoteId = notes[0].id;
           renderShippingModal();
           return;
@@ -11394,6 +11525,11 @@ const seed = {
         document.querySelectorAll("[data-open-pack]").forEach(function(button) {
           button.addEventListener("click", function(event) {
             const note = goodsNote(button.dataset.openPack);
+            if (note && note.hold) {
+              toast("Release the hold before packing " + note.id + ".");
+              render();
+              return;
+            }
             const isCheckbox = event.currentTarget.type === "checkbox";
             if (isCheckbox && !event.currentTarget.checked) {
               if (!unmarkGoodsNotePacked(note)) {
@@ -11550,7 +11686,12 @@ const seed = {
           note.shippingMethod = values.shippingMethod || note.shippingMethod;
           note.boxes = Number(values.boxes || note.boxes);
           note.weight = values.weight || note.weight;
-          markGoodsNotePacked(note, true);
+          const packed = markGoodsNotePacked(note, true);
+          if (!packed) {
+            toast(note.hold ? "Release the hold before packing " + note.id + "." : "This Goods Note can no longer be packed.");
+            renderShippingModal();
+            return;
+          }
           packingGoodsNoteId = "";
           toast(note.id + " packed with courier and tracking details. Opening the delivery note for printing.");
           printDeliveryNote(note);
@@ -13115,6 +13256,12 @@ const seed = {
             wholesale: Number(values.wholesale || 0),
             special: 0,
             reorder: Number(values.reorder || 0),
+            restockTo: Number(values.restockTo || 0),
+            replenishmentEnabled: values.replenishmentEnabled !== "false",
+            minimumOrderQuantity: Number(values.supplierMoq || 1),
+            orderMultiple: Number(values.supplierPackQty || 1),
+            leadTimeDays: Number(values.supplierLeadTime || 0),
+            preferredSupplier: (values.supplier || "").trim(),
             unit: values.unit.trim() || "Each",
             trackBatch: values.trackBatch === "true",
             trackSerial: values.trackSerial === "true",
@@ -13182,6 +13329,22 @@ const seed = {
             notes: (values.notes || "").trim()
           };
           data.products.push(newProduct);
+          if (!Array.isArray(data.supplierProducts)) data.supplierProducts = [];
+          if (newProduct.preferredSupplier && newProduct.preferredSupplier !== "Unknown") {
+            data.supplierProducts.push({
+              id: "SP-" + String(data.supplierProducts.length + 1).padStart(5, "0"),
+              productId: id,
+              supplier: newProduct.preferredSupplier,
+              supplierSku: newProduct.supplierSku || newProduct.sku,
+              cost: Number(values.supplierCost || values.cost || 0),
+              leadTimeDays: Number(values.supplierLeadTime || 0),
+              minQty: Number(values.supplierMoq || 1),
+              packQty: Number(values.supplierPackQty || 1),
+              available: true,
+              lastUpdated: todayIso(),
+              notes: "Primary supplier created with product"
+            });
+          }
           const qty = Number(values.qty || 0);
           if (qty > 0) {
             addStock(id, values.locationId, qty, 0);
@@ -13611,7 +13774,7 @@ const seed = {
       }
 
       function productExportHeaders() {
-        return ["sku", "name", "category", "supplier", "supplierSku", "barcode", "cost", "trade", "wholesale", "special", "rrp", "reorder", "unit", "warranty", "brand", "productType", "featured", "condition", "taxable", "salesAccount", "purchaseAccount", "stockAccount", "description", "parentImageUrl", "imageUrl", "imageAlt"];
+        return ["sku", "name", "category", "supplier", "supplierSku", "barcode", "mpn", "aliases", "cost", "trade", "wholesale", "special", "rrp", "reorder", "restockTo", "replenishmentEnabled", "minimumOrderQuantity", "orderMultiple", "leadTimeDays", "preferredSupplier", "unit", "warranty", "brand", "productType", "featured", "condition", "taxable", "salesAccount", "purchaseAccount", "stockAccount", "description", "parentImageUrl", "imageUrl", "imageAlt"];
       }
 
       function csvValue(value) {
@@ -13773,7 +13936,7 @@ const seed = {
               }
               productExportHeaders().forEach(function(key) {
                 if (key in values) {
-                  p[key] = ["cost", "trade", "wholesale", "special", "rrp", "reorder"].includes(key) ? Number(values[key] || 0) : values[key];
+                  p[key] = ["cost", "trade", "wholesale", "special", "rrp", "reorder", "restockTo", "minimumOrderQuantity", "orderMultiple", "leadTimeDays"].includes(key) ? Number(values[key] || 0) : values[key];
                 }
               });
               imported += 1;
@@ -13862,8 +14025,8 @@ const seed = {
 
       function applyBulkProductCsv(text) {
         const parsed = parseBulkProductCsv(text);
-        const numberFields = ["cost", "trade", "wholesale", "special", "rrp", "reorder"];
-        const boolFields = ["trackBatch", "trackSerial"];
+        const numberFields = ["cost", "trade", "wholesale", "special", "rrp", "reorder", "restockTo", "minimumOrderQuantity", "orderMultiple", "leadTimeDays"];
+        const boolFields = ["trackBatch", "trackSerial", "replenishmentEnabled"];
         const result = { total: 0, created: 0, updated: 0, skipped: 0 };
         parsed.rows.forEach(function(values) {
           const sku = String(values.sku || "").trim();
@@ -14658,5 +14821,5 @@ const seed = {
         updateOfflineStatus();
         restoreOfflineSnapshotIfNeeded();
         syncPendingOfflineData();
-        if ("serviceWorker" in navigator && location.protocol !== "file:") navigator.serviceWorker.register("./service-worker.js?v=1.7.5", { updateViaCache:"none" }).catch(function() {});
+        if ("serviceWorker" in navigator && location.protocol !== "file:") navigator.serviceWorker.register("./service-worker.js?v=1.22.0", { updateViaCache:"none" }).catch(function() {});
       });

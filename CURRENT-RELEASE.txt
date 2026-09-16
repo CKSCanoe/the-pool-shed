@@ -1,0 +1,3 @@
+Pool Shed v1.22.0 Login Command
+Premium staff login + Supabase MFA-aware authentication UX.
+Xero remains Ready to Connect and locked.

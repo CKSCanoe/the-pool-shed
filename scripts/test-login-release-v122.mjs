@@ -1,0 +1,13 @@
+import fs from 'node:fs';
+import assert from 'node:assert/strict';
+const pkg=JSON.parse(fs.readFileSync('package.json','utf8'));
+const release=pkg.version;
+const html=fs.readFileSync('public/index.html','utf8');
+const sw=fs.readFileSync('public/service-worker.js','utf8');
+const legacy=fs.readFileSync('public/assets/js/01-legacy-01.js','utf8');
+assert.equal(release,'1.22.0');
+assert(html.includes(`app.css?v=${release}`));
+assert(sw.includes(`pool-shed-v${release}-`));
+assert(legacy.includes(`service-worker.js?v=${release}`));
+assert(!html.includes('Platform Hardening'));
+console.log('PASS v1.22.0 login release wiring');

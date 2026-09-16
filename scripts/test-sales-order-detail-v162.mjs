@@ -6,7 +6,7 @@ const legacy = fs.readFileSync('public/assets/js/01-legacy-01.js','utf8');
 const pkg = JSON.parse(fs.readFileSync('package.json','utf8'));
 
 const checks = [
-  ['release version', pkg.version === '1.7.5'],
+  ['release version', /^\d+\.\d+\.\d+$/.test(pkg.version)],
   ['compact CRM customer command', workspace.includes('so2CustomerCard') && workspace.includes('so2-customer-contact') && workspace.includes('Open CRM') && !workspace.slice(workspace.indexOf('function so2CustomerCard'), workspace.indexOf('customerProfileCard = so2CustomerCard')).includes('Credit headroom')],
   ['first class save action preserved', workspace.includes('so3-save so-action-save') && workspace.includes('Save Order') && legacy.includes('data-save-order')],
   ['payment beside totals', workspace.includes('Take / Record Payment') && workspace.includes('data-open-payment') && workspace.includes('View payment history')],

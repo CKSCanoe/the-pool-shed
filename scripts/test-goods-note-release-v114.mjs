@@ -1,0 +1,10 @@
+import fs from 'node:fs';import assert from 'node:assert/strict';import pkg from '../package.json' with {type:'json'};
+const html=fs.readFileSync('public/index.html','utf8'),sw=fs.readFileSync('public/service-worker.js','utf8'),css=fs.readFileSync('public/assets/css/system/48-fulfilment-command.css','utf8');
+const release=pkg.version;
+for(const asset of [`./fulfilment-control-engine.js?v=${release}`,`./fulfilment-workspace.js?v=${release}`,`./assets/css/app.css?v=${release}`])assert(html.includes(asset),`runtime missing ${asset}`);
+assert(html.indexOf(`./fulfilment-control-engine.js?v=${release}`)<html.indexOf(`./fulfilment-workspace.js?v=${release}`));
+assert(sw.includes(`pool-shed-v${release}-`),'service-worker cache must use current release version');
+assert(sw.includes(`./fulfilment-control-engine.js?v=${release}`)&&sw.includes(`./fulfilment-workspace.js?v=${release}`));
+assert(fs.readFileSync('public/assets/js/01-legacy-01.js','utf8').includes(`service-worker.js?v=${release}`));
+for(const token of ['.ff-modal-backdrop','.ff-lock-banner','.ff-dispatch-mode'])assert(css.includes(token),`missing CSS ${token}`);
+console.log(`PASS Goods Note Control runtime, cache and visual wiring on v${release}`);

@@ -1,154 +1,134 @@
-[
-  {
-    "path": "CHANGED-FILES.json",
-    "status": "modified"
-  },
-  {
-    "path": "README.md",
-    "status": "modified"
-  },
-  {
-    "path": "UI-OWNERSHIP-AUDIT-1.7.4.md",
-    "status": "added"
-  },
-  {
-    "path": "VERIFICATION-RESULTS-1.7.4.txt",
-    "status": "added"
-  },
-  {
-    "path": "dist/assets/css/app.css",
-    "status": "modified"
-  },
-  {
-    "path": "dist/assets/css/system/10-legacy-compat.css",
-    "status": "modified"
-  },
-  {
-    "path": "dist/assets/css/system/40-design-system.css",
-    "status": "modified"
-  },
-  {
-    "path": "dist/assets/js/01-legacy-01.js",
-    "status": "modified"
-  },
-  {
-    "path": "dist/index.html",
-    "status": "modified"
-  },
-  {
-    "path": "dist/pool-shed-overhaul.js",
-    "status": "modified"
-  },
-  {
-    "path": "dist/service-worker.js",
-    "status": "modified"
-  },
-  {
-    "path": "docs/superpowers/plans/2026-09-14-legacy-ui-isolation.md",
-    "status": "added"
-  },
-  {
-    "path": "package.json",
-    "status": "modified"
-  },
-  {
-    "path": "public/assets/css/app.css",
-    "status": "modified"
-  },
-  {
-    "path": "public/assets/css/system/10-legacy-compat.css",
-    "status": "modified"
-  },
-  {
-    "path": "public/assets/css/system/40-design-system.css",
-    "status": "modified"
-  },
-  {
-    "path": "public/assets/js/01-legacy-01.js",
-    "status": "modified"
-  },
-  {
-    "path": "public/index.html",
-    "status": "modified"
-  },
-  {
-    "path": "public/pool-shed-overhaul.js",
-    "status": "modified"
-  },
-  {
-    "path": "public/service-worker.js",
-    "status": "modified"
-  },
-  {
-    "path": "scripts/test-catalogue-health-actions.mjs",
-    "status": "modified"
-  },
-  {
-    "path": "scripts/test-css-architecture.mjs",
-    "status": "modified"
-  },
-  {
-    "path": "scripts/test-po-picker-ui.mjs",
-    "status": "modified"
-  },
-  {
-    "path": "scripts/test-release-cleanup.mjs",
-    "status": "modified"
-  },
-  {
-    "path": "scripts/test-sales-order-asset-freshness-v162.mjs",
-    "status": "modified"
-  },
-  {
-    "path": "scripts/test-sales-order-command.mjs",
-    "status": "modified"
-  },
-  {
-    "path": "scripts/test-sales-order-customer-picker.mjs",
-    "status": "modified"
-  },
-  {
-    "path": "scripts/test-sales-order-design-parity-v163.mjs",
-    "status": "modified"
-  },
-  {
-    "path": "scripts/test-sales-order-detail-v162.mjs",
-    "status": "modified"
-  },
-  {
-    "path": "scripts/test-sales-order-finder-parity-v172.mjs",
-    "status": "modified"
-  },
-  {
-    "path": "scripts/test-sales-order-finder-polish-v173.mjs",
-    "status": "modified"
-  },
-  {
-    "path": "scripts/test-sales-order-finder-polish-v174.mjs",
-    "status": "added"
-  },
-  {
-    "path": "scripts/test-sales-order-list-option-a.mjs",
-    "status": "modified"
-  },
-  {
-    "path": "scripts/test-sales-order-parity-v171.mjs",
-    "status": "modified"
-  },
-  {
-    "path": "scripts/test-sales-order-smart-product-finder-v170.mjs",
-    "status": "modified"
-  },
-  {
-    "path": "scripts/test-sales-table-header.mjs",
-    "status": "modified"
-  },
-  {
-    "path": "scripts/test-ui-ownership-v174.mjs",
-    "status": "added"
-  },
-  {
-    "path": "scripts/validate-runtime.mjs",
-    "status": "modified"
-  }
-]
+{
+  "from": "1.7.5",
+  "to": "1.8.0",
+  "files": [
+    {
+      "path": "VERIFICATION-RESULTS-1.8.0.txt",
+      "change": "added"
+    },
+    {
+      "path": "WAREHOUSE-PRECISION-RELEASE-AUDIT-1.8.0.md",
+      "change": "added"
+    },
+    {
+      "path": "dist/assets/css/app.css",
+      "change": "modified"
+    },
+    {
+      "path": "dist/assets/css/system/35-warehouse-workspace.css",
+      "change": "added"
+    },
+    {
+      "path": "dist/assets/js/01-legacy-01.js",
+      "change": "modified"
+    },
+    {
+      "path": "dist/index.html",
+      "change": "modified"
+    },
+    {
+      "path": "dist/service-worker.js",
+      "change": "modified"
+    },
+    {
+      "path": "dist/warehouse-workspace.js",
+      "change": "added"
+    },
+    {
+      "path": "docs/superpowers/plans/2026-09-15-warehouse-precision-desk.md",
+      "change": "added"
+    },
+    {
+      "path": "docs/superpowers/specs/2026-09-15-warehouse-precision-desk-design.md",
+      "change": "added"
+    },
+    {
+      "path": "package.json",
+      "change": "modified"
+    },
+    {
+      "path": "public/assets/css/app.css",
+      "change": "modified"
+    },
+    {
+      "path": "public/assets/css/system/35-warehouse-workspace.css",
+      "change": "added"
+    },
+    {
+      "path": "public/assets/js/01-legacy-01.js",
+      "change": "modified"
+    },
+    {
+      "path": "public/index.html",
+      "change": "modified"
+    },
+    {
+      "path": "public/service-worker.js",
+      "change": "modified"
+    },
+    {
+      "path": "public/warehouse-workspace.js",
+      "change": "added"
+    },
+    {
+      "path": "scripts/build-css.mjs",
+      "change": "modified"
+    },
+    {
+      "path": "scripts/test-css-architecture.mjs",
+      "change": "modified"
+    },
+    {
+      "path": "scripts/test-po-picker-ui.mjs",
+      "change": "modified"
+    },
+    {
+      "path": "scripts/test-release-cleanup.mjs",
+      "change": "modified"
+    },
+    {
+      "path": "scripts/test-sales-order-asset-freshness-v162.mjs",
+      "change": "modified"
+    },
+    {
+      "path": "scripts/test-sales-order-command-compact-v180.mjs",
+      "change": "added"
+    },
+    {
+      "path": "scripts/test-sales-order-customer-picker.mjs",
+      "change": "modified"
+    },
+    {
+      "path": "scripts/test-sales-order-detail-v162.mjs",
+      "change": "modified"
+    },
+    {
+      "path": "scripts/test-sales-order-finder-polish-v174.mjs",
+      "change": "modified"
+    },
+    {
+      "path": "scripts/test-sales-order-list-option-a.mjs",
+      "change": "modified"
+    },
+    {
+      "path": "scripts/test-sales-table-header.mjs",
+      "change": "modified"
+    },
+    {
+      "path": "scripts/test-ui-ownership-v180.mjs",
+      "change": "added"
+    },
+    {
+      "path": "scripts/test-warehouse-fifo-allocation-v180.mjs",
+      "change": "added"
+    },
+    {
+      "path": "scripts/test-warehouse-precision-desk-v180.mjs",
+      "change": "added"
+    },
+    {
+      "path": "scripts/test-warehouse-visual-guard-v180.mjs",
+      "change": "added"
+    }
+  ]
+}

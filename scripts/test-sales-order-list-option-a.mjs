@@ -7,7 +7,7 @@ const pkg = JSON.parse(fs.readFileSync("package.json","utf8"));
 const sw = fs.readFileSync("public/service-worker.js","utf8");
 
 const checks = [
-  ["release version", pkg.version === "1.7.5"],
+  ["release version", /^\d+\.\d+\.\d+$/.test(pkg.version)],
   ["Option A order queue shell", js.includes('class="so-list-page"') && js.includes('>Order queue<')],
   ["operational KPI strip", js.includes("so-list-kpis") && js.includes("ACTIVE ORDERS") && js.includes("NEED ACTION") && js.includes("READY TO PROCESS") && js.includes("DUE TODAY")],
   ["queue tabs include action views", js.includes('{ id: "needs", label: "Needs action"') && js.includes('{ id: "backorder", label: "Backorders"')],
@@ -23,7 +23,7 @@ const checks = [
   ["bounded sticky order list", css.includes(".so-list-table-wrap") && css.includes("max-height:clamp(360px,58vh,680px)") && css.includes(".so-list-table th") && css.includes("position:sticky")],
   ["selected Option A palette uses calm light fields", css.includes("Approved light workspace palette") && design.includes("UPDATED PAGE PALETTE GUARD")],
   ["palette guard scoped to CRM and Sales Orders only", design.includes('#screen-crm :is(input:not([type="checkbox"]):not([type="radio"]),select,textarea)') && design.includes('#screen-salesorders :is(input:not([type="checkbox"]):not([type="radio"]),select,textarea)')],
-  ["service worker release cache invalidated", sw.includes("pool-shed-v1.7.5-ui-ownership")]
+  ["service worker release cache invalidated", sw.includes(`pool-shed-v${pkg.version}-`)]
 ];
 
 let failed = false;

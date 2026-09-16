@@ -1,0 +1,43 @@
+PASS Login Command visual states, Supabase auth safety and CSS authority
+PASS v1.22.0 login release wiring
+PASS full-system release contract retained on v1.22.0
+
+> the-pool-shed@1.22.0 test:xero-ready
+> node scripts/test-xero-readiness-engine-v1201.mjs && node scripts/test-xero-readiness-api-v1201.mjs && node scripts/test-xero-readiness-ui-v1201.mjs && node scripts/test-xero-readiness-release-v1201.mjs && node scripts/test-finance-command-api-v116.mjs
+
+PASS Xero readiness engine safe-mode and granular-scope contract
+PASS Xero API remains status-visible but provider-locked in Ready mode
+PASS Xero readiness UI contract
+PASS Xero connection-ready controls retained on v1.22.0
+PASS Finance Command Xero API enrichment contract
+
+> the-pool-shed@1.22.0 test:settings-command
+> node scripts/test-settings-permissions-engine-v119.mjs && node scripts/test-settings-command-workspace-v119.mjs && node scripts/test-settings-permission-integration-v119.mjs && node scripts/test-settings-security-enforcement-v119.mjs && node scripts/test-settings-command-release-v119.mjs
+
+PASS Settings permission roles, overrides, approval limits, location scope, finance visibility and audit
+PASS Settings Command approved Option C structure and action coverage
+PASS Settings permission integration hooks for UI, assistant, automation and analytics
+PASS Settings security enforcement across assistant locations/finance, Analytics export and Automation authority
+PASS Settings Command runtime, permission ordering, CSS and current cache wiring
+
+> the-pool-shed@1.22.0 test:automation-command
+> node scripts/test-assistant-engine-v118.mjs && node scripts/test-automation-command-engine-v118.mjs && node scripts/test-automation-command-workspace-v118.mjs && node scripts/test-assistant-settings-v118.mjs && node scripts/test-automation-release-v118.mjs
+
+PASS Smart Assistant Pool Shed-only retrieval, provenance, item finding, training answers and actionable knowledge gaps
+PASS Automation Command flow validation, safe authority, simulation, templates and audit
+PASS Automation Command workspace, Flow Builder and floating assistant structure
+PASS Assistant profile, transparent PNG, knowledge and Pool Shed-only settings contract
+PASS Automation + Assistant retained on v1.22.0
+Visual consistency checks passed: flat operational surfaces, shared dialog geometry/elevation, flat underline tabs.
+CSS architecture checks passed: 1 runtime bundle, 21 ownership modules, 6 separate print styles, shared primitives owned by design system.
+Readability hardening checks passed: no remaining sub-micro copy and critical command surfaces have explicit readable foreground/background.
+PASS selection white on Pool Teal: 5.05:1
+PASS navy on Aqua: 5.13:1
+PASS success text/background: 5.92:1
+PASS attention text/background: 6.01:1
+PASS danger text/background: 6.31:1
+PASS info text/background: 6.36:1
+PASS primary text/canvas: 14.43:1
+PASS secondary text/canvas: 5.22:1
+PASS dark secondary/canvas: 8.71:1
+All 50 referenced assets exist; every public/server/API JavaScript file parses.

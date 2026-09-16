@@ -4,6 +4,7 @@ ROOT=$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)
 DIST="$ROOT/dist"
 
 node "$ROOT/scripts/build-css.mjs"
+test -f "$ROOT/public/production-readiness-engine.js"
 
 rm -rf "$DIST"
 mkdir -p "$DIST"

@@ -1,0 +1,12 @@
+import fs from 'node:fs';
+import assert from 'node:assert/strict';
+const path='public/assets/css/system/35-warehouse-workspace.css';
+const css=fs.existsSync(path)?fs.readFileSync(path,'utf8'):'';
+assert(css.includes('.warehouse-precision-page'),'Warehouse Precision Desk CSS root missing');
+assert(css.includes('.wh-table-wrap') && /overflow\s*:\s*auto/.test(css),'Warehouse tables must be horizontally contained');
+assert(css.includes('.wh-work-layout'),'Desktop work queue/inspector layout missing');
+assert(css.includes('@media') && css.includes('max-width: 1100px'),'Warehouse responsive inspector collapse missing');
+assert(css.includes('max-width: 720px'),'Warehouse mobile guard missing');
+assert(!/\.warehouse-precision-page[^}]*overflow\s*:\s*hidden[^}]*}/.test(css),'Warehouse root must not clip dropdowns/overlays');
+assert(css.includes('background:#f2f7f8') || css.includes('background: #f2f7f8'),'Warehouse hover state must use the calm blue-grey treatment');
+console.log('Warehouse Precision Desk visual guard passed.');

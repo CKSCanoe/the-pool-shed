@@ -1,4 +1,5 @@
 import fs from 'node:fs';
+const pkg = JSON.parse(fs.readFileSync('package.json','utf8'));
 const index = fs.readFileSync('public/index.html','utf8');
 const js = fs.readFileSync('public/sales-order-customer-picker.js','utf8');
 const css = fs.readFileSync('public/assets/css/system/23-platform-feature-overrides.css','utf8');
@@ -12,7 +13,7 @@ const checks = [
   ['duplicate check', js.includes('function findDuplicate(form)') && js.includes('Use existing')],
   ['keyboard navigation', js.includes("event.key === 'ArrowDown'") && js.includes("event.key === 'Enter'")],
   ['drawer stays on SO', css.includes('.so-customer-drawer-shell') && css.includes('position: fixed')],
-  ['offline cache updated', sw.includes('sales-order-customer-picker.js') && sw.includes('pool-shed-v1.7.5-ui-ownership')],
+  ['offline cache updated', sw.includes('sales-order-customer-picker.js') && sw.includes(`pool-shed-v${pkg.version}-`)],
   ['old datalist replaced at runtime', js.includes('smart-customer-select') && js.includes('salesOrderCustomerOptions')]
 ];
 let failed = false;

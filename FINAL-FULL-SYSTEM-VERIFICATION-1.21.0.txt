@@ -1,0 +1,124 @@
+PASS v1.21.0 full-system release contract
+
+> the-pool-shed@1.21.0 test:xero-ready
+> node scripts/test-xero-readiness-engine-v1201.mjs && node scripts/test-xero-readiness-api-v1201.mjs && node scripts/test-xero-readiness-ui-v1201.mjs && node scripts/test-xero-readiness-release-v1201.mjs && node scripts/test-finance-command-api-v116.mjs
+
+PASS Xero readiness engine safe-mode and granular-scope contract
+PASS Xero API remains status-visible but provider-locked in Ready mode
+PASS Xero readiness UI contract
+PASS Xero connection-ready controls retained on v1.21.0
+PASS Finance Command Xero API enrichment contract
+
+> the-pool-shed@1.21.0 test:production-readiness
+> node scripts/test-production-readiness-engine-v120.mjs && node scripts/test-production-readiness-workspace-v120.mjs && node scripts/test-production-readiness-cross-module-v120.mjs && node scripts/test-production-readiness-release-v120.mjs
+
+PASS v1.20 Production Readiness engine journeys, blockers, attention and source authority
+PASS v1.20 Production Readiness Settings surface and action coverage
+PASS v1.20 cross-module authority routes, lifecycle terminology and read-only diagnostics
+PASS Production Readiness retained on v1.21.0 with current cache/runtime wiring
+
+> the-pool-shed@1.21.0 test:settings-command
+> node scripts/test-settings-permissions-engine-v119.mjs && node scripts/test-settings-command-workspace-v119.mjs && node scripts/test-settings-permission-integration-v119.mjs && node scripts/test-settings-security-enforcement-v119.mjs && node scripts/test-settings-command-release-v119.mjs
+
+PASS Settings permission roles, overrides, approval limits, location scope, finance visibility and audit
+PASS Settings Command approved Option C structure and action coverage
+PASS Settings permission integration hooks for UI, assistant, automation and analytics
+PASS Settings security enforcement across assistant locations/finance, Analytics export and Automation authority
+PASS Settings Command runtime, permission ordering, CSS and current cache wiring
+
+> the-pool-shed@1.21.0 test:automation-command
+> node scripts/test-assistant-engine-v118.mjs && node scripts/test-automation-command-engine-v118.mjs && node scripts/test-automation-command-workspace-v118.mjs && node scripts/test-assistant-settings-v118.mjs && node scripts/test-automation-release-v118.mjs
+
+PASS Smart Assistant Pool Shed-only retrieval, provenance, item finding, training answers and actionable knowledge gaps
+PASS Automation Command flow validation, safe authority, simulation, templates and audit
+PASS Automation Command workspace, Flow Builder and floating assistant structure
+PASS Assistant profile, transparent PNG, knowledge and Pool Shed-only settings contract
+PASS Automation + Assistant retained on v1.21.0
+
+> the-pool-shed@1.21.0 test:analytics-command
+> node scripts/test-analytics-command-engine-v117.mjs && node scripts/test-analytics-command-reporting-v117.mjs && node scripts/test-analytics-command-workspace-v117.mjs && node scripts/test-analytics-command-actions-v117.mjs && node scripts/test-analytics-command-visual-v117.mjs && node scripts/test-analytics-command-routing-v117.mjs
+
+PASS Analytics Command governed metrics, data-quality rules and management attention
+PASS Analytics reporting catalogue, joins, CSV/Excel export, full-system package and export audit
+PASS Analytics Command workspace, reporting areas and visual authority selectors
+PASS Analytics Command action coverage contract
+PASS Analytics visual authority guard
+PASS Analytics cross-module drill-down and export permission bridge
+
+> the-pool-shed@1.21.0 test:finance-command
+> node scripts/test-finance-command-engine-v116.mjs && node scripts/test-finance-command-workspace-v116.mjs && node scripts/test-finance-command-actions-v116.mjs && node scripts/test-finance-command-visual-v116.mjs && node scripts/test-finance-command-routing-v116.mjs && node scripts/test-finance-command-api-v116.mjs && node scripts/test-finance-command-release-v116.mjs
+
+PASS Finance Command engine AR/AP, allocation, credit exposure, three-way match, reconciliation and month-end controls
+PASS Finance Command Option C workspace structure and user-facing finance controls
+PASS Finance Command visible action contract is wired
+PASS Finance Command visual authority guard
+PASS Finance Command persistence and cross-module routing contract
+PASS Finance Command Xero API enrichment contract
+PASS Finance Command runtime, cache and visual authority retained on v1.21.0
+
+> the-pool-shed@1.21.0 test:suppliers
+> node scripts/test-supplier-command-engine-v115.mjs && node scripts/test-supplier-command-workspace-v115.mjs && node scripts/test-supplier-command-actions-v115.mjs && node scripts/test-supplier-command-visual-v115.mjs && node scripts/test-supplier-command-release-v115.mjs && node scripts/test-supplier-command-purchase-routing-v115.mjs
+
+PASS Supplier Command engine credit, timers, smart flags, supplier products and governed price lists
+PASS Supplier Command Option C structure, Supplier Details tabs and improved Overview contract
+PASS Supplier Command action coverage and cross-module navigation hooks
+PASS Supplier Command Option C visual authority selectors
+PASS Supplier Command runtime, cache and visual authority wiring retained on v1.21.0
+PASS Supplier Command routes bills into the linked PO Cost & Invoice tab
+
+> the-pool-shed@1.21.0 test:fulfilment
+> node scripts/test-goods-note-control-engine-v114.mjs && node scripts/test-goods-note-control-workspace-v114.mjs && node scripts/test-goods-note-ship-lock-v114.mjs && node scripts/test-goods-note-release-v114.mjs && node scripts/test-fulfilment-command-engine-v113.mjs && node scripts/test-fulfilment-command-workspace-v113.mjs && node scripts/test-fulfilment-command-buttons-v113.mjs && node scripts/test-fulfilment-command-guards-v113.mjs && node scripts/test-fulfilment-command-visual-v113.mjs && node scripts/test-fulfilment-lifecycle.mjs
+
+PASS v1.14 Goods Note control engine pick runs, dispatch, lock and return handoff
+PASS v1.14 Goods Note workspace print, dispatch and return controls
+PASS v1.14 shipped Goods Notes are irreversible and return-led
+PASS Goods Note Control runtime, cache and visual wiring on v1.21.0
+PASS Fulfilment Command engine hold, ship gate and atomic multi-row stock deduction
+PASS Fulfilment Command workspace structure and action coverage
+PASS Fulfilment Command button coverage (18 command actions plus delegated sections/filters)
+PASS Fulfilment Command hold and ship-gate guards across legacy execution paths
+PASS Fulfilment Command scoped visual authority, readability and responsive guards
+PASS partial stage calculation
+PASS delivery uses shipped quantities
+PASS shipment releases allocation
+PASS invoice completion reconciles allocation
+PASS completed orders retain audit history
+PASS amber partial icon styling
+
+> the-pool-shed@1.21.0 test:warehouse
+> node scripts/test-warehouse-fifo-allocation-v180.mjs && node scripts/test-warehouse-precision-desk-v180.mjs && node scripts/test-warehouse-visual-guard-v180.mjs && node scripts/test-receiving-ledger.mjs && node scripts/test-fulfilment-lifecycle.mjs
+
+PASS FIFO ignores PO-origin priority and allocates exact SKU oldest-first
+PASS FIFO tie-break is due-date then Sales Order ID and leaves surplus free
+PASS Receiving and Quarantine never hard-allocate
+PASS manual reallocation is reason-required, quantity-safe, status-aware and auditable
+Warehouse Precision Desk structure, process visibility and allocation controls passed.
+Warehouse Precision Desk visual guard passed.
+PASS partial/multiple receipts, replay, quarantine, fast/staged receipt, allocation, transfers, completion, stock conservation, reload/history
+PASS legacy opening migration never replays stock or invents putaway
+PASS UI duplicate submission and offline durable receipt / storage failure rollback
+PASS duplicate SKU row identity and stock-count locks
+PASS Putaway has no Receive action and Book In routes to Goods In
+PASS explicit backorder split preserves cost/reference and never receives remaining stock
+PASS partial stage calculation
+PASS delivery uses shipped quantities
+PASS shipment releases allocation
+PASS invoice completion reconciles allocation
+PASS completed orders retain audit history
+PASS amber partial icon styling
+PASS Product Hub engine universal search and existing-SKU bundle rules
+PASS Product Hub replenishment projected stock, MOQ/multiple and draft PO creation
+Project 360 engine: margin thresholds, material planning, live stock, inbound, project-use/damage movements and invoice exposure passed.
+Project close-out: stock, PO, request, tool, variation, billing and critical commercial review gates passed.
+PASS release bumped so cached 1.7.5 assets cannot survive
+PASS sales-order customer header is compact
+PASS sales-order customer header does not duplicate account workspace
+PASS customer commercial data is not deleted from the application runtime
+PASS top fulfilment card does not embed the full goods-note directory
+PASS fulfilment remains accessible from the command card
+PASS dead customer expansion styles removed from final Sales Order parity owner
+PASS compact customer identity carries useful CRM context
+Sales Order finder polish v1.21.0 passed.
+CSS architecture checks passed: 1 runtime bundle, 21 ownership modules, 6 separate print styles, shared primitives owned by design system.
+Visual consistency checks passed: flat operational surfaces, shared dialog geometry/elevation, flat underline tabs.
+Readability hardening checks passed: no remaining sub-micro copy and critical command surfaces have explicit readable foreground/background.

@@ -1,8 +1,26 @@
 /* Project management arithmetic and commands. Money is summed in integer pence. */
 function psProjectPence(value){const n=Number(value);if(!Number.isFinite(n))throw Error('Enter a valid amount');return Math.round(n*100);}
-function psProjectModel(j){return j.project||(j.project={version:1,quoteNet:0,quoteRef:'',quoteAccepted:false,targetMargin:30,lossWarningMargin:5,remainingNet:0,billingMode:'orders',variations:[],costs:[],phases:[],tasks:[],documents:[],audit:[]});}
+function psProjectModel(j){
+ const p=j.project||(j.project={version:2,quoteNet:0,quoteRef:'',quoteAccepted:false,targetMargin:30,minimumMargin:25,lossWarningMargin:5,remainingNet:0,billingMode:'orders',invoiceExposureThresholdPct:40,invoiceExposureThresholdNet:0,variations:[],costs:[],phases:[],tasks:[],documents:[],materialPlan:[],stockEvents:[],audit:[]});
+ if(!Array.isArray(p.variations))p.variations=[];if(!Array.isArray(p.costs))p.costs=[];if(!Array.isArray(p.phases))p.phases=[];if(!Array.isArray(p.tasks))p.tasks=[];if(!Array.isArray(p.documents))p.documents=[];if(!Array.isArray(p.materialPlan))p.materialPlan=[];if(!Array.isArray(p.stockEvents))p.stockEvents=[];if(!Array.isArray(p.audit))p.audit=[];
+ if(!Number.isFinite(Number(p.targetMargin)))p.targetMargin=30;if(!Number.isFinite(Number(p.minimumMargin)))p.minimumMargin=Math.max(0,Number(p.targetMargin)-5);if(!Number.isFinite(Number(p.lossWarningMargin)))p.lossWarningMargin=5;if(!Number.isFinite(Number(p.invoiceExposureThresholdPct)))p.invoiceExposureThresholdPct=40;if(!Number.isFinite(Number(p.invoiceExposureThresholdNet)))p.invoiceExposureThresholdNet=0;
+ p.version=Math.max(2,Number(p.version||1));return p;
+}
+function psProjectLinkedPoLines(j,source){
+ source=source||data;const requestJobs=new Map((source.engineerRequests||[]).map(r=>[r.id,r.jobId])),allOrders=new Map((source.salesOrders||[]).map(o=>[o.id,o]));const rows=[];
+ (source.purchaseOrders||[]).forEach(po=>(po.lines||[]).forEach(line=>{const owner=line.jobId||allOrders.get(line.salesOrderId)?.jobId||requestJobs.get(line.engineerRequestId)||po.jobId||requestJobs.get(po.engineerRequestId);if(owner===j.id)rows.push({po,line});}));return rows;
+}
+function psProjectJobBin(j,source){source=source||data;return (source.locations||[]).find(l=>l.id===j.locationId)||(source.locations||[]).find(l=>l.type==='Job Bin'&&(l.jobId===j.id||l.owner===j.name))||null;}
+function psProjectStockSummary(j,source){
+ source=source||data;const p=psProjectModel(j),bin=psProjectJobBin(j,source),products=new Map((source.products||[]).map(x=>[x.id,x])),ids=new Set();
+ (p.materialPlan||[]).forEach(x=>ids.add(x.productId));(source.allocations||[]).filter(a=>a.jobId===j.id&&!['Cancelled','Canceled','Released'].includes(a.status)).forEach(a=>ids.add(a.productId));psProjectLinkedPoLines(j,source).forEach(x=>ids.add(x.line.productId));if(bin)(source.stock||[]).filter(r=>r.locationId===bin.id).forEach(r=>ids.add(r.productId));(source.movements||[]).filter(m=>m.ref===j.id&&['Project Use','Project Damage / Loss','Project Return Pending'].includes(m.type)).forEach(m=>ids.add(m.productId));
+ const poLines=psProjectLinkedPoLines(j,source),lines=[...ids].map(productId=>{const product=products.get(productId)||{id:productId,name:productId,sku:productId,cost:0};const plan=(p.materialPlan||[]).find(x=>x.productId===productId);const planned=Number(plan?.plannedQty||0),budgetUnitCost=Number(plan?.budgetUnitCost??product.cost??0);const budgetCost=psProjectPence(planned*budgetUnitCost);const allocated=(source.allocations||[]).filter(a=>a.jobId===j.id&&a.productId===productId&&!['Cancelled','Canceled','Released'].includes(a.status)).reduce((n,a)=>n+Number(a.qty||0),0);const linked=poLines.filter(x=>x.line.productId===productId&&!['Cancelled','Canceled'].includes(x.po.status));const ordered=linked.reduce((n,x)=>n+Number(x.line.qty||0),0),received=linked.reduce((n,x)=>n+Math.min(Number(x.line.qty||0),Number(x.line.received||0)),0),inbound=Math.max(0,ordered-received);const poCost=linked.reduce((n,x)=>n+psProjectPence(Number(x.line.qty||0)*Number(x.line.unitCost??x.line.cost??product.cost??0)),0);const jobBin=bin?(source.stock||[]).filter(r=>r.locationId===bin.id&&r.productId===productId).reduce((n,r)=>n+Number(r.qty||0),0):0;const projectMoves=(source.movements||[]).filter(m=>m.ref===j.id&&m.productId===productId);const used=projectMoves.filter(m=>m.type==='Project Use').reduce((n,m)=>n+Number(m.qty||0),0),damagedLost=projectMoves.filter(m=>m.type==='Project Damage / Loss').reduce((n,m)=>n+Number(m.qty||0),0),returnPending=projectMoves.filter(m=>m.type==='Project Return Pending').reduce((n,m)=>n+Number(m.qty||0),0);const observedQty=Math.max(planned,ordered,jobBin+used+damagedLost);const observedCost=psProjectPence(observedQty*Number(product.cost||budgetUnitCost||0));const forecastMaterialCost=Math.max(budgetCost,poCost,observedCost);return {productId,sku:product.sku||productId,name:product.name||productId,planned,allocated,inbound,ordered,received,jobBin,used,returnPending,damagedLost,budgetUnitCost,budgetCost,forecastMaterialCost,costVariance:forecastMaterialCost-budgetCost,note:plan?.note||''};});
+ const budgetCost=lines.reduce((n,x)=>n+x.budgetCost,0),forecastMaterialCost=lines.reduce((n,x)=>n+x.forecastMaterialCost,0);return {jobBin:bin,lines,budgetCost,forecastMaterialCost,variance:forecastMaterialCost-budgetCost};
+}
+function psProjectHealth(j,summary){const s=summary||psProjectSummary(j);const minimum=Number(psProjectModel(j).minimumMargin??Math.max(0,s.target-5));if(s.profit<0||s.margin!==null&&s.margin<=Number(psProjectModel(j).lossWarningMargin??5))return {level:'Critical',tone:'bad'};if(s.margin!==null&&s.margin<minimum)return {level:'At Risk',tone:'bad'};if((s.alerts||[]).some(a=>a.severity==='warn')||s.margin!==null&&s.margin<s.target)return {level:'Attention',tone:'warn'};return {level:'Healthy',tone:'good'};}
+
 function psProjectSummary(j,source,now){
- source=source||data;now=now||Date.now();const p=j.project||{},cents=psProjectPence;
+ source=source||data;now=now||Date.now();const p=psProjectModel(j),cents=psProjectPence;
  const orders=(source.salesOrders||[]).filter(o=>o.jobId===j.id&&!['Cancelled','Canceled'].includes(o.status)),orderIds=new Set(orders.map(o=>o.id));
  const requestJobs=new Map((source.engineerRequests||[]).map(r=>[r.id,r.jobId]));
  const allOrders=new Map((source.salesOrders||[]).map(o=>[o.id,o]));
@@ -59,7 +77,30 @@ function psProjectSummary(j,source,now){
   const ready=!!p.quoteAccepted&&!!ph.ready&&!!ph.agreement&&(!dependency||dependency.ready)&&!tasks.length;
   return {id:ph.id,ready,text:ready?'Ready for invoice review: '+ph.name+'. Agreed stage completed; check evidence and customer details.':ph.due&&ph.due<=today?'Review '+ph.name+': the planned billing date has arrived, but completion/approval checks are still required.':'Next stage: '+ph.name+'. Invoice only when its agreed completion conditions are met.'};
  });
- return {quote,approvedExtra,revenue,actual,estimatedReceived,committed,uncommitted,tools,forecast,profit,margin,headroom,target,alerts,recommendations,items,orders,poRows,orderMaterialAmounts,pendingExtra:pending.reduce((n,v)=>n+cents(v.sellNet),0),phaseTotal:(p.phases||[]).reduce((n,ph)=>n+cents(ph.amountNet),0)};
+ const stock=psProjectStockSummary(j,source),materialVariance=stock.variance,minimumMargin=Number(p.minimumMargin??Math.max(0,target-5));
+ if(margin!==null&&margin<minimumMargin&&profit>=0)alerts.push({severity:'bad',text:'Projected margin '+margin.toFixed(1)+'% is below the '+minimumMargin+'% minimum margin. Review project costs, variations and remaining scope now.'});
+ if(materialVariance>0)alerts.push({severity:materialVariance>Math.max(50000,revenue*0.05)?'bad':'warn',text:'Material forecast is '+(materialVariance/100).toFixed(2)+' above the project material budget. Review added quantities, PO costs and unplanned materials.'});
+ const invoicedQueued=(p.phases||[]).filter(ph=>ph.invoiceRequested).reduce((n,ph)=>n+cents(ph.amountNet),0),costExposure=actual+estimatedReceived+committed+tools,exposureGap=Math.max(0,costExposure-invoicedQueued),pct=Number(p.invoiceExposureThresholdPct??40),netThreshold=cents(p.invoiceExposureThresholdNet||0),pctThreshold=revenue>0?Math.round(revenue*pct/100):0,thresholdTriggered=(pctThreshold>0&&costExposure>=pctThreshold&&exposureGap>0)||(netThreshold>0&&exposureGap>=netThreshold);
+ const invoiceExposure={costExposure,invoicedQueued,exposureGap,thresholdPct:pct,thresholdNet:netThreshold,thresholdTriggered};if(thresholdTriggered)alerts.push({severity:'warn',text:'Invoice review recommended: project cost exposure is '+(costExposure/100).toFixed(2)+' while '+(invoicedQueued/100).toFixed(2)+' is queued/invoiced against the configured exposure threshold.'});
+ const marginMovement=[{label:'Accepted contract',amount:revenue,type:'revenue'},{label:'Actual recorded cost',amount:-actual,type:'cost'},{label:'Received PO estimate',amount:-estimatedReceived,type:'cost'},{label:'Outstanding commitments',amount:-committed,type:'cost'},{label:'Remaining forecast',amount:-uncommitted,type:'cost'},{label:'Tools & hire',amount:-tools,type:'cost'}];
+ return {quote,approvedExtra,revenue,actual,estimatedReceived,committed,uncommitted,tools,forecast,profit,margin,headroom,target,minimumMargin,alerts,recommendations,items,orders,poRows,orderMaterialAmounts,stock,materialVariance,invoiceExposure,marginMovement,pendingExtra:pending.reduce((n,v)=>n+cents(v.sellNet),0),phaseTotal:(p.phases||[]).reduce((n,ph)=>n+cents(ph.amountNet),0)};
+}
+function psProjectCloseoutBlockers(j,source,finance,now){
+ source=source||data;finance=finance||{};now=now||Date.now();const p=psProjectModel(j),s=psProjectSummary(j,source,now),blockers=[];
+ const add=(code,message)=>blockers.push({code,message});
+ if((s.stock?.lines||[]).some(x=>Number(x.jobBin||0)>0))add('JOB_BIN_STOCK','Project Job Bin still contains stock. Use, transfer or disposition all remaining stock first.');
+ if((s.poRows||[]).some(r=>Number(r.open||0)>0))add('OPEN_PO','Linked Purchase Orders still have outstanding committed quantities.');
+ const openRequest=(source.engineerRequests||[]).some(r=>(r.jobId===j.id||r.jobRef===j.id)&&!['Completed','Ready For Invoice Review','Rejected','Cancelled','Canceled'].includes(r.status));if(openRequest)add('OPEN_ENGINEER_REQUEST','Engineer Requests are still open for this Project.');
+ const openTool=(source.toolAssignments||[]).some(a=>a.jobId===j.id&&(typeof psToolOpen==='function'?psToolOpen(a):(!a.returnedAt||(a.ownership==='Hired In'&&!a.offHireAt))));if(openTool)add('OUTSTANDING_TOOL','Project tools or hired equipment are still outstanding.');
+ if((p.variations||[]).some(v=>v.status==='Proposed'))add('PROPOSED_VARIATION','Proposed variations still need an approval or rejection decision.');
+ if((p.tasks||[]).some(t=>t.status!=='Done'))add('OPEN_TASK','Project tasks remain incomplete.');
+ if(p.billingMode==='phases'||(p.phases||[]).length){
+  const fullPlan=(p.phases||[]).length>0&&s.phaseTotal===s.revenue,allQueued=fullPlan&&(p.phases||[]).every(ph=>ph.invoiceRequested);
+  let accountingOk=true;const docs=Array.isArray(finance.documents)?finance.documents:null;if(docs&&allQueued)accountingOk=(p.phases||[]).every(ph=>docs.some(d=>d.source_id==='PROJECT:'+j.id+':'+ph.id&&['AUTHORISED','PAID'].includes(d.status)));
+  if(!fullPlan||!allQueued||!accountingOk)add('BILLING_INCOMPLETE','Project billing is not fully planned, queued and reconciled with accounting.');
+ }else if(s.revenue>0)add('BILLING_INCOMPLETE','Create and reconcile the Project invoice plan before closure.');
+ const health=psProjectHealth(j,s),reviewAt=Date.parse(p.forecastReviewedAt||'');if(health.level==='Critical'&&(!Number.isFinite(reviewAt)||now-reviewAt>86400000))add('COMMERCIAL_REVIEW','Critical margin position requires a fresh manager commercial review before closure.');
+ return blockers;
 }
 function psProjectApply(action,v){
  if(!canAccessTab('jobs'))throw Error('You do not have access to projects.');
@@ -70,15 +111,22 @@ function psProjectApply(action,v){
  const text=(x,label)=>{const t=String(x||'').trim();if(!t)throw Error('Enter '+label);return t;};
  const id=()=>crypto.randomUUID();
  if(action==='settings'){
-  const quote=amount(v.quoteNet),target=Number(v.targetMargin),loss=Number(v.lossWarningMargin);
-  if(target<0||target>=100||loss<0||loss>=target||!Number.isFinite(target)||!Number.isFinite(loss))throw Error('Set a target below 100% and a lower break-even warning margin.');
+  const quote=amount(v.quoteNet),target=Number(v.targetMargin),minimum=v.minimumMargin==null||v.minimumMargin===''?Math.max(0,target-5):Number(v.minimumMargin),loss=Number(v.lossWarningMargin),exposurePct=v.invoiceExposureThresholdPct==null||v.invoiceExposureThresholdPct===''?40:Number(v.invoiceExposureThresholdPct),exposureNet=v.invoiceExposureThresholdNet==null||v.invoiceExposureThresholdNet===''?0:amount(v.invoiceExposureThresholdNet);
+  if(target<0||target>=100||minimum<0||minimum>=target||loss<0||loss>=minimum||!Number.isFinite(target)||!Number.isFinite(minimum)||!Number.isFinite(loss))throw Error('Set target, minimum and near-loss margins in descending order below 100%.');
+  if(exposurePct<0||exposurePct>100||!Number.isFinite(exposurePct))throw Error('Invoice exposure percentage must be between 0 and 100.');
   if(p.quoteAccepted&&quote!==p.quoteNet)throw Error('The accepted quote is locked. Add an approved extra or credit variation to change the agreed value.');
   if(v.quoteAccepted&&!String(v.quoteRef||'').trim())throw Error('Enter the accepted quote reference.');
-  Object.assign(p,{quoteNet:quote,quoteRef:String(v.quoteRef||''),quoteAccepted:p.quoteAccepted||!!v.quoteAccepted,targetMargin:target,lossWarningMargin:loss,remainingNet:amount(v.remainingNet),forecastReviewedAt:now,billingMode:'phases'});
+  Object.assign(p,{quoteNet:quote,quoteRef:String(v.quoteRef||''),quoteAccepted:p.quoteAccepted||!!v.quoteAccepted,targetMargin:target,minimumMargin:minimum,lossWarningMargin:loss,remainingNet:amount(v.remainingNet),invoiceExposureThresholdPct:exposurePct,invoiceExposureThresholdNet:exposureNet,forecastReviewedAt:now,billingMode:'phases'});
  }else if(action==='link'){
   const o=data.salesOrders.find(o=>o.id===v.orderId);if(!o)throw Error('Choose a sales order');if(o.jobId&&o.jobId!==j.id)throw Error('That sales order already belongs to another project.');if(o.customerId!==j.customerId)throw Error('Project and sales order must have the same customer.');
   if(o.invoiceSource||o.invoiceDate||o.xeroRef&&!['Draft',''].includes(o.xeroRef))throw Error('Review existing invoices before moving this order into project phase billing.');
   o.jobId=j.id;
+ }else if(action==='material-plan'){
+  const productId=text(v.productId,'a product'),plannedQty=Number(v.plannedQty),budgetUnitCost=Number(v.budgetUnitCost);if(!Number.isFinite(plannedQty)||plannedQty<=0)throw Error('Enter a positive planned quantity.');if(!Number.isFinite(budgetUnitCost)||budgetUnitCost<0)throw Error('Enter a valid budget unit cost.');if(!(data.products||[]).some(x=>x.id===productId))throw Error('Product not found.');const existing=p.materialPlan.find(x=>x.productId===productId);const row={id:existing?.id||id(),productId,plannedQty,budgetUnitCost,note:String(v.note||'')};if(existing)Object.assign(existing,row);else p.materialPlan.push(row);
+ }else if(action==='remove-material-plan'){
+  const row=p.materialPlan.find(x=>x.id===v.id);if(!row)throw Error('Material plan line not found.');p.materialPlan=p.materialPlan.filter(x=>x.id!==v.id);
+ }else if(action==='stock-use'||action==='stock-damage'){
+  const productId=text(v.productId,'a product'),qty=Number(v.qty),reason=text(v.reason,'a stock reason'),bin=psProjectJobBin(j,data);if(!bin)throw Error('Create or link the Project Job Bin first.');if(!Number.isFinite(qty)||qty<=0)throw Error('Enter a positive stock quantity.');const row=(data.stock||[]).find(r=>r.productId===productId&&r.locationId===bin.id),free=row&&typeof available==='function'?Number(available(row)):row?Math.max(0,Number(row.qty||0)-Number(row.allocated||0)):0;if(free<qty)throw Error('Not enough free Project Job Bin stock.');if(typeof removeStock!=='function'||!removeStock(productId,bin.id,qty))throw Error('Project stock could not be updated.');const type=action==='stock-use'?'Project Use':'Project Damage / Loss',to=action==='stock-use'?'PROJECT-CONSUMED:'+j.id:'PROJECT-DAMAGE:'+j.id;if(typeof addMovement==='function')addMovement(type,productId,qty,bin.id,to,j.id,currentUser().name,reason);p.stockEvents.push({id:id(),type,productId,qty,reason,at:now,user:currentUser().name});
  }else if(action==='variation'){
   const sellNet=amount(v.sellNet,true),costNet=amount(v.costNet),title=text(v.title,'the extra description');p.variations.push({id:id(),title,sellNet,costNet,status:'Proposed',date:now});
  }else if(action==='approve-extra'||action==='reject-extra'){
@@ -115,4 +163,4 @@ function psProjectApply(action,v){
 }
 function psProjectTransaction(action,v){const before=JSON.stringify(data);try{const j=psProjectApply(action,v);if(saveAppData()===false||workspaceLocalSaveFailed)throw Error('Project could not be saved locally.');return j;}catch(e){data=JSON.parse(before);throw e;}}
 // Shared pure summary is also used by the server's optional advisory endpoint.
-globalThis.PoolShedProjectEngine={summary:psProjectSummary};
+globalThis.PoolShedProjectEngine={summary:psProjectSummary,stockSummary:psProjectStockSummary,health:psProjectHealth,closeout:psProjectCloseoutBlockers};

@@ -1,4 +1,5 @@
 import fs from 'node:fs';
+const pkg = JSON.parse(fs.readFileSync('package.json','utf8'));
 const js = fs.readFileSync('public/catalogue-intelligence.js','utf8');
 const css = fs.readFileSync('public/assets/css/system/21-catalogue.css','utf8');
 const checks = [
@@ -11,7 +12,7 @@ const checks = [
   ['sticky visible action area', css.includes('.ci-search-popover-po .ci-po-actionbar') && css.includes('flex:0 0 auto !important')],
   ['selected basket visible on tablet', css.includes('display:flex !important; max-height:34vh')],
   ['modal input wired', js.includes("event.target.closest('#ciPoModalSearch')")],
-  ['service cache updated', fs.readFileSync('public/service-worker.js','utf8').includes('pool-shed-v1.7.5-ui-ownership')]
+  ['service cache updated', fs.readFileSync('public/service-worker.js','utf8').includes(`pool-shed-v${pkg.version}-`)]
 ];
 for (const [name, ok] of checks) {
   if (!ok) { console.error('FAIL', name); process.exit(1); }

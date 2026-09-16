@@ -1,3 +1,22 @@
+# Pool Shed v1.22.0 Full System
+
+This repository contains the consolidated Pool Shed operational system. Start with [`START-HERE.md`](START-HERE.md) for the current architecture, build instructions, Xero safety state and verification notes.
+
+The primary runtime is in `public/`; `npm run build` produces `dist/`. Xero remains deliberately locked in **Ready to Connect** mode.
+
+## Historical release notes
+
+
+## v1.10.0 Project 360 Commercial Control
+
+- Projects now open into an exception-first Precision Desk with an optional Stage Board and a full Project 360 workspace.
+- Project 360 reconciles live Warehouse Job Bin stock, allocations, linked Purchase Orders, Engineer Requests, tools, costs, variations and billing without creating parallel ledgers.
+- Commercial controls show accepted contract, approved variations, forecast final cost, projected profit/margin, invoice exposure and remaining value to invoice.
+- Material plans are project budgets only. They compare planned quantities/costs with live allocations, inbound POs, Job Bin stock, project use and damage/loss movements.
+- Project Use and damage/loss actions mutate only free Job Bin stock through the shared stock/movement engine and remain auditable.
+- Configurable target, minimum and near-loss margin guardrails create explainable Project Health alerts.
+- Configurable invoice cost-exposure thresholds recommend billing review but never create invoices automatically.
+- Project close-out is blocked by unresolved stock, POs, Engineer Requests, tools, variations, billing or stale critical-margin review.
 # Pool Shed v1.7.4 — UI Ownership & Legacy Isolation
 
 This release fixes a mixed-generation UI problem rather than adding another cosmetic layer. Dashboard, Customers and Sales Orders keep the approved Design Lab direction, while deployment/runtime ownership is tightened so older cached scripts and legacy DOM polish cannot visually win after the newer workspace renders.

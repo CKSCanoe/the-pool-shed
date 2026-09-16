@@ -1,0 +1,195 @@
+
+> the-pool-shed@1.12.0 validate
+> node scripts/test-inventory-control-engine-v112.mjs && node scripts/test-inventory-location-control-v112.mjs && node scripts/test-inventory-engineer-stock-v112.mjs && node scripts/test-inventory-connections-v112.mjs && node scripts/test-inventory-visual-guard-v112.mjs && node scripts/test-inventory-release-wiring-v112.mjs && node scripts/test-product-hub-engine-v111.mjs && node scripts/test-product-hub-replenishment-v111.mjs && node scripts/test-product-hub-command-v111.mjs && node scripts/test-product-hub-bundles-v111.mjs && node scripts/test-product-hub-product-setup-v111.mjs && node scripts/test-product-hub-import-replenishment-v111.mjs && node scripts/test-product-hub-visual-guard-v111.mjs && node scripts/test-project-360-engine-v110.mjs && node scripts/test-project-360-workspace-v110.mjs && node scripts/test-project-360-visual-guard-v110.mjs && node scripts/test-project-closeout-v110.mjs && node scripts/test-purchase-order-command-v190.mjs && node scripts/test-warehouse-booking-v190.mjs && node scripts/test-purchase-returns-v190.mjs && node scripts/test-purchase-order-visual-guard-v190.mjs && node scripts/test-warehouse-fifo-allocation-v180.mjs && node scripts/test-warehouse-precision-desk-v180.mjs && node scripts/test-warehouse-visual-guard-v180.mjs && node scripts/test-ui-ownership-v180.mjs && node scripts/test-sales-order-command-compact-v180.mjs && node scripts/test-sales-order-finder-polish-v174.mjs && node scripts/validate-runtime.mjs public && node scripts/test-css-architecture.mjs && node scripts/test-visual-consistency.mjs && node scripts/test-contrast-text-rhythm.mjs && node scripts/test-colour-contrast.mjs && node scripts/test-readability-hardening.mjs && node scripts/test-catalogue-health-actions.mjs && node scripts/test-bundle-studio.mjs && node scripts/test-fulfilment-lifecycle.mjs && node scripts/test-release-cleanup.mjs && node scripts/test-bundle-sales-intelligence.mjs && node scripts/test-po-catalogue-performance.mjs && node scripts/test-po-picker-ui.mjs && node scripts/test-production-overhaul.mjs && node scripts/test-sales-table-header.mjs && node scripts/test-sales-order-list-option-a.mjs && node scripts/test-sales-order-detail-v162.mjs && node scripts/test-sales-order-asset-freshness-v162.mjs && node scripts/test-sales-order-customer-picker.mjs && node scripts/test-receiving-ledger.mjs && node scripts/test-professional-workspace.mjs && node scripts/test-workspace-sync.mjs && node scripts/test-ledger-performance.mjs && node scripts/test-accounting.mjs && node scripts/test-accounting-database.mjs && node scripts/test-accounting-api.mjs && node scripts/test-workspace-database.mjs && node scripts/test-project-engine.mjs && node scripts/test-project-database.mjs && node scripts/test-project-ai.mjs && node scripts/test-bundle-system-v2.mjs && node scripts/test-dashboard-review.mjs && node scripts/test-dashboard-command.mjs && node scripts/test-release-assets.mjs
+
+PASS Inventory control engine location, van readiness, alerts and connected transfer authority
+PASS Inventory Option C Location Control structure and connected actions
+PASS engineer van profiles, reminders and advisory stock intelligence
+PASS Inventory cross-module navigation and Product Details terminology
+PASS Inventory visual authority and responsive guard
+PASS Inventory v1.12.0 runtime, cache and asset wiring
+PASS Product Hub engine universal search and existing-SKU bundle rules
+PASS Product Hub replenishment projected stock, MOQ/multiple and draft PO creation
+PASS Product Hub Command, catalogue quick-glance and Product Details structure
+PASS Product Hub Bundle Studio existing-SKU contract
+PASS Product setup captures replenishment rules and supplier buying constraints
+Product Hub v1.11.0 import/replenishment regression passed.
+PASS Product Hub scoped visual authority and responsive guards
+Project 360 engine: margin thresholds, material planning, live stock, inbound, project-use/damage movements and invoice exposure passed.
+Project 360 workspace structure, commercial bar, stock controls, billing thresholds and linked PO navigation passed.
+Project 360 visual authority, responsive containment and readable typography passed.
+Project close-out: stock, PO, request, tool, variation, billing and critical commercial review gates passed.
+PASS Purchase Order Supplier Command structure and seven-tab contract
+PASS one-confirmation booking-in handles accepted, damaged and shortage lines safely
+PASS supplier mis-order return moves only free stock to Returns Hold with full PO/cost traceability
+PASS Purchase Order command visual ownership and responsive guards
+PASS FIFO ignores PO-origin priority and allocates exact SKU oldest-first
+PASS FIFO tie-break is due-date then Sales Order ID and leaves surplus free
+PASS Receiving and Quarantine never hard-allocate
+PASS manual reallocation is reason-required, quantity-safe, status-aware and auditable
+Warehouse Precision Desk structure, process visibility and allocation controls passed.
+Warehouse Precision Desk visual guard passed.
+UI ownership v1.12.0 checks passed: coherent assets, modern Sales Order fence, authoritative hover ownership, full CSS module coverage.
+PASS release bumped so cached 1.7.5 assets cannot survive
+PASS sales-order customer header is compact
+PASS sales-order customer header does not duplicate account workspace
+PASS customer commercial data is not deleted from the application runtime
+PASS top fulfilment card does not embed the full goods-note directory
+PASS fulfilment remains accessible from the command card
+PASS dead customer expansion styles removed from final Sales Order parity owner
+PASS compact customer identity carries useful CRM context
+Sales Order finder polish v1.12.0 passed.
+Runtime validation passed: 0 inline scripts, service worker, offline sales search, catalogue intelligence, PO supplier-offer search, partial shipment balance test, solid catalogue search UI and required app functions.
+CSS architecture checks passed: 1 runtime bundle, 20 ownership modules, 6 separate print styles, shared primitives owned by design system.
+Visual consistency checks passed: flat operational surfaces, shared dialog geometry/elevation, flat underline tabs.
+Contrast/text rhythm checks passed: readable highlights/statuses, no decorative gradients or header stripes.
+PASS selection white on Pool Teal: 5.05:1
+PASS navy on Aqua: 5.13:1
+PASS success text/background: 5.92:1
+PASS attention text/background: 6.01:1
+PASS danger text/background: 6.31:1
+PASS info text/background: 6.36:1
+PASS primary text/canvas: 14.43:1
+PASS secondary text/canvas: 5.22:1
+PASS dark secondary/canvas: 8.71:1
+Readability hardening checks passed: no remaining sub-micro copy and critical command surfaces have explicit readable foreground/background.
+Catalogue Health export/import action tests passed.
+PASS bundle assets linked
+PASS replace action rendered
+PASS replace action wired
+PASS bulk remove rendered
+PASS bulk remove wired
+PASS select all rendered
+PASS row selection wired
+PASS safe remove confirmation
+PASS save validation enabled
+PASS refresh action feedback
+PASS open product action wired
+PASS action UI styled
+Bundle Studio functional action checks passed
+PASS partial stage calculation
+PASS delivery uses shipped quantities
+PASS shipment releases allocation
+PASS invoice completion reconciles allocation
+PASS completed orders retain audit history
+PASS amber partial icon styling
+Release cleanup checks passed.
+Bundle sales intelligence tests: Passed
+PO catalogue performance passed: initial 6.8ms, offers 137.6ms, 25 repeated 136.4ms
+PASS modal search rendered
+PASS modal close rendered
+PASS confirm button rendered
+PASS confirm handler wired
+PASS PO lines commit
+PASS fixed viewport modal
+PASS sticky visible action area
+PASS selected basket visible on tablet
+PASS modal input wired
+PASS service cache updated
+PO modal picker UI checks passed.
+PASS overhaul assets linked
+PASS clean boot shell enabled
+PASS large bundle intelligence panel disabled
+PASS bundle components carry zero sales-order cost
+PASS bundle save preserves master product cost
+PASS cost tab respects bundle component zero cost
+PASS sales toolbar is sticky and compact
+PASS bundle hierarchy styles exist
+PASS additional charge composer collapses
+PASS sales product search watchdog present
+PASS fulfilment sequence is explicit
+PASS offline cache includes overhaul assets
+Production overhaul checks passed.
+PASS sales lines have bounded scroll region
+PASS table header sticks to scroll container top
+PASS legacy viewport offset removed
+PASS new service worker cache is used
+PASS release version
+PASS Option A order queue shell
+PASS operational KPI strip
+PASS queue tabs include action views
+PASS smart list search covers products and Goods Notes
+PASS status due and stock filters
+PASS extra source and channel filters
+PASS list stock derives from authoritative line coverage
+PASS list value uses VAT-inclusive authoritative totals
+PASS fulfilment derives from existing progress and Goods Notes
+PASS bulk actions only surface after selection
+PASS existing bulk engines retained
+PASS old list presentation removed
+PASS bounded sticky order list
+PASS selected Option A palette uses calm light fields
+PASS palette guard scoped to CRM and Sales Orders only
+PASS service worker release cache invalidated
+Sales Order List Option A checks passed.
+PASS release version
+PASS compact CRM customer command
+PASS first class save action preserved
+PASS payment beside totals
+PASS clear operational tabs
+PASS precision order line
+PASS dedicated variant column
+PASS variant lifecycle safeguard
+PASS variant duplicate safeguard
+PASS line action dropdown is viewport layer
+PASS line menu uses real engines
+PASS catalogue stays neutral
+PASS product search engine preserved
+PASS allocation engine preserved
+PASS goods note engine preserved
+PASS custom and shipping engines preserved
+PASS responsive layout
+PASS release version
+PASS service worker cache namespace advanced
+PASS service worker update bypasses HTTP cache
+PASS approved Sales workspace loads after fulfilment and customer picker
+PASS critical presentation CSS is versioned
+PASS critical Sales workspace is versioned
+PASS critical versioned presentation assets are precached
+PASS every local JS/CSS shell asset is represented in precache
+PASS legacy runtime remains loaded before the Sales workspace
+PASS picker JS loaded
+PASS picker CSS loaded
+PASS live customer search
+PASS create and attach
+PASS CRM record created
+PASS duplicate check
+PASS keyboard navigation
+PASS drawer stays on SO
+PASS offline cache updated
+PASS old datalist replaced at runtime
+PASS partial/multiple receipts, replay, quarantine, fast/staged receipt, allocation, transfers, completion, stock conservation, reload/history
+PASS legacy opening migration never replays stock or invents putaway
+PASS UI duplicate submission and offline durable receipt / storage failure rollback
+PASS duplicate SKU row identity and stock-count locks
+PASS Putaway has no Receive action and Book In routes to Goods In
+PASS explicit backorder split preserves cost/reference and never receives remaining stock
+PASS tool creation, duplicate codes, allocation, repeated allocation protection, kit checks, inspection, hire/off-hire, cost dates, job outstanding checks, audit history, storage rollback and diagnostics
+PASS revision-conditional updates, collision on first insert, conflict preserves pending work, stale response preserves newer edit, offline guard
+PASS secure RPC conflict preserves local changes without legacy fallback
+{
+  "fixture": "500 POs, 10,000 lines/receipt events, 10,000 transfers",
+  "after": {
+    "normalizeMs": 14.06,
+    "putawayMs": 9.54
+  }
+}
+Accounting: encryption/tamper checks, webhook signatures, invoice validation, forced drafts, payment reversal and stock isolation passed.
+node:internal/modules/package_json_reader:256
+  throw new ERR_MODULE_NOT_FOUND(packageName, fileURLToPath(base), null);
+        ^
+
+Error [ERR_MODULE_NOT_FOUND]: Cannot find package '@electric-sql/pglite' imported from /mnt/data/poolshed_overhaul_work/Pool-Shed-1.12.0-Inventory-Location-Control/scripts/test-accounting-database.mjs
+    at Object.getPackageJSONURL (node:internal/modules/package_json_reader:256:9)
+    at packageResolve (node:internal/modules/esm/resolve:768:81)
+    at moduleResolve (node:internal/modules/esm/resolve:854:18)
+    at defaultResolve (node:internal/modules/esm/resolve:984:11)
+    at ModuleLoader.defaultResolve (node:internal/modules/esm/loader:780:12)
+    at #cachedDefaultResolve (node:internal/modules/esm/loader:704:25)
+    at ModuleLoader.resolve (node:internal/modules/esm/loader:687:38)
+    at ModuleLoader.getModuleJobForImport (node:internal/modules/esm/loader:305:38)
+    at ModuleJob._link (node:internal/modules/esm/module_job:137:49) {
+  code: 'ERR_MODULE_NOT_FOUND'
+}
+
+Node.js v22.16.0

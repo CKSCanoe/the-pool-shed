@@ -5,7 +5,7 @@ const index = fs.readFileSync('public/index.html','utf8');
 const sw = fs.readFileSync('public/service-worker.js','utf8');
 const legacy = fs.readFileSync('public/assets/js/01-legacy-01.js','utf8');
 
-const version = '1.7.5';
+const version = pkg.version;
 const indexLocal = [...index.matchAll(/(?:src|href)="(\.\/[^"]+)"/g)]
   .map(m => m[1])
   .filter(asset => /\.(?:js|css)(?:\?|$)/.test(asset));
@@ -13,7 +13,7 @@ const swCore = [...sw.matchAll(/["'](\.\/[^"']+)["']/g)].map(m => m[1]);
 
 const checks = [
   ['release version', pkg.version === version],
-  ['service worker cache namespace advanced', sw.includes(`pool-shed-v${version}-ui-ownership`)],
+  ['service worker cache namespace advanced', sw.includes(`pool-shed-v${version}-`)],
   ['service worker update bypasses HTTP cache', legacy.includes('updateViaCache:"none"')],
   ['approved Sales workspace loads after fulfilment and customer picker',
     index.indexOf('./sales-workspace.js') > index.indexOf('./partial-fulfilment.js') &&

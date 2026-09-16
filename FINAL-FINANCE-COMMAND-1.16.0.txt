@@ -1,0 +1,15 @@
+
+> the-pool-shed@1.16.0 test:finance-command
+> node scripts/test-finance-command-engine-v116.mjs && node scripts/test-finance-command-workspace-v116.mjs && node scripts/test-finance-command-actions-v116.mjs && node scripts/test-finance-command-visual-v116.mjs && node scripts/test-finance-command-routing-v116.mjs && node scripts/test-finance-command-api-v116.mjs && node scripts/test-finance-command-release-v116.mjs
+
+PASS Finance Command engine AR/AP, allocation, credit exposure, three-way match, reconciliation and month-end controls
+PASS Finance Command Option C workspace structure and user-facing finance controls
+PASS Finance Command visible action contract is wired
+PASS Finance Command visual authority guard
+PASS Finance Command persistence and cross-module routing contract
+PASS Finance Command Xero API enrichment contract
+PASS Finance Command v1.16.0 release wiring and cache contract
+PASS Supplier Command runtime, cache and visual authority wiring retained on v1.16.0
+PASS Goods Note Control runtime, cache and visual wiring on v1.16.0
+CSS architecture checks passed: 1 runtime bundle, 21 ownership modules, 6 separate print styles, shared primitives owned by design system.
+All 42 referenced assets exist; every public/server/API JavaScript file parses.

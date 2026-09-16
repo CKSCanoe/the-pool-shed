@@ -16,10 +16,23 @@ const sources = [
   "system/32-sales-workspace.css",
   "system/33-workspace-polish.css",
   "system/34-customer-workspace.css",
+  "system/35-warehouse-workspace.css",
   "system/40-design-system.css",
   "system/41-sales-order-command.css",
   "system/42-sales-order-parity.css",
   "system/43-sales-order-finder-polish.css",
+  "system/44-purchase-order-command.css",
+  "system/45-project-360-command.css",
+  "system/46-product-hub-command.css",
+  "system/47-inventory-location-control.css",
+  "system/48-fulfilment-command.css",
+  "system/49-supplier-command.css",
+  "system/50-finance-command.css",
+  "system/51-analytics-command.css",
+  "system/52-automation-command.css",
+  "system/53-settings-command.css",
+  "system/54-production-readiness.css",
+  "system/55-login-command.css",
 ];
 const banner = `/*
  Pool Shed application stylesheet.
