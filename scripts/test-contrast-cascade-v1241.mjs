@@ -1,0 +1,31 @@
+import fs from 'node:fs';
+const read=p=>fs.readFileSync(p,'utf8');
+const fail=[];
+const legacy=read('public/assets/css/system/10-legacy-compat.css');
+const project=read('public/assets/css/system/45-project-360-command.css');
+const hub=read('public/assets/css/system/46-product-hub-command.css');
+const inv=read('public/assets/css/system/47-inventory-location-control.css');
+const prod=read('public/assets/css/system/24-product-hub.css');
+const core=read('public/assets/css/system/30-workspace-core.css');
+const polish=read('public/assets/css/system/33-workspace-polish.css');
+const design=read('public/assets/css/system/40-design-system.css');
+function no(cond,msg){ if(!cond) fail.push(msg); }
+no(!/body\[data-theme="dark"\]\s+\.topbar,[\s\S]{0,500}?background:\s*var\(--color-brand-navy\)/.test(legacy),'legacy dark mode must not repaint normal panels/cards/topbar to shell');
+no(!/body\[data-theme="dark"\][\s\S]{0,300}?h1,[\s\S]{0,250}?strong\s*\{\s*color:\s*var\(--color-status-info\)/.test(legacy),'legacy dark mode must not force all headings/strong text to info blue');
+no(!/body\[data-theme="dark"\]\s+input,[\s\S]{0,300}?background:\s*var\(--color-brand-navy\)/.test(legacy),'legacy dark mode inputs must use semantic field surfaces');
+no(!/body\.dark \.panel,[\s\S]{0,260}?background:var\(--color-brand-navy\)!important/.test(legacy),'legacy body.dark panels must not repaint normal work surfaces to shell');
+no(!/body\.dark input,[\s\S]{0,220}?background:var\(--color-brand-navy\)!important/.test(legacy),'legacy body.dark inputs must use semantic field surfaces');
+no(!/hero-panel\.panel[\s\S]{0,180}?color:var\(--color-surface-default\)!important/.test(legacy),'dark hero panels must use shell text tokens, not themed surface colour');
+no(/project-360-home-metrics span[\s\S]{0,220}?color:var\(--color-shell-text-muted\)/.test(project),'project metric labels must use shell muted text');
+no(/project-360-home-metrics strong[\s\S]{0,160}?color:var\(--color-shell-text\)/.test(project),'project metric values must use shell text');
+no(/ph-command-metrics span[\s\S]{0,220}?color:var\(--color-shell-text-muted\)/.test(hub),'product hub metric labels must use shell muted text');
+no(/ph-command-metrics strong[\s\S]{0,160}?color:var\(--color-shell-text\)/.test(hub),'product hub metric values must use shell text');
+no(/inventory-metrics span[\s\S]{0,260}?color:var\(--color-shell-text-muted\)/.test(inv),'inventory metric labels must use shell muted text');
+no(/inventory-metrics strong[\s\S]{0,200}?color:var\(--color-shell-text\)/.test(inv),'inventory metric values must use shell text');
+no(/dashboard-reference-hero[\s\S]{0,180}?color:\s*var\(--color-shell-text\)/.test(prod),'dashboard reference dark hero must use shell text');
+no(!/body\[data-theme="dark"\] \.main \.panel[\s\S]{0,240}?background:var\(--color-brand-navy\)!important/.test(core),'workspace core must not repaint dark panels to shell');
+no(!/body\[data-theme="dark"\] \.main h1[\s\S]{0,220}?color:var\(--color-status-info\)!important/.test(core),'workspace core must not force all dark text to info blue');
+no(!/body\[data-theme="dark"\] \.ps-section-nav button.active[\s\S]{0,160}?color:var\(--color-surface-default\)!important/.test(polish),'dark active nav must use semantic selected text, not themed surface as text');
+for (const token of ['--color-dark-canvas:','--color-dark-border:','--color-dark-muted:']) no(design.includes(token),`design system must define compatibility alias ${token}`);
+if(fail.length){console.error('FAIL contrast cascade v1.24.1'); fail.forEach(x=>console.error('- '+x)); process.exit(1)}
+console.log('PASS contrast cascade v1.24.1');

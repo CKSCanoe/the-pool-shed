@@ -20,7 +20,7 @@ body[data-theme="dark"], [data-theme="dark"] {--ink:var(--color-text-primary);--
 .sidebar nav {display:grid;gap:4px;}
 .sidebar nav button {display:flex;align-items:center;width:100%;text-align:left;min-height:42px;padding:10px 12px;border:1px solid transparent;border-radius:var(--ps-radius-control);background:transparent;color:var(--color-dark-muted);font-size:14px;font-weight:550;box-shadow:none;transform:none;}
 .sidebar nav button:hover {background:color-mix(in srgb, var(--color-surface-default) 4.3%, transparent);color:var(--color-surface-default);}
-.sidebar nav button.active {background:var(--color-brand-navy);color:var(--color-surface-default);border-color:var(--color-text-secondary);box-shadow:inset 3px 0 var(--color-action-focus);}
+.sidebar nav button.active {background:var(--color-brand-navy);color:var(--color-shell-text);border-color:var(--color-text-secondary);box-shadow:inset 3px 0 var(--color-action-focus);}
 .sidebar .nav-subgroups {margin:6px 0 10px 18px;padding-left:10px;border-left:1px solid var(--color-text-secondary);display:grid;gap:2px;}
 .sidebar .nav-subgroups button {font-size:14px;min-height:36px;padding:7px 10px;}
 .sidebar .nav-subgroups button.active {background:color-mix(in srgb, var(--color-surface-default) 5.1%, transparent);box-shadow:none;border-color:transparent;color:var(--color-action-focus);}
@@ -124,17 +124,18 @@ html[data-density="comfortable"] .panel {padding:24px;}
 .ps-tool-layout h3 {margin-bottom:12px;}
 .ps-tool-layout hr {width:100%;border:0;border-top:1px solid var(--line);margin:24px 0;}
 @media(max-width:760px){.main .topbar h1{font-size:25px!important}.topbar .title{width:100%}.user-chip-button{min-height:40px!important}.ps-tool-layout{gap:16px}.screen.grid{gap:16px!important}}
-/* Explicit dark surfaces win over older module-specific light backgrounds. */
-body[data-theme="dark"] {background:var(--color-brand-navy)!important;color:var(--color-status-info)!important;}
-body[data-theme="dark"] .main .panel,body[data-theme="dark"] .record-card,body[data-theme="dark"] .profile-card,body[data-theme="dark"] .mini-card,body[data-theme="dark"] .modal,body[data-theme="dark"] .ps-section-nav button {background:var(--color-brand-navy)!important;color:var(--color-status-info)!important;border-color:var(--color-dark-border)!important;}
-body[data-theme="dark"] .main h1,body[data-theme="dark"] .main h2,body[data-theme="dark"] .main h3,body[data-theme="dark"] .main td,body[data-theme="dark"] .main label {color:var(--color-status-info)!important;}
-body[data-theme="dark"] .main input,body[data-theme="dark"] .main select,body[data-theme="dark"] .main textarea {background:var(--color-brand-navy)!important;color:var(--color-status-info)!important;border-color:var(--color-text-secondary)!important;}
-body[data-theme="dark"] .main button.secondary,body[data-theme="dark"] .main button.ghost,body[data-theme="dark"] .main .user-chip-button {background:var(--color-brand-navy)!important;color:var(--color-status-info)!important;border-color:var(--color-text-secondary)!important;}
-body[data-theme="dark"] .main table th {background:var(--color-brand-navy)!important;color:var(--color-status-info)!important;}
-body[data-theme="dark"] .main table td {background:transparent;border-color:var(--color-dark-border)!important;}
-body[data-theme="dark"] .main .muted,body[data-theme="dark"] .main p.muted {color:var(--color-dark-muted)!important;}
-body[data-theme="dark"] .main .ps-section-nav button.active {background:var(--color-brand-navy)!important;color:var(--color-surface-default)!important;}
-body[data-theme="dark"] .main .tab-chip.active {background:var(--color-brand-navy)!important;color:var(--color-surface-default)!important;}
+/* v1.24.1 semantic dark surfaces: preserve the same hierarchy as light mode. */
+body[data-theme="dark"] {background:var(--color-surface-canvas)!important;color:var(--color-text-primary)!important;}
+body[data-theme="dark"] .main .panel,body[data-theme="dark"] .record-card,body[data-theme="dark"] .profile-card,body[data-theme="dark"] .mini-card,body[data-theme="dark"] .modal,body[data-theme="dark"] .ps-section-nav button {background:var(--color-surface-default)!important;color:var(--color-text-primary)!important;border-color:var(--color-border-default)!important;}
+body[data-theme="dark"] .main h1,body[data-theme="dark"] .main h2,body[data-theme="dark"] .main h3,body[data-theme="dark"] .main td,body[data-theme="dark"] .main label {color:var(--color-text-primary)!important;}
+body[data-theme="dark"] .main input,body[data-theme="dark"] .main select,body[data-theme="dark"] .main textarea {background:var(--color-surface-default)!important;color:var(--color-text-primary)!important;border-color:var(--color-border-default)!important;}
+body[data-theme="dark"] .main button.secondary,body[data-theme="dark"] .main button.ghost,body[data-theme="dark"] .main .user-chip-button {background:var(--color-surface-default)!important;color:var(--color-text-primary)!important;border-color:var(--color-border-default)!important;}
+body[data-theme="dark"] .main table th {background:var(--color-surface-subtle)!important;color:var(--color-text-secondary)!important;}
+body[data-theme="dark"] .main table td {background:var(--color-surface-default);border-color:var(--color-border-default)!important;}
+body[data-theme="dark"] .main tbody tr:hover td {background:var(--color-hover-surface)!important;}
+body[data-theme="dark"] .main .muted,body[data-theme="dark"] .main p.muted {color:var(--color-text-secondary)!important;}
+body[data-theme="dark"] .main .ps-section-nav button.active {background:var(--color-selected-surface)!important;color:var(--color-action-primary)!important;border-color:var(--color-selected-edge)!important;}
+body[data-theme="dark"] .main .tab-chip.active {background:var(--color-selected-surface)!important;color:var(--color-action-primary)!important;border-color:var(--color-selected-edge)!important;}
 .sidebar .nav-subgroups {opacity:1!important;}
 .sidebar .nav-subgroups button {opacity:1;color:var(--color-dark-muted)!important;}
 .sidebar .nav-subgroups button.active {color:var(--color-action-focus)!important;}

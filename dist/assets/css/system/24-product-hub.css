@@ -301,7 +301,7 @@
   padding: 15px 18px 17px;
   border-bottom: 1px solid var(--color-border-default);
   background: var(--color-brand-navy);
-  color: var(--color-text-primary);
+  color: var(--color-shell-text);
 }
 
 .dashboard-reference-topline {
@@ -329,7 +329,7 @@
 
 .dashboard-greeting h1 {
   margin: 0;
-  color: var(--color-text-primary);
+  color: var(--color-shell-text);
   font-size: 20px;
   font-weight: 800;
   line-height: 1.15;
@@ -338,7 +338,7 @@
 
 .dashboard-greeting p {
   margin: 3px 0 0;
-  color: var(--color-text-muted);
+  color: var(--color-shell-text-muted);
   font-size: 11px;
   line-height: 1.4;
 }
@@ -371,13 +371,13 @@
   display: flex;
   align-items: center;
   gap: 9px;
-  color: var(--color-text-muted);
+  color: var(--color-shell-text-muted);
   font-size: 10px;
   white-space: nowrap;
 }
 
 .dashboard-reference-date strong {
-  color: var(--color-text-primary);
+  color: var(--color-shell-text);
   font-weight: 700;
 }
 

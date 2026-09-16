@@ -330,7 +330,7 @@ body.dark .so-catalogue-picker-head p,
 body.dark .so-search-hints span,
 [data-theme="dark"] .so-search-hints span { color: var(--color-border-default); }
 body.dark .so-search-popover,
-[data-theme="dark"] .so-search-popover { background: var(--color-brand-navy) !important; border-color: var(--color-action-primary) !important; color: var(--color-action-focus) !important; }
+[data-theme="dark"] .so-search-popover { background: var(--color-brand-navy) !important; border-color: var(--color-action-primary) !important; color:var(--color-shell-text) !important; }
 body.dark .so-search-popover .po-product-results-head,
 [data-theme="dark"] .so-search-popover .po-product-results-head { background:var(--color-surface-default); border-color: var(--color-action-primary); }
 body.dark .so-search-popover .po-product-results-head strong,
@@ -338,7 +338,7 @@ body.dark .so-search-popover .po-product-results-head strong,
 body.dark .so-search-popover .so-product-result strong,
 [data-theme="dark"] .so-search-popover .so-product-result strong { color: var(--color-action-focus); }
 body.dark .so-search-popover .so-product-result,
-[data-theme="dark"] .so-search-popover .so-product-result { background: var(--color-brand-navy); border-color: var(--color-action-primary); color: var(--color-action-focus); }
+[data-theme="dark"] .so-search-popover .so-product-result { background: var(--color-brand-navy); border-color: var(--color-action-primary); color:var(--color-shell-text); }
 body.dark .so-search-popover .so-product-result:hover,
 body.dark .so-search-popover .so-product-result.is-active,
 [data-theme="dark"] .so-search-popover .so-product-result:hover,
@@ -564,7 +564,7 @@ body.dark .partial-shipment-note,
 body.dark .partial-fulfilment-body,
 [data-theme="dark"] .partial-fulfilment-body { background: var(--color-brand-navy); }
 body.dark .order-lines-table th,
-[data-theme="dark"] .order-lines-table th { background: var(--color-brand-navy); color: var(--color-action-focus); border-color: var(--color-action-primary); }
+[data-theme="dark"] .order-lines-table th { background: var(--color-brand-navy); color:var(--color-shell-text); border-color: var(--color-action-primary); }
 body.dark .order-lines-table td,
 [data-theme="dark"] .order-lines-table td { border-color: var(--color-brand-navy); }
 body.dark .partial-line-identity strong,

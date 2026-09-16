@@ -170,9 +170,9 @@ tr.ps-bundle-collapsed { display:none; }
 /* Dark mode readability. */
 [data-theme="dark"] #screen-salesorders .so-line-composer,
 [data-theme="dark"] #screen-salesorders tr.bundle-line-child { background:var(--color-brand-navy); }
-[data-theme="dark"] #screen-salesorders .tab-chip { background:var(--color-brand-navy); color:var(--color-action-focus); border-color:var(--color-action-primary); }
+[data-theme="dark"] #screen-salesorders .tab-chip { background:var(--color-brand-navy); color:var(--color-shell-text); border-color:var(--color-action-primary); }
 [data-theme="dark"] #screen-salesorders .tab-chip.active { background:var(--color-surface-default); color:var(--color-text-primary); }
-[data-theme="dark"] #screen-salesorders .order-lines-table thead th { background:var(--color-brand-navy); color:var(--color-action-focus); }
+[data-theme="dark"] #screen-salesorders .order-lines-table thead th { background:var(--color-brand-navy); color:var(--color-shell-text); }
 [data-theme="dark"] #screen-salesorders .order-lines-table tbody td { border-bottom-color:var(--color-brand-navy); }
 
 @media (max-width:1180px) {
@@ -275,7 +275,7 @@ img { content-visibility: auto; }
 .so-customer-drawer-shell.open .so-customer-drawer-backdrop { opacity: 1; }
 .so-customer-drawer { position: absolute; top: 0; right: 0; bottom: 0; width: min(540px, 94vw); display: grid; grid-template-rows: auto minmax(0,1fr); background:var(--color-status-info-bg); box-shadow: -24px 0 70px color-mix(in srgb, var(--color-brand-navy) 24%, transparent); transform: translateX(102%); transition: transform .22s cubic-bezier(.2,.8,.2,1); }
 .so-customer-drawer-shell.open .so-customer-drawer { transform: translateX(0); }
-.so-customer-drawer > header { display: flex; justify-content: space-between; gap: 18px; padding: 24px 24px 20px; background:var(--color-brand-navy); color: var(--color-surface-default); }
+.so-customer-drawer > header { display: flex; justify-content: space-between; gap: 18px; padding: 24px 24px 20px; background:var(--color-brand-navy); color:var(--color-shell-text); }
 .so-customer-drawer > header > div { display: grid; gap: 4px; }
 .so-customer-drawer > header span { color: var(--color-action-focus); font-size: 10px; font-weight: 900; letter-spacing: .16em; }
 .so-customer-drawer > header h2 { margin: 0; color: var(--color-surface-default); font-size: 25px; }

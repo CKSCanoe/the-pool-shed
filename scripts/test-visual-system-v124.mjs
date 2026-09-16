@@ -24,7 +24,7 @@ const forbidText = (source, text, message) => {
   if (source.toUpperCase().includes(text.toUpperCase())) failures.push(message);
 };
 
-if (pkg.version !== '1.24.0') failures.push(`package version must be 1.24.0, found ${pkg.version}`);
+if (pkg.version !== '1.24.1') failures.push(`package version must be 1.24.1, found ${pkg.version}`);
 
 if (!html.includes('<meta name="theme-color" content="#101820">')) failures.push('browser theme colour must use the Executive Premium shell colour #101820');
 for (const requiredTest of ['test-visual-system-v124.mjs','test-theme-semantic-contrast-v124.mjs','test-semantic-surface-usage-v124.mjs','test-project-details-v124.mjs']) {
@@ -172,12 +172,12 @@ for (const file of fs.readdirSync(cssDir).filter((f) => f.endsWith('.css') && f 
   }
 }
 
-if (!/Pool Shed v1\.24\.0 · Pool Bros Ltd/.test(legacy)) failures.push('discreet footer/version must report v1.24.0');
+if (!/Pool Shed v1\.24\.1 · Pool Bros Ltd/.test(legacy)) failures.push('discreet footer/version must report v1.24.1');
 if (/Platform Hardening/i.test(html)) failures.push('staff runtime must not contain Platform Hardening content');
 if (!login.includes('.ps-login-stage')) failures.push('premium login structure must remain present');
-if (!html.includes('app.css?v=1.24.0')) failures.push('app.css runtime version must be v1.24.0');
-if (!html.includes('config.js?v=1.24.0')) failures.push('runtime JS version must be v1.24.0');
-if (!/1\.24\.0/.test(sw)) failures.push('service worker cache/runtime must reference v1.24.0');
+if (!html.includes('app.css?v=1.24.1')) failures.push('app.css runtime version must be v1.24.1');
+if (!html.includes('config.js?v=1.24.1')) failures.push('runtime JS version must be v1.24.1');
+if (!/1\.24\.1/.test(sw)) failures.push('service worker cache/runtime must reference v1.24.1');
 if (/\?v=1\.23\.0/.test(html)) failures.push('stale v1.23.0 runtime asset references remain in index.html');
 
 if (failures.length) {

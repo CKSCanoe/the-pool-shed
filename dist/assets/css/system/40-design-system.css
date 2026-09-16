@@ -28,6 +28,11 @@
   --color-text-disabled: #89959C;
   --color-border-default: #D8E0E4;
   --color-border-strong: #C2CCD1;
+  /* Compatibility aliases for older workspace modules. */
+  --color-dark-canvas: var(--color-shell);
+  --color-dark-surface: var(--color-surface-default);
+  --color-dark-border: var(--color-border-default);
+  --color-dark-muted: var(--color-text-secondary);
   --color-action-primary: #2F6B84;
   --color-action-primary-hover: #24566A;
   --color-action-soft: #E7F0F4;

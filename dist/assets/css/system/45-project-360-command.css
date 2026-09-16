@@ -10,8 +10,8 @@
 .project-360-home-metrics{grid-template-columns:repeat(4,minmax(0,1fr))}.project-360-commercial-bar{grid-template-columns:repeat(7,minmax(0,1fr))}
 .project-360-home-metrics>div,.project-360-commercial-bar>div{min-width:0;padding:10px 12px;border-right:1px solid color-mix(in srgb,var(--color-shell-text) 12%,transparent)}
 .project-360-home-metrics>div:last-child,.project-360-commercial-bar>div:last-child{border-right:0}
-.project-360-home-metrics span,.project-360-home-metrics small,.project-360-commercial-bar span{display:block;color:var(--color-text-primary);font-size:10px;line-height:1.35}
-.project-360-home-metrics strong,.project-360-commercial-bar strong{display:block;margin-top:3px;font-size:16px;line-height:1.2;color:var(--color-text-primary);overflow-wrap:anywhere}
+.project-360-home-metrics span,.project-360-home-metrics small,.project-360-commercial-bar span{display:block;color:var(--color-shell-text-muted);font-size:10px;line-height:1.35}
+.project-360-home-metrics strong,.project-360-commercial-bar strong{display:block;margin-top:3px;font-size:16px;line-height:1.2;color:var(--color-shell-text);overflow-wrap:anywhere}
 .project-360-view-label{display:flex;align-items:baseline;gap:10px;padding:2px 2px 0}.project-360-view-label b{font-size:13px;color:var(--color-brand-navy)}.project-360-view-label span{font-size:10px;color:var(--color-text-secondary)}
 .project-360-home .ps-table-region,.project-360-detail .ps-table-region{max-width:100%;overflow-x:auto;border:1px solid var(--color-border-default);border-radius:var(--ps-radius-panel);background:var(--color-surface-default)}
 .project-360-home table,.project-360-detail table{width:100%;min-width:880px;border-collapse:collapse}
