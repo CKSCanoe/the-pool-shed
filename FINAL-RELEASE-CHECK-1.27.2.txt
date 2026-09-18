@@ -1,0 +1,83 @@
+=== POOL SHED v1.27.2 FINAL RELEASE CHECK ===
+
+> the-pool-shed@1.27.2 test:deployment
+> node scripts/test-deployment-lock-v1271.mjs && node scripts/test-deployment-hotfix-v1271.mjs && node scripts/test-azzy-contrast-v1272.mjs && node scripts/test-release-v1272.mjs
+
+PASS package.json and pnpm-lock.yaml are synchronised for frozen CI installs
+PASS retained v1.27 deployment hotfix version, cache and lockfile guard wiring
+PASS v1.27.2 Azzy floating assistant semantic colours and WCAG text contrast light quick action=10.73:1, light primary copy=15.82:1, light secondary copy=5.34:1, light header secondary=4.74:1, dark quick action=11.89:1, dark primary copy=15.21:1, dark secondary copy=8.11:1, dark header secondary=7.40:1
+PASS v1.27.2 release identity, cache busting and Azzy release guards
+
+> the-pool-shed@1.27.2 test:automation-command
+> node scripts/test-assistant-engine-v118.mjs && node scripts/test-automation-command-engine-v118.mjs && node scripts/test-automation-command-workspace-v118.mjs && node scripts/test-assistant-settings-v118.mjs && node scripts/test-automation-release-v118.mjs
+
+PASS Smart Assistant Pool Shed-only retrieval, provenance, item finding, training answers and actionable knowledge gaps
+PASS Automation Command flow validation, safe authority, simulation, templates and audit
+PASS Automation Command workspace, Flow Builder and floating assistant structure
+PASS Assistant profile, transparent PNG, knowledge and Pool Shed-only settings contract
+PASS Automation + Assistant retained on v1.27.2
+PASS v1.24.2 interaction contrast authority
+PASS v1.24 Executive Premium Steel Blue visual contract: semantic palette, premium login, no purple, no hard-coded feature action hues, current release wiring.
+PASS contrast cascade v1.24.1
+PASS v1.24 direct semantic background/text pairs meet 4.5:1 in both light and dark themes.
+PASS white on steel-blue primary: 5.90:1
+PASS white on steel-blue hover: 8.03:1
+PASS primary text on light canvas: 14.72:1
+PASS secondary text on light canvas: 4.97:1
+PASS dark primary text on dark canvas: 16.55:1
+PASS dark secondary text on dark canvas: 8.83:1
+PASS dark steel-blue ink on dark soft selection: 11.89:1
+PASS success text/background: 5.80:1
+PASS warning text/background: 5.95:1
+PASS danger text/background: 6.80:1
+PASS info text/background: 6.51:1
+PASS dark success/background: 6.46:1
+PASS dark warning/background: 6.22:1
+PASS dark danger/background: 4.79:1
+PASS dark info/background: 5.37:1
+Readability hardening checks passed: no remaining sub-micro copy and critical command surfaces have explicit readable foreground/background.
+
+> the-pool-shed@1.27.2 test:actions
+> node scripts/test-action-authority-v127.mjs && node scripts/test-approval-authority-v127.mjs && node scripts/test-action-source-adapters-v127.mjs && node scripts/test-my-work-workspace-v127.mjs && node scripts/test-my-work-visual-v127.mjs && node scripts/test-my-work-integration-v127.mjs && node scripts/test-action-approval-integration-v127.mjs && node scripts/test-action-authority-release-v127.mjs
+
+PASS v1.27 Action Authority lifecycle, dedupe, ownership, permissions, notifications, audit and source refresh
+PASS v1.27 Approval Authority dedupe, limits, stale-source blocking, command registry, audit and linked Actions
+PASS v1.27 source adapters for Purchasing, Sales, Warehouse, Projects, Finance, Automation and Engineer Requests
+PASS v1.27 My Work navigation, workspace surfaces, Team restriction hooks and lifecycle controls
+PASS v1.27 My Work Executive Premium semantic-token visual contract
+PASS v1.27 My Work deep links and Notifications independence
+PASS v1.27 stock take submission and approval decisions use Approval Authority while Inventory remains mutation owner
+PASS v1.27 release wiring, My Work authority, cache/version and retained Foundation/Notifications gates
+
+> the-pool-shed@1.27.2 test:foundation
+> node scripts/test-identity-authority-v126.mjs && node scripts/test-foundation-permissions-v126.mjs && node scripts/test-audit-authority-v126.mjs && node scripts/test-foundation-audit-integration-v126.mjs && node scripts/test-record-router-v126.mjs && node scripts/test-permission-inspector-v126.mjs && node scripts/test-foundation-quality-gate-v126.mjs && node scripts/test-foundation-release-v126.mjs
+
+PASS v1.26 canonical identity authority and Supabase role boundary
+PASS v1.26 permission explanations and legacy delegation contract
+PASS v1.26 append-only canonical audit authority, redaction, queries and export audit
+PASS v1.26 high-risk Automation activation and Analytics export canonical audit hooks
+PASS v1.26 stable record router parsing, hrefs, permission and existence guards
+PASS v1.26 Permission Inspector and canonical Audit Settings surface
+PASS v1.26 mandatory browser/database/foundation quality-gate retained on v1.27.2
+PASS v1.26 Foundation Authority retained on v1.27.2
+
+> the-pool-shed@1.27.2 build
+> bash scripts/build.sh
+
+PASS package.json and pnpm-lock.yaml are synchronised for frozen CI installs
+PASS v1.27.2 Azzy floating assistant semantic colours and WCAG text contrast light quick action=10.73:1, light primary copy=15.82:1, light secondary copy=5.34:1, light header secondary=4.74:1, dark quick action=11.89:1, dark primary copy=15.21:1, dark secondary copy=8.11:1, dark header secondary=7.40:1
+PASS v1.27.2 release identity, cache busting and Azzy release guards
+Built app.css from 32 maintained CSS modules.
+Runtime validation passed: 0 inline scripts, service worker, offline sales search, catalogue intelligence, PO supplier-offer search, partial shipment balance test, solid catalogue search UI and required app functions.
+Built deployable static application into /mnt/data/pool_shed_work/src/Pool-Shed-1.27.2-Azzy-Contrast-Fix/dist
+Runtime validation passed: 0 inline scripts, service worker, offline sales search, catalogue intelligence, PO supplier-offer search, partial shipment balance test, solid catalogue search UI and required app functions.
+Runtime validation passed: 0 inline scripts, service worker, offline sales search, catalogue intelligence, PO supplier-offer search, partial shipment balance test, solid catalogue search UI and required app functions.
+All 60 referenced assets exist; every public/server/API JavaScript file parses.
+API: origin/role controls, signed webhook, draft export, returning paid status, repeat sync and ambiguous-create protection passed.
+Project engine: margin, locked quote, revenue deduplication, PO/bill replacement, extras approval, duplicate expenses, stage dependencies/cap, loss alerts and save rollback passed.
+Cross-project PO line ownership does not duplicate costs.
+Optional AI: manager auth path, bounded summary without documents/customer names, explicit non-storage and rate-limit guard passed (mock provider).
+Bundle Product System checks passed: 9
+Dashboard review: counts, read-only summary, personal-data exclusion, admin restriction, throttling, provider/config/origin failures passed.
+Focused Dashboard checks passed with approved right-rail composition.
+=== FINAL RELEASE CHECK COMPLETE ===

@@ -1,0 +1,40 @@
+Pool Shed v1.27.2 - Azzy Contrast & Readability Fix
+===================================================
+
+Baseline: Pool Shed v1.27.1 Deployment Hotfix
+
+FIXED
+- Azzy suggested-question text no longer renders pale on pale backgrounds.
+- Azzy close, mode, input, source and answer controls now use explicit semantic colours.
+- Light and dark mode are both governed by the Executive Premium Steel Blue tokens.
+- Keyboard focus-visible styling is explicit across floating Azzy controls.
+- Floating assistant buttons are hardened as non-submit controls where appropriate.
+- Close control includes an accessible label.
+
+PRESERVED
+- Migrated business data behaviour
+- Supabase schema/RLS/auth authority unchanged
+- My Work, Action Authority and Approval Authority
+- Foundation Authority and Permissions
+- Notifications Command
+- Sales, CRM, Projects, Product Hub, Inventory, Purchasing, Warehouse,
+  Fulfilment, Finance, Analytics, Automation/Azzy and Settings workflows
+- Executive Premium Steel Blue light/dark design system
+
+RELEASE
+- Application version: 1.27.2
+- Service-worker cache: pool-shed-v1.27.2-my-work-action-authority
+- Production build: PASS
+- Azzy contrast guard: PASS
+- Automation/Azzy suite: PASS
+- Action/Approval suite: PASS
+- Foundation suite: PASS
+- Public/dist runtime validation: PASS
+- Release assets: PASS (60 referenced assets, all JS parses)
+- Post-database-boundary non-database checks: PASS
+
+KNOWN SANDBOX LIMITATIONS
+- Full validator stops at the database-only boundary because @electric-sql/pglite
+  is not installed in this sandbox.
+- Playwright browser smoke cannot run locally because playwright-core is not
+  installed in this sandbox. Pixel-level browser automation is not claimed.
