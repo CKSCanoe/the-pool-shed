@@ -1,37 +1,25 @@
-# Start Here · Pool Shed v1.31.0
+# Start Here · Pool Shed v1.32.0
 
-## Where to create quotes
+## Create a quote
 
-Use **Quotes** in the main left navigation, directly after **Sales Orders**, then press **New quote**.
+**Quotes → New quote** or **CRM → Customer → New quote**.
 
-You can also use **CRM → open customer → New quote**. The customer is preselected automatically.
+- Quick Quote: accepted quote goes straight to a Sales Order by default.
+- Project Proposal: accepted quote creates the full Project and linked Sales Order workflow.
 
-Choose:
+## Build a premium proposal
 
-- **Quick Quote** for light refurbishments, repairs, covers, plant replacements and straightforward work. Acceptance goes directly to a Sales Order unless you choose to create a Project too.
-- **Project Proposal** for new pools, major refurbishments and complex staged work. Acceptance creates the Project and linked Sales Order.
+1. **Details** — set project name, work type, hero story and upload/position a hero image.
+2. **Build Quote** — use Sections, Elements, Media and Products. Click anything on the live client canvas to edit it in the right inspector.
+3. **Pool Layout** — available for Project Proposals where required.
+4. **Review** — check commercial controls, preview the exact customer experience, then Review & Send.
 
-## Operational authority
+Images support JPG, PNG and WebP. They are resized automatically and saved to that quote’s Media Library for reuse.
 
-- CRM owns customer master data.
-- Quotes owns proposal/version/customer acceptance truth.
-- Sales Orders own accepted customer item demand.
-- Product Hub owns SKU/product/bundle definitions.
-- Inventory/Warehouse own physical stock.
-- Purchase Orders own supplier commitments.
-- Projects link accepted work, Sales Orders, POs, Job Bin stock, costs, tasks, variations and billing without duplicating material ledgers.
-- Accounting/Xero integration remains controlled separately.
+## Customer boundary
 
-## Customer security
-
-The customer proposal is a separate presentation route. It does not expose Pool Shed navigation, supplier costs, margin, stock, Sales Orders, Purchase Orders, Projects or internal notes.
-
-## Build
-
-```bash
-npm run build
-```
+Customers see only the private presentation, permitted choices, investment, controlled documents/questions and acceptance. They do not receive Pool Shed navigation, Product Hub costs, margins, stock, Sales Orders, POs, approvals or Project Handover information.
 
 ## Deploy
 
-Read `DEPLOYMENT-GUIDE-1.31.0.md` before changing the live Vercel/Supabase environment.
+Read `DEPLOYMENT-GUIDE-1.32.0.md` before changing the live Vercel/Supabase environment.

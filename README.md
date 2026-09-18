@@ -1,44 +1,31 @@
-# Pool Shed v1.31.0
+# Pool Shed v1.32.0 · Elite Quote Builder
 
-Pool Shed is the Pool Bros operational system for CRM, quotes, Sales Orders, Projects, Product Hub, Inventory, Purchasing, Warehouse, Fulfilment, Accounting, Analytics, Automation and controlled administration.
+Pool Shed is the Pool Bros operational system for CRM, Quotes, Sales Orders, Projects, Product Hub, Inventory, Purchasing, Warehouse, Fulfilment, Accounting, Analytics, Automation and controlled administration.
 
-## Current operating flow
+## Where quotes live
 
-**Dashboard → CRM → Quotes → Sales Orders → Projects where required → Product Hub → Inventory → Purchasing → Warehouse → Fulfilment → Accounting**
+Use **Quotes** in the left navigation, directly after **Sales Orders**, then press **New quote**. You can also use **CRM → customer → New quote** with the customer preselected.
 
-Quotes are created in the left navigation under **Quotes**, directly after **Sales Orders**. You can also open any CRM customer and press **New quote** to start a quote with that customer already selected.
+Choose **Quick Quote** for repairs, light refurbishments, covers, plant replacements and straightforward work. Choose **Project Proposal** for new pools, major refurbishments and complex staged projects.
 
-### Quote workflows
+## Elite Quote Builder
 
-- **Quick Quote**: Accept → Sales Order → stock allocation → draft supplier POs → optional Xero payment request. A Project is optional.
-- **Project Proposal**: Accept → Project → Sales Order → stock/procurement → staged finance and project control.
+The v1.32 builder is a visual editor with Sections, Elements, Media and Products on the left, the live customer proposal in the middle and a contextual inspector on the right. Images can be uploaded for the proposal hero, product/option cards, image blocks and galleries, and reused from the quote Media Library.
 
-The accepted quote/version retains exact Product Hub SKU and bundle traceability. Projects do not create a parallel material-demand layer. Materials are controlled through linked Sales Orders, Purchase Orders, allocations, Job Bin stock, receipts and stock movements.
+Product Hub still owns the Product ID, SKU, supplier, cost and bundle truth underneath the presentation. The customer receives only the presentation-safe published version.
 
-## Customer proposal boundary
-
-The customer proposal is a separate secure surface. Customers receive presentation-safe quote content only. Internal margin, supplier costs, stock, Sales Orders, Purchase Orders, project control, approvals and internal engagement data are not sent to the customer browser.
-
-## Build
+## Build and test
 
 ```bash
+npm run test:quotes
+npm run test:deployment
 npm run build
 ```
 
-The deployable app is written to `dist/`.
+The deployable static app is written to `dist/`.
 
-## Validation
+The complete regression suite is `npm run validate`. Database execution tests require the normal development dependency `@electric-sql/pglite`, which is not installed in the sandbox used to prepare this package.
 
-```bash
-npm run validate
-```
+## Release documents
 
-In this sandbox, the application and browser/release tests pass until the database-only suite reaches the development-only `@electric-sql/pglite` dependency. Run the database tests in the normal development/CI environment before production database promotion.
-
-## Xero
-
-Xero remains gated by the existing integration settings. Keep `XERO_INTEGRATION_MODE=ready` until the live connection is explicitly approved and tested.
-
-## Release files
-
-See `RELEASE-NOTES-1.31.0.md` and `DEPLOYMENT-GUIDE-1.31.0.md` for the current release.
+Read `RELEASE-NOTES-1.32.0.md`, `ELITE-QUOTE-BUILDER-AUDIT-1.32.0.md` and `DEPLOYMENT-GUIDE-1.32.0.md` before production promotion.

@@ -1,1 +1,3 @@
-Pool Shed v1.31.0 - Quotes First + Simplified Project Purchasing
+Pool Shed v1.32.0 · Elite Quote Builder
+Status: RELEASE CANDIDATE · build and browser QA passed
+Built: 2026-09-18
