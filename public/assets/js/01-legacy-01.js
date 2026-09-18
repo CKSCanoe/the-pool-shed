@@ -78,6 +78,7 @@ const seed = {
 
       const tabs = [
         { id: "dashboard", label: "Dashboard", title: "The Pool Shed", intro: "A clear live view of sales, stock, vans, purchasing, fulfilment and anything that needs action today." },
+        { id: "mywork", label: "My Work", title: "My Work", intro: "Owned actions, approvals and operational exceptions that need attention." },
         { id: "crm", label: "CRM", title: "CRM", intro: "Customers, contacts, account context, supplier relationships and connected commercial history." },
         { id: "salesorders", label: "Sales Orders", title: "Sales Orders", intro: "Quotient, WooCommerce and manual orders with custom tags, allocation and status flow." },
         { id: "jobs", label: "Projects", title: "Projects", intro: "Plan and control projects, linked customer orders, job stock, purchasing, delivery and commercial review in one place." },
@@ -172,6 +173,87 @@ const seed = {
       let engineerRequestFilter = "open";
       let engineerRequestSearch = "";
 
+      window.__POOL_SHED_OPEN_NOTIFICATION_TARGET__ = function(route) {
+        const target = route && typeof route === "object" ? route : {};
+        const moduleId = target.module || "dashboard";
+        const recordId = String(target.recordId || "");
+        const recordType = String(target.recordType || "");
+        const requestedPage = String(target.page || "");
+        if (!canAccessTab(moduleId)) {
+          toast("You do not have permission to open this notification target.");
+          return { ok:false, reason:"permission", module:moduleId, recordId:recordId };
+        }
+        function unavailable(label) {
+          toast((label || "The referenced record") + " is no longer available.");
+          return { ok:false, reason:"unavailable", module:moduleId, recordId:recordId };
+        }
+        if (moduleId === "salesorders") {
+          if (recordId && !data.salesOrders.some(function(item){ return String(item.id) === recordId; })) return unavailable("Sales Order " + recordId);
+          active = "salesorders";
+          activeSubPage.salesorders = "Sales Orders";
+          salesOrderView = recordId ? "detail" : "list";
+          selectedSalesOrderId = recordId;
+          salesOrderTab = "products";
+        } else if (moduleId === "mywork") {
+          active = "mywork";
+          window.__POOL_SHED_MYWORK_FOCUS__ = { recordType: recordType, recordId: recordId };
+        } else if (moduleId === "crm") {
+          if (recordId && !data.customers.some(function(item){ return String(item.id) === recordId; })) return unavailable("Customer " + recordId);
+          active = "crm";
+          activeSubPage.crm = "All Customers";
+          selectedCrmCustomerId = recordId;
+        } else if (moduleId === "jobs") {
+          if (recordId && !data.jobs.some(function(item){ return String(item.id) === recordId; })) return unavailable("Project " + recordId);
+          active = "jobs";
+          activeSubPage.jobs = "Projects";
+          selectedJobId = recordId;
+          if (typeof psProjectSelected !== "undefined") psProjectSelected = recordId;
+          if (typeof psProjectTab !== "undefined") psProjectTab = "Overview";
+        } else if (moduleId === "purchase") {
+          active = "purchase";
+          if (recordType === "supplier") {
+            const supplierMatch = (data.suppliers || []).find(function(item){ return String(item.id || item.name) === recordId || String(item.name) === recordId; });
+            if (recordId && !supplierMatch) return unavailable("Supplier " + recordId);
+            selectedSupplierName = supplierMatch ? supplierMatch.name : recordId;
+            purchaseOrderView = "supplier-profile";
+            activeSubPage.purchase = "Suppliers";
+          } else {
+            if (recordId && !data.purchaseOrders.some(function(item){ return String(item.id) === recordId; })) return unavailable("Purchase Order " + recordId);
+            selectedPurchaseOrderId = recordId;
+            purchaseOrderView = recordId ? "detail" : "list";
+            activeSubPage.purchase = requestedPage || "Purchase Orders";
+          }
+        } else if (moduleId === "locations") {
+          if (recordId && !(data.locations || []).some(function(item){ return String(item.id) === recordId; })) return unavailable("Stock location " + recordId);
+          active = "locations";
+          activeSubPage.locations = requestedPage || "Locations";
+          selectedInventoryLocationId = recordId;
+          inventoryView = recordId ? "location" : "overview";
+        } else if (moduleId === "warehouse") {
+          active = "warehouse";
+          activeSubPage.warehouse = requestedPage || "Goods In";
+          if (recordType === "purchaseOrder" && recordId) selectedGoodsInPoId = recordId;
+        } else if (moduleId === "fulfilment") {
+          if (recordId && !(data.goodsNotes || []).some(function(item){ return String(item.id) === recordId; })) return unavailable("Goods Note " + recordId);
+          active = "fulfilment";
+          activeSubPage.fulfilment = requestedPage || "Goods Notes";
+          selectedGoodsNoteId = recordId;
+        } else if (moduleId === "accounting") {
+          active = "accounting";
+          activeSubPage.accounting = requestedPage || (recordType === "supplier" ? "Supplier Accounts" : "Overview");
+        } else if (moduleId === "automation") {
+          active = "automation";
+          activeSubPage.automation = requestedPage || "Alerts & Escalations";
+        } else if (moduleId === "settings") {
+          active = "settings";
+          activeSubPage.settings = requestedPage || "Notifications";
+        } else {
+          active = "dashboard";
+        }
+        render();
+        return { ok:true, module:moduleId, recordId:recordId };
+      };
+
       function migrateOperationalStorageToV172() {
         const mappings = [
           ["poolshed:v165:users", "poolshed:v169:users"],
@@ -249,26 +331,39 @@ const seed = {
 
 
       function adminRoles() {
-        return ["Admin"];
+        try { return (window.PoolShedIdentity && window.PoolShedIdentity.roles ? window.PoolShedIdentity.roles() : [{id:"Admin"}]).filter(function(role){ return role.id === "Admin"; }).map(function(role){ return role.id; }); } catch (error) { return ["Admin"]; }
       }
 
       function isAdminUser(user) {
-        const role = (user || currentUser()).role || "Engineer";
-        return adminRoles().includes(role);
+        try { if (window.PoolShedIdentity && typeof window.PoolShedIdentity.isAdmin === "function") return window.PoolShedIdentity.isAdmin(user || currentUser()); } catch (error) { void error; }
+        return ((user || currentUser()).role || "Office") === "Admin";
       }
 
       function defaultPermissionsForRole(role) {
-        const ids = tabs.map(function(tab) { return tab.id; });
-        const all = {};
-        ids.forEach(function(id) { all[id] = true; });
-        if (role === "Admin") return all;
-        if (role === "Engineer") return { dashboard: true, engineer: true, jobs: true, locations: true, warehouse: true, fulfilment: true, settings: true, salesorders: false, crm: false, products: false, purchase: false, accounting: false, analytics: false, automation: true };
-        return { dashboard: true, settings: true, engineer: true, jobs: true, automation: true };
+        try {
+          if (window.PoolShedSettingsPermissions && typeof window.PoolShedSettingsPermissions.roleMatrix === "function") {
+            const matrix = window.PoolShedSettingsPermissions.roleMatrix(role);
+            const projected = {};
+            tabs.forEach(function(tab){ projected[tab.id] = !!(matrix[tab.id] && matrix[tab.id].view); });
+            return projected;
+          }
+        } catch (error) { void error; }
+        const normalized = window.PoolShedIdentity ? window.PoolShedIdentity.normalizeRole(role) : (role === "User" ? "Office" : role || "Office");
+        const safe = {}; tabs.forEach(function(tab){ safe[tab.id] = tab.id === "dashboard" || tab.id === "settings"; });
+        if (normalized === "Admin") tabs.forEach(function(tab){ safe[tab.id] = true; });
+        return safe;
       }
 
       function userPermissions(user) {
-        const base = defaultPermissionsForRole((user || currentUser()).role || "Engineer");
-        return Object.assign({}, base, (user && user.permissions) || {});
+        const targetUser = user || currentUser();
+        try {
+          if (window.PoolShedSettingsPermissions && typeof window.PoolShedSettingsPermissions.effective === "function") {
+            const effective = window.PoolShedSettingsPermissions.effective(targetUser), projected = {};
+            tabs.forEach(function(tab){ projected[tab.id] = !!(effective.modules[tab.id] && effective.modules[tab.id].view); });
+            return projected;
+          }
+        } catch (error) { void error; }
+        return defaultPermissionsForRole(targetUser.role || "Office");
       }
 
       function canAccessTab(tabId, user) {
@@ -528,7 +623,7 @@ const seed = {
               name: profile.full_name || profile.email || "User",
               email: profile.email || "",
               jobTitle: profile.job_title || "",
-              role: ["Admin", "Engineer", "User"].includes(profile.role) ? profile.role : "User",
+              role: (window.PoolShedIdentity ? window.PoolShedIdentity.normalizeRole(profile.role, { diagnose:true, context:"supabase-profile-load" }) : (profile.role === "User" ? "Office" : profile.role || "Office")),
               status: profile.active === false ? "Disabled" : "Active",
               phone: profile.phone || "",
               avatar: profile.avatar_url || "",
@@ -554,7 +649,7 @@ const seed = {
           full_name: user.name,
           email: user.email,
           job_title: user.jobTitle || null,
-          role: ["Admin", "Engineer", "User"].includes(user.role) ? user.role : "User",
+          role: (window.PoolShedIdentity ? window.PoolShedIdentity.normalizeRole(user.role) : (user.role === "User" ? "Office" : user.role || "Office")),
           active: user.status !== "Disabled",
           phone: user.phone || null,
           avatar_url: user.avatar || null,
@@ -590,7 +685,7 @@ const seed = {
           name: (profile && profile.full_name) || authUser.user_metadata.full_name || authUser.email || "User",
           email: authUser.email || "",
           jobTitle: (profile && profile.job_title) || "",
-          role: (profile && ["Admin", "Engineer", "User"].includes(profile.role) ? profile.role : "User"),
+          role: (profile && window.PoolShedIdentity ? window.PoolShedIdentity.normalizeRole(profile.role, { diagnose:true, context:"authenticated-profile-load" }) : (profile && profile.role === "User" ? "Office" : (profile && profile.role) || "Office")),
           status: profile && profile.active === false ? "Inactive" : "Active",
           phone: (profile && profile.phone) || "",
           avatar: (profile && profile.avatar_url) || "",
@@ -1838,7 +1933,7 @@ const seed = {
           : effectiveMode === "mfa"
             ? '<button class="ps-login-link" type="button" data-login-cancel-mfa>Use a different account</button><span>Authenticator verification</span>'
             : effectiveMode === "denied" ? '<span></span>' : '<button class="ps-login-link" type="button" data-login-mode="login">Back to sign in</button><span></span>';
-        screen.innerHTML = '<main class="ps-login-stage"><section class="ps-login-shell"><aside class="ps-login-brand"><div><div class="ps-login-lockup"><span class="ps-login-logo"><img src="' + DEFAULT_POOL_BROS_LOGO + '" alt="Pool Bros logo"></span><div><span class="ps-login-kicker">Pool Bros</span><strong>THE POOL SHED</strong></div></div><div class="ps-login-hero"><span class="ps-login-kicker">Operations Command System</span><h1>One secure place to <span>run the operation.</span></h1><p>Secure access to the Pool Bros operations workspace. Sign in to continue to your authorised tools, tasks and information.</p></div></div><div class="ps-login-staff-note"><strong>Pool Bros staff access</strong><span>Your workspace and available tools are tailored to your account after sign-in.</span></div></aside><section class="ps-login-auth"><div class="ps-login-card"><div class="ps-login-card-head"><span class="ps-login-kicker">' + escapeHtml(meta.eyebrow) + '</span><h2>' + escapeHtml(meta.heading) + '</h2><p>' + escapeHtml(meta.intro) + '</p></div><form id="loginForm">' + fields + '<div id="loginMessage" class="ps-login-message' + (good ? ' good' : '') + '">' + escapeHtml(message || '') + '</div></form><div class="ps-login-helper">' + helper + '</div></div></section></section><footer class="ps-login-footer">Pool Shed v1.24.2 · Pool Bros Ltd</footer></main>';
+        screen.innerHTML = '<main class="ps-login-stage"><section class="ps-login-shell"><aside class="ps-login-brand"><div><div class="ps-login-lockup"><span class="ps-login-logo"><img src="' + DEFAULT_POOL_BROS_LOGO + '" alt="Pool Bros logo"></span><div><span class="ps-login-kicker">Pool Bros</span><strong>THE POOL SHED</strong></div></div><div class="ps-login-hero"><span class="ps-login-kicker">Operations Command System</span><h1>One secure place to <span>run the operation.</span></h1><p>Secure access to the Pool Bros operations workspace. Sign in to continue to your authorised tools, tasks and information.</p></div></div><div class="ps-login-staff-note"><strong>Pool Bros staff access</strong><span>Your workspace and available tools are tailored to your account after sign-in.</span></div></aside><section class="ps-login-auth"><div class="ps-login-card"><div class="ps-login-card-head"><span class="ps-login-kicker">' + escapeHtml(meta.eyebrow) + '</span><h2>' + escapeHtml(meta.heading) + '</h2><p>' + escapeHtml(meta.intro) + '</p></div><form id="loginForm">' + fields + '<div id="loginMessage" class="ps-login-message' + (good ? ' good' : '') + '">' + escapeHtml(message || '') + '</div></form><div class="ps-login-helper">' + helper + '</div></div></section></section><footer class="ps-login-footer">Pool Shed v1.27.0 · Pool Bros Ltd</footer></main>';
         bindLoginScreen(effectiveMode);
       }
 
@@ -1856,6 +1951,7 @@ const seed = {
         if (app) app.classList.remove("auth-hidden");
         if (screen) screen.classList.add("hidden");
         render();
+        setTimeout(function(){ try { if (window.PoolShedRouter && typeof window.PoolShedRouter.applyCurrent === "function") window.PoolShedRouter.applyCurrent(); } catch (error) { void error; } }, 0);
       }
 
       async function pendingMfaFactor() {
@@ -2010,7 +2106,12 @@ const seed = {
         const dropdown = document.getElementById("userMenuDropdown");
         if (avatar) avatar.innerHTML = userAvatarHtml(user);
         if (name) name.textContent = user.name;
-        if (badge) badge.textContent = Math.min(99, adminNotificationCount());
+        if (badge) {
+          const notificationCount = window.PoolShedNotificationsCommand && typeof window.PoolShedNotificationsCommand.unreadCount === "function" ? window.PoolShedNotificationsCommand.unreadCount() : adminNotificationCount();
+          badge.textContent = notificationCount > 99 ? "99+" : String(notificationCount);
+          badge.hidden = notificationCount === 0;
+          if (window.PoolShedNotificationsWorkspace && typeof window.PoolShedNotificationsWorkspace.refreshBadge === "function") window.PoolShedNotificationsWorkspace.refreshBadge();
+        }
         if (dropdown) {
           const otherUsers = "";
           dropdown.innerHTML =
@@ -2027,6 +2128,7 @@ const seed = {
 
       function renderActivePage() {
         if (active === "dashboard") return renderDashboard();
+        if (active === "mywork" && typeof window.renderMyWorkWorkspace === "function") return window.renderMyWorkWorkspace();
         if (active === "locations") return renderLocations();
         if (active === "products") return renderProducts();
         if (active === "purchase") return renderPurchase();
@@ -13573,9 +13675,19 @@ const seed = {
         });
         if (missingReasons) return toast("Add a reason for every variance before submitting.");
         if (!confirm("Submit " + loc.name + " stock take for admin approval? Variance rows: " + varianceCount + ".")) return;
+        const previousStockTakeStatus = stockTake.status;
         stockTake.status = "Submitted";
         stockTake.submittedAt = new Date().toISOString().slice(0, 16).replace("T", " ");
         stockTake.lastCounted = new Date().toISOString().slice(0, 10);
+        if (!window.PoolShedActionApprovalIntegrations || typeof window.PoolShedActionApprovalIntegrations.requestStocktakeApproval !== "function") {
+          stockTake.status = previousStockTakeStatus || "In progress";
+          return toast("Approval Authority is unavailable. Stock take was not submitted.");
+        }
+        const approvalRequest = window.PoolShedActionApprovalIntegrations.requestStocktakeApproval(locationId);
+        if (!approvalRequest || approvalRequest.ok === false) {
+          stockTake.status = previousStockTakeStatus || "In progress";
+          return toast("Stock take approval could not be created: " + String(approvalRequest && approvalRequest.reason || "Unknown error"));
+        }
         data.notifications.push({
           id: "N-" + String(data.notifications.length + 1).padStart(3, "0"),
           trigger: "Stocktake submitted",
@@ -13592,34 +13704,57 @@ const seed = {
         render();
       }
 
-      function decideStockTake(locationId, decision) {
+      function applyStockTakeDecision(locationId, decision, meta) {
         const stockTake = stockTakeForLocation(locationId);
         const loc = locationById(locationId);
-        if (!stockTake || !loc) return toast("Stock take not found.");
+        const options = meta || {};
+        if (!stockTake || !loc) return { ok: false, reason: "Stock take not found." };
         if (decision === "approve") {
-          const approver = String(prompt("Approved by") || stockTake.approvedBy || "Admin").trim();
-          if (!approver) return;
+          if (stockTake.status !== "Submitted") return { ok: false, reason: "Stock take is no longer submitted." };
+          const approver = String(options.decidedByName || stockTake.approvedBy || (currentUser() && currentUser().name) || "Management").trim();
           stockTake.status = "Approved";
           stockTake.approvedBy = approver;
           stockTake.approvedAt = new Date().toISOString().slice(0, 16).replace("T", " ");
-          addMovement("Stocktake Approved", (stockTake.lines[0] || {}).productId || "MULTI", stockTake.lines.length, loc.name, loc.name, stockTake.ref, approver, "Approved for posting.");
+          addMovement("Stocktake Approved", (stockTake.lines[0] || {}).productId || "MULTI", stockTake.lines.length, loc.name, loc.name, stockTake.ref, approver, "Approved for posting through Approval Authority." + (options.approvalId ? " Approval " + options.approvalId + "." : ""));
           toast(stockTake.ref + " approved.");
         } else if (decision === "recount") {
-          const note = String(prompt("Recount note") || "Variance needs recount.").trim();
+          const note = String(options.note || "Variance needs recount.").trim();
           stockTake.status = "Recount required";
           stockTake.adminNote = note;
-          addMovement("Stocktake Recount Required", (stockTake.lines[0] || {}).productId || "MULTI", stockTake.lines.length, loc.name, loc.name, stockTake.ref, "Admin", note);
+          addMovement("Stocktake Recount Required", (stockTake.lines[0] || {}).productId || "MULTI", stockTake.lines.length, loc.name, loc.name, stockTake.ref, String(options.decidedByName || "Management"), note);
           toast(stockTake.ref + " marked for recount.");
         } else if (decision === "reject") {
-          const note = String(prompt("Reject reason") || "").trim();
-          if (!note) return toast("Reject reason is required.");
+          const note = String(options.note || "").trim();
+          if (!note) return { ok: false, reason: "Reject reason is required." };
           stockTake.status = "Rejected";
           stockTake.adminNote = note;
-          addMovement("Stocktake Rejected", (stockTake.lines[0] || {}).productId || "MULTI", stockTake.lines.length, loc.name, loc.name, stockTake.ref, "Admin", note);
+          addMovement("Stocktake Rejected", (stockTake.lines[0] || {}).productId || "MULTI", stockTake.lines.length, loc.name, loc.name, stockTake.ref, String(options.decidedByName || "Management"), note);
           toast(stockTake.ref + " rejected.");
+        } else {
+          return { ok: false, reason: "Unsupported stock take decision." };
         }
         saveAppData();
         render();
+        return { ok: true, stockTake: stockTake };
+      }
+
+      window.__POOL_SHED_APPLY_STOCKTAKE_DECISION__ = applyStockTakeDecision;
+
+      function decideStockTake(locationId, decision) {
+        let note = "";
+        if (decision === "recount") note = String(prompt("Recount note") || "Variance needs recount.").trim();
+        if (decision === "reject") {
+          note = String(prompt("Reject reason") || "").trim();
+          if (!note) return toast("Reject reason is required.");
+        }
+        if (window.PoolShedActionApprovalIntegrations && typeof window.PoolShedActionApprovalIntegrations.decideStocktakeApproval === "function") {
+          const result = window.PoolShedActionApprovalIntegrations.decideStocktakeApproval(locationId, decision, { note: note });
+          if (!result || result.ok === false) return toast(String(result && result.reason || "Stock take decision could not be applied."));
+          return result;
+        }
+        const result = applyStockTakeDecision(locationId, decision, { note: note, decidedByName: (currentUser() && currentUser().name) || "Management" });
+        if (!result.ok) toast(result.reason);
+        return result;
       }
 
       function postStockTake(locationId) {
@@ -14517,12 +14652,13 @@ const seed = {
         const open = menu.classList.toggle("hidden");
         button.setAttribute("aria-expanded", String(!open));
       });
-      document.getElementById("notificationButton").addEventListener("click", function() {
-        active = "locations";
-        activeSubPage.locations = "Missing Stock";
-        inventoryView = "missingStock";
-        toast("Opening stock and admin alerts.");
-        render();
+      document.getElementById("notificationButton").addEventListener("click", function(event) {
+        event.preventDefault();
+        if (window.PoolShedNotificationsWorkspace && typeof window.PoolShedNotificationsWorkspace.toggle === "function") {
+          window.PoolShedNotificationsWorkspace.toggle();
+          return;
+        }
+        toast("Notifications Command is still loading. Please try again.");
       });
       let globalSearchTimer;
       document.getElementById("globalSearch").addEventListener("input", function() {
@@ -14821,5 +14957,5 @@ const seed = {
         updateOfflineStatus();
         restoreOfflineSnapshotIfNeeded();
         syncPendingOfflineData();
-        if ("serviceWorker" in navigator && location.protocol !== "file:") navigator.serviceWorker.register("./service-worker.js?v=1.24.2", { updateViaCache:"none" }).catch(function() {});
+        if ("serviceWorker" in navigator && location.protocol !== "file:") navigator.serviceWorker.register("./service-worker.js?v=1.27.0", { updateViaCache:"none" }).catch(function() {});
       });

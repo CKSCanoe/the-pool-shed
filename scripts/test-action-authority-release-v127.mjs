@@ -1,0 +1,37 @@
+import fs from 'node:fs';
+import assert from 'node:assert/strict';
+const pkg=JSON.parse(fs.readFileSync('package.json','utf8'));
+const release=pkg.version;
+const index=fs.readFileSync('public/index.html','utf8');
+const sw=fs.readFileSync('public/service-worker.js','utf8');
+const legacy=fs.readFileSync('public/assets/js/01-legacy-01.js','utf8');
+const current=fs.readFileSync('CURRENT-RELEASE.txt','utf8');
+const readiness=fs.readFileSync('public/production-readiness-engine.js','utf8');
+const buildCss=fs.readFileSync('scripts/build-css.mjs','utf8');
+assert.equal(release,'1.27.0','v1.27 release package version required');
+assert.match(current,/Pool Shed v1\.27\.0 - My Work & Action Authority/);
+assert.match(sw,/pool-shed-v1\.27\.0-my-work-action-authority/);
+assert.match(readiness,/VERSION='1\.27\.0'/);
+assert.match(legacy,/Pool Shed v1\.27\.0 · Pool Bros Ltd/);
+assert.match(legacy,/service-worker\.js\?v=1\.27\.0/);
+assert.match(index,/id="screen-mywork"/,'My Work screen missing');
+for(const f of ['action-authority.js','approval-authority.js','action-approval-integrations.js','action-source-adapters.js','my-work-workspace.js']){
+  assert.match(index,new RegExp('./'+f.replaceAll('.','\\.')+'\\?v=1\\.27\\.0'),`index missing ${f}`);
+  assert.match(sw,new RegExp('./'+f.replaceAll('.','\\.')+'\\?v=1\\.27\\.0'),`service worker missing ${f}`);
+}
+assert.ok(index.indexOf('action-authority.js')<index.indexOf('approval-authority.js'),'Action Authority must load before Approval Authority');
+assert.ok(index.indexOf('approval-authority.js')<index.indexOf('action-approval-integrations.js'),'Approval Authority must load before approval integrations');
+assert.ok(index.indexOf('action-approval-integrations.js')<index.indexOf('my-work-workspace.js'),'Approval integrations must load before My Work');
+assert.match(buildCss,/59-my-work-action-authority\.css/,'My Work CSS missing from build authority');
+assert.match(pkg.scripts['test:actions']||'',/test-action-authority-v127\.mjs/);
+assert.match(pkg.scripts['test:actions']||'',/test-approval-authority-v127\.mjs/);
+assert.match(pkg.scripts['test:actions']||'',/test-action-approval-integration-v127\.mjs/);
+assert.match(pkg.scripts['test:actions']||'',/test-action-authority-release-v127\.mjs/);
+assert.match(pkg.scripts.validate||'',/^npm run test:actions && npm run test:foundation &&/,'Actions and Foundation must lead validation');
+assert.match(pkg.scripts['test:browser']||'',/test-browser-smoke\.cjs/,'real Chromium browser gate must remain');
+assert.match(pkg.scripts['test:database']||'',/test-accounting-database\.mjs/);
+assert.match(pkg.scripts['test:database']||'',/test-workspace-database\.mjs/);
+assert.match(pkg.scripts['test:database']||'',/test-project-database\.mjs/);
+for(const retained of ['identity-authority.js','audit-authority.js','record-router.js','notifications-command-engine.js','notifications-command-workspace.js'])assert.ok(fs.existsSync('public/'+retained),`retained authority missing: ${retained}`);
+assert.match(legacy,/\{ id: "mywork", label: "My Work"/,'My Work must be first-class navigation');
+console.log('PASS v1.27 release wiring, My Work authority, cache/version and retained Foundation/Notifications gates');

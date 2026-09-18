@@ -1,0 +1,27 @@
+Pool Shed v1.25.0 - Notifications Command
+=========================================
+
+Baseline
+--------
+v1.24.2 Interaction & Navigation Authority.
+Legacy business-data reconstruction removed from scope at user request.
+
+Delivered
+---------
+- Premium right-side Notifications Command drawer.
+- Controlled vector notification bell.
+- Permission-scoped unread badge and inbox.
+- Read/unread, mark-all, archive/restore and Notification History.
+- Search and category/critical/unread filters.
+- Existing notification/admin/automation source normalization.
+- Shared in-app notification API with stable dedupe keys.
+- Direct routing to authoritative Pool Shed records.
+- Safe permission/unavailable handling.
+- Historic neutral events do not flood v1.25 as unread.
+- Executive Premium Steel Blue semantic styling in light/dark mode.
+- Email and Teams remain inactive unless separately connected/configured.
+
+Known environment-only limits
+-----------------------------
+- @electric-sql/pglite is absent, so database-only validation cannot start.
+- playwright is absent, so automated browser/pixel smoke cannot start.

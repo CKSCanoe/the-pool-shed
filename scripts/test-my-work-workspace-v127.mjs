@@ -1,0 +1,9 @@
+import fs from 'node:fs';import assert from 'node:assert/strict';
+const idx=fs.readFileSync('public/index.html','utf8');const legacy=fs.readFileSync('public/assets/js/01-legacy-01.js','utf8');const perms=fs.readFileSync('public/settings-permissions-engine.js','utf8');
+assert.ok(fs.existsSync('public/my-work-workspace.js'),'My Work workspace missing');const ws=fs.readFileSync('public/my-work-workspace.js','utf8');
+assert.match(idx,/id="screen-mywork"/);assert.match(idx,/action-authority\.js/);assert.match(idx,/approval-authority\.js/);assert.match(idx,/action-source-adapters\.js/);assert.match(idx,/my-work-workspace\.js/);
+const order=['action-authority.js','approval-authority.js','action-source-adapters.js','my-work-workspace.js'].map(x=>idx.indexOf(x));assert.ok(order.every(x=>x>0));assert.deepEqual([...order].sort((a,b)=>a-b),order,'My Work authority assets must load in dependency order');
+assert.match(legacy,/id: "mywork", label: "My Work"/);assert.match(legacy,/active === "mywork"/);assert.match(legacy,/renderMyWorkWorkspace/);assert.match(legacy,/moduleId === "mywork"/);
+assert.match(perms,/['"]mywork['"]/);assert.match(ws,/Today/);assert.match(ws,/Overdue/);assert.match(ws,/Upcoming/);assert.match(ws,/Waiting/);assert.match(ws,/Approvals/);assert.match(ws,/Completed/);assert.match(ws,/data-my-work-mode/);assert.match(ws,/Team/);assert.match(ws,/Management/);assert.match(ws,/Admin/);assert.match(ws,/PoolShedActionAuthority/);assert.match(ws,/PoolShedApprovalAuthority/);assert.match(ws,/PoolShedRouter/);
+assert.match(ws,/data-action-claim/);assert.match(ws,/data-action-start/);assert.match(ws,/data-action-complete/);assert.match(ws,/data-action-wait/);assert.match(ws,/data-action-snooze/);assert.match(ws,/data-action-open/);assert.match(ws,/data-approval-approve/);assert.match(ws,/data-approval-reject/);
+console.log('PASS v1.27 My Work navigation, workspace surfaces, Team restriction hooks and lifecycle controls');

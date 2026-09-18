@@ -1,0 +1,35 @@
+Pool Shed v1.27.0 - My Work & Action Authority
+================================================
+
+COMPLETE APPLICATION UPDATE
+- Canonical Action Authority
+- Controlled Approval Authority
+- First-class My Work workspace
+- Management/Admin Team view
+- Purchasing/Sales/Warehouse/Projects/Finance/Automation/Engineer Request source adapters
+- Stock Take approval integration with Inventory retaining mutation ownership
+- Stable v1.26 identity/permissions/audit/router/Permission Inspector retained
+- v1.25 Notifications Command retained
+- Executive Premium Steel Blue light/dark design retained
+- My Work dark-mode transition/cascade visual defect corrected
+
+FINAL VERIFIED STATUS
+PASS v1.27 focused Action/Approval/My Work suite
+PASS complete v1.26 Foundation retention suite
+PASS complete v1.25 Notifications retention suite
+PASS interaction/contrast/readability/CSS architecture visual guards
+PASS public runtime validation
+PASS production build
+PASS built dist runtime validation
+PASS release asset audit: 60/60 referenced assets and all public/server/API JS parses
+PASS real Chromium acceptance: 13 protected screens, My Work, approvals, Permission Inspector, routing, 6 visuals, 0 uncaught browser errors
+PASS post-database non-DB suites
+
+ENVIRONMENT-ONLY DATABASE GATE
+NOT EXECUTED: Accounting/Workspace/Project PGlite database suites because this sandbox cannot install the declared @electric-sql/pglite dependency due blocked npm/DNS access. package.json retains @electric-sql/pglite ^0.5.8 for connected CI/deployment execution.
+
+Recommended connected-environment final gate:
+  npm ci
+  npm run test:database
+  npm run validate
+  npm run test:browser

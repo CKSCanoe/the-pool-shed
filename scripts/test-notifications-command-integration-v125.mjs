@@ -1,0 +1,15 @@
+import fs from 'node:fs';
+import assert from 'node:assert/strict';
+const engine=fs.readFileSync('public/notifications-command-engine.js','utf8');
+const automation=fs.readFileSync('public/automation-command-engine.js','utf8');
+const settings=fs.readFileSync('public/settings-command-workspace.js','utf8');
+assert.ok(engine.includes('adminNotifications'),'existing admin notifications must be adapted');
+assert.ok(engine.includes('automationCommand')&&engine.includes('automationLogs'),'automation failures/alerts must be adapted');
+assert.ok(engine.includes('notificationDedupeKey'),'shared notification API must persist stable dedupe keys');
+assert.ok(automation.includes('PoolShedNotificationsCommand'),'Automation Command should integrate through shared Notifications API');
+assert.ok(automation.includes('emitNotification'),'Automation Command shared notification helper missing');
+assert.ok(settings.includes("layout('Notifications'"),'Settings -> Notifications governance must remain');
+for(const channel of ['In App','Email','Teams']) assert.ok(settings.includes(channel),`Settings notification governance missing ${channel}`);
+assert.ok(!/fetch\s*\([^)]*(teams|email)/i.test(engine),'Notifications engine must not activate external Email/Teams delivery');
+assert.ok(!/sendEmail|sendTeams|webhook/i.test(engine),'Notifications engine must remain in-app only for v1.25');
+console.log('PASS Notifications Command integrates existing sources without activating external channels');

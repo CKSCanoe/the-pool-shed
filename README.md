@@ -1,10 +1,19 @@
-# Pool Shed v1.22.0 Full System
+# Pool Shed v1.25.0 Notifications Command
 
 This repository contains the consolidated Pool Shed operational system. Start with [`START-HERE.md`](START-HERE.md) for the current architecture, build instructions, Xero safety state and verification notes.
 
 The primary runtime is in `public/`; `npm run build` produces `dist/`. Xero remains deliberately locked in **Ready to Connect** mode.
 
 ## Historical release notes
+
+## v1.25.0 Notifications Command
+
+- Replaces the top-bar bell shortcut with a full permission-aware Notifications Command drawer.
+- Adds unread/read lifecycle, archive/history, filtering, search and direct routing into existing authoritative records.
+- Normalizes existing Sales, Purchasing, Stock/Warehouse, Finance, Automation and Admin notifications without creating duplicate business data.
+- Uses Executive Premium semantic tokens for light/dark mode and keeps green reserved for success meaning.
+- Retains Settings notification governance; Email and Teams are not activated by this release.
+
 
 
 ## v1.10.0 Project 360 Commercial Control
