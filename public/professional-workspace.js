@@ -110,10 +110,19 @@ function psToolWorkspace() {
  const baseRender=render;
  render=function(){baseRender();const screen=document.getElementById('screen-'+active);if(!screen)return;
   if(active==='settings'&&selectedSubPage('settings')==='Operations Review'&&isAdminUser()) {const issues=psOperationalIssues();screen.innerHTML='<div class="panel" style="grid-column:1/-1"><h2>Operations Review</h2><p class="muted">Checks linked records, stock balances, order quantities and outstanding tools. Review findings before changing data.</p><div class="ps-health-list">'+(issues.map(i=>'<div class="ps-health-item"><p><strong>'+escapeHtml(i.record)+'</strong><br>'+escapeHtml(i.message)+'</p><button class="secondary" data-review-module="'+i.module+'">Open '+escapeHtml(i.module)+'</button></div>').join('')||'<p>No issues found by these checks.</p>')+'</div></div>';}
+  // Workspace conflicts remain protected by the sync engine, but the old blocking
+  // banner is deliberately suppressed. It obscured operational pages and duplicated
+  // recovery controls that belong in Settings / data-management tooling.
   document.getElementById('psSyncConflict')?.remove();
-  if(workspaceSyncConflict){const banner=document.createElement('div');banner.id='psSyncConflict';banner.className='panel';banner.setAttribute('role','alert');banner.innerHTML='<strong>Shared workspace has newer changes</strong><p>Your local work is preserved. Download a backup before loading the shared version. The backup must be reviewed and merged manually; it is not uploaded automatically.</p><div class="action-row"><button data-conflict-backup>Download local backup</button><button class="secondary" data-conflict-reload>Load shared version</button></div>';document.querySelector('.topbar').after(banner);}
+
+  // Modern command modules own their own section navigation. Only legacy modules
+  // receive the generic workspace sub-navigation so a page never renders two tab bars.
   screen.querySelectorAll(':scope > .ps-section-nav').forEach(n=>n.remove());
-  const groups=sidebarSubGroups(active);if(groups.length){const nav=document.createElement('nav');nav.className='ps-section-nav';nav.setAttribute('aria-label','Section navigation');nav.innerHTML=groups.map(g=>'<button type="button" data-section-open="'+escapeHtml(g)+'" class="'+((selectedSubPage(active)||defaultSubPage(active))===g?'active':'')+'" '+((selectedSubPage(active)||defaultSubPage(active))===g?'aria-current="page"':'')+'>'+escapeHtml(g)+'</button>').join('');screen.prepend(nav);}
+  const selfManagedSectionNav=new Set(['settings','automation','locations','products','fulfilment','warehouse']);
+  const groups=sidebarSubGroups(active);if(groups.length&&!selfManagedSectionNav.has(active)){const nav=document.createElement('nav');nav.className='ps-section-nav';nav.setAttribute('aria-label','Section navigation');nav.innerHTML=groups.map(g=>'<button type="button" data-section-open="'+escapeHtml(g)+'" class="'+((selectedSubPage(active)||defaultSubPage(active))===g?'active':'')+'" '+((selectedSubPage(active)||defaultSubPage(active))===g?'aria-current="page"':'')+'>'+escapeHtml(g)+'</button>').join('');screen.prepend(nav);}
+
+  // Keep the selected item visible when a compact navigation strip must scroll.
+  requestAnimationFrame(()=>{const nav=screen.querySelector('.settings-command-tabs,.analytics-subnav,.automation-subnav,.inventory-subnav,.ff-subnav,.ph-section-nav,.finance-command-subnav,.warehouse-precision-tabs,.supplier-detail-tabs,.project-360-tabs,.po-command-tabs,.crm-profile-tabs,.crm-edit-tabs,.ps-section-nav');const selected=nav?.querySelector('.active,.on,[aria-current="page"]');if(nav&&selected&&nav.scrollWidth>nav.clientWidth){const target=selected.offsetLeft-(nav.clientWidth-selected.offsetWidth)/2;nav.scrollTo({left:Math.max(0,target),behavior:'auto'});}});
   screen.querySelectorAll('table').forEach(t=>{if(t.closest('.table-scroll,.order-lines-scroll,.po-lines-wrap,.ps-table-region'))return;const wrap=document.createElement('div');wrap.className='ps-table-region';wrap.tabIndex=0;wrap.setAttribute('aria-label','Scrollable table');t.before(wrap);wrap.append(t);});
   document.querySelectorAll('#nav [data-tab]').forEach(b=>{if(b.dataset.tab===active)b.setAttribute('aria-current','page');else b.removeAttribute('aria-current');});
  };

@@ -8,18 +8,17 @@ const legacy = fs.readFileSync('public/assets/js/01-legacy-01.js','utf8');
 const readiness = fs.readFileSync('public/production-readiness-engine.js','utf8');
 const current = fs.readFileSync('CURRENT-RELEASE.txt','utf8');
 const build = fs.readFileSync('scripts/build.sh','utf8');
-
-assert.match(pkg.version, /^1\.27\.[1-9]\d*$/, 'deployment hotfix must remain on a v1.27.x patch release');
-assert.match(current, /Pool Shed v1\.27\.[1-9]\d* - /);
+const [major,minor,patch] = pkg.version.split('.').map(Number);
+assert(major>1 || (major===1 && (minor>27 || (minor===27 && patch>=1))), 'v1.27.1 deployment lock hotfix must remain retained');
+assert.match(current, new RegExp('Pool Shed v'+pkg.version.replace(/\./g,'\\.')+' - '));
 assert.match(index, new RegExp('app\\.css\\?v=' + pkg.version.replace(/\./g,'\\.')));
 assert.doesNotMatch(index, /\?v=1\.27\.0/);
 assert.match(sw, new RegExp('pool-shed-v' + pkg.version.replace(/\./g,'\\.')));
-assert.doesNotMatch(sw, /v1\.27\.0/);
+assert.doesNotMatch(sw, /pool-shed-v1\.27\.0/);
 assert.match(legacy, new RegExp('Pool Shed v' + pkg.version.replace(/\./g,'\\.') + ' · Pool Bros Ltd'));
 assert.match(legacy, new RegExp('service-worker\\.js\\?v=' + pkg.version.replace(/\./g,'\\.')));
 assert.match(readiness, new RegExp("VERSION='" + pkg.version.replace(/\./g,'\\.') + "'"));
 assert.match(pkg.scripts['test:deployment'] || '', /test-deployment-lock-v1271\.mjs/);
 assert.match(pkg.scripts['test:deployment'] || '', /test-deployment-hotfix-v1271\.mjs/);
 assert.match(build, /test-deployment-lock-v1271\.mjs/, 'build must verify manifest-lock synchronisation before producing dist');
-
-console.log('PASS retained v1.27 deployment hotfix version, cache and lockfile guard wiring');
+console.log(`PASS retained v1.27.1 deployment lock/cache guard on v${pkg.version}`);

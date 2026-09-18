@@ -1,5 +1,19 @@
-Pool Shed v1.27.3 - Azzy Panel Visibility & Compact Layout Fix
+Pool Shed v1.28.0 - Responsive Workspace System
 
-Baseline: v1.27.2 Azzy Contrast Fix
+Full-system responsive correction and layout authority release.
 
-Fixes the floating Azzy panel shown in the production screenshot: all four assistant modes are visible, the close control is readable, source chips use high-contrast neutral styling, short answers no longer leave a large blank panel, and the release is cache-busted to 1.27.3. Existing Pool Shed data and business workflows are unchanged.
+Key changes:
+- removes the persistent Shared workspace has newer changes banner from the operational UI
+- retains underlying workspace conflict protection without blocking page content
+- prevents wide child components from widening the full application page
+- consolidates duplicate module navigation into one section navigation owner
+- upgrades Settings, Analytics, Automation, Inventory, Product Hub, Fulfilment and Warehouse responsive behaviour
+- collapses the sidebar at the tablet breakpoint before it starves the content canvas
+- makes long module navigation wrap on desktop and scroll locally on compact screens
+- converts fixed KPI rows to available-width responsive grids
+- standardises contained horizontal scrolling for wide tables and data regions
+- improves dashboard project table heading readability
+- improves CRM customer wizard layout on tablet and phone
+- governs laptop, tablet and phone layouts at 1200px, 940px and 640px
+
+No intended business-data authority, permissions, approvals, fulfilment, accounting, purchasing, inventory or migrated-data behaviour is changed by this release.

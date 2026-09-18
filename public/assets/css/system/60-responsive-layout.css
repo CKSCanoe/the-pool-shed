@@ -1,0 +1,247 @@
+/*
+ Pool Shed v1.28.0 Responsive Workspace System
+ Final layout authority. The purpose of this module is structural containment and
+ responsive behaviour, not visual restyling. Module-owned design remains intact.
+
+ Canonical breakpoints:
+ - 1200px: dense desktop/laptop reflow
+ - 940px: tablet / compact shell
+ - 640px: phone / single-column workspace
+*/
+
+/* --------------------------------------------------------------------------
+   1. Global containment: a wide child may scroll inside itself, never widen a page
+   -------------------------------------------------------------------------- */
+html,body,.app,.main{max-width:100%;min-width:0}
+.main,.main>*{min-width:0}
+.main .screen.grid{
+  grid-template-columns:minmax(0,1fr)!important;
+  width:100%;
+  min-width:0;
+  max-width:100%;
+}
+.main .screen.grid>*{
+  min-width:0!important;
+  max-width:100%!important;
+}
+.main .screen :where(
+  .settings-command,.analytics-command,.automation-command,.inventory-control-v112,
+  .product-hub-v111,.fulfilment-command,.warehouse-precision-page,.finance-command,
+  .supplier-command,.purchase-command-page,.project-360-command,.project-360-home,
+  .project-360-detail,.crm-command,.my-work-command
+){
+  width:100%!important;
+  min-width:0!important;
+  max-width:100%!important;
+}
+
+/* Standard wide-data contract: scrolling belongs to the data region, not the page. */
+.main .screen :where(
+  .ps-table-region,.table-scroll,.tablewrap,.order-lines-scroll,.po-lines-wrap,
+  .settings-table-wrap,.inventory-table-wrap,.finance-table-wrap,.supplier-table-wrap,
+  .analytics-table-wrap,.warehouse-table-wrap,.ff-table-wrap,.ph-table-wrap
+){
+  min-width:0;
+  max-width:100%;
+  overflow-x:auto;
+  overscroll-behavior-x:contain;
+  -webkit-overflow-scrolling:touch;
+}
+
+/* --------------------------------------------------------------------------
+   2. Section navigation: one owner, professional wrap on desktop, local scroll on
+      compact screens. professional-workspace.js removes duplicate generic navs.
+   -------------------------------------------------------------------------- */
+.main .screen :where(
+  .settings-command-tabs,.analytics-subnav,.automation-subnav,.inventory-subnav,
+  .ff-subnav,.ph-section-nav,.finance-command-subnav,.warehouse-precision-tabs,
+  .supplier-detail-tabs,.project-360-tabs,.po-command-tabs,.crm-profile-tabs,
+  .crm-edit-tabs,.ps-section-nav
+){
+  width:100%!important;
+  min-width:0!important;
+  max-width:100%!important;
+}
+@media (min-width:941px){
+  .main .screen :where(
+    .settings-command-tabs,.analytics-subnav,.automation-subnav,.inventory-subnav,
+    .ff-subnav,.ph-section-nav,.finance-command-subnav,.warehouse-precision-tabs,
+    .supplier-detail-tabs,.ps-section-nav
+  ){
+    flex-wrap:wrap!important;
+    overflow:visible!important;
+  }
+}
+
+/* --------------------------------------------------------------------------
+   3. KPI systems: respond to available content width rather than fixed card counts
+   -------------------------------------------------------------------------- */
+.settings-metrics{grid-template-columns:repeat(auto-fit,minmax(160px,1fr))!important}
+.analytics-metrics,
+.automation-metrics,
+.inventory-metrics,
+.inventory-location-metrics,
+.ph-command-metrics,
+.ff-metrics,
+.wh-metrics,
+.finance-command-metrics,
+.supplier-command-metrics{
+  grid-template-columns:repeat(auto-fit,minmax(145px,1fr))!important;
+}
+
+/* Settings permission labels can contain long authority names. */
+#screen-settings .permission-matrix :is(td,th,span,strong,small),
+#screen-settings .settings-table :is(td,span,strong,small){
+  overflow-wrap:anywhere;
+  word-break:normal;
+}
+#screen-settings .permission-matrix :is(span,strong,small){
+  white-space:normal!important;
+  max-width:100%;
+}
+
+/* --------------------------------------------------------------------------
+   4. Dashboard project table: preserve readable headings and scroll locally when
+      a laptop viewport cannot fit the nine useful columns.
+   -------------------------------------------------------------------------- */
+.dashboard-project-table-wrap{max-width:100%;overflow-x:auto;overscroll-behavior-x:contain}
+.dashboard-project-table-wrap table{
+  width:100%;
+  min-width:1060px;
+  table-layout:auto;
+}
+.dashboard-project-table-wrap th{
+  overflow:visible;
+  text-overflow:clip;
+  white-space:nowrap;
+}
+.dashboard-project-table-wrap th:nth-child(n),
+.dashboard-project-table-wrap td:nth-child(n){width:auto}
+
+/* --------------------------------------------------------------------------
+   5. Laptop reflow
+   -------------------------------------------------------------------------- */
+@media (max-width:1200px){
+  .topbar{flex-wrap:wrap!important;align-items:flex-start!important}
+  .top-actions{width:100%!important;max-width:none!important;min-width:0!important}
+
+  .settings-command-head,.analytics-head,.automation-head,.inventory-head,
+  .ph-page-head,.ff-head,.finance-command-head,.supplier-command-head,
+  .wh-page-head,.po-command-head,.project-360-home-head,.project-360-detail-head,
+  .so-list-commandbar,.crm-pagehead{
+    flex-wrap:wrap!important;
+  }
+  .settings-head-actions,.analytics-head-actions,.automation-head-actions,
+  .inventory-head-actions,.ph-head-actions,.ff-head-actions,.supplier-command-head-actions{
+    margin-left:0!important;
+    width:100%!important;
+    min-width:0!important;
+    justify-content:flex-start!important;
+  }
+  .analytics-toolbar,.settings-toolbar,.ff-toolbar,.inventory-toolbar{
+    align-items:stretch!important;
+  }
+  .analytics-toolbar input,.analytics-toolbar select,.settings-toolbar input,
+  .ff-toolbar input,.ff-toolbar select,.inventory-toolbar input,.inventory-toolbar select{
+    min-width:0!important;
+    max-width:100%!important;
+  }
+  .ac-spacer{display:none!important}
+}
+
+/* --------------------------------------------------------------------------
+   6. Tablet shell. Collapse the sidebar before it starves the application canvas.
+   -------------------------------------------------------------------------- */
+@media (max-width:940px){
+  .app{display:block!important;grid-template-columns:1fr!important}
+  .sidebar{
+    display:none!important;
+    position:fixed!important;
+    inset:0 auto 0 0!important;
+    width:min(290px,85vw)!important;
+    max-width:85vw!important;
+    height:100dvh!important;
+    z-index:10000!important;
+  }
+  body.ps-menu-open .sidebar{display:flex!important}
+  .ps-mobile-menu{display:inline-flex!important;align-items:center;justify-content:center}
+
+  .main{padding:18px!important;width:100%!important;max-width:100%!important}
+  .topbar{flex-direction:column!important;gap:12px!important}
+  .topbar .title{width:100%!important;min-width:0!important}
+  .top-actions{width:100%!important;min-width:0!important}
+  .top-utility-row{justify-content:flex-start!important;flex-wrap:wrap!important}
+
+  /* On compact screens long navigation becomes one deliberate, touch-friendly rail. */
+  .main .screen :where(
+    .settings-command-tabs,.analytics-subnav,.automation-subnav,.inventory-subnav,
+    .ff-subnav,.ph-section-nav,.finance-command-subnav,.warehouse-precision-tabs,
+    .supplier-detail-tabs,.project-360-tabs,.po-command-tabs,.crm-profile-tabs,
+    .crm-edit-tabs,.ps-section-nav
+  ){
+    display:flex!important;
+    flex-wrap:nowrap!important;
+    width:100%!important;
+    max-width:100%!important;
+    overflow-x:auto!important;
+    overflow-y:hidden!important;
+    scrollbar-width:thin!important;
+    scroll-snap-type:x proximity;
+    overscroll-behavior-x:contain;
+  }
+  .main .screen :where(
+    .settings-command-tabs,.analytics-subnav,.automation-subnav,.inventory-subnav,
+    .ff-subnav,.ph-section-nav,.finance-command-subnav,.warehouse-precision-tabs,
+    .supplier-detail-tabs,.project-360-tabs,.po-command-tabs,.crm-profile-tabs,
+    .crm-edit-tabs,.ps-section-nav
+  )>*{
+    flex:0 0 auto!important;
+    scroll-snap-align:start;
+  }
+
+  .settings-grid.two,.analytics-grid-main,.automation-grid,.inventory-detail-grid,
+  .inventory-overview-grid,.ph-command-grid,.ff-detail-grid,.finance-grid,
+  .supplier-command-grid,.po-overview-grid,.ps-tool-layout{
+    grid-template-columns:minmax(0,1fr)!important;
+  }
+
+  /* Customer creation remains readable rather than squeezing five large steps. */
+  .crm-wizard-tabs{grid-template-columns:repeat(2,minmax(0,1fr))!important}
+  .permission-limit-list{grid-template-columns:minmax(0,1fr)!important}
+}
+
+/* --------------------------------------------------------------------------
+   7. Phone layout
+   -------------------------------------------------------------------------- */
+@media (max-width:640px){
+  .main{padding:12px!important}
+  .screen.grid{gap:12px!important}
+  .main .topbar h1{font-size:23px!important}
+
+  .kpis,.warehouse-kpis,.settings-metrics,.analytics-metrics,.automation-metrics,
+  .inventory-metrics,.inventory-location-metrics,.ph-command-metrics,.ff-metrics,
+  .wh-metrics,.finance-command-metrics,.supplier-command-metrics{
+    grid-template-columns:minmax(0,1fr)!important;
+  }
+
+  .settings-command-head,.analytics-head,.automation-head,.inventory-head,
+  .ph-page-head,.ff-head,.finance-command-head,.supplier-command-head,
+  .wh-page-head,.po-command-head,.project-360-home-head,.project-360-detail-head,
+  .so-list-commandbar,.crm-pagehead{
+    display:flex!important;
+    flex-direction:column!important;
+    align-items:stretch!important;
+  }
+
+  .settings-form-grid,.settings-approval-grid,.settings-preview,.ac-pulse,
+  .ac-drivers,.analytics-report-cards,.analytics-export-grid,.ac-dictionary,
+  .flow-palette,.template-grid,.ph-tool-grid,.inventory-van-tool-grid{
+    grid-template-columns:minmax(0,1fr)!important;
+  }
+
+  .crm-wizard-tabs{grid-template-columns:minmax(0,1fr)!important}
+  .crm-footer-actions{grid-template-columns:minmax(0,1fr)!important}
+
+  .modal-backdrop.active,.modal-backdrop.show,.settings-modal-backdrop{padding:8px!important}
+  .modal-card,.modal-panel,.settings-modal{width:min(100%,calc(100vw - 16px))!important;max-width:100%!important}
+}

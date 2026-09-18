@@ -7,6 +7,7 @@ node "$ROOT/scripts/test-deployment-lock-v1271.mjs"
 node "$ROOT/scripts/test-azzy-contrast-v1272.mjs"
 node "$ROOT/scripts/test-azzy-panel-v1273.mjs"
 node "$ROOT/scripts/test-release-v1273.mjs"
+node "$ROOT/scripts/test-responsive-release-v128.mjs"
 
 node "$ROOT/scripts/build-css.mjs"
 test -f "$ROOT/public/production-readiness-engine.js"

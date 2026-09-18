@@ -37,6 +37,7 @@ const sources = [
   "system/57-notifications-command.css",
   "system/58-foundation-authority.css",
   "system/59-my-work-action-authority.css",
+  "system/60-responsive-layout.css",
 ];
 const banner = `/*
  Pool Shed application stylesheet.

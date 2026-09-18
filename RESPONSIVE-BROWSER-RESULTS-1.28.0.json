@@ -1,0 +1,67 @@
+{
+  "modules": [
+    {
+      "id": "dashboard",
+      "label": "Dashboard"
+    },
+    {
+      "id": "mywork",
+      "label": "My Work"
+    },
+    {
+      "id": "crm",
+      "label": "CRM"
+    },
+    {
+      "id": "salesorders",
+      "label": "Sales Orders"
+    },
+    {
+      "id": "jobs",
+      "label": "Projects"
+    },
+    {
+      "id": "engineer",
+      "label": "Engineer Requests"
+    },
+    {
+      "id": "products",
+      "label": "Product Hub"
+    },
+    {
+      "id": "locations",
+      "label": "Inventory"
+    },
+    {
+      "id": "purchase",
+      "label": "Purchasing"
+    },
+    {
+      "id": "warehouse",
+      "label": "Warehouse"
+    },
+    {
+      "id": "fulfilment",
+      "label": "Fulfilment"
+    },
+    {
+      "id": "accounting",
+      "label": "Accounting"
+    },
+    {
+      "id": "analytics",
+      "label": "Analytics"
+    },
+    {
+      "id": "automation",
+      "label": "Automation"
+    },
+    {
+      "id": "settings",
+      "label": "Settings"
+    }
+  ],
+  "checks": 498,
+  "page_errors": [],
+  "failures": []
+}
