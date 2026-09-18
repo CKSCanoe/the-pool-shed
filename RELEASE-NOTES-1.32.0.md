@@ -1,4 +1,4 @@
-# Pool Shed v1.32.0 · Elite Quote Builder
+# Pool Shed v1.32.1 · Elite Quote Builder
 
 This release upgrades Quote Studio from a structured quote form into a visual private-client proposal builder while preserving the v1.31 Quotes First operational workflow.
 

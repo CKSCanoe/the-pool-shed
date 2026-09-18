@@ -1,4 +1,4 @@
-# Pool Shed v1.32.0 · Elite Quote Builder
+# Pool Shed v1.32.1 · Elite Quote Builder
 
 Pool Shed is the Pool Bros operational system for CRM, Quotes, Sales Orders, Projects, Product Hub, Inventory, Purchasing, Warehouse, Fulfilment, Accounting, Analytics, Automation and controlled administration.
 
@@ -28,4 +28,9 @@ The complete regression suite is `npm run validate`. Database execution tests re
 
 ## Release documents
 
-Read `RELEASE-NOTES-1.32.0.md`, `ELITE-QUOTE-BUILDER-AUDIT-1.32.0.md` and `DEPLOYMENT-GUIDE-1.32.0.md` before production promotion.
+Read `RELEASE-NOTES-1.32.1.md`, `ELITE-QUOTE-BUILDER-AUDIT-1.32.1.md` and `DEPLOYMENT-GUIDE-1.32.1.md` before production promotion.
+
+
+## v1.32.1 secure quote media
+
+Apply `database/007-quote-studio.sql` then `database/008-quote-media.sql` before enabling production Quote Studio publication with uploaded media. Quote media is private and resolved through temporary signed URLs.

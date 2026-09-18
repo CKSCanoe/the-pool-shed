@@ -1,4 +1,4 @@
-# Start Here · Pool Shed v1.32.0
+# Start Here · Pool Shed v1.32.1
 
 ## Create a quote
 
@@ -22,4 +22,9 @@ Customers see only the private presentation, permitted choices, investment, cont
 
 ## Deploy
 
-Read `DEPLOYMENT-GUIDE-1.32.0.md` before changing the live Vercel/Supabase environment.
+Read `DEPLOYMENT-GUIDE-1.32.1.md` before changing the live Vercel/Supabase environment.
+
+
+## v1.32.1 secure quote media
+
+Apply `database/007-quote-studio.sql` then `database/008-quote-media.sql` before enabling production Quote Studio publication with uploaded media. Quote media is private and resolved through temporary signed URLs.

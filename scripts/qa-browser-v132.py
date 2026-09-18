@@ -43,13 +43,13 @@ with sync_playwright() as pw:
     ctx=browser.new_context(viewport={'width':1536,'height':1100})
     page=ctx.new_page();page.on('pageerror',lambda e:errs.append('internal pageerror: '+str(e)));page.on('console',lambda m:errs.append('internal console: '+m.text) if m.type=='error' and 'favicon' not in m.text.lower() else None)
     page.set_content(inline_internal(),wait_until='load',timeout=30000)
-    page.evaluate("""()=>{data=normalizeAppData(JSON.parse(JSON.stringify(seed)));isAuthenticated=true;showApp();data.customers.push({id:'C-QS',name:'Elite Quote Client',email:'qa@example.invalid',address:'QA Pool House',priceList:'rrp'});data.products.push({id:'P-QS',sku:'PB-QA-COVER',name:'Integrated Automatic Slatted Cover',category:'Cover',supplier:'QA Supplier',supplierSku:'QA-C1',cost:2500,rrp:6900});active='quotes';render();}""")
+    page.evaluate("""()=>{data=normalizeAppData(JSON.parse(JSON.stringify(seed)));isAuthenticated=true;showApp();data.customers.push({id:'C-QS',name:'Elite Quote Client',email:'qa@example.invalid',address:'QA Pool House',priceList:'rrp'});data.products.push({id:'P-QS',sku:'PB-QA-COVER',name:'Integrated Automatic Slatted Cover',category:'Cover',supplier:'QA Supplier',supplierSku:'QA-C1',cost:2500,rrp:6900});active='quotes';render();const realFetch=window.fetch.bind(window);let mediaNo=1;window.__POOL_SHED_AUTH_TOKEN__=async()=> 'qa-token';window.fetch=async function(url,opts){const s=String(url);if(s.includes('action=media-upload')){const id=(mediaNo++===1?'11111111-1111-4111-8111-111111111111':'22222222-2222-4222-8222-222222222222');const preview='data:image/svg+xml,%3Csvg xmlns=\"http://www.w3.org/2000/svg\" width=\"1200\" height=\"800\"%3E%3Crect width=\"1200\" height=\"800\" fill=\"%235e97a0\"/%3E%3C/svg%3E';return new Response(JSON.stringify({media:{id,ref:'quote-media:'+id,name:'qa-pool.jpg',type:'image/jpeg',size:32000,storagePath:'pool-bros-main/Q/'+id+'.jpg',previewUrl:preview}}),{status:201,headers:{'Content-Type':'application/json'}})}if(s.includes('action=media-sign'))return new Response(JSON.stringify({urls:{}}),{status:200,headers:{'Content-Type':'application/json'}});return realFetch(url,opts)};}""")
     page.locator('[data-qs-action="new-quote"]').click();page.locator('#qsCreateForm select[name="customerId"]').select_option('C-QS');page.locator('#qsCreateForm input[name="projectName"]').fill('Elite Pool Refurbishment');page.locator('#qsCreateForm').evaluate('(f)=>f.requestSubmit()');page.wait_for_timeout(100)
     # Hero upload via real file chooser.
     with page.expect_file_chooser() as fc_info: page.locator('[data-qs-upload-target="hero"]').click()
     fc_info.value.set_files(str(IMG));page.wait_for_timeout(350)
     hero=page.evaluate("()=>PoolShedQuoteStudio.listQuotes()[0].presentation.heroImage")
-    assert hero.startswith('data:image/jpeg;base64,'), 'hero image did not persist as quote media'
+    assert hero.startswith('quote-media:'), 'hero image did not persist as a secure quote-media reference'
     # Visual builder and Product Hub.
     page.locator('[data-qs-tab="Options & Packages"]').click();page.wait_for_timeout(80)
     page.locator('[data-qs-builder-panel="products"]').click();page.wait_for_timeout(50)
@@ -63,7 +63,18 @@ with sync_playwright() as pw:
     page.screenshot(path=str(ART/'elite-quote-builder.png'),full_page=True)
     # Customer portal from exact safe snapshot.
     customer=ctx.new_page();cerrors=[];customer.on('pageerror',lambda e:cerrors.append('customer pageerror: '+str(e)));customer.on('console',lambda m:cerrors.append('customer console: '+m.text) if m.type=='error' and 'favicon' not in m.text.lower() else None)
-    customer.set_content(inline_customer(state['snapshot']),wait_until='load',timeout=30000);customer.wait_for_timeout(180)
+    import base64
+    resolved=json.loads(json.dumps(state['snapshot']))
+    data_url='data:image/jpeg;base64,'+base64.b64encode(IMG.read_bytes()).decode()
+    def resolve_media(v):
+        if isinstance(v,dict):
+            for k,x in list(v.items()): v[k]=resolve_media(x)
+            return v
+        if isinstance(v,list): return [resolve_media(x) for x in v]
+        if isinstance(v,str) and v.startswith('quote-media:'): return data_url
+        return v
+    resolved=resolve_media(resolved)
+    customer.set_content(inline_customer(resolved),wait_until='load',timeout=30000);customer.wait_for_timeout(180)
     body=customer.locator('body').inner_text();assert 'Elite Pool Refurbishment' in body;assert 'Integrated Automatic Slatted Cover' in body
     assert customer.locator('.pc-hero.has-media').count()==1;assert customer.locator('.pc-option-image img').count()>=1
     for forbidden in ['Purchase Orders','Supplier Cost','Project Handover','Sales Order','Pool Shed Quote Studio','Margin','QA Supplier']:
@@ -72,4 +83,4 @@ with sync_playwright() as pw:
 
 if errs:
     print('\n'.join(errs),file=sys.stderr);sys.exit(1)
-print(json.dumps({'browser':'Chromium','EliteQuoteBuilder':'PASS','HeroUpload':'PASS','OptionImageUpload':'PASS','MediaPersistence':'PASS','CustomerImagePresentation':'PASS','CustomerPortalIsolation':'PASS','RuntimeErrors':0,'screenshots':str(ART)},indent=2))
+print(json.dumps({'browser':'Chromium','EliteQuoteBuilder':'PASS','SecureHeroUpload':'PASS','SecureOptionImageUpload':'PASS','StableMediaRefs':'PASS','CustomerImagePresentation':'PASS','CustomerPortalIsolation':'PASS','RuntimeErrors':0,'screenshots':str(ART)},indent=2))

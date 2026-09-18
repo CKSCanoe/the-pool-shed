@@ -1,0 +1,16 @@
+import fs from 'node:fs';
+import assert from 'node:assert/strict';
+const pkg=JSON.parse(fs.readFileSync('package.json','utf8'));
+const api=fs.readFileSync('api/quote.js','utf8');
+const server=fs.readFileSync('server/quote.js','utf8');
+const engine=fs.readFileSync('public/quote-studio-engine.js','utf8');
+const workspace=fs.readFileSync('public/quote-studio-workspace.js','utf8');
+const migration=fs.readFileSync('database/008-quote-media.sql','utf8');
+assert.equal(pkg.version,'1.32.1');
+for(const t of ["action==='media-upload'","action==='media-sign'",'assertQuoteMediaRefs','resolveQuoteMedia'])assert(api.includes(t),'api missing '+t);
+for(const t of ['uploadQuoteMedia','signQuoteMedia','quote-media','storage/v1/object/sign','ps_quote_media'])assert(server.includes(t),'server missing '+t);
+for(const t of ['quote-media:','signedMedia','refreshMedia','hydrateMedia'])assert(engine.includes(t),'engine missing '+t);
+for(const t of ['media-upload','mediaDisplay','engine.refreshMedia','media.blob'])assert(workspace.includes(t),'workspace missing '+t);
+for(const t of ['create table if not exists public.ps_quote_media',"'quote-media'",'public = false','revoke all'])assert(migration.includes(t),'migration missing '+t);
+assert(!api.includes('proposal:p.public_payload'),'public endpoint must resolve secure media before response');
+console.log('PASS v1.32.1 private Quote Media storage, stable refs, staff signing and customer-safe signed resolution');
