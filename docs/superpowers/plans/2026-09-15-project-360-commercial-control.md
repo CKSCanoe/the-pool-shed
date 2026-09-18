@@ -30,7 +30,7 @@
 - Create: `scripts/test-project-360-engine-v110.mjs`
 
 **Interfaces:**
-- Consumes: existing `data.jobs`, `data.stock`, `data.allocations`, `data.purchaseOrders`, `data.engineerRequests`, `data.salesOrders`, `data.movements`, `data.toolAssignments`.
+- Consumes: existing `data.jobs`, `data.stock`, `data.allocations`, `data.purchaseOrders`, `data.salesOrders`, `data.salesOrders`, `data.movements`, `data.toolAssignments`.
 - Produces: extended `psProjectModel(job)`, `psProjectSummary(job, source, now)`, `psProjectStockSummary(job, source)`, `psProjectHealth(job, summary)`, and new `psProjectTransaction` actions `material-plan`, `remove-material-plan`, `stock-use`, `stock-damage`.
 
 - [ ] Write failing regression assertions for minimum-margin risk, material-plan variance, live Job Bin stock, inbound PO quantity, Project Use movements and invoice-exposure recommendations.
@@ -86,7 +86,7 @@
 - Consumes: Task 1 Project health/stock summary plus existing project save wrapper and finance snapshot.
 - Produces: `psProjectCloseoutBlockers(job, source, finance)` and enforced close-out messages.
 
-- [ ] Write failing tests for stock remaining in Job Bin, open PO quantity, open Engineer Request, outstanding tool, proposed variation and incomplete billing stage blockers.
+- [ ] Write failing tests for stock remaining in Job Bin, open PO quantity, open Project Purchase Demand, outstanding tool, proposed variation and incomplete billing stage blockers.
 - [ ] Run the closeout test and verify failure.
 - [ ] Implement closeout blocker derivation and use it in the existing `saveJobFromForm` wrapper before Completed/Invoiced status changes.
 - [ ] Run closeout and existing project/tool/accounting-core tests.

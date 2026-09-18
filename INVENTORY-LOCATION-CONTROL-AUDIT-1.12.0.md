@@ -23,7 +23,7 @@ Engineer Vans are treated as managed mini-warehouses. Per location/SKU the works
 - Min
 - Target
 - Max
-- upcoming Project / Engineer Request demand
+- upcoming Project / Project Purchase Demand demand
 - suggested internal move
 - last movement
 - count status
@@ -42,7 +42,7 @@ If Warehouse free stock cannot cover a shortage, Inventory directs the user to P
 Location thresholds remain stored in the existing `restockRules` data. Inventory provides direct editable Min / Target / Max controls and validates ordering so Target cannot fall below Min and Max cannot fall below Target.
 
 ### Smart Min
-Smart Min recommendations use recent outbound/transfer usage plus open Engineer Request / Project demand. Suggestions are advisory only. A threshold is changed only after a user explicitly applies the suggestion.
+Smart Min recommendations use recent outbound/transfer usage plus open Project Purchase Demand / Project demand. Suggestions are advisory only. A threshold is changed only after a user explicitly applies the suggestion.
 
 ### Van profiles
 The Inventory workspace includes reviewed profile presets:

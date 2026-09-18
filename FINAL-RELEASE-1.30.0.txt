@@ -1,0 +1,25 @@
+POOL SHED v1.30.0
+Quick Quote + Project Proposal Workflow
+Release build: 18 September 2026
+
+STATUS
+- Full source project assembled
+- Deployable dist built
+- Native Quote Studio integrated
+- Quick Quote direct-to-Sales-Order workflow complete
+- Optional Quick Quote Project creation complete
+- Project Proposal workflow complete
+- Product Hub SKU/bundle traceability complete
+- Customer-only secure proposal surface complete
+- Engagement and questions integrated
+- Accepted quote operational handover integrated
+- Xero payment/deposit queue behaviour integrated with existing finance authority
+- Existing Azzy and responsive workspace protections retained
+- Chromium runtime QA: 0 errors
+
+NOT LIVE DEPLOYED
+This package does not claim to have changed the live Vercel deployment or live Supabase database.
+Apply database/007-quote-studio.sql and follow DEPLOYMENT-GUIDE-1.30.0.md when promoting it.
+
+ROLLBACK
+Keep the previous v1.28/v1.29 release available until production smoke testing is complete.

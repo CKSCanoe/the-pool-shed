@@ -7,6 +7,7 @@ function enc(v){return encodeURIComponent(String(v==null?'':v));}function dec(v)
 const defs={
  'customer':{prefix:'customers',module:'crm',collection:'customers'},
  'sales-order':{prefix:'sales-orders',module:'salesorders',collection:'salesOrders'},
+ 'quote':{prefix:'quotes',module:'quotes',collection:'quotes'},
  'project':{prefix:'projects',module:'jobs',collection:'jobs'},
  'purchase-order':{prefix:'purchase-orders',module:'purchase',collection:'purchaseOrders'},
  'supplier':{prefix:'suppliers',module:'purchase',collection:'suppliers'},
@@ -16,7 +17,7 @@ const defs={
  'action':{prefix:'my-work/actions',module:'mywork',exists:(d,id)=>!!(d.actionAuthority&&Array.isArray(d.actionAuthority.actions)&&d.actionAuthority.actions.some(x=>String(x.id)===String(id)))},
  'approval':{prefix:'my-work/approvals',module:'mywork',exists:(d,id)=>!!(d.actionAuthority&&Array.isArray(d.actionAuthority.approvals)&&d.actionAuthority.approvals.some(x=>String(x.id)===String(id)))}
 };
-const staticRoutes={dashboard:{path:'#/dashboard',module:'dashboard'},mywork:{path:'#/my-work',module:'mywork'},finance:{path:'#/finance',module:'accounting'},analytics:{path:'#/analytics',module:'analytics'},automation:{path:'#/automation',module:'automation'},settings:{path:'#/settings',module:'settings'},warehouse:{path:'#/warehouse',module:'warehouse'},inventory:{path:'#/inventory',module:'locations'},fulfilment:{path:'#/fulfilment',module:'fulfilment'},purchase:{path:'#/purchase-orders',module:'purchase'},customers:{path:'#/customers',module:'crm'},projects:{path:'#/projects',module:'jobs'},products:{path:'#/products',module:'products'},salesorders:{path:'#/sales-orders',module:'salesorders'}};
+const staticRoutes={dashboard:{path:'#/dashboard',module:'dashboard'},mywork:{path:'#/my-work',module:'mywork'},finance:{path:'#/finance',module:'accounting'},analytics:{path:'#/analytics',module:'analytics'},automation:{path:'#/automation',module:'automation'},settings:{path:'#/settings',module:'settings'},warehouse:{path:'#/warehouse',module:'warehouse'},inventory:{path:'#/inventory',module:'locations'},fulfilment:{path:'#/fulfilment',module:'fulfilment'},purchase:{path:'#/purchase-orders',module:'purchase'},customers:{path:'#/customers',module:'crm'},projects:{path:'#/projects',module:'jobs'},products:{path:'#/products',module:'products'},salesorders:{path:'#/sales-orders',module:'salesorders'},quotes:{path:'#/quotes',module:'quotes'}};
 function canonicalPath(path){let h=String(path||'').trim();const hash=h.indexOf('#');if(hash>=0)h=h.slice(hash);if(!h.startsWith('#'))h='#/'+h.replace(/^\/+/, '');if(h==='#'||h==='#/')h='#/dashboard';return h;}
 function to(recordType,recordId,options){const type=String(recordType||''),def=defs[type]||registry.get(type),opts=options||{};if(!def){const st=staticRoutes[type]||staticRoutes.dashboard;return Object.assign({recordType:'',recordId:'',page:''},st); }const id=String(recordId||'');return {path:'#/'+def.prefix+(id?'/'+enc(id):''),module:def.module,recordType:type,recordId:id,page:String(opts.page||''),label:String(opts.label||'')};}
 function href(recordType,recordId,options){return to(recordType,recordId,options).path;}
@@ -26,6 +27,7 @@ function parse(input){const h=canonicalPath(input&&typeof input==='object'&&'has
  if(raw[0]==='my-work')return Object.assign({},staticRoutes.mywork);
  if(raw[0]==='customers')return raw[1]?to('customer',raw[1]):Object.assign({},staticRoutes.customers);
  if(raw[0]==='sales-orders')return raw[1]?to('sales-order',raw[1]):Object.assign({},staticRoutes.salesorders);
+ if(raw[0]==='quotes')return raw[1]?to('quote',raw[1]):Object.assign({},staticRoutes.quotes);
  if(raw[0]==='projects')return raw[1]?to('project',raw[1]):Object.assign({},staticRoutes.projects);
  if(raw[0]==='purchase-orders')return raw[1]?to('purchase-order',raw[1]):Object.assign({},staticRoutes.purchase);
  if(raw[0]==='suppliers')return raw[1]?to('supplier',raw[1]):Object.assign({},staticRoutes.purchase);

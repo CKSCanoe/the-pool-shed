@@ -29,7 +29,7 @@ Available across the application with modes:
 Question intent supports How do I, Why, What should I do, Where is, What does this mean, Train me, What happened, and Find.
 
 ## Find Anything
-Search authorised Customers, Suppliers, Products, Sales Orders, Projects, Purchase Orders, Goods Notes, Inventory/locations, movements, Finance records, Engineer Requests, Notes/Activity, automation and approved knowledge.
+Search authorised Customers, Suppliers, Products, Sales Orders, Projects, Purchase Orders, Goods Notes, Inventory/locations, movements, Finance records, Project Purchasing, Notes/Activity, automation and approved knowledge.
 Ranking prioritises exact IDs/SKUs/barcodes/supplier SKUs before names, aliases, descriptions and related-record evidence. Fuzzy/semantic candidates are labelled as candidates, not interchangeable substitutes.
 
 ## Knowledge

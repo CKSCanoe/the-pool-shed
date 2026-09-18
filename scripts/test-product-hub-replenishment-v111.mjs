@@ -6,7 +6,7 @@ const data={
  supplierProducts:[{productId:'P1',supplier:'Certikin',supplierSku:'V-1',cost:10,minQty:10,packQty:5,leadTimeDays:4,available:true}],
  purchaseOrders:[{id:'PO-1',supplier:'Certikin',status:'Supplier Confirmed',lines:[{productId:'P1',qty:8,received:3}]}],
  salesOrders:[{id:'SO-1',status:'Needs Review',lines:[{productId:'P1',qty:10,allocated:2,shipped:0}]}],
- engineerRequests:[],jobs:[],locations:[{id:'L1',name:'Main Warehouse',type:'Warehouse',isMaster:true}],restockRules:[]
+ jobs:[],locations:[{id:'L1',name:'Main Warehouse',type:'Warehouse',isMaster:true}],restockRules:[]
 };
 const ctx={console,globalThis:null,window:null,Math,Date,Set,Map,Intl};ctx.globalThis=ctx;ctx.window=ctx;ctx.__POOL_SHED_GET_DATA__=()=>data;ctx.productStockSummary=()=>({onHand:6,allocated:3,available:3});ctx.saveAppData=()=>true;
 vm.createContext(ctx);vm.runInContext(fs.readFileSync('public/product-hub-engine.js','utf8'),ctx);const hub=ctx.PoolShedProductHub;

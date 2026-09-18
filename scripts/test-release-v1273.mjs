@@ -10,7 +10,7 @@ const readiness=fs.readFileSync('public/production-readiness-engine.js','utf8');
 const build=fs.readFileSync('scripts/build.sh','utf8');
 assert(major>1||(major===1&&(minor>27||(minor===27&&patch>=3))),'Azzy v1.27.3 authority requires v1.27.3 or newer');
 assert.match(index,new RegExp('app\\.css\\?v='+release.replace(/\./g,'\\.')));
-assert.match(sw,new RegExp('pool-shed-v'+release.replace(/\./g,'\\.')+'-my-work-action-authority'));
+assert.match(sw,new RegExp('pool-shed-v'+release.replace(/\./g,'\\.')+'-'));
 assert.match(legacy,new RegExp('Pool Shed v'+release.replace(/\./g,'\\.')+' · Pool Bros Ltd'));
 assert.match(legacy,new RegExp('service-worker\\.js\\?v='+release.replace(/\./g,'\\.')));
 assert.match(readiness,new RegExp("VERSION='"+release.replace(/\./g,'\\.')+"'"));

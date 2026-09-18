@@ -8,8 +8,8 @@ const workspace=fs.readFileSync('public/professional-workspace.js','utf8');
 const index=fs.readFileSync('public/index.html','utf8');
 const sw=fs.readFileSync('public/service-worker.js','utf8');
 const current=fs.readFileSync('CURRENT-RELEASE.txt','utf8');
-assert.equal(release,'1.28.0');
-assert.match(current,/Pool Shed v1\.28\.0 - Responsive Workspace System/);
+{const [M,m,p]=release.split('.').map(Number);assert(M>1||(M===1&&(m>28||(m===28&&p>=0))),'responsive authority requires v1.28.0 or newer');}
+assert.match(current,new RegExp('Pool Shed v'+release.replace(/\./g,'\\.')+' .*Quote Studio|Pool Shed v'+release.replace(/\./g,'\\.')));
 assert.match(cssBuild,/system\/60-responsive-layout\.css/,'responsive authority must be in CSS build');
 assert.ok(cssBuild.indexOf('60-responsive-layout.css')>cssBuild.indexOf('59-my-work-action-authority.css'),'responsive authority must load last');
 assert.match(css,/\.main \.screen\.grid\{[\s\S]*grid-template-columns:minmax\(0,1fr\)!important/,'screen intrinsic-width containment missing');
@@ -21,7 +21,7 @@ assert.doesNotMatch(workspace,/Shared workspace has newer changes/,'blocking wor
 assert.match(workspace,/selfManagedSectionNav=new Set\(\['settings','automation','locations','products','fulfilment','warehouse'\]\)/,'duplicate-nav ownership set missing');
 assert.match(workspace,/groups\.length&&!selfManagedSectionNav\.has\(active\)/,'generic section nav must defer to module-owned navigation');
 assert.match(index,new RegExp('app\\.css\\?v='+release.replace(/\./g,'\\.')));
-assert.match(sw,new RegExp('pool-shed-v'+release.replace(/\./g,'\\.')+'-my-work-action-authority'));
+assert.match(sw,new RegExp('pool-shed-v'+release.replace(/\./g,'\\.')+'-'));
 assert.match(pkg.scripts['test:responsive']||'',/test-responsive-layout-v128\.cjs/);
 assert.match(pkg.scripts['test:deployment']||'',/test-responsive-release-v128\.mjs/);
 console.log('PASS v1.28.0 responsive layout authority, navigation ownership and banner-removal guard');

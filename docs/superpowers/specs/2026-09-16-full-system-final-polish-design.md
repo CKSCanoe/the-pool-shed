@@ -7,7 +7,7 @@ Produce one coherent full-system release from the verified v1.20.1 baseline with
 Existing module authority remains unchanged. This phase only standardises final navigation terminology, release identity, runtime/cache wiring, production-readiness identity, setup documentation, action/navigation integrity, and packaged release cleanliness.
 
 ## Final navigation terminology
-Dashboard, CRM, Projects, Sales Orders, Engineer Requests, Product Hub, Inventory, Purchasing, Warehouse, Fulfilment, Accounting, Analytics, Automation, Settings.
+Dashboard, CRM, Projects, Sales Orders, Project Purchasing, Product Hub, Inventory, Purchasing, Warehouse, Fulfilment, Accounting, Analytics, Automation, Settings.
 
 ## Safety constraints
 - Xero remains `Ready to Connect`; no live OAuth authorisation or data sync.

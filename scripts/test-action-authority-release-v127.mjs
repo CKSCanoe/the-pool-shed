@@ -11,7 +11,7 @@ const buildCss=fs.readFileSync('scripts/build-css.mjs','utf8');
 const [major,minor]=release.split('.').map(Number);
 assert(major>1||(major===1&&minor>=27),'v1.27 Action Authority requires v1.27.0 or newer');
 assert.match(current,new RegExp('Pool Shed v'+release.replaceAll('.','\\.')+' - '));
-assert.match(sw,new RegExp('pool-shed-v'+release.replaceAll('.','\\.')+'-my-work-action-authority'));
+assert.match(sw,new RegExp('pool-shed-v'+release.replaceAll('.','\\.')+'-'),'service-worker cache must remain release-versioned');
 assert.match(readiness,new RegExp("VERSION='"+release.replaceAll('.','\\.')+"'"));
 assert.match(legacy,new RegExp('Pool Shed v'+release.replaceAll('.','\\.')+' · Pool Bros Ltd'));
 assert.match(legacy,new RegExp('service-worker\\.js\\?v='+release.replaceAll('.','\\.')));

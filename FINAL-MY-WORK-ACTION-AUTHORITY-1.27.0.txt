@@ -6,7 +6,7 @@ COMPLETE APPLICATION UPDATE
 - Controlled Approval Authority
 - First-class My Work workspace
 - Management/Admin Team view
-- Purchasing/Sales/Warehouse/Projects/Finance/Automation/Engineer Request source adapters
+- Purchasing/Sales/Warehouse/Projects/Finance/Automation/Project Purchase Demand source adapters
 - Stock Take approval integration with Inventory retaining mutation ownership
 - Stable v1.26 identity/permissions/audit/router/Permission Inspector retained
 - v1.25 Notifications Command retained

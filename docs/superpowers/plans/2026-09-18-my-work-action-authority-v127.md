@@ -60,7 +60,7 @@
 
 **Interfaces:**
 - Consumes: Action Authority and current Pool Shed collections.
-- Produces: adapters for Purchasing, Sales, Warehouse/Inventory, Projects, Finance, Automation and Engineer Requests.
+- Produces: adapters for Purchasing, Sales, Warehouse/Inventory, Projects, Finance, Automation and Project Purchasing.
 
 - [ ] Write failing fixtures proving deterministic dedupe and clear owner/route for supported unresolved conditions.
 - [ ] Run and confirm RED.

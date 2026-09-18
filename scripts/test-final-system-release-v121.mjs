@@ -15,10 +15,10 @@ assert(!html.includes('v=1.20.1'),'Index must not reference the previous runtime
 assert(!sw.includes('v=1.20.1'),'Service worker core list must not reference the previous runtime version');
 assert(legacy.includes(`service-worker.js?v=${pkg.version}`),'Legacy bootstrap must register the current service worker');
 assert(ready.includes(`const VERSION='${pkg.version}'`),'Production Readiness must report the current release version');
-for(const label of ['Dashboard','CRM','Projects','Sales Orders','Engineer Requests','Product Hub','Inventory','Purchasing','Warehouse','Fulfilment','Accounting','Analytics','Automation','Settings']){
+for(const label of ['Dashboard','CRM','Sales Orders','Quotes','Projects','Product Hub','Inventory','Purchasing','Warehouse','Fulfilment','Accounting','Analytics','Automation','Settings']){
   assert(legacy.includes(`label: "${label}"`),`Main navigation must expose ${label}`);
 }
-assert(legacy.includes('Dashboard → CRM → Projects → Sales Orders → Engineer Requests → Product Hub → Inventory → Purchasing → Warehouse → Fulfilment → Accounting → Analytics → Automation → Settings.'),'Suggested operating flow must use final navigation terminology');
+assert(legacy.includes('Dashboard → CRM → Quotes → Sales Orders → Projects → Product Hub → Inventory → Purchasing → Warehouse → Fulfilment → Accounting → Analytics → Automation → Settings.'),'Suggested operating flow must use final navigation terminology');
 assert(/XERO_INTEGRATION_MODE/.test(xero),'Xero integration mode gate must remain present');
 assert(/ready/.test(xero),'Xero Ready mode must remain present');
 console.log(`PASS full-system release contract retained on v${pkg.version}`);

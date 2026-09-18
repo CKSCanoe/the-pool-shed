@@ -2,7 +2,7 @@ import fs from 'node:fs';
 import assert from 'node:assert/strict';
 const js=fs.readFileSync('public/project-workspace.js','utf8');
 for(const text of [
-  'Precision Desk','Stage Board','Project 360','Scope & Tasks','Materials','Procurement','Stock & Job Bin','Engineer Requests','Tools','Costing & Margin','Billing & Variations','Site Notes & Files','Activity','Settings',
+  'Precision Desk','Stage Board','Project 360','Scope & Tasks','Materials','Procurement','Stock & Job Bin','Tools','Costing & Margin','Billing & Variations','Site Notes & Files','Activity','Settings',
   'Quoted / contract','Approved variations','Forecast final cost','Projected profit','Projected margin','Invoiced / queued','Remaining to invoice',
   'Planned','Allocated','Inbound','Job Bin','Used','Return pending','Damaged / lost','Budget','Forecast','Variance',
   'invoiceExposureThresholdPct','invoiceExposureThresholdNet','minimumMargin',

@@ -4,7 +4,7 @@
 
 This release is a full-system responsive layout correction built from the complete v1.27.3 Azzy Panel Fix project. It addresses the page-width, duplicated navigation and tablet/mobile layout problems identified in the v1.27.3 responsive audit while preserving Pool Shed's existing business and data authorities.
 
-The implementation covers Dashboard, My Work, CRM, Sales Orders, Projects, Engineer Requests, Product Hub, Inventory, Purchasing, Warehouse, Fulfilment, Accounting, Analytics, Automation and Settings.
+The implementation covers Dashboard, My Work, CRM, Sales Orders, Projects, Project Purchasing, Product Hub, Inventory, Purchasing, Warehouse, Fulfilment, Accounting, Analytics, Automation and Settings.
 
 ## User-requested workspace banner removal
 
@@ -97,7 +97,7 @@ Long section navigation behaves differently by context:
 ### CRM
 - The customer-creation wizard becomes two columns on tablet and one column on phone rather than forcing five large steps into insufficient width.
 
-### Sales Orders, Projects and Engineer Requests
+### Sales Orders, Projects and Project Purchasing
 - Global grid containment removes the mobile hard-width remnants recorded in the v1.27.3 audit.
 - Existing module-specific command/fulfilment behaviour is retained.
 

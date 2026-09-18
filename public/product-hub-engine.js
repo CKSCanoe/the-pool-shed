@@ -108,18 +108,7 @@
       }, 0);
     }, 0);
   }
-  function engineerDemand(productId) {
-    const closed = new Set(['closed','cancelled','collected/delivered','delivered','complete','completed']);
-    return (store().engineerRequests || []).reduce(function (total, req) {
-      if (!req || closed.has(lower(req.status))) return total;
-      return total + (req.lines || []).filter(function (line) { return line && line.productId === productId; }).reduce(function (sum, line) {
-        const required = number(line.qty || line.quantity);
-        const fulfilled = Math.max(number(line.allocated), number(line.received), number(line.issued));
-        return sum + Math.max(0, required - fulfilled);
-      }, 0);
-    }, 0);
-  }
-  function uncoveredDemand(productId) { return salesDemand(productId) + engineerDemand(productId); }
+  function uncoveredDemand(productId) { return salesDemand(productId); }
   function masterRule(productId) {
     const d = store();
     const locations = d.locations || [];

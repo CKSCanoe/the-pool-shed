@@ -326,9 +326,9 @@ Default owner queue: Accounts.
 
 Default owner queue: originating configured role, otherwise Admin/Management depending on authority.
 
-### Engineer Requests
+### Project Purchasing
 
-Existing `engineerRequests` remain the business/source record. Where a request needs assignment or follow-up, Action Authority references it rather than replacing it.
+Existing `salesOrders` remain the business/source record. Where a request needs assignment or follow-up, Action Authority references it rather than replacing it.
 
 Default owner queue: Engineer or Office depending on request type/configuration.
 
@@ -551,7 +551,7 @@ On first v1.27 load:
 - scan current supported exception sources;
 - create Actions only for conditions that are still unresolved at upgrade time;
 - dedupe against existing current actions if the build is reloaded;
-- preserve existing `engineerRequests`, Automation approvals, stocktake state and all business source records;
+- preserve existing `salesOrders`, Automation approvals, stocktake state and all business source records;
 - preserve v1.25 `notificationCommand` read/archive state;
 - preserve v1.26 identity, audit and route state.
 

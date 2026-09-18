@@ -12,7 +12,7 @@ const data={
  ],
  stock:[{productId:'P1',locationId:'L1',qty:9,allocated:3},{productId:'P2',locationId:'L1',qty:12,allocated:2}],
  supplierProducts:[{productId:'P1',supplier:'Certikin',supplierSku:'C-VALVE-150',cost:20,minQty:10,packQty:5,leadTimeDays:4,available:true}],
- purchaseOrders:[],salesOrders:[],engineerRequests:[],jobs:[],locations:[{id:'L1',name:'Main Warehouse',type:'Warehouse',isMaster:true}],restockRules:[]
+ purchaseOrders:[],salesOrders:[],jobs:[],locations:[{id:'L1',name:'Main Warehouse',type:'Warehouse',isMaster:true}],restockRules:[]
 };
 const ctx={console,globalThis:null,window:null,Math,Date,Set,Map,Intl};ctx.globalThis=ctx;ctx.window=ctx;ctx.__POOL_SHED_GET_DATA__=()=>data;ctx.productStockSummary=(id)=>{const rows=data.stock.filter(r=>r.productId===id);const onHand=rows.reduce((n,r)=>n+r.qty,0),allocated=rows.reduce((n,r)=>n+r.allocated,0);return {onHand,allocated,available:onHand-allocated};};
 vm.createContext(ctx);vm.runInContext(fs.readFileSync('public/product-hub-engine.js','utf8'),ctx);

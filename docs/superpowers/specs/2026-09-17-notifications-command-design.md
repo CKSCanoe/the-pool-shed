@@ -6,7 +6,7 @@ Replace the current legacy bell action with a real Notifications Command that gi
 
 ## Existing problem
 
-The top-bar notification bell currently routes to Inventory -> Missing Stock rather than opening a notification centre. Pool Shed already creates notification records from Sales Orders, Warehouse/Inventory, Engineer Requests, customer activity and other workflows, but those records do not have one consistent staff-facing command surface.
+The top-bar notification bell currently routes to Inventory -> Missing Stock rather than opening a notification centre. Pool Shed already creates notification records from Sales Orders, Warehouse/Inventory, Project Purchasing, customer activity and other workflows, but those records do not have one consistent staff-facing command surface.
 
 ## Authority and data model
 
@@ -76,7 +76,7 @@ Supported destinations include:
 - Inventory/Warehouse exception;
 - Fulfilment/Goods Note;
 - Finance customer/supplier document;
-- Engineer Request;
+- Project Purchase Demand;
 - Automation/Azzy run or failure;
 - Settings/Production Readiness;
 - Legacy Data Reconstruction review.

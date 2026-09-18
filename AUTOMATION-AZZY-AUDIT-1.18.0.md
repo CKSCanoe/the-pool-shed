@@ -69,7 +69,7 @@ The retrieval layer indexes authorised records across core and operational data 
 - Projects
 - Goods Notes
 - Locations and stock movements
-- Engineer Requests
+- Project Purchasing
 - Finance records
 - Approved Pool Shed Knowledge
 - Purchase returns

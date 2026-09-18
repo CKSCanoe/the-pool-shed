@@ -57,7 +57,7 @@ The reporting catalogue exposes 20 governed datasets:
 14. Supplier Returns
 15. Customer Returns & Credits
 16. Engineer Vans
-17. Engineer Requests
+17. Project Purchasing
 18. Notes & Activity
 19. Xero Links
 20. Audit Events

@@ -12,7 +12,6 @@ const seed = {
         restockRules: [],
         allocations: [],
         purchaseOrders: [],
-        engineerRequests: [],
         movements: [],
         salesOrders: [],
         goodsNotes: [],
@@ -73,7 +72,10 @@ const seed = {
           { trigger: "Invoice", label: "Invoice emailed", enabled: true, point: "When the invoice is created and emailed", template: "Invoice emailed to customer", subjectTemplate: "Invoice for Pool Bros order {order}", bodyTemplate: "Hi {customer},\n\nYour invoice for order {order} has been created and emailed over.\n\nThanks,\nPool Bros" },
           { trigger: "Payment", label: "Payment receipt", enabled: false, point: "When a payment is recorded against the order", template: "Payment received confirmation", subjectTemplate: "Payment received for Pool Bros order {order}", bodyTemplate: "Hi {customer},\n\nThank you, we have received your payment for order {order}.\n\nThanks,\nPool Bros" }
         ],
-        sales: []
+        sales: [],
+        quotes: [],
+        quoteTemplates: [],
+        quoteSettings: {}
       };
 
       const tabs = [
@@ -81,8 +83,8 @@ const seed = {
         { id: "mywork", label: "My Work", title: "My Work", intro: "Owned actions, approvals and operational exceptions that need attention." },
         { id: "crm", label: "CRM", title: "CRM", intro: "Customers, contacts, account context, supplier relationships and connected commercial history." },
         { id: "salesorders", label: "Sales Orders", title: "Sales Orders", intro: "Quotient, WooCommerce and manual orders with custom tags, allocation and status flow." },
+        { id: "quotes", label: "Quotes", title: "Quotes · Quote Studio", intro: "Create Quick Quotes or full Project Proposals, send the customer presentation, track engagement and convert accepted work without re-keying." },
         { id: "jobs", label: "Projects", title: "Projects", intro: "Plan and control projects, linked customer orders, job stock, purchasing, delivery and commercial review in one place." },
-        { id: "engineer", label: "Engineer Requests", title: "Engineer Requests", intro: "Request products and materials against existing projects, route approvals and track linked purchasing through receiving." },
         { id: "products", label: "Product Hub", title: "Product Hub", intro: "Product profiles, WooCommerce data, prices, barcodes, batches, serials and movement history." },
         { id: "locations", label: "Inventory", title: "Inventory Tracker", intro: "Traffic-light stock by product, location, value, allocation and restock thresholds." },
         { id: "purchase", label: "Purchasing", title: "Purchasing and Forecasting", intro: "Purchase orders, supplier backorders, linked SO allocation and reorder suggestions." },
@@ -102,7 +104,18 @@ const seed = {
       window.__POOL_SHED_CURRENT_USER__ = function(){ return currentUser(); };
       window.__POOL_SHED_ALL_USERS__ = function(){ return allUsers(); };
       window.__POOL_SHED_SAVE_USERS__ = function(users){ saveUsers(users); };
+      window.__POOL_SHED_SAVE_APP_DATA__ = function(){ return saveAppData(); };
       window.__POOL_SHED_IS_ADMIN__ = function(){ return isAdminUser(currentUser()); };
+      window.__POOL_SHED_OPEN_TAB__ = function(tabId){ if(!tabs.some(function(t){return t.id===tabId;})) return false; if(!canAccessTab(tabId)) return false; active=tabId; render(); return true; };
+      window.__POOL_SHED_ACTIVE_SUBPAGE__ = function(tabId){ return activeSubPage[tabId] || ""; };
+      window.__POOL_SHED_WORKSPACE_ID__ = function(){ return WORKSPACE_ID; };
+      window.__POOL_SHED_AUTH_TOKEN__ = async function(){
+        try{
+          if(supabaseSession && supabaseSession.access_token) return supabaseSession.access_token;
+          if(supabaseClient && supabaseClient.auth){ var sessionResult=await supabaseClient.auth.getSession(); return sessionResult && sessionResult.data && sessionResult.data.session ? sessionResult.data.session.access_token : ""; }
+        }catch(_){ }
+        return "";
+      };
       window.__POOL_SHED_CAN_ACCESS__ = function(tabId){ return canAccessTab(tabId, currentUser()); };
       let active = "dashboard";
       let selectedProductId = "";
@@ -170,8 +183,6 @@ const seed = {
       let thresholdFilters = { location: "", type: "", priority: "", status: "", search: "" };
       let purchaseBackorderFilters = { supplier: "", status: "", reminder: "", search: "" };
       let linkedPoSalesFilters = { supplier: "", allocation: "", receive: "", search: "" };
-      let engineerRequestFilter = "open";
-      let engineerRequestSearch = "";
 
       window.__POOL_SHED_OPEN_NOTIFICATION_TARGET__ = function(route) {
         const target = route && typeof route === "object" ? route : {};
@@ -202,6 +213,11 @@ const seed = {
           active = "crm";
           activeSubPage.crm = "All Customers";
           selectedCrmCustomerId = recordId;
+        } else if (moduleId === "quotes") {
+          if (recordId && !(data.quotes || []).some(function(item){ return String(item.id) === recordId; })) return unavailable("Quote " + recordId);
+          active = "quotes";
+          activeSubPage.quotes = requestedPage || "Quotes";
+          window.__POOL_SHED_QUOTE_FOCUS__ = recordId;
         } else if (moduleId === "jobs") {
           if (recordId && !data.jobs.some(function(item){ return String(item.id) === recordId; })) return unavailable("Project " + recordId);
           active = "jobs";
@@ -483,12 +499,16 @@ const seed = {
       }
 
       function normalizeAppData(input) {
+        input = input || {};
+        if (!Array.isArray(input.quotes)) input.quotes = [];
+        if (!Array.isArray(input.quoteTemplates)) input.quoteTemplates = [];
+        if (!input.quoteSettings || typeof input.quoteSettings !== "object") input.quoteSettings = {};
         const source = input && typeof input === "object" ? input : {};
         Object.keys(seed).forEach(function(key) {
           if (Array.isArray(seed[key]) && !Array.isArray(source[key])) source[key] = [];
           else if (!Array.isArray(seed[key]) && (typeof source[key] === "undefined" || source[key] === null)) source[key] = clone(seed[key]);
         });
-        ["products","customers","jobs","stock","restockRules","allocations","purchaseOrders","engineerRequests","movements","salesOrders","goodsNotes","salesCredits","notifications","suppliers"].forEach(function(key) {
+        ["products","customers","jobs","stock","restockRules","allocations","purchaseOrders","movements","salesOrders","goodsNotes","salesCredits","notifications","suppliers"].forEach(function(key) {
           if (!Array.isArray(source[key])) source[key] = [];
         });
         source.customers.forEach(function(c, index) {
@@ -511,10 +531,24 @@ const seed = {
           order.payments = Array.isArray(order.payments) ? order.payments : [];
           order.notifications = Array.isArray(order.notifications) ? order.notifications : [];
         });
-        source.purchaseOrders.forEach(function(po) { if (po && typeof po === "object") po.lines = Array.isArray(po.lines) ? po.lines : []; });
+        source.purchaseOrders.forEach(function(po) {
+          if (!po || typeof po !== "object") return;
+          po.lines = Array.isArray(po.lines) ? po.lines : [];
+          const retiredSource = ("engineer" + " request").toLowerCase();
+          if (String(po.source || "").toLowerCase() === retiredSource) po.source = po.jobId ? "Project Purchasing" : "Purchasing";
+          const retiredLink = "engineer" + "RequestId";
+          delete po[retiredLink];
+          po.lines.forEach(function(line) { if (line && typeof line === "object") delete line[retiredLink]; });
+        });
+        // Remove retired pre-v1.31 workspace payload and generated notices during migration.
+        const retiredCollection = "engineer" + "Requests";
+        const retiredTrigger = ("engineer" + " request").toLowerCase();
+        delete source[retiredCollection];
+        source.notifications = (source.notifications || []).filter(function(note) {
+          return String(note && note.trigger || "").toLowerCase().indexOf(retiredTrigger) !== 0;
+        });
         normalizeReceiptLedger(source);
         source.goodsNotes.forEach(function(note) { if (note && typeof note === "object") note.lines = Array.isArray(note.lines) ? note.lines : []; });
-        source.engineerRequests.forEach(function(req) { if (req && typeof req === "object") req.lines = Array.isArray(req.lines) ? req.lines : []; });
         source.products = source.products.filter(function(p) { return p && typeof p === "object"; }).map(function(p, index) {
           p.id = p.id || p.sku || ("PROD-" + String(index + 1).padStart(4, "0"));
           p.sku = p.sku || p.id;
@@ -792,7 +826,6 @@ const seed = {
         ensureCustomerNotificationRules();
         ensureAutomationRules();
         ensureCustomerProfileFields();
-        ensureEngineerRequests();
       }
 
       async function restoreOfflineSnapshotIfNeeded() {
@@ -1933,7 +1966,7 @@ const seed = {
           : effectiveMode === "mfa"
             ? '<button class="ps-login-link" type="button" data-login-cancel-mfa>Use a different account</button><span>Authenticator verification</span>'
             : effectiveMode === "denied" ? '<span></span>' : '<button class="ps-login-link" type="button" data-login-mode="login">Back to sign in</button><span></span>';
-        screen.innerHTML = '<main class="ps-login-stage"><section class="ps-login-shell"><aside class="ps-login-brand"><div><div class="ps-login-lockup"><span class="ps-login-logo"><img src="' + DEFAULT_POOL_BROS_LOGO + '" alt="Pool Bros logo"></span><div><span class="ps-login-kicker">Pool Bros</span><strong>THE POOL SHED</strong></div></div><div class="ps-login-hero"><span class="ps-login-kicker">Operations Command System</span><h1>One secure place to <span>run the operation.</span></h1><p>Secure access to the Pool Bros operations workspace. Sign in to continue to your authorised tools, tasks and information.</p></div></div><div class="ps-login-staff-note"><strong>Pool Bros staff access</strong><span>Your workspace and available tools are tailored to your account after sign-in.</span></div></aside><section class="ps-login-auth"><div class="ps-login-card"><div class="ps-login-card-head"><span class="ps-login-kicker">' + escapeHtml(meta.eyebrow) + '</span><h2>' + escapeHtml(meta.heading) + '</h2><p>' + escapeHtml(meta.intro) + '</p></div><form id="loginForm">' + fields + '<div id="loginMessage" class="ps-login-message' + (good ? ' good' : '') + '">' + escapeHtml(message || '') + '</div></form><div class="ps-login-helper">' + helper + '</div></div></section></section><footer class="ps-login-footer">Pool Shed v1.28.0 · Pool Bros Ltd</footer></main>';
+        screen.innerHTML = '<main class="ps-login-stage"><section class="ps-login-shell"><aside class="ps-login-brand"><div><div class="ps-login-lockup"><span class="ps-login-logo"><img src="' + DEFAULT_POOL_BROS_LOGO + '" alt="Pool Bros logo"></span><div><span class="ps-login-kicker">Pool Bros</span><strong>THE POOL SHED</strong></div></div><div class="ps-login-hero"><span class="ps-login-kicker">Operations Command System</span><h1>One secure place to <span>run the operation.</span></h1><p>Secure access to the Pool Bros operations workspace. Sign in to continue to your authorised tools, tasks and information.</p></div></div><div class="ps-login-staff-note"><strong>Pool Bros staff access</strong><span>Your workspace and available tools are tailored to your account after sign-in.</span></div></aside><section class="ps-login-auth"><div class="ps-login-card"><div class="ps-login-card-head"><span class="ps-login-kicker">' + escapeHtml(meta.eyebrow) + '</span><h2>' + escapeHtml(meta.heading) + '</h2><p>' + escapeHtml(meta.intro) + '</p></div><form id="loginForm">' + fields + '<div id="loginMessage" class="ps-login-message' + (good ? ' good' : '') + '">' + escapeHtml(message || '') + '</div></form><div class="ps-login-helper">' + helper + '</div></div></section></section><footer class="ps-login-footer">Pool Shed v1.31.0 · Pool Bros Ltd</footer></main>';
         bindLoginScreen(effectiveMode);
       }
 
@@ -2133,8 +2166,8 @@ const seed = {
         if (active === "products") return renderProducts();
         if (active === "purchase") return renderPurchase();
         if (active === "salesorders") return renderSalesOrders();
+        if (active === "quotes" && typeof window.renderQuoteStudioWorkspace === "function") return window.renderQuoteStudioWorkspace();
         if (active === "jobs") return renderJobs();
-        if (active === "engineer") return renderEngineer();
         if (active === "warehouse") return renderWarehouse();
         if (active === "fulfilment") return renderFulfilment();
         if (active === "crm") return renderCrm();
@@ -2219,13 +2252,13 @@ const seed = {
       function sidebarSubGroups(tabId) {
         const groups = {
           salesorders: ["Sales Orders", "Sales Credits", "Customer Orders", "Invoices"],
+          quotes: ["Quotes", "Templates", "Engagement", "Approvals", "Settings"],
           products: ["Catalogue", "Create Product", "Import Catalogue", "Pricing", "Catalogue Health"],
           locations: ["Locations", "Transfers", "Van Top-Ups", "Location Thresholds", "Stock Take", "Missing Stock", "Audit Trail"],
           purchase: ["Purchase Orders", "Suppliers", "Supplier Catalogues", "Supplier Backorders", "Linked Sales Orders", "Forecasting"],
           warehouse: ["Goods In", "QC Checks", "Label Printing", "Guided Putaway", "Transfers", "Returns", "Damaged", "Stock Counts"],
           fulfilment: ["Goods Notes", "Picking List", "Pick", "Pack", "Ship", "Tracking"],
           crm: ["All Customers", "Create Customer"],
-          engineer: ["Request Products", "My Requests", "Approval Queue", "PO Raised", "Completed"],
           jobs: ["Job List", "Create Job", "Project Costing"],
           accounting: ["Invoice Ready", "Draft Invoices", "Xero Linked", "Supplier Bills", "COGS", "Stock Valuation", "Credits"],
           settings: isAdminUser() ? ["Users", "Permissions", "Menu Layout", "My Profile", "My Settings", "Company", "Notifications", "Training", "Automation Rules", "Statuses", "Tags", "Integrations"] : ["Menu Layout", "My Profile", "My Settings", "Training"]
@@ -2271,9 +2304,6 @@ const seed = {
             inventoryView = "overview";
             selectedInventoryLocationId = "";
           }
-        }
-        if (tabId === "engineer") {
-          activeSubPage.engineer = subgroup;
         }
         if (tabId === "warehouse") {
           if (subgroup === "Goods In") warehousePoView = "list";
@@ -2869,13 +2899,13 @@ const seed = {
         const progressByStatus = { "Planning": 10, "Approved": 20, "Pending Parts": 35, "In Progress": 55, "Ready To Invoice": 90, "Invoiced": 100, "Completed": 100, "On Hold": 25 };
         const rows = (data.jobs || []).map(function(j) {
           const finance = dashboardJobFinancialSummary(j);
-          const req = jobRequestStats(j.id);
+          const orders = jobOrderStats(j.id);
           const po = jobPoStats(j.id);
           const c = customer(j.customerId) || {};
           const dueDates = finance.linkedOrders.map(function(order){ return dashboardDateValue(order.due); }).filter(Boolean)
             .concat(po.pos.map(function(item){ return dashboardDateValue(item.due); }).filter(Boolean)).sort();
           const progress = Math.max(progressByStatus[j.status] || 10, po.ordered ? Math.min(85, Math.round((po.received / po.ordered) * 80)) : 0);
-          return { job: j, finance: finance, req: req, po: po, customer: c, due: dueDates[0] || "", progress: progress, size: finance.value || req.value || 0 };
+          return { job: j, finance: finance, orders: orders, po: po, customer: c, due: dueDates[0] || "", progress: progress, size: finance.value || po.value || 0 };
         }).sort(function(a,b){ return b.size-a.size; }).slice(0,6);
 
         const body = rows.length ? rows.map(function(row) {
@@ -3274,7 +3304,7 @@ const seed = {
           const tab = byId[id];
           return '<div class="menu-layout-row" data-menu-row="' + tab.id + '" draggable="true"><span class="pill blue">' + String(index + 1).padStart(2, "0") + '</span><div><strong>' + escapeHtml(tab.label) + '</strong><small>' + escapeHtml(tab.intro) + '</small></div><div class="menu-order-buttons"><button type="button" class="secondary" data-menu-move="' + tab.id + '|up">↑</button><button type="button" class="secondary" data-menu-move="' + tab.id + '|down">↓</button></div></div>';
         }).join("");
-        return '<div class="notice-row"><div class="notice-item"><strong>Your menu order</strong><p class="muted">Drag sections or use the arrow buttons to put the sidebar into the order that makes most sense for your day. This saves only for the logged-in user.</p></div><div class="notice-item"><strong>Suggested operational flow</strong><p class="muted">Dashboard → CRM → Projects → Sales Orders → Engineer Requests → Product Hub → Inventory → Purchasing → Warehouse → Fulfilment → Accounting → Analytics → Automation → Settings.</p></div></div><div class="menu-layout-list" id="menuLayoutList">' + rows + '</div><div class="action-row" style="margin-top:1rem"><button type="button" data-save-menu-order="true">Save menu order</button></div>';
+        return '<div class="notice-row"><div class="notice-item"><strong>Your menu order</strong><p class="muted">Drag sections or use the arrow buttons to put the sidebar into the order that makes most sense for your day. This saves only for the logged-in user.</p></div><div class="notice-item"><strong>Suggested operational flow</strong><p class="muted">Dashboard → CRM → Quotes → Sales Orders → Projects → Product Hub → Inventory → Purchasing → Warehouse → Fulfilment → Accounting → Analytics → Automation → Settings.</p></div></div><div class="menu-layout-list" id="menuLayoutList">' + rows + '</div><div class="action-row" style="margin-top:1rem"><button type="button" data-save-menu-order="true">Save menu order</button></div>';
       }
 
       function permissionsSettingsPanel() {
@@ -3291,7 +3321,7 @@ const seed = {
           return '<div class="permission-user-card"><div class="permission-user-head"><div class="profile-hero" style="margin:0;padding:0"><span class="profile-avatar-preview" style="width:52px;height:52px;border-radius:16px">' + userAvatarHtml(user) + '</span><div><strong>' + escapeHtml(user.name) + '</strong><br><span class="muted">' + escapeHtml(user.email) + ' · ' + escapeHtml(user.role) + '</span></div></div><span class="pill ' + (user.status === "Active" ? "good" : "warn") + '">' + escapeHtml(user.status || "Active") + '</span></div><table class="permission-table"><thead><tr><th>Section</th><th>Permission</th></tr></thead><tbody>' + sectionRows(user) + '</tbody></table></div>';
         }).join("");
         const adminNote = isAdmin ? '<button type="button" data-save-user-permissions="true">Save permissions</button>' : '<span class="pill warn">Admin only</span>';
-        return '<div class="notice-row"><div class="notice-item"><strong>Section access</strong><p class="muted">Choose which areas each user can see in the left menu. Hidden sections cannot be opened from the sidebar. Operational users should only have the sections needed for their role, including Engineer Requests where appropriate, Inventory, Warehouse and Fulfilment only.</p></div><div class="notice-item"><strong>Admin control</strong><p class="muted">Only Admin/Manager-style users should change access. Dashboard is always visible and the current user cannot remove their own Settings access in the system.</p></div></div><div class="action-row" style="margin-bottom:1rem">' + adminNote + '</div><div class="permission-grid">' + cards + '</div>';
+        return '<div class="notice-row"><div class="notice-item"><strong>Section access</strong><p class="muted">Choose which areas each user can see in the left menu. Hidden sections cannot be opened from the sidebar. Operational users should only have the sections needed for their role. Keep customer, sales, inventory, warehouse and fulfilment access limited to what each person actually needs.</p></div><div class="notice-item"><strong>Admin control</strong><p class="muted">Only Admin/Manager-style users should change access. Dashboard is always visible and the current user cannot remove their own Settings access in the system.</p></div></div><div class="action-row" style="margin-bottom:1rem">' + adminNote + '</div><div class="permission-grid">' + cards + '</div>';
       }
 
       function usersSettingsPanel() {
@@ -3317,7 +3347,7 @@ const seed = {
         const density = readPreference("tableDensity", "Comfortable");
         const landing = readPreference("landingPage", "Dashboard");
         const notify = readPreference("desktopAlerts", true);
-        return '<form id="mySettingsForm" class="forms"><div class="notice-row"><div class="notice-item"><strong>User-only settings</strong><p class="muted">These controls only affect the logged-in user. They do not change company branding, statuses, stock data or other users.</p></div><div class="notice-item"><strong>Current user</strong><p class="muted">' + escapeHtml(currentUser().name) + ' · ' + escapeHtml(currentUser().email) + '</p></div></div><div class="form-grid three"><label>Theme<select name="theme">' + optionList(["Light", "Dark"], theme === "dark" ? "Dark" : "Light") + '</select></label><label>Default landing page<select name="landingPage">' + optionList(["Dashboard", "Sales Orders", "Inventory", "Purchasing", "Fulfilment"], landing) + '</select></label><label>Table density<select name="tableDensity">' + optionList(["Comfortable", "Compact"], density) + '</select></label></div><label class="inline-check"><input type="checkbox" name="desktopAlerts"' + (notify ? " checked" : "") + '> Show notification badges and personal reminders for me</label><div class="action-row"><button type="submit">Save my settings</button><button type="button" class="secondary" data-open-menu-layout="true">Edit my sidebar menu</button></div></form>';
+        return '<form id="mySettingsForm" class="forms"><div class="notice-row"><div class="notice-item"><strong>User-only settings</strong><p class="muted">These controls only affect the logged-in user. They do not change company branding, statuses, stock data or other users.</p></div><div class="notice-item"><strong>Current user</strong><p class="muted">' + escapeHtml(currentUser().name) + ' · ' + escapeHtml(currentUser().email) + '</p></div></div><div class="form-grid three"><label>Theme<select name="theme">' + optionList(["Light", "Dark"], theme === "dark" ? "Dark" : "Light") + '</select></label><label>Default landing page<select name="landingPage">' + optionList(["Dashboard", "Quotes", "Sales Orders", "Projects", "Inventory", "Purchasing", "Fulfilment"], landing) + '</select></label><label>Table density<select name="tableDensity">' + optionList(["Comfortable", "Compact"], density) + '</select></label></div><label class="inline-check"><input type="checkbox" name="desktopAlerts"' + (notify ? " checked" : "") + '> Show notification badges and personal reminders for me</label><div class="action-row"><button type="submit">Save my settings</button><button type="button" class="secondary" data-open-menu-layout="true">Edit my sidebar menu</button></div></form>';
       }
 
       function renderLocations() {
@@ -5326,95 +5356,6 @@ const seed = {
       }
 
 
-      function ensureEngineerRequests() {
-        data.engineerRequests = Array.isArray(data.engineerRequests) ? data.engineerRequests : [];
-        data.engineerRequests.forEach(function(req) {
-          req.lines = Array.isArray(req.lines) ? req.lines : [];
-          req.status = req.status || "Draft";
-          req.created = req.created || todayIso();
-          req.engineerUserId = req.engineerUserId || activeUserId;
-          req.priority = req.priority || "Normal";
-        });
-      }
-
-      function nextEngineerRequestId() {
-        ensureEngineerRequests();
-        let index = 1 + data.engineerRequests.length;
-        let id = "ER-" + String(index).padStart(4, "0");
-        while (data.engineerRequests.some(function(req) { return req.id === id; })) {
-          index += 1;
-          id = "ER-" + String(index).padStart(4, "0");
-        }
-        return id;
-      }
-
-      function engineerRequestById(id) {
-        ensureEngineerRequests();
-        return data.engineerRequests.find(function(req) { return req.id === id; });
-      }
-
-      function engineerRequestValue(req) {
-        return (req.lines || []).reduce(function(total, line) {
-          const p = product(line.productId) || { cost: 0 };
-          return total + Number(line.qty || 0) * Number(p.cost || 0);
-        }, 0);
-      }
-
-      function engineerRequestLineCount(req) {
-        return (req.lines || []).reduce(function(total, line) { return total + Number(line.qty || 0); }, 0);
-      }
-
-      function engineerRequestEngineer(req) {
-        return allUsers().find(function(user) { return user.id === req.engineerUserId; }) || { name: "Unknown engineer", role: "Engineer" };
-      }
-
-      function engineerRequestJob(req) {
-        return job(req.jobId) || { id: "", name: req.jobRef || req.projectName || "No job selected", status: "No job" };
-      }
-
-      function engineerRequestStatusClass(status) {
-        if (["Completed", "Ready For Invoice Review", "Received To Site", "Received", "PO Raised", "Ordered"].includes(status)) return "good";
-        if (["Rejected", "Cancelled"].includes(status)) return "bad";
-        if (["Approved", "Admin Review", "Part Received"].includes(status)) return "warn";
-        return "blue";
-      }
-
-      function canManageEngineerRequests() {
-        const role = currentUser().role || "Engineer";
-        return ["Admin", "Manager", "Accounts", "Warehouse"].includes(role);
-      }
-
-      function engineerRequestPoIds(req) {
-        return Array.from(new Set((req.lines || []).map(function(line) { return line.poId; }).filter(Boolean).concat(req.poIds || [])));
-      }
-
-      function engineerRequestPoProgress(req) {
-        const poIds = engineerRequestPoIds(req);
-        const linkedPos = data.purchaseOrders.filter(function(po) { return poIds.includes(po.id) || po.engineerRequestId === req.id; });
-        const ordered = linkedPos.reduce(function(total, po) { return total + po.lines.reduce(function(t, line) { return t + Number(line.qty || 0); }, 0); }, 0);
-        const received = linkedPos.reduce(function(total, po) { return total + po.lines.reduce(function(t, line) { return t + Number(line.received || 0); }, 0); }, 0);
-        return { poIds: poIds, linkedPos: linkedPos, ordered: ordered, received: received, pending: Math.max(0, ordered - received) };
-      }
-
-      function syncEngineerRequestProgress(req) {
-        if (!req || ["Rejected", "Cancelled", "Completed", "Ready For Invoice Review"].includes(req.status)) return req;
-        const progress = engineerRequestPoProgress(req);
-        if (progress.ordered > 0 && progress.received >= progress.ordered) {
-          req.status = "Received To Site";
-          req.receivedAt = req.receivedAt || new Date().toISOString();
-        } else if (progress.received > 0) {
-          req.status = "Part Received";
-        } else if (progress.poIds.length && !["Approved"].includes(req.status)) {
-          req.status = "PO Raised";
-        }
-        return req;
-      }
-
-      function syncAllEngineerRequestProgress() {
-        ensureEngineerRequests();
-        data.engineerRequests.forEach(syncEngineerRequestProgress);
-      }
-
       function nextJobId() {
         let index = 1 + data.jobs.length;
         let id = "J-" + String(1000 + index);
@@ -5425,302 +5366,28 @@ const seed = {
         return id;
       }
 
-      function engineerProductOptions(selected) {
-        return '<option value="">Select product</option>' + data.products.filter(function(p) { return !p.deleted; }).map(function(p) {
-          return '<option value="' + p.id + '" ' + (p.id === selected ? 'selected' : '') + '>' + escapeHtml(p.sku + ' - ' + p.name) + '</option>';
-        }).join("");
-      }
-
-      function engineerJobOptions(selected) {
-        return '<option value="">No job / project selected</option>' + data.jobs.map(function(j) {
-          const c = customer(j.customerId);
-          return '<option value="' + j.id + '" ' + (j.id === selected ? 'selected' : '') + '>' + escapeHtml(j.id + ' - ' + j.name + (c ? ' - ' + c.name : '')) + '</option>';
-        }).join("");
-      }
-
-      function engineerLocationOptions(selected) {
-        return '<option value="">Deliver to job/site or warehouse</option>' + data.locations.map(function(loc) {
-          return '<option value="' + loc.id + '" ' + (loc.id === selected ? 'selected' : '') + '>' + escapeHtml(loc.name + ' - ' + loc.type) + '</option>';
-        }).join("");
-      }
-
-      function engineerRequestForm() {
-        const current = currentUser();
-        const defaultLocation = data.locations.find(function(loc) { return loc.type === "Customer Site"; }) || data.locations[0];
-        const rows = [0,1,2,3].map(function(i) {
-          return '<tr><td><select name="productId' + i + '">' + engineerProductOptions("") + '</select></td><td><input name="qty' + i + '" type="number" min="0" step="1" value=""></td><td><input name="lineNote' + i + '" placeholder="Why this item is needed"></td></tr>';
-        }).join("");
-        return '<form id="engineerRequestForm" class="forms">' +
-          '<div class="notice-row compact-notice"><div class="notice-item"><strong>Use an existing job reference</strong><p class="muted">Jobs are created once in Projects. Engineer Requests only asks for parts against that job, so requests, POs, receiving, job bin stock and invoice review stay linked without duplicate work.</p></div><div class="notice-item right"><button type="button" class="secondary" data-engineer-open-jobs="true">Create / manage projects</button></div></div>' +
-          '<div class="form-grid four"><label>Engineer<input value="' + escapeHtml(current.name) + '" disabled></label><label>Job / project reference<select name="jobId">' + engineerJobOptions("") + '</select></label><label>Needed by<input name="neededBy" type="date" value="' + addDays(todayIso(), 3) + '"></label><label>Priority<select name="priority">' + optionList(["Normal", "Urgent", "Critical"], "Normal") + '</select></label></div>' +
-          '<div class="form-grid two"><label>Deliver to<select name="deliveryLocation">' + engineerLocationOptions(defaultLocation ? defaultLocation.id : "") + '</select></label><label>Visit / phase note<input name="projectName" placeholder="Optional phase, visit or install note"></label></div>' +
-          '<label>Request notes<textarea name="notes" placeholder="Add supplier preference, site access note, install date or why this is required"></textarea></label>' +
-          '<div class="table-scroll"><table class="pricing-table"><thead><tr><th>Product</th><th>Qty</th><th>Line note</th></tr></thead><tbody>' + rows + '</tbody></table></div>' +
-          '<div class="action-row"><button type="submit">Submit request for admin approval</button><button type="button" class="secondary" data-engineer-action="export">Export requests</button></div>' +
-        '</form>';
-      }
-
-      function filteredEngineerRequests() {
-        ensureEngineerRequests();
-        const current = currentUser();
-        const isAdmin = ["Admin", "Manager", "Accounts"].includes(current.role);
-        return data.engineerRequests.filter(function(req) {
-          if (!isAdmin && req.engineerUserId !== current.id) return false;
-          if (engineerRequestFilter === "my" && req.engineerUserId !== current.id) return false;
-          syncEngineerRequestProgress(req);
-          if (engineerRequestFilter === "approval" && !["Submitted", "Admin Review", "Approved"].includes(req.status)) return false;
-          if (engineerRequestFilter === "po" && !["PO Raised", "Ordered", "Part Received", "Received To Site"].includes(req.status)) return false;
-          if (engineerRequestFilter === "completed" && !["Completed", "Ready For Invoice Review"].includes(req.status)) return false;
-          if (engineerRequestFilter === "open" && ["Completed", "Ready For Invoice Review", "Rejected", "Cancelled"].includes(req.status)) return false;
-          const q = String(engineerRequestSearch || "").toLowerCase();
-          if (q) {
-            const eng = engineerRequestEngineer(req);
-            const j = engineerRequestJob(req);
-            const loc = locationById(req.deliveryLocation);
-            const lineText = (req.lines || []).map(function(line) { const p = product(line.productId); return p ? p.sku + " " + p.name : ""; }).join(" ");
-            const haystack = [req.id, req.status, eng.name, j.id, j.name, req.projectName, req.notes, loc ? loc.name : "", lineText].join(" ").toLowerCase();
-            if (haystack.indexOf(q) < 0) return false;
-          }
-          return true;
-        });
-      }
-
-      function engineerRequestFilters() {
-        return '<div class="filter-panel compact-filter"><label>Status<select id="engineerRequestFilter">' + optionList(["open", "my", "approval", "po", "completed", "all"], engineerRequestFilter) + '</select></label><label>Search<input id="engineerRequestSearch" value="' + escapeHtml(engineerRequestSearch || "") + '" placeholder="Engineer, job ref, SKU, site or request"></label><button type="button" class="secondary" data-engineer-action="export">Export</button></div>';
-      }
-
-      function engineerRequestProjectCards(requests) {
-        const groups = {};
-        requests.forEach(function(req) {
-          const j = engineerRequestJob(req);
-          const key = req.jobId || req.projectName || "No job selected";
-          groups[key] = groups[key] || { job: j, requests: [] };
-          groups[key].requests.push(req);
-        });
-        const cards = Object.keys(groups).map(function(key) {
-          const group = groups[key];
-          const reqs = group.requests;
-          const value = reqs.reduce(function(total, req) { return total + engineerRequestValue(req); }, 0);
-          const units = reqs.reduce(function(total, req) { return total + engineerRequestLineCount(req); }, 0);
-          const openCount = reqs.filter(function(req) { return !["Completed", "Ready For Invoice Review", "Rejected", "Cancelled"].includes(req.status); }).length;
-          const poRefs = Array.from(new Set(reqs.flatMap(engineerRequestPoIds))).join(", ") || "No PO yet";
-          const products = Array.from(new Set(reqs.flatMap(function(req) { return (req.lines || []).map(function(line) { const p = product(line.productId); return p ? p.sku : ""; }); }).filter(Boolean))).slice(0, 4).join(", ") || "No products";
-          return '<div class="project-card"><div><h3>' + escapeHtml(group.job.id || "No job") + ' · ' + escapeHtml(group.job.name || key) + '</h3><p class="muted">' + reqs.length + ' request(s) · ' + openCount + ' open · ' + units + ' units · ' + money(value) + '</p><p class="muted">POs: ' + escapeHtml(poRefs) + '</p><p class="muted">Products: ' + escapeHtml(products) + '</p></div><button class="secondary" data-engineer-focus-job="' + escapeHtml(key) + '">View project requests</button></div>';
-        }).join("") || '<p class="muted">No project request groups yet.</p>';
-        return '<div class="project-grid">' + cards + '</div>';
-      }
-
-      function createJobProjectForm() {
-        return '<form id="engineerJobForm" class="forms compact-form"><h3>Create job / project reference</h3><p class="muted">Create the job reference first, then engineers can order products against it and admin can review all ordered materials before invoicing.</p><div class="form-grid four"><label>Job name<input name="name" placeholder="Pool refurb, dosing install, leak repair"></label><label>Customer<select name="customerId">' + data.customers.map(function(c) { return '<option value="' + c.id + '">' + escapeHtml(c.name || c.companyName || c.email) + '</option>'; }).join("") + '</select></label><label>Site / delivery location<select name="locationId">' + engineerLocationOptions("") + '</select></label><label>Status<select name="status">' + optionList(["Planning", "Approved", "Pending Parts", "In Progress", "Ready To Invoice", "Completed"], "Planning") + '</select></label></div><label>Project notes<textarea name="notes" placeholder="Scope, phase, access details, invoice notes"></textarea></label><button type="submit">Create job reference</button></form>';
-      }
-
-      function engineerRequestReceiptProgress(req) {
-        const progress = engineerRequestPoProgress(req);
-        if (!progress.ordered) return '<span class="muted">No PO raised</span>';
-        const cls = progress.received >= progress.ordered ? "good" : progress.received > 0 ? "warn" : "blue";
-        return '<span class="pill ' + cls + '">' + progress.received + '/' + progress.ordered + ' received</span><br><span class="muted">' + progress.pending + ' outstanding</span>';
-      }
-
-      function engineerRequestTable(requests) {
-        const admin = canManageEngineerRequests();
-        const rows = requests.map(function(req) {
-          syncEngineerRequestProgress(req);
-          const eng = engineerRequestEngineer(req);
-          const j = engineerRequestJob(req);
-          const loc = locationById(req.deliveryLocation);
-          const lines = (req.lines || []).map(function(line) { const p = product(line.productId); return p ? '<div><strong>' + escapeHtml(p.sku) + '</strong> x ' + Number(line.qty || 0) + '<br><span class="muted">' + escapeHtml(p.name) + '</span></div>' : ''; }).join('');
-          const poRefs = engineerRequestPoIds(req).join(', ');
-          const canApprove = admin && ["Submitted", "Admin Review"].includes(req.status);
-          const canRaise = admin && ["Approved", "PO Raised", "Ordered", "Part Received", "Received To Site"].includes(req.status);
-          const canComplete = admin && ["Received To Site", "Received", "Part Received"].includes(req.status);
-          const adminActions = admin ? '<div class="action-stack">' +
-            '<button class="secondary" data-engineer-approve="' + req.id + '"' + (canApprove ? '' : ' disabled') + '>Approve</button>' +
-            '<button data-engineer-raise-po="' + req.id + '"' + (canRaise ? '' : ' disabled') + '>Raise linked PO</button>' +
-            '<button class="secondary" data-engineer-complete="' + req.id + '"' + (canComplete ? '' : ' disabled') + '>Complete</button>' +
-            '<button class="secondary danger" data-engineer-reject="' + req.id + '"' + (["Completed", "Ready For Invoice Review"].includes(req.status) ? ' disabled' : '') + '>Reject</button></div>' : '<span class="muted">Admin only</span>';
-          return '<tr><td><strong>' + escapeHtml(req.id) + '</strong><br><span class="muted">Created ' + escapeHtml(req.created || '') + '</span></td><td><span class="pill ' + engineerRequestStatusClass(req.status) + '">' + escapeHtml(req.status) + '</span><br><span class="muted">' + escapeHtml(req.priority || 'Normal') + '</span></td><td>' + escapeHtml(eng.name) + '<br><span class="muted">' + escapeHtml(eng.role || 'Engineer') + '</span></td><td><strong>' + escapeHtml(j.id || 'No job') + '</strong><br><span class="muted">' + escapeHtml(j.name || req.projectName || '') + '</span></td><td>' + escapeHtml(loc ? loc.name : 'To confirm') + '<br><span class="muted">Needed ' + escapeHtml(req.neededBy || 'No date') + '</span></td><td>' + lines + '</td><td>' + engineerRequestReceiptProgress(req) + '</td><td class="right"><strong>' + money(engineerRequestValue(req)) + '</strong><br><span class="muted">' + engineerRequestLineCount(req) + ' units</span></td><td>' + (poRefs ? '<button class="secondary" data-engineer-open-po="' + poRefs.split(', ')[0] + '">' + escapeHtml(poRefs) + '</button>' : '<span class="muted">No PO yet</span>') + '</td><td>' + adminActions + '</td></tr>';
-        }).join("") || '<tr><td colspan="10" class="muted">No engineer product requests found.</td></tr>';
-        return '<div class="table-scroll"><table><thead><tr><th>Request</th><th>Status</th><th>Engineer</th><th>Job / project</th><th>Deliver to</th><th>Products</th><th>Receipt</th><th class="right">Value</th><th>PO</th><th>Actions</th></tr></thead><tbody>' + rows + '</tbody></table></div>';
-      }
-
-      function renderEngineer() {
-        const screen = document.getElementById("screen-engineer");
-        if (!screen) return;
-        ensureEngineerRequests();
-        syncAllEngineerRequestProgress();
-        let sub = selectedSubPage("engineer") || "Request Products";
-        if (sub === "Job Requests") {
-          active = "jobs";
-          activeSubPage.jobs = "Job List";
-          render();
-          return;
-        }
-        if (sub === "Completed") engineerRequestFilter = "completed";
-        if (sub === "Approval Queue") engineerRequestFilter = "approval";
-        if (sub === "PO Raised") engineerRequestFilter = "po";
-        const requests = filteredEngineerRequests();
-        const open = data.engineerRequests.filter(function(r) { return !["Completed", "Ready For Invoice Review", "Rejected", "Cancelled"].includes(r.status); }).length;
-        const approval = data.engineerRequests.filter(function(r) { return ["Submitted", "Admin Review", "Approved"].includes(r.status); }).length;
-        const poRaised = data.engineerRequests.filter(function(r) { return ["PO Raised", "Ordered", "Part Received", "Received To Site"].includes(r.status); }).length;
-        const completed = data.engineerRequests.filter(function(r) { return ["Completed", "Ready For Invoice Review"].includes(r.status); }).length;
-        const value = data.engineerRequests.reduce(function(t, r) { return t + engineerRequestValue(r); }, 0);
-        let body = '';
-        if (sub === "Request Products") {
-          body = panel("Engineer Product Request", "Request parts against an existing job. Job creation, job bins and invoice costing are controlled from Projects so the same job reference is only maintained once.", engineerRequestForm());
-        } else {
-          body = panel(sub, "Track order requests from submitted request through approval, linked PO, supplier order, goods-in and final invoice/job-costing review.", engineerRequestFilters() + engineerRequestTable(requests));
-        }
-        screen.innerHTML = kpi("Open requests", open, "Not completed") + kpi("Admin approval", approval, "Needs review / approved") + kpi("PO / receiving", poRaised, "PO raised or receiving") + kpi("Completed", completed, "Ready for invoice review") + kpi("Request value", money(value), "Estimated cost value") + body;
-        bindEngineerRequests();
-      }
-
-      function bindEngineerRequests() {
-        const form = document.getElementById("engineerRequestForm");
-        if (form) form.addEventListener("submit", function(event) {
-          event.preventDefault();
-          const values = Object.fromEntries(new FormData(form).entries());
-          const selectedJob = job(values.jobId);
-          const lines = [0,1,2,3].map(function(i) {
-            const productId = values["productId" + i];
-            const qty = Number(values["qty" + i] || 0);
-            if (!productId || qty <= 0) return null;
-            const p = product(productId);
-            return { productId: productId, qty: qty, supplier: p ? p.supplier : "Supplier to confirm", notes: values["lineNote" + i] || "", poId: "" };
-          }).filter(Boolean);
-          if (!lines.length) return toast("Add at least one product and quantity before submitting.");
-          const id = nextEngineerRequestId();
-          data.engineerRequests.unshift({ id: id, engineerUserId: currentUser().id, jobId: values.jobId || "", jobRef: selectedJob ? selectedJob.name : values.projectName || "No job selected", projectName: values.projectName || (selectedJob ? selectedJob.name : ""), deliveryLocation: values.deliveryLocation || "", neededBy: values.neededBy || addDays(todayIso(), 3), priority: values.priority || "Normal", status: "Submitted", created: todayIso(), notes: values.notes || "", lines: lines });
-          data.notifications.push({ id: "N-" + String(data.notifications.length + 1).padStart(3, "0"), goodsNoteId: "", salesOrderId: "", customerId: selectedJob ? selectedJob.customerId : "", trigger: "Engineer Request", subject: id + " needs admin approval", channel: "Internal", status: "Admin review", date: new Date().toISOString().slice(0, 16).replace("T", " ") });
-          saveAppData();
-          activeSubPage.engineer = "My Requests";
-          toast(id + " submitted for admin approval.");
-          render();
-        });
-        const jobForm = document.getElementById("engineerJobForm");
-        if (jobForm) jobForm.addEventListener("submit", function(event) {
-          event.preventDefault();
-          if (!canManageEngineerRequests()) return toast("Only admin or managers can create job/project references.");
-          const values = Object.fromEntries(new FormData(jobForm).entries());
-          if (!values.name) return toast("Enter a job or project name first.");
-          const id = nextJobId();
-          data.jobs.push({ id: id, customerId: values.customerId || (data.customers[0] || {}).id || "", name: values.name, status: values.status || "Planning", locationId: values.locationId || "", notes: values.notes || "", created: todayIso(), createdBy: currentUser().name });
-          saveAppData();
-          toast(id + " created. Engineers can now request parts against this job.");
-          render();
-        });
-        const filter = document.getElementById("engineerRequestFilter");
-        if (filter) filter.addEventListener("change", function() { engineerRequestFilter = filter.value; render(); });
-        const search = document.getElementById("engineerRequestSearch");
-        if (search) search.addEventListener("input", function() { engineerRequestSearch = search.value; render(); });
-      }
-
-      function approveEngineerRequest(id) {
-        const req = engineerRequestById(id);
-        if (!req) return toast("Order request not found.");
-        if (!canManageEngineerRequests()) return toast("Only admin or managers can approve order requests.");
-        req.status = "Approved";
-        req.approvedBy = currentUser().name;
-        req.approvedAt = new Date().toISOString();
-        saveAppData();
-        toast(req.id + " approved. Raise the linked PO when ready.");
-        render();
-      }
-
-      function rejectEngineerRequest(id) {
-        const req = engineerRequestById(id);
-        if (!req) return toast("Order request not found.");
-        if (!canManageEngineerRequests()) return toast("Only admin or managers can reject order requests.");
-        const reason = prompt("Reason for rejecting this order request", req.rejectReason || "Not approved");
-        if (!reason) return;
-        req.status = "Rejected";
-        req.rejectReason = reason;
-        req.rejectedBy = currentUser().name;
-        saveAppData();
-        toast(req.id + " rejected.");
-        render();
-      }
-
-      function raisePoFromEngineerRequest(id) {
-        const req = engineerRequestById(id);
-        if (!req) return toast("Order request not found.");
-        if (!canManageEngineerRequests()) return toast("Only admin or managers can raise POs from order requests.");
-        if (!["Approved", "PO Raised", "Ordered", "Part Received", "Received To Site"].includes(req.status)) return toast("Approve the order request before raising a PO.");
-        const unlinked = (req.lines || []).filter(function(line) { return !line.poId; });
-        if (!unlinked.length) return toast("All lines already have a linked PO.");
-        const grouped = {};
-        unlinked.forEach(function(line) { const supplier = line.supplier || (product(line.productId) || {}).supplier || "Supplier to confirm"; grouped[supplier] = grouped[supplier] || []; grouped[supplier].push(line); });
-        const poIds = [];
-        Object.keys(grouped).forEach(function(supplier) {
-          const poId = nextPurchaseOrderId();
-          const poLines = grouped[supplier].map(function(line) {
-            line.poId = poId;
-            return { productId: line.productId, qty: Number(line.qty || 0), received: 0, salesOrderId: "", engineerRequestId: req.id, jobId: req.jobId || "" };
-          });
-          data.purchaseOrders.unshift({ id: poId, supplier: supplier, status: "Draft - Review", due: req.neededBy || addDays(todayIso(), defaultSupplierLeadTime(supplier)), jobId: req.jobId || "", source: "Engineer Request", reviewStatus: "Needs review", supplierEmailStatus: "Blocked until reviewed", engineerRequestId: req.id, deliveryLocation: req.deliveryLocation || "", customerShipTo: req.deliveryLocation ? (locationById(req.deliveryLocation) || {}).name || "" : "", lines: poLines });
-          poIds.push(poId);
-        });
-        req.status = "PO Raised";
-        req.poIds = poIds;
-        req.raisedBy = currentUser().name;
-        req.raisedAt = new Date().toISOString();
-        data.notifications.push({ id: "N-" + String(data.notifications.length + 1).padStart(3, "0"), goodsNoteId: "", salesOrderId: "", customerId: "", trigger: "Engineer Request", subject: req.id + " raised to PO " + poIds.join(", "), channel: "Internal", status: "PO review", date: new Date().toISOString().slice(0, 16).replace("T", " ") });
-        saveAppData();
-        toast(req.id + " raised to " + poIds.join(", ") + ". Review before supplier email.");
-        render();
-      }
-
-      function completeEngineerRequest(id) {
-        const req = engineerRequestById(id);
-        if (!req) return toast("Order request not found.");
-        if (!canManageEngineerRequests()) return toast("Only admin or managers can complete order requests.");
-        syncEngineerRequestProgress(req);
-        const progress = engineerRequestPoProgress(req);
-        if (progress.ordered > 0 && progress.received < progress.ordered) {
-          const proceed = confirm(req.id + " is not fully received yet. Complete anyway for invoice review?");
-          if (!proceed) return;
-        }
-        req.status = "Completed";
-        req.completedBy = currentUser().name;
-        req.completedAt = new Date().toISOString();
-        req.invoiceReviewStatus = "Ready for invoice/job costing review";
-        data.notifications.push({ id: "N-" + String(data.notifications.length + 1).padStart(3, "0"), goodsNoteId: "", salesOrderId: "", customerId: (job(req.jobId) || {}).customerId || "", trigger: "Engineer Request Complete", subject: req.id + " completed - review materials for customer invoice", channel: "Internal", status: "Invoice review", date: new Date().toISOString().slice(0, 16).replace("T", " ") });
-        saveAppData();
-        engineerRequestFilter = "completed";
-        activeSubPage.engineer = "Completed";
-        toast(req.id + " completed and moved to invoice/job costing review.");
-        render();
-      }
-
-      function exportEngineerRequests() {
-        ensureEngineerRequests();
-        downloadCsv("the-pool-shed-order-requests.csv", ["request", "status", "engineer", "job", "project", "deliveryLocation", "neededBy", "priority", "sku", "product", "qty", "supplier", "po"], data.engineerRequests.flatMap(function(req) {
-          const eng = engineerRequestEngineer(req);
-          const j = engineerRequestJob(req);
-          const loc = locationById(req.deliveryLocation);
-          return (req.lines || []).map(function(line) { const p = product(line.productId) || {}; return { request: req.id, status: req.status, engineer: eng.name, job: j.id || "", project: j.name || req.projectName || "", deliveryLocation: loc ? loc.name : "", neededBy: req.neededBy || "", priority: req.priority || "", sku: p.sku || "", product: p.name || "", qty: line.qty || 0, supplier: line.supplier || p.supplier || "", po: line.poId || "" }; });
-        }));
-        toast("Order request report exported.");
-      }
-
       function jobBinForJob(jobItem) {
         if (!jobItem) return null;
         return locationById(jobItem.locationId) || data.locations.find(function(loc) { return loc.type === "Job Bin" && (loc.jobId === jobItem.id || loc.owner === jobItem.name); }) || null;
       }
 
-      function jobRequestStats(jobId) {
-        const requests = (data.engineerRequests || []).filter(function(req) { return req.jobId === jobId || req.jobRef === jobId; });
-        const open = requests.filter(function(req) { return !["Completed", "Ready For Invoice Review", "Rejected", "Cancelled"].includes(req.status); }).length;
-        const units = requests.reduce(function(total, req) { return total + engineerRequestLineCount(req); }, 0);
-        const value = requests.reduce(function(total, req) { return total + engineerRequestValue(req); }, 0);
-        const poIds = Array.from(new Set(requests.flatMap(engineerRequestPoIds)));
-        return { requests: requests, open: open, units: units, value: value, poIds: poIds };
+      function jobOrderStats(jobId) {
+        const orders = (data.salesOrders || []).filter(function(order) { return order.jobId === jobId && !["Cancelled", "Canceled"].includes(order.status); });
+        const open = orders.filter(function(order) { return !["Shipped", "Invoiced", "Completed", "Cancelled", "Canceled"].includes(order.status); }).length;
+        const units = orders.reduce(function(total, order) { return total + (order.lines || []).reduce(function(n, line) { return n + Math.max(0, Number(line.qty || 0) - Number(line.shipped || line.delivered || 0)); }, 0); }, 0);
+        const value = orders.reduce(function(total, order) { return total + salesOrderValue(order); }, 0);
+        return { orders: orders, open: open, units: units, value: value };
       }
 
       function jobPoStats(jobId) {
-        const pos = data.purchaseOrders.filter(function(po) { return po.jobId === jobId || (po.engineerRequestId && (data.engineerRequests || []).some(function(req) { return req.id === po.engineerRequestId && req.jobId === jobId; })); });
-        const ordered = pos.reduce(function(total, po) { return total + po.lines.reduce(function(lineTotal, line) { return lineTotal + Number(line.qty || 0); }, 0); }, 0);
-        const received = pos.reduce(function(total, po) { return total + po.lines.reduce(function(lineTotal, line) { return lineTotal + Number(line.received || 0); }, 0); }, 0);
-        return { pos: pos, ordered: ordered, received: received, pending: Math.max(ordered - received, 0) };
+        const orderIds = new Set((data.salesOrders || []).filter(function(order) { return order.jobId === jobId; }).map(function(order) { return order.id; }));
+        const pos = data.purchaseOrders.filter(function(po) {
+          return po.jobId === jobId || (po.lines || []).some(function(line) { return line.jobId === jobId || orderIds.has(line.salesOrderId); });
+        });
+        const ordered = pos.reduce(function(total, po) { return total + (po.lines || []).reduce(function(lineTotal, line) { return lineTotal + Number(line.qty || 0); }, 0); }, 0);
+        const received = pos.reduce(function(total, po) { return total + (po.lines || []).reduce(function(lineTotal, line) { return lineTotal + Number(line.received || 0); }, 0); }, 0);
+        const value = pos.reduce(function(total, po) { return total + (po.lines || []).reduce(function(lineTotal, line) { const p = product(line.productId) || {}; return lineTotal + Number(line.qty || 0) * Number(line.unitCost != null ? line.unitCost : p.cost || 0); }, 0); }, 0);
+        return { pos: pos, ordered: ordered, received: received, pending: Math.max(ordered - received, 0), value: value };
       }
 
       function jobLocationStockValue(locationId) {
@@ -5737,24 +5404,24 @@ const seed = {
       function jobRowsTable(jobs) {
         const admin = isAdminUser();
         if (!jobs.length) {
-          return '<div class="job-empty-state"><div class="job-empty-icon">J</div><div><h3>No jobs or projects yet</h3><p>Create the first job reference, link the customer and then raise order requests or purchase orders against it.</p></div><button data-job-new="true">Create first job</button></div>';
+          return '<div class="job-empty-state"><div class="job-empty-icon">J</div><div><h3>No jobs or projects yet</h3><p>Create the first project, link its customer and then drive materials from Sales Orders and Purchase Orders.</p></div><button data-job-new="true">Create first project</button></div>';
         }
         return '<div class="job-card-grid">' + jobs.map(function(j) {
           const c = customer(j.customerId) || {};
           const bin = jobBinForJob(j);
-          const reqStats = jobRequestStats(j.id);
+          const orderStats = jobOrderStats(j.id);
           const poStats = jobPoStats(j.id);
           const stockValue = jobLocationStockValue(j.locationId);
           const statusClass = j.status === "Completed" || j.status === "Invoiced" ? "good" : j.status === "Pending Parts" || j.status === "On Hold" ? "warn" : "blue";
           const receiptPct = poStats.ordered ? Math.round((poStats.received / poStats.ordered) * 100) : 0;
           return '<article class="job-project-card">' +
             '<div class="job-project-accent"></div>' +
-            '<div class="job-project-head"><div><button class="link-button job-project-code" data-job-edit="' + escapeHtml(j.id) + '">' + escapeHtml(j.id) + '</button><h3>' + escapeHtml(j.name || 'Unnamed job') + '</h3><p>' + escapeHtml(c.name || 'No customer linked') + '</p></div><span class="pill ' + statusClass + '">' + escapeHtml(j.status || 'Planning') + '</span></div>' +
+            '<div class="job-project-head"><div><button class="link-button job-project-code" data-job-edit="' + escapeHtml(j.id) + '">' + escapeHtml(j.id) + '</button><h3>' + escapeHtml(j.name || 'Unnamed project') + '</h3><p>' + escapeHtml(c.name || 'No customer linked') + '</p></div><span class="pill ' + statusClass + '">' + escapeHtml(j.status || 'Planning') + '</span></div>' +
             '<div class="job-project-meta"><div><span>Owner</span><strong>' + escapeHtml(j.owner || j.createdBy || 'Office') + '</strong></div><div><span>Job bin / site</span><strong>' + escapeHtml(bin ? bin.name : 'Not created') + '</strong></div><div><span>Customer ref</span><strong>' + escapeHtml(j.customerRef || 'Not set') + '</strong></div></div>' +
-            '<div class="job-project-stats"><div><span>Requests</span><strong>' + reqStats.requests.length + '</strong><small>' + reqStats.open + ' open · ' + reqStats.units + ' units</small></div><div><span>POs</span><strong>' + poStats.pos.length + '</strong><small>' + poStats.received + '/' + poStats.ordered + ' received</small></div><div><span>Materials</span><strong>' + money(reqStats.value) + '</strong><small>Bin stock ' + stockValue.units + ' units</small></div></div>' +
+            '<div class="job-project-stats"><div><span>Sales Orders</span><strong>' + orderStats.orders.length + '</strong><small>' + orderStats.open + ' open · ' + orderStats.units + ' units outstanding</small></div><div><span>POs</span><strong>' + poStats.pos.length + '</strong><small>' + poStats.received + '/' + poStats.ordered + ' received</small></div><div><span>Committed materials</span><strong>' + money(poStats.value) + '</strong><small>Job-bin stock ' + stockValue.units + ' units</small></div></div>' +
             '<div class="job-receipt-progress"><div><span>PO receiving</span><strong>' + receiptPct + '%</strong></div><div class="progress-track"><span style="width:' + receiptPct + '%"></span></div></div>' +
             (j.notes ? '<p class="job-project-note">' + escapeHtml(j.notes) + '</p>' : '') +
-            '<div class="job-project-actions"><button data-job-open-requests="' + escapeHtml(j.id) + '">Requests & costing</button><button class="secondary" data-job-costing="' + escapeHtml(j.id) + '">Invoice review</button><button class="secondary" data-job-create-bin="' + escapeHtml(j.id) + '">' + (bin ? 'Manage bin' : 'Create job bin') + '</button>' + (admin ? '<button class="secondary" data-job-edit="' + escapeHtml(j.id) + '">Edit</button><button class="secondary danger" data-job-delete="' + escapeHtml(j.id) + '">Delete</button>' : '') + '</div>' +
+            '<div class="job-project-actions"><button data-job-costing="' + escapeHtml(j.id) + '">Materials &amp; costing</button><button class="secondary" data-job-costing="' + escapeHtml(j.id) + '">Invoice review</button><button class="secondary" data-job-create-bin="' + escapeHtml(j.id) + '">' + (bin ? 'Manage bin' : 'Create job bin') + '</button>' + (admin ? '<button class="secondary" data-job-edit="' + escapeHtml(j.id) + '">Edit</button><button class="secondary danger" data-job-delete="' + escapeHtml(j.id) + '">Delete</button>' : '') + '</div>' +
           '</article>';
         }).join('') + '</div>';
       }
@@ -5766,13 +5433,13 @@ const seed = {
         const locationOptions = '<option value="">Create/select later</option>' + data.locations.filter(function(loc) { return ["Job Bin", "Customer Site", "Warehouse Shelf"].includes(loc.type); }).map(function(loc) { return '<option value="' + loc.id + '"' + (loc.id === j.locationId ? ' selected' : '') + '>' + escapeHtml(loc.name + ' · ' + loc.type) + '</option>'; }).join('');
         const customerOptions = data.customers.length ? data.customers.map(function(c) { return '<option value="' + c.id + '"' + (c.id === j.customerId ? ' selected' : '') + '>' + escapeHtml(c.name || c.companyName || c.email) + '</option>'; }).join('') : '<option value="">Create a customer first</option>';
         return '<form id="jobManagerForm" class="job-editor">' +
-          '<div class="job-editor-hero"><div><span class="job-editor-kicker">' + (editing ? 'Edit master record' : 'New job setup') + '</span><h2>' + (editing ? escapeHtml(j.id + ' · ' + (j.name || 'Job')) : 'Create a job / project') + '</h2><p>One job reference links the customer, order requests, purchase orders, received stock, job bin and invoice review.</p></div><div class="job-editor-actions"><button type="button" class="secondary" data-job-list="true">Cancel</button><button type="submit">' + (editing ? 'Save changes' : 'Create job') + '</button></div></div>' +
+          '<div class="job-editor-hero"><div><span class="job-editor-kicker">' + (editing ? 'Edit master record' : 'New job setup') + '</span><h2>' + (editing ? escapeHtml(j.id + ' · ' + (j.name || 'Job')) : 'Create a job / project') + '</h2><p>One project reference links the customer, Sales Orders, Purchase Orders, received stock, job bin and invoice review.</p></div><div class="job-editor-actions"><button type="button" class="secondary" data-job-list="true">Cancel</button><button type="submit">' + (editing ? 'Save changes' : 'Create job') + '</button></div></div>' +
           '<input type="hidden" name="id" value="' + escapeHtml(editing ? j.id : '') + '">' +
           '<div class="job-process-strip"><div class="step-blue active"><span>1</span><strong>Job details</strong><small>Identity and status</small></div><div class="step-yellow"><span>2</span><strong>Customer & owner</strong><small>Responsibility</small></div><div class="step-green"><span>3</span><strong>Stock & purchasing</strong><small>Job bin and materials</small></div><div class="step-red"><span>4</span><strong>Invoice review</strong><small>Scope and billing</small></div></div>' +
-          '<section class="job-form-section blue"><div class="job-form-heading"><span>01</span><div><h3>Job details</h3><p>Create the reference and name used across requests, purchase orders and warehouse documents.</p></div></div><div class="form-grid two"><label>Job reference<input name="jobCode" value="' + escapeHtml(editing ? j.id : '') + '" placeholder="Automatically created if blank" ' + (editing ? 'readonly' : '') + '></label><label>Job / project name<input name="name" value="' + escapeHtml(j.name || '') + '" placeholder="Example: Amanda pool refurbishment" required></label><label>Job status<select name="status">' + optionList(statusOptions, j.status || 'Planning') + '</select></label><label>Customer PO / reference<input name="customerRef" value="' + escapeHtml(j.customerRef || '') + '" placeholder="Optional customer reference"></label></div></section>' +
+          '<section class="job-form-section blue"><div class="job-form-heading"><span>01</span><div><h3>Job details</h3><p>Create the reference and name used across Sales Orders, Purchase Orders and warehouse documents.</p></div></div><div class="form-grid two"><label>Job reference<input name="jobCode" value="' + escapeHtml(editing ? j.id : '') + '" placeholder="Automatically created if blank" ' + (editing ? 'readonly' : '') + '></label><label>Job / project name<input name="name" value="' + escapeHtml(j.name || '') + '" placeholder="Example: Amanda pool refurbishment" required></label><label>Job status<select name="status">' + optionList(statusOptions, j.status || 'Planning') + '</select></label><label>Customer PO / reference<input name="customerRef" value="' + escapeHtml(j.customerRef || '') + '" placeholder="Optional customer reference"></label></div></section>' +
           '<section class="job-form-section yellow"><div class="job-form-heading"><span>02</span><div><h3>Customer and owner</h3><p>Choose who the job belongs to and who is responsible for progressing it.</p></div></div><div class="form-grid two"><label>Customer<select name="customerId" ' + (!data.customers.length ? 'disabled' : '') + '>' + customerOptions + '</select></label><label>Owner / project lead<input name="owner" value="' + escapeHtml(j.owner || j.createdBy || currentUser().name) + '" placeholder="Project owner"></label></div></section>' +
-          '<section class="job-form-section green"><div class="job-form-heading"><span>03</span><div><h3>Stock and purchasing</h3><p>Link the job bin or site used for order requests, transfers, purchase orders and received stock.</p></div></div><div class="form-grid two"><label>Linked job bin / site<select name="locationId">' + locationOptions + '</select><small>You can create the job first and add its bin afterwards.</small></label><div class="job-step-help"><strong>How stock stays linked</strong><p>Order requests, POs and goods-in use this job reference so material cost and stock location remain traceable.</p></div></div></section>' +
-          '<section class="job-form-section red"><div class="job-form-heading"><span>04</span><div><h3>Invoice review</h3><p>Record the scope, access notes and materials that must be reviewed before invoicing the customer.</p></div></div><div class="form-grid two"><label>Invoice stage<select name="invoiceStage">' + optionList(["Not reviewed", "Materials to review", "Ready to invoice", "Invoiced", "Do not invoice"], j.invoiceStage || 'Not reviewed') + '</select></label><div class="job-step-help invoice"><strong>Invoice control</strong><p>Move to Ready to invoice only after order requests, PO receipts and job-bin materials have been checked.</p></div></div><label>Scope, site access and invoice notes<textarea name="notes" rows="5" placeholder="Scope of work, access instructions, materials to recharge and invoice notes">' + escapeHtml(j.notes || '') + '</textarea></label></section>' +
+          '<section class="job-form-section green"><div class="job-form-heading"><span>03</span><div><h3>Stock and purchasing</h3><p>Link the job bin or site used for transfers, Purchase Orders and received stock.</p></div></div><div class="form-grid two"><label>Linked job bin / site<select name="locationId">' + locationOptions + '</select><small>You can create the job first and add its bin afterwards.</small></label><div class="job-step-help"><strong>How stock stays linked</strong><p>Sales Orders, POs and goods-in use this project reference so material cost and stock location remain traceable.</p></div></div></section>' +
+          '<section class="job-form-section red"><div class="job-form-heading"><span>04</span><div><h3>Invoice review</h3><p>Record the scope, access notes and materials that must be reviewed before invoicing the customer.</p></div></div><div class="form-grid two"><label>Invoice stage<select name="invoiceStage">' + optionList(["Not reviewed", "Materials to review", "Ready to invoice", "Invoiced", "Do not invoice"], j.invoiceStage || 'Not reviewed') + '</select></label><div class="job-step-help invoice"><strong>Invoice control</strong><p>Move to Ready to invoice only after Sales Orders, PO receipts and job-bin materials have been checked.</p></div></div><label>Scope, site access and invoice notes<textarea name="notes" rows="5" placeholder="Scope of work, access instructions, materials to recharge and invoice notes">' + escapeHtml(j.notes || '') + '</textarea></label></section>' +
           (!data.customers.length ? '<div class="job-form-warning"><strong>A customer is required before this job can be saved.</strong><button type="button" class="secondary" data-safe-open-tab="crm">Create customer</button></div>' : '') +
           '<div class="job-save-bar"><div><strong>' + (editing ? 'Save changes to ' + escapeHtml(j.id) : 'Ready to create this job?') + '</strong><span>All four steps are saved together and linked throughout the system.</span></div><div class="job-save-actions"><button type="button" class="secondary" data-job-list="true">Cancel</button><button type="submit" class="job-save-primary">' + (editing ? 'Save job changes' : 'Save & create job') + '</button></div></div>' +
         '</form>';
@@ -5791,13 +5458,13 @@ const seed = {
         const jobs = jobId ? data.jobs.filter(function(j) { return j.id === jobId; }) : data.jobs;
         const rows = jobs.map(function(j) {
           const c = customer(j.customerId) || {};
-          const reqStats = jobRequestStats(j.id);
+          const orderStats = jobOrderStats(j.id);
           const poStats = jobPoStats(j.id);
           const binValue = jobLocationStockValue(j.locationId);
           const totalCost = typeof psToolCosting === "function" ? (data.toolAssignments || []).filter(function(a) {return a.jobId === j.id;}).reduce(function(n,a) {return n + psToolCost(a);},0) : 0;
-          return '<tr><td><strong>' + escapeHtml(j.id) + '</strong><br>' + escapeHtml(j.name) + '<br><span class="muted">' + escapeHtml(c.name || '') + '</span></td><td>' + reqStats.requests.length + ' request(s)<br><span class="muted">' + reqStats.open + ' open</span></td><td>' + poStats.pos.length + ' PO(s)<br><span class="muted">' + poStats.received + '/' + poStats.ordered + ' received</span></td><td class="right">' + money(reqStats.value) + '</td><td class="right">' + money(binValue.cost) + '</td><td class="right"><strong>' + money(totalCost) + '</strong><br><span class="muted">Invoice stage: ' + escapeHtml(j.invoiceStage || 'Not reviewed') + '</span></td><td><button class="secondary" data-job-open-requests="' + escapeHtml(j.id) + '">View requests</button></td></tr>';
+          return '<tr><td><strong>' + escapeHtml(j.id) + '</strong><br>' + escapeHtml(j.name) + '<br><span class="muted">' + escapeHtml(c.name || '') + '</span></td><td>' + orderStats.orders.length + ' order(s)<br><span class="muted">' + orderStats.open + ' open</span></td><td>' + poStats.pos.length + ' PO(s)<br><span class="muted">' + poStats.received + '/' + poStats.ordered + ' received</span></td><td class="right">' + money(poStats.value) + '</td><td class="right">' + money(binValue.cost) + '</td><td class="right"><strong>' + money(totalCost) + '</strong><br><span class="muted">Invoice stage: ' + escapeHtml(j.invoiceStage || 'Not reviewed') + '</span></td><td><button class="secondary" data-job-costing="' + escapeHtml(j.id) + '">Review project</button></td></tr>';
         }).join('');
-        return '<div class="table-scroll"><table><thead><tr><th>Job</th><th>Requests</th><th>PO / receipt</th><th class="right">Request value</th><th class="right">Bin stock cost</th><th class="right">Tool / hire cost</th><th>Action</th></tr></thead><tbody>' + rows + '</tbody></table></div>';
+        return '<div class="table-scroll"><table><thead><tr><th>Project</th><th>Sales Orders</th><th>PO / receipt</th><th class="right">PO committed</th><th class="right">Bin stock cost</th><th class="right">Tool / hire cost</th><th>Action</th></tr></thead><tbody>' + rows + '</tbody></table></div>';
       }
 
       function renderJobs() {
@@ -5813,23 +5480,22 @@ const seed = {
         });
         const openJobs = data.jobs.filter(function(j) { return !["Completed", "Invoiced"].includes(j.status); }).length;
         const missingBins = data.jobs.filter(function(j) { return !jobBinForJob(j); }).length;
-        const requestValue = data.jobs.reduce(function(total, j) { return total + jobRequestStats(j.id).value; }, 0);
+        const linkedOrders = data.jobs.reduce(function(total, j) { return total + jobOrderStats(j.id).orders.length; }, 0);
+        const poCommitted = data.jobs.reduce(function(total, j) { return total + jobPoStats(j.id).value; }, 0);
         const poPending = data.jobs.reduce(function(total, j) { return total + jobPoStats(j.id).pending; }, 0);
         let body = '';
         if (sub === "Create Job") {
-          body = panel("Create Job / Project", "Create the master job reference before engineers request parts. This is the only place jobs are created, so requests, POs, job bins, received stock and invoice review stay linked.", jobManagerForm(selectedJobId && selectedJobId !== "__new" ? job(selectedJobId) : null));
+          body = panel("Create Job / Project", "Create the master project record when the work needs project control. Sales Orders, POs, job-bin stock and invoice review remain linked to this one record.", jobManagerForm(selectedJobId && selectedJobId !== "__new" ? job(selectedJobId) : null));
         } else if (sub === "Job Bins") {
           activeSubPage.jobs = "Job List";
-          body = panel("Job List", "Job bins are now managed from the Job List so there is one clear place to maintain each job reference.", '<div class="action-row" style="margin-bottom:1rem"><button data-job-new="true">Create job</button><button class="secondary" data-engineer-action="export">Export requests</button></div>' + (selectedJobId && selectedJobId !== "__new" ? jobManagerForm(job(selectedJobId)) : '') + jobRowsTable(jobs));
+          body = panel("Job List", "Job bins are managed from the Project list so there is one clear place to maintain each project record.", '<div class="action-row" style="margin-bottom:1rem"><button data-job-new="true">Create project</button></div>' + (selectedJobId && selectedJobId !== "__new" ? jobManagerForm(job(selectedJobId)) : '') + jobRowsTable(jobs));
         } else if (sub === "Project Costing") {
-          const selectedJobRequests = selectedJobId && selectedJobId !== "__new" ? data.engineerRequests.filter(function(req) { return req.jobId === selectedJobId; }) : [];
-          const requestDetail = selectedJobId && selectedJobId !== "__new" ? '<div style="height:1rem"></div>' + panel("Linked order requests", "Requests and POs linked to this job. Complete requests here once received so the job can move to invoice review.", engineerRequestTable(selectedJobRequests)) : '';
-          body = panel("Project Costing / Invoice Review", "Review requested materials, held stock and tool costs separately. Requested and held stock can overlap, so they are not added together as an actual job cost.", jobCostingPanel(selectedJobId && selectedJobId !== "__new" ? selectedJobId : "")) + requestDetail;
+          body = panel("Project Costing / Invoice Review", "Review linked Sales Orders, committed purchasing, held project stock and tool costs without double counting material demand.", jobCostingPanel(selectedJobId && selectedJobId !== "__new" ? selectedJobId : ""));
         } else {
-          const controls = '<div class="job-list-toolbar"><div><span class="job-editor-kicker">Projects</span><h2>Manage active jobs</h2><p>Create the job once, then requests, POs, receiving and invoice review stay linked to the same record.</p></div><div class="action-row"><button data-job-new="true">Create job</button><button class="secondary" data-engineer-open-request-products="true">New order request</button><button class="secondary" data-engineer-action="export">Export</button></div></div>';
-          body = panel("Job List", "Search and manage every customer job or project from one clear workspace.", controls + jobRowsTable(jobs));
+          const controls = '<div class="job-list-toolbar"><div><span class="job-editor-kicker">Projects</span><h2>Manage active projects</h2><p>Project demand now flows directly from linked Sales Orders into purchasing, receiving and job-bin stock.</p></div><div class="action-row"><button data-job-new="true">Create project</button><button class="secondary" data-safe-open-tab="quotes">Create quote first</button></div></div>';
+          body = panel("Project List", "Search and manage every customer project from one clear workspace.", controls + jobRowsTable(jobs));
         }
-        screen.innerHTML = kpi("Open projects", openJobs, "Active projects") + kpi("Job bins", data.locations.filter(function(l) { return l.type === "Job Bin"; }).length, missingBins + " missing") + kpi("Request value", money(requestValue), "Requested material value") + kpi("PO pending", poPending, "Units still outstanding") + body;
+        screen.innerHTML = kpi("Open projects", openJobs, "Active projects") + kpi("Linked Sales Orders", linkedOrders, "Project demand source") + kpi("PO committed", money(poCommitted), "Committed material cost") + kpi("PO pending", poPending, "Units still outstanding") + body;
         bindJobs();
       }
 
@@ -5902,13 +5568,13 @@ const seed = {
         const j = job(jobId);
         if (!j) return toast("Job not found.");
         if (!isAdminUser()) return toast("Only admin or managers can delete job references.");
-        const reqs = (data.engineerRequests || []).filter(function(req) { return req.jobId === jobId; });
-        const pos = data.purchaseOrders.filter(function(po) { return po.jobId === jobId; });
+        const orders = (data.salesOrders || []).filter(function(order) { return order.jobId === jobId; });
+        const pos = data.purchaseOrders.filter(function(po) { return po.jobId === jobId || (po.lines || []).some(function(line) { return line.jobId === jobId || orders.some(function(order) { return order.id === line.salesOrderId; }); }); });
         const allocs = data.allocations.filter(function(a) { return a.jobId === jobId; });
         const bin = jobBinForJob(j);
         const binStock = bin ? jobLocationStockValue(bin.id).units : 0;
-        if (reqs.length || pos.length || allocs.length || binStock > 0) {
-          return toast("This job is linked to requests, POs, allocations or stock. Complete/clear those first.");
+        if (orders.length || pos.length || allocs.length || binStock > 0) {
+          return toast("This project is linked to Sales Orders, POs, allocations or stock. Complete/clear those first.");
         }
         if (!confirm("Delete " + j.id + "? This cannot be undone.")) return;
         data.jobs = data.jobs.filter(function(item) { return item.id !== jobId; });
@@ -5916,15 +5582,6 @@ const seed = {
         selectedJobId = "";
         saveAppData();
         toast(jobId + " deleted.");
-        render();
-      }
-
-      function openJobRequests(jobId) {
-        selectedJobId = jobId;
-        engineerRequestSearch = jobId;
-        engineerRequestFilter = "all";
-        active = "jobs";
-        activeSubPage.jobs = "Project Costing";
         render();
       }
 
@@ -9158,7 +8815,6 @@ const seed = {
       function receiveGoodsInLine(poId, productId, mode) {
         if (!receiveGoodsInLineWithoutRender(poId, productId, mode)) return toast("No receipt saved. Check quantity, PO status and stock-count locks.");
         const po = data.purchaseOrders.find(function(p) {return p.id === poId;});
-        syncEngineerRequestProgress(engineerRequestById(po.engineerRequestId));
         saveAppData();
         toast("Receipt saved. Inventory and PO updated once.");
         render();
@@ -9174,7 +8830,6 @@ const seed = {
         });
         const po = data.purchaseOrders.find(function(item) { return item.id === poId; });
         po.status = purchaseOrderStatusFromLines(po);
-        syncEngineerRequestProgress(engineerRequestById(po.engineerRequestId));
         saveAppData();
         toast(receivedCount + " line receipt(s) saved.");
         render();
@@ -9186,7 +8841,6 @@ const seed = {
           receiveGoodsInLineWithoutRender(poId, line.receiptLineId, line.damaged ? "quarantine" : "normal");
         });
         po.status = purchaseOrderStatusFromLines(po);
-        syncEngineerRequestProgress(engineerRequestById(po.engineerRequestId));
         saveAppData();
         toast(po.id + " received into assigned bins.");
         render();
@@ -9200,7 +8854,6 @@ const seed = {
           if (receiveGoodsInLineWithoutRender(poId, line.receiptLineId, "normal")) count += 1;
         });
         po.status = purchaseOrderStatusFromLines(po);
-        syncEngineerRequestProgress(engineerRequestById(po.engineerRequestId));
         saveAppData();
         toast(count + " clean goods-in line(s) received.");
         render();
@@ -9215,7 +8868,6 @@ const seed = {
           if (receiveGoodsInLineWithoutRender(poId, line.receiptLineId, "quarantine")) count += 1;
         });
         po.status = purchaseOrderStatusFromLines(po);
-        syncEngineerRequestProgress(engineerRequestById(po.engineerRequestId));
         saveAppData();
         toast(count + " damaged line(s) sent to quarantine.");
         render();
@@ -9325,15 +8977,13 @@ const seed = {
       function completeGoodsIn(poId) {
         const po = data.purchaseOrders.find(function(item) { return item.id === poId; });
         po.status = purchaseOrderStatusFromLines(po);
-        syncEngineerRequestProgress(engineerRequestById(po.engineerRequestId));
         if (po.status !== "Received") {
           toast(po.id + " is part received. Outstanding quantities remain on this PO for the next delivery.");
           render();
           return;
         }
-        syncEngineerRequestProgress(engineerRequestById(po.engineerRequestId));
         saveAppData();
-        toast(po.id + " goods-in completed. Linked order request progress updated.");
+        toast(po.id + " goods-in completed. Linked Sales Order and project stock remain current.");
         render();
       }
 
@@ -9492,7 +9142,7 @@ const seed = {
 
         return '<div class="crm-hero">' +
           '<div class="crm-hero-main"><span class="crm-hero-avatar">' + escapeHtml(initials) + '</span><div class="crm-hero-copy"><h2>' + escapeHtml(c.name) + '</h2><p>' + escapeHtml([c.firstName,c.lastName].filter(Boolean).join(" ") || "No named contact") + ' · ' + escapeHtml(c.code || "No code") + ' · ' + escapeHtml(c.customerType || "Customer") + ' account</p><div class="crm-relationship-meta"><span>Last activity <b>' + lastActivity + '</b></span><span>Owner <b>' + escapeHtml(c.owner || "Office") + '</b></span></div><div class="crm-hero-meta"><span class="crm-pill ' + (healthIssues.length ? 'amber' : 'good') + '">' + healthLabel + ' account</span><span class="crm-pill info">' + Number(c.creditDays||0) + ' day terms</span><span class="crm-pill info">' + escapeHtml(String(c.priceList||"rrp").toUpperCase()) + '</span></div></div>' +
-          '<div class="crm-hero-actions"><button class="secondary" data-crm-add-note="' + c.id + '">Add note</button><button class="secondary" data-crm-new-project="' + c.id + '">New job / project</button><button data-create-sales-order-customer="' + c.id + '">New order</button><button class="secondary" data-crm-edit="' + c.id + '|account">Edit</button></div></div>' +
+          '<div class="crm-hero-actions"><button class="secondary" data-crm-add-note="' + c.id + '">Add note</button><button class="secondary" data-crm-new-project="' + c.id + '">New job / project</button><button class="secondary" data-create-quote-customer="' + c.id + '">New quote</button><button data-create-sales-order-customer="' + c.id + '">New order</button><button class="secondary" data-crm-edit="' + c.id + '|account">Edit</button></div></div>' +
           '<nav class="crm-profile-tabs" aria-label="Customer workspace"><button class="active" data-crm-profile-tab="overview">Overview</button><button data-crm-profile-tab="orders">Orders <i>' + orders.length + '</i></button><button data-crm-profile-tab="projects">Jobs &amp; Projects <i>' + jobs.length + '</i></button><button data-crm-profile-tab="people">People <i>' + peopleCount + '</i></button><button data-crm-profile-tab="locations">Locations <i>' + locationCount + '</i></button><button data-crm-profile-tab="finance">Finance</button><button data-crm-profile-tab="history">History</button></nav>' +
         '</div>' +
 
@@ -9530,7 +9180,7 @@ const seed = {
           '<div class="crm-inheritance-note"><b>Smart defaults:</b> New orders and jobs/projects inherit this customer’s primary contact, delivery location, price list, payment terms and account owner. Staff can override those values on the individual transaction.</div>' +
         '</div>' +
 
-        '<div class="crm-profile-page" data-crm-profile-page="orders"><section class="crm-depth-card"><header><div><h3>Orders</h3><p>All customer sales orders and current fulfilment state.</p></div><button data-create-sales-order-customer="' + c.id + '">＋ New order</button></header><div class="crm-depth-body">' + (latestOrders.length ? latestOrders.map(function(order){ return '<div class="crm-line"><span><b>' + escapeHtml(order.id) + '</b><small>' + escapeHtml(order.status||"Open") + ' · ' + escapeHtml(order.created||"") + '</small></span><strong>' + money(salesOrderValue(order)) + '</strong></div>'; }).join("") : '<div class="crm-empty-inline">No sales orders yet.</div>') + '</div></section></div>' +
+        '<div class="crm-profile-page" data-crm-profile-page="orders"><section class="crm-depth-card"><header><div><h3>Orders</h3><p>Accepted quotes flow into sales orders with full SKU traceability.</p></div><div class="action-row"><button class="secondary" data-create-quote-customer="' + c.id + '">＋ New quote</button><button data-create-sales-order-customer="' + c.id + '">＋ New order</button></div></header><div class="crm-depth-body">' + (latestOrders.length ? latestOrders.map(function(order){ return '<div class="crm-line"><span><b>' + escapeHtml(order.id) + '</b><small>' + escapeHtml(order.status||"Open") + ' · ' + escapeHtml(order.created||"") + '</small></span><strong>' + money(salesOrderValue(order)) + '</strong></div>'; }).join("") : '<div class="crm-empty-inline">No sales orders yet.</div>') + '</div></section></div>' +
 
         '<div class="crm-profile-page" data-crm-profile-page="projects"><section class="crm-depth-card"><header><div><h3>Jobs &amp; Projects</h3><p>Customer-linked jobs and projects without making them a required parent of sales orders.</p></div><button data-crm-new-project="' + c.id + '">＋ New job / project</button></header><div class="crm-depth-body">' + (jobs.length ? jobs.map(function(j){ return '<div class="crm-line"><span><b>' + escapeHtml(j.name||j.id) + '</b><small>' + escapeHtml(j.status||"Planning") + ' · ' + escapeHtml(j.id||"") + '</small></span><button class="secondary" data-crm-open-job="' + j.id + '">Open</button></div>'; }).join("") : '<div class="crm-empty-inline">No linked jobs or projects.</div>') + '</div></section></div>' +
 
@@ -9600,7 +9250,7 @@ const seed = {
           }).join("") + '</div>';
         return '<div class="crm-create-shell">' +
           '<div class="crm-create-topbar"><div><button class="secondary compact" data-back-crm="true">Back to customers</button><h2>Create Customer</h2><p class="muted">Step-by-step customer setup. Save from the top once the key details are complete.</p></div><div class="crm-create-actions"><button class="secondary" data-crm-create-preview="true">Check details</button><button data-create-crm-profile="true">Save customer</button></div></div>' +
-          panel("Customer Setup", "Complete each coloured step. The saved customer then feeds sales orders, jobs, order requests, purchasing, fulfilment and accounting.", nav + '<div class="crm-create-guidance"><div><strong>Customer record</strong><span>Identity and contacts become the master CRM record.</span></div><div><strong>Orders and delivery</strong><span>Addresses, pricing and tax populate new sales orders automatically.</span></div><div><strong>Jobs and service</strong><span>Site notes and access information follow linked jobs and order requests.</span></div><div><strong>Accounts</strong><span>Credit, payment terms and accounting references feed customer balances and Xero matching.</span></div></div>') +
+          panel("Customer Setup", "Complete each coloured step. The saved customer then feeds sales orders, jobs, order requests, purchasing, fulfilment and accounting.", nav + '<div class="crm-create-guidance"><div><strong>Customer record</strong><span>Identity and contacts become the master CRM record.</span></div><div><strong>Orders and delivery</strong><span>Addresses, pricing and tax populate new sales orders automatically.</span></div><div><strong>Jobs and service</strong><span>Site notes and access information follow linked projects and accepted quote handovers.</span></div><div><strong>Accounts</strong><span>Credit, payment terms and accounting references feed customer balances and Xero matching.</span></div></div>') +
           '<div class="crm-wizard-section crm-panel-blue ' + (crmCreateStep === "details" ? "active" : "") + '" data-crm-create-panel="details">' + panel("01 Customer Details", "Create the master contact and account identity used throughout the system.", customerCreateEssentialForm(temp)) + '</div>' +
           '<div class="crm-wizard-section crm-panel-yellow ' + (crmCreateStep === "address" ? "active" : "") + '" data-crm-create-panel="address">' + panel("02 Customer Addresses", "Set the primary address. Billing and delivery inherit it initially and remain editable on the saved profile.", customerSingleAddressForm(temp, "delivery") + '<div class="notice-row"><div class="notice-item"><strong>Sales order link</strong><p class="muted">The delivery address and phone populate new sales orders automatically.</p></div><div class="notice-item"><strong>Purchasing link</strong><p class="muted">Customer-direct purchase orders retain the same delivery reference.</p></div></div>') + '</div>' +
           '<div class="crm-wizard-section crm-panel-green ' + (crmCreateStep === "commercial" ? "active" : "") + '" data-crm-create-panel="commercial">' + panel("03 Pricing, Tax And Credit", "These commercial defaults flow into sales orders, invoicing, account balances and margin checks.", customerCreateCommercialForm(temp)) + '</div>' +
@@ -10211,7 +9861,7 @@ const seed = {
           { title: "Goods-in receiving", steps: ["Open Warehouse > Goods In.", "Select or scan the supplier PO.", "Enter only the quantities that arrived; leave outstanding quantities on the PO.", "Choose a final bin for fast receipt, Receiving Bay for staged putaway, or Quarantine for damaged goods.", "Move staged goods using Guided Putaway; do not receive them again.", "Allocate linked or matching sales orders before completing goods-in."] },
           { title: "Sales order fulfilment", steps: ["Create or open the sales order.", "Allocate physical stock only; labour and custom non-stock lines do not use warehouse allocation.", "Create partial goods notes for available stock; keep the remainder open.", "Create/print the goods note, pick, pack and ship.", "Invoice when the order reaches the invoice-ready stage."] },
           { title: "Short-stock purchasing", steps: ["Open a red/short sales order line.", "Clone the line to a draft PO.", "Admin reviews supplier, qty, cost and linked customer/job.", "Prepare supplier email, then mark the PO as sent.", "Receive the PO and allocate back to the sales order or job."] },
-          { title: "Product and material requests", steps: ["Engineer logs in and opens Engineer Requests.", "Request products against the job/project reference.", "Admin approves or rejects the request.", "Admin raises the linked PO.", "Goods-in receives to site/job, then admin completes for invoice review."] },
+          { title: "Project materials and purchasing", steps: ["Create or accept the customer quote.", "Accepted items create Sales Order demand.", "Allocate available stock and review shortages.", "Purchasing prepares supplier POs for shortages.", "Goods-in receives and allocates material to the linked order or project stock."] },
           { title: "Van stock control", steps: ["Use Inventory > Van Top-Ups for warehouse-to-van replenishment.", "Use Location Thresholds for van-specific min/max/restock-to rules.", "Return uncommon or over-max van stock back to warehouse.", "Run weekly van stock takes and submit variances for admin approval."] },
           { title: "Stock take and missing stock", steps: ["Open Inventory > Stock Take and select the location.", "Print a blank count sheet or count on screen.", "Enter counted quantities and reasons for differences.", "Submit for approval before stock is posted.", "Use Missing Stock to review engineer/location losses and value impact."] }
         ];
@@ -12784,9 +12434,6 @@ const seed = {
             ["purchaseOrderId", "poId", "linkedPoId"].forEach(function(key) { if (line[key] === po.id) line[key] = ""; });
           });
         });
-        (data.engineerRequests || []).forEach(function(request) {
-          if (request.purchaseOrderId === po.id || request.poId === po.id) { request.purchaseOrderId = ""; request.poId = ""; }
-        });
         data.purchaseOrders = (data.purchaseOrders || []).filter(function(item) { return item.id !== po.id; });
         if (!Array.isArray(data.auditLog)) data.auditLog = [];
         data.auditLog.push({ id: "AUD-" + Date.now(), date: new Date().toISOString(), user: (currentUser && currentUser().name) || "Current user", action: "Purchase order deleted", product: po.id, previousValue: { supplier: po.supplier, status: po.status, lines: po.lines }, newValue: "Deleted", reason: reason });
@@ -14770,69 +14417,9 @@ const seed = {
           createOrUpdateJobBin(button.dataset.jobCreateBin);
           return;
         }
-        if (button.matches("[data-job-open-requests]")) {
-          event.preventDefault();
-          openJobRequests(button.dataset.jobOpenRequests);
-          return;
-        }
         if (button.matches("[data-job-costing]")) {
           event.preventDefault();
           openJobCosting(button.dataset.jobCosting);
-          return;
-        }
-        if (button.matches("[data-engineer-open-jobs]")) {
-          event.preventDefault();
-          active = "jobs";
-          activeSubPage.jobs = "Job List";
-          render();
-          return;
-        }
-        if (button.matches("[data-engineer-open-request-products]")) {
-          event.preventDefault();
-          active = "engineer";
-          activeSubPage.engineer = "Request Products";
-          render();
-          return;
-        }
-        if (button.matches("[data-engineer-approve]")) {
-          event.preventDefault();
-          approveEngineerRequest(button.dataset.engineerApprove);
-          return;
-        }
-        if (button.matches("[data-engineer-reject]")) {
-          event.preventDefault();
-          rejectEngineerRequest(button.dataset.engineerReject);
-          return;
-        }
-        if (button.matches("[data-engineer-raise-po]")) {
-          event.preventDefault();
-          raisePoFromEngineerRequest(button.dataset.engineerRaisePo);
-          return;
-        }
-        if (button.matches("[data-engineer-complete]")) {
-          event.preventDefault();
-          completeEngineerRequest(button.dataset.engineerComplete);
-          return;
-        }
-        if (button.matches("[data-engineer-focus-job]")) {
-          event.preventDefault();
-          engineerRequestSearch = button.dataset.engineerFocusJob || "";
-          engineerRequestFilter = "all";
-          render();
-          return;
-        }
-        if (button.matches("[data-engineer-open-po]")) {
-          event.preventDefault();
-          selectedPurchaseOrderId = button.dataset.engineerOpenPo;
-          purchaseOrderView = "detail";
-          active = "purchase";
-          activeSubPage.purchase = "Purchase Orders";
-          render();
-          return;
-        }
-        if (button.matches("[data-engineer-action]")) {
-          event.preventDefault();
-          if (button.dataset.engineerAction === "export") exportEngineerRequests();
           return;
         }
         if (button.matches("[data-back-to-section]")) {
@@ -14853,6 +14440,16 @@ const seed = {
         if (button.matches("[data-open-so]")) {
           event.preventDefault();
           openSalesOrderDetail(button.dataset.openSo);
+          return;
+        }
+        if (button.matches("[data-create-quote-customer]")) {
+          event.preventDefault();
+          active = "quotes";
+          activeSubPage.quotes = "Quotes";
+          render();
+          if (window.PoolShedQuoteStudioWorkspace && typeof window.PoolShedQuoteStudioWorkspace.newQuoteForCustomer === "function") {
+            window.PoolShedQuoteStudioWorkspace.newQuoteForCustomer(button.dataset.createQuoteCustomer);
+          }
           return;
         }
         if (button.matches("[data-create-sales-order]")) {
@@ -14957,5 +14554,5 @@ const seed = {
         updateOfflineStatus();
         restoreOfflineSnapshotIfNeeded();
         syncPendingOfflineData();
-        if ("serviceWorker" in navigator && location.protocol !== "file:") navigator.serviceWorker.register("./service-worker.js?v=1.28.0", { updateViaCache:"none" }).catch(function() {});
+        if ("serviceWorker" in navigator && location.protocol !== "file:") navigator.serviceWorker.register("./service-worker.js?v=1.31.0", { updateViaCache:"none" }).catch(function() {});
       });

@@ -80,6 +80,7 @@ function inferSeverity(note,category){
 function inferModule(note,category){
   if(note.sourceModule)return text(note.sourceModule);
   if(note.route&&note.route.module)return text(note.route.module);
+  if(note.quoteId)return 'quotes';
   if(note.salesOrderId)return 'salesorders';
   if(note.customerId)return 'crm';
   if(note.projectId||note.jobId)return 'jobs';
@@ -97,6 +98,7 @@ function inferModule(note,category){
 }
 function inferRoute(note,category,module){
   if(note.route&&typeof note.route==='object')return Object.assign({},note.route);
+  if(note.quoteId)return {module:'quotes',recordType:'quote',recordId:text(note.quoteId),label:'Open Quote'};
   if(note.salesOrderId)return {module:'salesorders',recordType:'salesOrder',recordId:text(note.salesOrderId),label:'Open Sales Order'};
   if(note.customerId)return {module:'crm',recordType:'customer',recordId:text(note.customerId),label:'Open Customer'};
   if(note.projectId||note.jobId)return {module:'jobs',recordType:'project',recordId:text(note.projectId||note.jobId),label:'Open Project'};
@@ -104,13 +106,13 @@ function inferRoute(note,category,module){
   if(note.supplierId)return {module:'purchase',recordType:'supplier',recordId:text(note.supplierId),label:'Open Supplier'};
   if(note.goodsNoteId)return {module:'fulfilment',recordType:'goodsNote',recordId:text(note.goodsNoteId),label:'Open Fulfilment'};
   if(note.locationId)return {module:'locations',recordType:'location',recordId:text(note.locationId),label:'Review Stock'};
-  const labels={salesorders:'Open Sales Orders',crm:'Open Customers',jobs:'Open Projects',purchase:'Open Purchasing',locations:'Review Stock',warehouse:'Open Warehouse',fulfilment:'Open Fulfilment',accounting:'Open Finance',automation:'Open Automation',settings:'Open Settings',dashboard:'Open Dashboard'};
+  const labels={quotes:'Open Quote Studio',salesorders:'Open Sales Orders',crm:'Open Customers',jobs:'Open Projects',purchase:'Open Purchasing',locations:'Review Stock',warehouse:'Open Warehouse',fulfilment:'Open Fulfilment',accounting:'Open Finance',automation:'Open Automation',settings:'Open Settings',dashboard:'Open Dashboard'};
   return {module,recordType:'module',recordId:'',label:labels[module]||'Open'};
 }
-function sourceId(note){return text(first(note.sourceId,note.salesOrderId,note.customerId,note.projectId,note.jobId,note.purchaseOrderId,note.supplierId,note.goodsNoteId,note.locationId,note.invoiceId,note.paymentId,note.id));}
+function sourceId(note){return text(first(note.sourceId,note.quoteId,note.salesOrderId,note.customerId,note.projectId,note.jobId,note.purchaseOrderId,note.supplierId,note.goodsNoteId,note.locationId,note.invoiceId,note.paymentId,note.id));}
 function sourceType(note,category){
   if(note.sourceType)return text(note.sourceType);
-  if(note.salesOrderId)return 'salesOrder';if(note.customerId)return 'customer';if(note.projectId||note.jobId)return 'project';if(note.purchaseOrderId)return 'purchaseOrder';if(note.supplierId)return 'supplier';if(note.goodsNoteId)return 'goodsNote';if(note.locationId)return 'location';
+  if(note.quoteId)return 'quote';if(note.salesOrderId)return 'salesOrder';if(note.customerId)return 'customer';if(note.projectId||note.jobId)return 'project';if(note.purchaseOrderId)return 'purchaseOrder';if(note.supplierId)return 'supplier';if(note.goodsNoteId)return 'goodsNote';if(note.locationId)return 'location';
   return stablePart(category)||'notification';
 }
 function eventTitle(note,category){

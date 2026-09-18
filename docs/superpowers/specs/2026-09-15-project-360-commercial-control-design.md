@@ -20,7 +20,7 @@ Opening a Project enters Project 360 with tabs:
 3. Materials
 4. Procurement
 5. Stock & Job Bin
-6. Engineer Requests
+6. Project Purchasing
 7. Tools
 8. Costing & Margin
 9. Billing & Variations
@@ -139,8 +139,8 @@ Project Procurement shows every linked PO and line, including:
 
 Opening the PO uses the approved Supplier Order Command. Physical receipt remains Warehouse-owned.
 
-## Engineer Requests
-Every Engineer Request linked to the Project is visible with requested quantity/value, urgency, PO linkage and real fulfilment state. New Project material demand must prefer available stock before purchase.
+## Project Purchasing
+Every Project Purchase Demand linked to the Project is visible with requested quantity/value, urgency, PO linkage and real fulfilment state. New Project material demand must prefer available stock before purchase.
 
 ## Costing
 Separate:
@@ -185,7 +185,7 @@ A Project cannot close while any of these remain unresolved:
 - open Project tasks
 - open linked PO quantities or unresolved supplier exceptions
 - stock still in Project Job Bin unless dispositioned
-- open Engineer Requests
+- open Project Purchasing
 - outstanding Project tools/hire
 - proposed variations requiring decision
 - billable/invoice stages not reconciled

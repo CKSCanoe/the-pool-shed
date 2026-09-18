@@ -22,7 +22,7 @@ The canonical Action Authority supports:
 - permission-scoped listing;
 - audit and notification integration.
 
-Operational source adapters currently cover clear resolvable exceptions from Purchasing, Sales, Warehouse, Projects, Finance, Automation and Engineer Requests.
+Operational source adapters currently cover clear resolvable exceptions from Purchasing, Sales, Warehouse, Projects, Finance, Automation and Project Purchasing.
 
 ## Approval Authority
 

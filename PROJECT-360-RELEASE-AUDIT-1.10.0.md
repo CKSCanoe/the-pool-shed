@@ -48,7 +48,7 @@ Every Project has the following authority tabs:
 3. Materials
 4. Procurement
 5. Stock & Job Bin
-6. Engineer Requests
+6. Project Purchasing
 7. Tools
 8. Costing & Margin
 9. Billing & Variations
@@ -121,9 +121,9 @@ Project Procurement shows live linked Purchase Orders and supplier quantities. P
 
 This avoids a second Project-specific purchasing ledger.
 
-## Engineer Requests and tools
+## Project Purchasing and tools
 
-Project 360 retains and surfaces linked Engineer Requests and tool/hire records. Open requests and outstanding tools contribute to Project Health and close-out blocking.
+Project 360 retains and surfaces linked Project Purchasing and tool/hire records. Open requests and outstanding tools contribute to Project Health and close-out blocking.
 
 ## Billing, variations and invoice exposure
 
@@ -139,7 +139,7 @@ A Project cannot move cleanly to completion while material or commercial obligat
 
 - stock remaining in the Project Job Bin
 - open supplier PO quantities
-- open Engineer Requests
+- open Project Purchasing
 - outstanding tools/hire
 - unresolved proposed variations
 - open Project tasks where applicable

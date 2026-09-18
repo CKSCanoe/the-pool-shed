@@ -42,7 +42,7 @@ Readability hardening checks passed: no remaining sub-micro copy and critical co
 
 PASS v1.27 Action Authority lifecycle, dedupe, ownership, permissions, notifications, audit and source refresh
 PASS v1.27 Approval Authority dedupe, limits, stale-source blocking, command registry, audit and linked Actions
-PASS v1.27 source adapters for Purchasing, Sales, Warehouse, Projects, Finance, Automation and Engineer Requests
+PASS v1.27 source adapters for Purchasing, Sales, Warehouse, Projects, Finance, Automation and Project Purchasing
 PASS v1.27 My Work navigation, workspace surfaces, Team restriction hooks and lifecycle controls
 PASS v1.27 My Work Executive Premium semantic-token visual contract
 PASS v1.27 My Work deep links and Notifications independence

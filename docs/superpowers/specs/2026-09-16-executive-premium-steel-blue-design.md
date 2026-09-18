@@ -13,7 +13,7 @@ The approved interactive reference is `Pool-Shed-Executive-Premium-Steel-Blue-De
 
 - v1.23 is the only implementation baseline. Do not merge the v1.22 recovery branch over it.
 - Preserve the current premium v1.22/v1.23 login structure, authentication behaviour, password recovery, MFA handling and Supabase session authority.
-- Preserve every current business workflow and canonical data authority across Dashboard, CRM, Projects, Sales Orders, Engineer Requests, Product Hub, Inventory, Purchasing, Warehouse, Fulfilment, Finance, Analytics, Automation/Azzy, Settings and Production Readiness.
+- Preserve every current business workflow and canonical data authority across Dashboard, CRM, Projects, Sales Orders, Project Purchasing, Product Hub, Inventory, Purchasing, Warehouse, Fulfilment, Finance, Analytics, Automation/Azzy, Settings and Production Readiness.
 - Xero remains `Ready to Connect`. No live OAuth, tenant connection or sync is enabled by this visual release.
 - Do not modify Supabase schema, RLS, authentication project, workspace snapshot contract or live business data.
 - Do not restore Platform Hardening or public technical Supabase/Vercel/GitHub copy to the login screen.
@@ -237,7 +237,7 @@ The visual conversion applies to the complete maintained system, including:
 - CRM / Customers
 - Projects / Project Details
 - Sales Orders
-- Engineer Requests
+- Project Purchasing
 - Product Hub / Catalogue / Bundles
 - Inventory
 - Purchasing / Purchase Orders / Supplier Command

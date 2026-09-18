@@ -13,7 +13,7 @@
   function repoint(oldId,newId){
     (data.receiptEvents||[]).forEach(function(e){if(e.productId===oldId){e.originalProductId=e.originalProductId||oldId;e.productId=newId}});
     ['stock','restockRules','allocations','movements'].forEach(function(key){(data[key]||[]).forEach(function(x){if(x.productId===oldId)x.productId=newId})});
-    ['purchaseOrders','salesOrders','goodsNotes','salesCredits','engineerRequests'].forEach(function(key){(data[key]||[]).forEach(function(o){(o.lines||[]).forEach(function(x){if(x.productId===oldId)x.productId=newId})})});
+    ['purchaseOrders','salesOrders','goodsNotes','salesCredits'].forEach(function(key){(data[key]||[]).forEach(function(o){(o.lines||[]).forEach(function(x){if(x.productId===oldId)x.productId=newId})})});
   }
   function consolidateStock(){const map=new Map();(data.stock||[]).forEach(function(r){if(!r||!r.productId||!r.locationId)return;const k=r.productId+'|'+r.locationId;if(!map.has(k))map.set(k,{productId:r.productId,locationId:r.locationId,qty:0,allocated:0});const x=map.get(k);x.qty+=Number(r.qty||0);x.allocated+=Number(r.allocated||0)});data.stock=Array.from(map.values()).map(function(r){r.qty=Math.max(0,r.qty);r.allocated=Math.max(0,Math.min(r.qty,r.allocated));return r})}
   function reconcileInventory(reason){

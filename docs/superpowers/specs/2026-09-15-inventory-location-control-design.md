@@ -18,7 +18,7 @@ Inventory uses: Overview, Stock, Locations, Engineer Vans, Project Stock, Transf
 Option C is the primary operating design. Each location has KPIs for on hand, allocated/reserved, available, stock value, low lines, over-target lines, count status and open transfers. Warehouse bins, vans, Project Job Bins, quarantine, receiving and site-hold locations use the same stock source.
 
 ## Engineer Van Control
-Engineer van locations support a stock profile and per-SKU Min, Target and Max. The system calculates below-min lines, quantity to reach Target, over-Max/excess return opportunities, upcoming Project/Engineer Request demand, count due state, stock accuracy trend and missing/damaged value.
+Engineer van locations support a stock profile and per-SKU Min, Target and Max. The system calculates below-min lines, quantity to reach Target, over-Max/excess return opportunities, upcoming Project/Project Purchase Demand demand, count due state, stock accuracy trend and missing/damaged value.
 
 Suggested internal moves always use physical stock available in an eligible Warehouse source. Creating a top-up creates an internal stock transfer/movement, never a supplier PO. If Warehouse cannot cover a shortage, Inventory links to Product Hub Replenishment rather than duplicating supplier purchasing logic.
 

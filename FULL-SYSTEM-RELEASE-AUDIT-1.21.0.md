@@ -6,12 +6,12 @@ v1.21.0 consolidates the approved Pool Shed modules into one final system packag
 
 Final main navigation:
 
-Dashboard → CRM → Projects → Sales Orders → Engineer Requests → Product Hub → Inventory → Purchasing → Warehouse → Fulfilment → Accounting → Analytics → Automation → Settings
+Dashboard → CRM → Projects → Sales Orders → Project Purchasing → Product Hub → Inventory → Purchasing → Warehouse → Fulfilment → Accounting → Analytics → Automation → Settings
 
 ## Final polish completed
 
 - Replaced legacy main-navigation labels `Customers & Suppliers`, `Jobs / Projects`, and `Order Requests` with the approved final terminology while preserving internal IDs and existing records.
-- Updated the suggested operating flow to include Projects, Engineer Requests and Automation.
+- Updated the suggested operating flow to include Projects, Project Purchasing and Automation.
 - Advanced the application, runtime assets, service-worker registration and cache namespace to v1.21.0.
 - Production Readiness now reports the current v1.21.0 release identity and keeps Returns & Credits routing aligned to Warehouse Inbound.
 - Historical Xero and Production Readiness regression guards now verify feature retention on newer releases instead of incorrectly freezing the entire application at v1.20.x.

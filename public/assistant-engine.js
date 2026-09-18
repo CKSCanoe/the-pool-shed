@@ -34,7 +34,6 @@ if(can('locations')){
  (d.locations||[]).filter(l=>canLocation(l.id)).forEach(l=>out.push(rec('location',l.id,l.name,l.type,[l.id,l.name,l.type,l.owner,l.barcode].join(' '),'locations',l,{exact:[l.id,l.barcode].filter(Boolean)})));
  (d.movements||[]).filter(m=>canLocation(m.locationId||m.fromLocationId||m.toLocationId)).forEach(m=>out.push(rec('movement',m.id||('movement-'+out.length),m.type,m.ref,[m.id,m.type,m.ref,m.note,m.productId,m.locationId].join(' '),'locations',m,{exact:[m.id,m.ref].filter(Boolean)})));
 }
-if(can('engineer'))(d.engineerRequests||[]).forEach(r=>out.push(rec('engineerRequest',r.id,r.id,r.status,[r.id,r.status,r.engineer,r.jobId,r.note].join(' '),'engineer',r,{exact:[r.id].filter(Boolean)})));
 if(can('accounting')){
  const f=d.financeCommand||{};['customerDocuments','supplierBills','unallocatedPayments','customerCredits','supplierCredits'].forEach(k=>(f[k]||[]).forEach(x=>out.push(rec('finance',x.id||x.reference,x.id||x.reference,k,[x.id,x.reference,x.customerId,x.supplier,x.type,x.status,x.amount,x.amountDue].join(' '),'accounting',x,{exact:[x.id,x.reference].filter(Boolean)}))));
 }

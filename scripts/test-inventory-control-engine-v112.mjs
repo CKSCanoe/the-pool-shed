@@ -21,7 +21,6 @@ const data={
   {productId:'P2',locationId:'L-VAN-DAVE',min:5,restockTo:10,max:12,priority:'Normal'}
  ],
  jobs:[{id:'J1',name:'Project Alpha',status:'In Progress',engineer:'Dave'}],
- engineerRequests:[{id:'ER1',jobId:'J1',engineer:'Dave',status:'Requested',requiredDate:'2026-09-16',lines:[{productId:'P1',qty:2,allocated:0}]}],
  purchaseOrders:[],salesOrders:[],movements:[
   {id:'M1',type:'Stocktake Variance Down',productId:'P1',qty:1,from:"Dave's Van",to:"Dave's Van",date:'2026-09-05'},
   {id:'M2',type:'Stocktake Variance Down',productId:'P1',qty:1,from:"Dave's Van",to:"Dave's Van",date:'2026-09-10'},
@@ -40,10 +39,10 @@ assert.equal(valve.available,2,'van readiness must use free stock after reservat
 assert.equal(valve.suggestedTopUp,6,'below-min valve should top up free stock to Target 8');
 assert.equal(valve.warehouseAvailable,28,'top-up should see real warehouse availability');
 assert.equal(elbow.returnSuggested,6,'over-Max item should suggest reducing to Target');
-assert.equal(inv.projectDemandForLocation('L-VAN-DAVE').find(x=>x.productId==='P1').qty,2,'engineer/project demand must feed van insight');
+assert.equal(inv.projectDemandForLocation('L-VAN-DAVE').length,0,'van replenishment must be driven by min/target controls, not project-demand records');
 const readiness=inv.vanReadiness('L-VAN-DAVE');assert.equal(readiness.totalCore,2);assert.equal(readiness.belowMin,1);assert(readiness.readinessPct<100);
 const alerts=inv.alerts({today:'2026-09-15'});assert(alerts.some(a=>a.type==='low-stock'&&a.locationId==='L-VAN-DAVE'));assert(alerts.some(a=>a.type==='count-overdue'));assert(alerts.some(a=>a.type==='repeated-variance'));
-const suggestions=inv.smartThresholdSuggestions('L-VAN-DAVE');assert(suggestions.some(s=>s.productId==='P1'&&s.suggestedMin>=5),'smart Min is advisory and based on usage/demand');
+const suggestions=inv.smartThresholdSuggestions('L-VAN-DAVE');assert(suggestions.every(s=>Number(s.projectDemand||0)===0),'van threshold advice must not invent project demand');
 
 // Transfer guard: a requested top-up is atomic. If eligible Warehouse free stock
 // cannot cover the complete request, no partial transfer is allowed.

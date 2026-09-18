@@ -16,18 +16,12 @@ function warehouseSourceRows(productId){return (store().stock||[]).filter(r=>r&&
 });}
 function warehouseAvailable(productId){return warehouseSourceRows(productId).reduce((n,r)=>n+availableRow(r),0);}
 function openStatus(status){return !['closed','cancelled','completed','complete','collected/delivered','delivered','shipped','invoiced'].includes(lower(status));}
-function requestEngineer(req){return text(req&& (req.engineer||req.engineerName||req.assignedEngineer||req.owner));}
-function jobEngineer(job){return text(job&&(job.engineer||job.engineerName||job.assignedEngineer||job.leadEngineer||job.owner));}
 function demandLineQty(line){return Math.max(0,num(line&& (line.qty!=null?line.qty:line.quantity))-Math.max(num(line&&line.allocated),num(line&&line.received),num(line&&line.issued),num(line&&line.used)));}
 function projectDemandForLocation(locationId){
  const d=store(),loc=location(locationId);if(!loc)return [];
- const isVan=lower(loc.type)==='engineer van',isJob=lower(loc.type)==='job bin';const byProduct=new Map();
- (d.engineerRequests||[]).filter(req=>req&&openStatus(req.status)).forEach(req=>{
-   const j=(d.jobs||[]).find(x=>x&&x.id===req.jobId);
-   const engineer=requestEngineer(req)||jobEngineer(j);
-   const relevant=isVan?(lower(engineer)===lower(loc.owner)||lower(engineer)===lower(loc.name.replace(/'s van$/i,''))):isJob?(req.jobId&&req.jobId===loc.jobId):false;
-   if(!relevant)return;
-   (req.lines||[]).forEach(line=>{const qty=demandLineQty(line);if(!(qty>0)||!line.productId)return;const cur=byProduct.get(line.productId)||{productId:line.productId,qty:0,requests:[],jobs:[],requiredDates:[]};cur.qty+=qty;cur.requests.push(req.id);if(req.jobId&&!cur.jobs.includes(req.jobId))cur.jobs.push(req.jobId);if(req.requiredDate)cur.requiredDates.push(req.requiredDate);byProduct.set(line.productId,cur);});
+ const isJob=lower(loc.type)==='job bin';if(!isJob||!loc.jobId)return [];const byProduct=new Map();
+ (d.salesOrders||[]).filter(order=>order&&order.jobId===loc.jobId&&openStatus(order.status)).forEach(order=>{
+   (order.lines||[]).filter(line=>line&&line.bundleRole!=='head').forEach(line=>{const qty=demandLineQty(line);if(!(qty>0)||!line.productId)return;const cur=byProduct.get(line.productId)||{productId:line.productId,qty:0,orders:[],jobs:[loc.jobId],requiredDates:[]};cur.qty+=qty;if(order.id&&!cur.orders.includes(order.id))cur.orders.push(order.id);if(order.due)cur.requiredDates.push(order.due);byProduct.set(line.productId,cur);});
  });
  return Array.from(byProduct.values()).map(x=>Object.assign(x,{product:product(x.productId)})).sort((a,b)=>b.qty-a.qty);
 }

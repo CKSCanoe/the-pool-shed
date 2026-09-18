@@ -6,7 +6,7 @@ assert.ok(fs.existsSync(file),'Action Authority engine missing');
 const data={actionAuthority:{actions:[],approvals:[],sourceState:{},metricsState:{},version:1}};
 let saves=0;const audits=[];const notes=[];const user={id:'u-purch',name:'Buyer',role:'Purchasing'};
 const users=[user,{id:'u-mgr',name:'Manager',role:'Management'},{id:'u-wh',name:'Warehouse',role:'Warehouse'}];
-const moduleAccess={Purchasing:new Set(['purchase','dashboard','mywork']),Management:new Set(['purchase','jobs','accounting','warehouse','locations','salesorders','automation','engineer','mywork','dashboard']),Warehouse:new Set(['warehouse','locations','purchase','fulfilment','mywork','dashboard'])};
+const moduleAccess={Purchasing:new Set(['purchase','dashboard','mywork']),Management:new Set(['purchase','jobs','accounting','warehouse','locations','salesorders','automation','quotes','mywork','dashboard']),Warehouse:new Set(['warehouse','locations','purchase','fulfilment','mywork','dashboard'])};
 const ctx={console,Date,Math,JSON,Set,Map,Intl,globalThis:null,window:null,crypto:{randomUUID:()=>String(Math.random()).slice(2)}};ctx.globalThis=ctx;ctx.window=ctx;
 ctx.__POOL_SHED_GET_DATA__=()=>data;ctx.__POOL_SHED_CURRENT_USER__=()=>user;ctx.__POOL_SHED_ALL_USERS__=()=>users;ctx.saveAppData=()=>saves++;
 ctx.PoolShedIdentity={normalizeRole:r=>r==='User'?'Office':(r||'Office'),currentUser:()=>user};

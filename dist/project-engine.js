@@ -7,8 +7,8 @@ function psProjectModel(j){
  p.version=Math.max(2,Number(p.version||1));return p;
 }
 function psProjectLinkedPoLines(j,source){
- source=source||data;const requestJobs=new Map((source.engineerRequests||[]).map(r=>[r.id,r.jobId])),allOrders=new Map((source.salesOrders||[]).map(o=>[o.id,o]));const rows=[];
- (source.purchaseOrders||[]).forEach(po=>(po.lines||[]).forEach(line=>{const owner=line.jobId||allOrders.get(line.salesOrderId)?.jobId||requestJobs.get(line.engineerRequestId)||po.jobId||requestJobs.get(po.engineerRequestId);if(owner===j.id)rows.push({po,line});}));return rows;
+ source=source||data;const allOrders=new Map((source.salesOrders||[]).map(o=>[o.id,o])),rows=[];
+ (source.purchaseOrders||[]).forEach(po=>(po.lines||[]).forEach(line=>{const owner=line.jobId||allOrders.get(line.salesOrderId)?.jobId||po.jobId;if(owner===j.id)rows.push({po,line});}));return rows;
 }
 function psProjectJobBin(j,source){source=source||data;return (source.locations||[]).find(l=>l.id===j.locationId)||(source.locations||[]).find(l=>l.type==='Job Bin'&&(l.jobId===j.id||l.owner===j.name))||null;}
 function psProjectStockSummary(j,source){
@@ -22,7 +22,6 @@ function psProjectHealth(j,summary){const s=summary||psProjectSummary(j);const m
 function psProjectSummary(j,source,now){
  source=source||data;now=now||Date.now();const p=psProjectModel(j),cents=psProjectPence;
  const orders=(source.salesOrders||[]).filter(o=>o.jobId===j.id&&!['Cancelled','Canceled'].includes(o.status)),orderIds=new Set(orders.map(o=>o.id));
- const requestJobs=new Map((source.engineerRequests||[]).map(r=>[r.id,r.jobId]));
  const allOrders=new Map((source.salesOrders||[]).map(o=>[o.id,o]));
  const productMap=new Map((source.products||[]).map(x=>[x.id,x]));
  const costs=(p.costs||[]).filter(x=>!x.voidedAt),variations=(p.variations||[]).filter(v=>v.status==='Approved');
@@ -31,7 +30,7 @@ function psProjectSummary(j,source,now){
  const poRows=[],coverage=new Map();
  (source.purchaseOrders||[]).forEach(po=>{
   const cancelled=['Cancelled','Canceled'].includes(po.status);
-  const lines=(po.lines||[]).filter(l=>(l.jobId||allOrders.get(l.salesOrderId)?.jobId||requestJobs.get(l.engineerRequestId)||po.jobId||requestJobs.get(po.engineerRequestId))===j.id);if(!lines.length)return;
+  const lines=(po.lines||[]).filter(l=>(l.jobId||allOrders.get(l.salesOrderId)?.jobId||po.jobId)===j.id);if(!lines.length)return;
   let total=0,received=0;lines.forEach(l=>{
    const rate=l.unitCost??l.cost??productMap.get(l.productId)?.cost;
    if(rate==null||!Number.isFinite(Number(rate))||Number(rate)===0)missingCosts++;
@@ -90,7 +89,6 @@ function psProjectCloseoutBlockers(j,source,finance,now){
  const add=(code,message)=>blockers.push({code,message});
  if((s.stock?.lines||[]).some(x=>Number(x.jobBin||0)>0))add('JOB_BIN_STOCK','Project Job Bin still contains stock. Use, transfer or disposition all remaining stock first.');
  if((s.poRows||[]).some(r=>Number(r.open||0)>0))add('OPEN_PO','Linked Purchase Orders still have outstanding committed quantities.');
- const openRequest=(source.engineerRequests||[]).some(r=>(r.jobId===j.id||r.jobRef===j.id)&&!['Completed','Ready For Invoice Review','Rejected','Cancelled','Canceled'].includes(r.status));if(openRequest)add('OPEN_ENGINEER_REQUEST','Engineer Requests are still open for this Project.');
  const openTool=(source.toolAssignments||[]).some(a=>a.jobId===j.id&&(typeof psToolOpen==='function'?psToolOpen(a):(!a.returnedAt||(a.ownership==='Hired In'&&!a.offHireAt))));if(openTool)add('OUTSTANDING_TOOL','Project tools or hired equipment are still outstanding.');
  if((p.variations||[]).some(v=>v.status==='Proposed'))add('PROPOSED_VARIATION','Proposed variations still need an approval or rejection decision.');
  if((p.tasks||[]).some(t=>t.status!=='Done'))add('OPEN_TASK','Project tasks remain incomplete.');

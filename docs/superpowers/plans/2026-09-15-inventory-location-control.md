@@ -4,7 +4,7 @@
 
 **Goal:** Build Option C Inventory Location Control with connected engineer van stock intelligence, transfers, counts, alerts and cross-module navigation on the v1.11.0 Product Hub master.
 
-**Architecture:** Add a focused Inventory engine that derives summaries/alerts from the existing `data.stock`, `data.locations`, `data.restockRules`, `data.movements`, Projects, Engineer Requests and open POs. Add an Inventory workspace that overrides the legacy Inventory renderer but delegates physical mutations to existing stock transfer/count functions. Preserve Warehouse/Purchasing/Product Hub authority boundaries.
+**Architecture:** Add a focused Inventory engine that derives summaries/alerts from the existing `data.stock`, `data.locations`, `data.restockRules`, `data.movements`, Projects, Project Purchasing and open POs. Add an Inventory workspace that overrides the legacy Inventory renderer but delegates physical mutations to existing stock transfer/count functions. Preserve Warehouse/Purchasing/Product Hub authority boundaries.
 
 **Tech Stack:** Vanilla JavaScript, generated modular CSS, existing Pool Shed local/offline data model and test scripts.
 

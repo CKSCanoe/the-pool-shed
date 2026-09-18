@@ -4,7 +4,7 @@ The full project release includes all files from the connected-accounting build,
 
 ## Added and linked
 
-- Projects uses existing job IDs and links multiple customer sales orders, item quantities, delivery progress, POs and engineer-request purchasing.
+- Projects uses existing job IDs and links multiple customer sales orders, item quantities, delivery progress, POs and sales-order-demand purchasing.
 - Accepted quote baseline, approved/proposed extras and a default 30% margin target, with configurable near-loss warnings.
 - Forecast cost split into recorded costs, received estimates, outstanding commitments, remaining forecast and tools/hire. Linked PO/bill and order/material matching avoid counting the same estimate and actual cost twice.
 - Labour-hour entries, expense categories, supplier/reference duplicate checks and reasoned cost corrections.

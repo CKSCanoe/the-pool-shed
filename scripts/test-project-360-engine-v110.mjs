@@ -19,7 +19,6 @@ const data={
   ],
   allocations:[{id:'A1',jobId:'PRJ-1',productId:'PIPE',qty:4,fromLocationId:'L-MAIN',status:'Allocated'}],
   salesOrders:[],
-  engineerRequests:[{id:'ER-1',jobId:'PRJ-1',status:'PO Raised',lines:[{productId:'PIPE',qty:2,poId:'PO-1'}]}],
   purchaseOrders:[{id:'PO-1',jobId:'PRJ-1',status:'Sent',supplier:'CPC',lines:[{productId:'PIPE',jobId:'PRJ-1',qty:10,received:4,unitCost:12}]}],
   movements:[],
   toolAssignments:[]

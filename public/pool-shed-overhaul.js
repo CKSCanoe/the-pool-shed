@@ -135,7 +135,7 @@
     if(screen.querySelector('.ps-jobs-note'))return;
     var first=screen.firstElementChild;if(!first)return;
     var note=document.createElement('div');note.className='ps-jobs-note';note.style.cssText='padding:10px 14px;border:1px solid var(--color-border-default);border-radius:12px;background:var(--color-surface-subtle);color:var(--color-text-secondary);font-size:.82rem;';
-    note.innerHTML='<strong style="color:var(--color-text-primary)">Project control</strong> · Keep customer, site, sales order, purchase orders, engineer requests, files and invoice references linked to the same job record.';
+    note.innerHTML='<strong style="color:var(--color-text-primary)">Project control</strong> · Keep customer, site, quotes, Sales Orders, Purchase Orders, files and invoice references linked to the same project record.';
     screen.insertBefore(note,first);
   }
 

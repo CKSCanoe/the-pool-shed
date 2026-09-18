@@ -41,7 +41,7 @@ Every attention item contains severity, title, explanation, source/driver, impac
 - Export History records who, when, dataset/report, format, filters and record count.
 
 ## Dataset catalogue
-At minimum: Customers; Customer Invoices; Customer Payments; Sales Orders; Projects; Products; Suppliers; Purchase Orders; Supplier Bills; Inventory Stock; Stock Movements; Warehouse & Goods-In; Goods Notes; Supplier Returns; Customer Returns & Credits; Engineer Vans; Engineer Requests; Notes & Activity; Xero Links; Audit Events.
+At minimum: Customers; Customer Invoices; Customer Payments; Sales Orders; Projects; Products; Suppliers; Purchase Orders; Supplier Bills; Inventory Stock; Stock Movements; Warehouse & Goods-In; Goods Notes; Supplier Returns; Customer Returns & Credits; Engineer Vans; Project Purchasing; Notes & Activity; Xero Links; Audit Events.
 
 ## Cross-system reports
 Support governed joins for Customer -> Sales Order -> Invoice/Payment/Credit; Supplier -> Purchase Order -> Goods-In/Bill/Payment; Project -> Materials/POs/Invoices/Margin; Product -> Stock/Sales/Supplier Cost. Joins use stable Pool Shed IDs/Xero IDs, not display-name matching as primary identity.
