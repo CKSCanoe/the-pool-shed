@@ -31,10 +31,10 @@
     "test:foundation": "node scripts/test-identity-authority-v126.mjs && node scripts/test-foundation-permissions-v126.mjs && node scripts/test-audit-authority-v126.mjs && node scripts/test-foundation-audit-integration-v126.mjs && node scripts/test-record-router-v126.mjs && node scripts/test-permission-inspector-v126.mjs && node scripts/test-foundation-quality-gate-v126.mjs && node scripts/test-foundation-release-v126.mjs",
     "test:database": "node scripts/test-accounting-database.mjs && node scripts/test-workspace-database.mjs && node scripts/test-project-database.mjs",
     "test:actions": "node scripts/test-action-authority-v127.mjs && node scripts/test-approval-authority-v127.mjs && node scripts/test-action-source-adapters-v127.mjs && node scripts/test-my-work-workspace-v127.mjs && node scripts/test-my-work-visual-v127.mjs && node scripts/test-my-work-integration-v127.mjs && node scripts/test-action-approval-integration-v127.mjs && node scripts/test-action-authority-release-v127.mjs",
-    "test:deployment": "node scripts/test-deployment-lock-v1271.mjs && node scripts/test-deployment-hotfix-v1271.mjs && node scripts/test-azzy-contrast-v1272.mjs && node scripts/test-release-v1272.mjs",
-    "test:azzy-ui": "node scripts/test-azzy-contrast-v1272.mjs"
+    "test:deployment": "node scripts/test-deployment-lock-v1271.mjs && node scripts/test-deployment-hotfix-v1271.mjs && node scripts/test-azzy-contrast-v1272.mjs && node scripts/test-azzy-panel-v1273.mjs && node scripts/test-release-v1273.mjs",
+    "test:azzy-ui": "node scripts/test-azzy-contrast-v1272.mjs && node scripts/test-azzy-panel-v1273.mjs"
   },
-  "version": "1.27.2",
+  "version": "1.27.3",
   "description": "The Pool Shed inventory, purchasing, sales, warehouse and bundle management application",
   "devDependencies": {
     "@electric-sql/pglite": "^0.5.8",

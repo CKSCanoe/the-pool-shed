@@ -1,23 +1,5 @@
-Pool Shed v1.27.2 - Azzy Contrast & Readability Fix
-=================================================
+Pool Shed v1.27.3 - Azzy Panel Visibility & Compact Layout Fix
 
-Purpose
--------
-Correct the Azzy floating assistant text/control contrast shown in production
-while preserving the full v1.27.1 application, migrated business data, My Work,
-Action Authority, Approval Authority, Foundation Authority, Notifications and
-Executive Premium Steel Blue visual system.
+Baseline: v1.27.2 Azzy Contrast Fix
 
-Changes
--------
-- Azzy quick-question text now uses explicit semantic action ink on the soft
-  Steel Blue surface in both light and dark mode.
-- Azzy header, close control, mode buttons, input, answers, source chips, action
-  buttons and footer now have explicit semantic text colours.
-- Hover and focus states are governed locally because the floating assistant is
-  mounted outside the main application shell.
-- Runtime/cache version advanced to v1.27.2 so deployed browsers fetch the new
-  stylesheet rather than reusing the v1.27.1 cached presentation. The retained
-  v1.27 My Work cache family remains intact.
-- No Supabase schema, RLS, authentication, migrated business records, stock,
-  sales, purchasing, projects, finance or workflow authority is changed.
+Fixes the floating Azzy panel shown in the production screenshot: all four assistant modes are visible, the close control is readable, source chips use high-contrast neutral styling, short answers no longer leave a large blank panel, and the release is cache-busted to 1.27.3. Existing Pool Shed data and business workflows are unchanged.

@@ -1,0 +1,13 @@
+import fs from 'node:fs';
+import assert from 'node:assert/strict';
+const css=fs.readFileSync('public/assets/css/system/52-automation-command.css','utf8');
+const js=fs.readFileSync('public/automation-command-workspace.js','utf8');
+assert.match(css,/v1\.27\.3 Azzy panel visibility and compact-layout authority/);
+assert.match(css,/#azzyFloating \.azzy-panel\{[^}]*height:auto!important;[^}]*max-height:/);
+assert.match(css,/#azzyFloating \.azzy-modes button\{[^}]*color:var\(--color-text-secondary\)!important;[^}]*opacity:1!important/);
+assert.match(css,/#azzyFloating \.azzy-modes button\.on\{[^}]*background:var\(--color-selected-surface\)!important;[^}]*color:var\(--color-action-ink\)!important/);
+assert.match(css,/#azzyFloating \.azzy-panel header button\{[^}]*color:var\(--color-text-secondary\)!important/);
+assert.match(css,/#azzyFloating \.az-sources button\{[^}]*background:var\(--color-surface-subtle\)!important;[^}]*color:var\(--color-text-primary\)!important/);
+assert.match(css,/#azzyFloating \.azzy-conversation\{[^}]*max-height:420px!important/);
+assert.match(js,/\['Ask','Find Anything','Guide Me','Training'\]/,'all four assistant modes must remain rendered');
+console.log('PASS v1.27.3 Azzy visibility, source-chip readability and compact answer layout');

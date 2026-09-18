@@ -1,0 +1,19 @@
+{
+  "release": "1.27.3",
+  "purpose": "Azzy floating panel visibility and compact layout fix",
+  "changed": [
+    "public/assets/css/system/52-automation-command.css",
+    "public/assets/css/app.css",
+    "public/index.html",
+    "public/service-worker.js",
+    "public/assets/js/01-legacy-01.js",
+    "public/settings-command-workspace.js",
+    "public/production-readiness-engine.js",
+    "package.json",
+    "scripts/build.sh",
+    "scripts/test-azzy-panel-v1273.mjs",
+    "scripts/test-release-v1273.mjs",
+    "CURRENT-RELEASE.txt",
+    "dist/"
+  ]
+}

@@ -44,3 +44,47 @@
 
 @media(max-width:1000px){.automation-metrics{grid-template-columns:repeat(2,1fr)}.automation-grid,.flow-layout,.azzy-page{grid-template-columns:1fr}.flow-palette{grid-template-columns:repeat(3,1fr)}.flow-builder-toolbar{grid-template-columns:1fr 1fr}.template-grid{grid-template-columns:repeat(2,1fr)}}
 @media(max-width:650px){.automation-head,.build-with,.settings-profile{grid-template-columns:1fr;display:grid}.automation-metrics,.template-grid,.az-mode-cards,.grid.two{grid-template-columns:1fr}.az-inline{min-width:0}.azzy-float{right:14px;bottom:14px}.azzy-panel{right:14px;bottom:82px}.flow-palette{grid-template-columns:1fr 1fr}}
+
+
+/* v1.27.3 Azzy panel visibility and compact-layout authority.
+   This deliberately uses #azzyFloating + !important on the floating controls.
+   The assistant is outside .main and legacy button rules can otherwise leave
+   inactive modes, close controls and source chips visually white-on-white. */
+#azzyFloating .azzy-panel{
+  width:min(440px,calc(100vw - 28px))!important;
+  height:auto!important;
+  max-height:min(680px,calc(100vh - 116px))!important;
+  display:flex!important;
+  flex-direction:column!important;
+  color:var(--color-text-primary)!important;
+  background:var(--color-surface-default)!important;
+  border-color:var(--color-border-default)!important;
+}
+#azzyFloating .azzy-panel header{flex:0 0 auto;background:var(--color-surface-subtle)!important;color:var(--color-text-primary)!important;border-bottom:1px solid var(--color-border-default)}
+#azzyFloating .azzy-panel header strong{color:var(--color-text-primary)!important}
+#azzyFloating .azzy-panel header small{color:var(--color-text-secondary)!important;opacity:1!important}
+#azzyFloating .azzy-panel header button{display:grid!important;place-items:center!important;width:32px!important;height:32px!important;padding:0!important;background:transparent!important;color:var(--color-text-secondary)!important;border:1px solid transparent!important;border-radius:8px!important;font-size:20px!important;line-height:1!important}
+#azzyFloating .azzy-panel header button:hover{background:var(--color-hover-surface)!important;color:var(--color-text-primary)!important;border-color:var(--color-border-default)!important}
+#azzyFloating .azzy-modes{flex:0 0 auto!important;display:grid!important;grid-template-columns:repeat(4,minmax(0,1fr))!important;gap:5px!important;padding:8px 10px!important;background:var(--color-surface-default)!important;border-bottom:1px solid var(--color-border-default)!important}
+#azzyFloating .azzy-modes button{display:block!important;min-width:0!important;min-height:34px!important;padding:7px 5px!important;background:transparent!important;color:var(--color-text-secondary)!important;border:1px solid transparent!important;border-radius:8px!important;font-size:10px!important;font-weight:800!important;white-space:nowrap!important;overflow:hidden!important;text-overflow:ellipsis!important;opacity:1!important}
+#azzyFloating .azzy-modes button:hover{background:var(--color-hover-surface)!important;color:var(--color-text-primary)!important;border-color:var(--color-border-default)!important}
+#azzyFloating .azzy-modes button.on{background:var(--color-selected-surface)!important;color:var(--color-action-ink)!important;border-color:var(--color-selected-edge)!important;box-shadow:inset 0 -2px 0 var(--color-selected-edge)!important}
+#azzyFloating .azzy-conversation{flex:0 1 auto!important;min-height:0!important;max-height:420px!important;overflow:auto!important;padding:14px 15px!important;background:var(--color-surface-default)!important;color:var(--color-text-primary)!important}
+#azzyFloating .az-answer{gap:11px!important;color:var(--color-text-primary)!important}
+#azzyFloating .az-answer>p,#azzyFloating .az-answer ol,#azzyFloating .az-answer li{color:var(--color-text-primary)!important}
+#azzyFloating .az-sources{gap:6px!important;color:var(--color-text-primary)!important}
+#azzyFloating .az-sources b{color:var(--color-text-secondary)!important;font-size:10px!important}
+#azzyFloating .az-sources button{max-width:100%!important;padding:6px 9px!important;background:var(--color-surface-subtle)!important;color:var(--color-text-primary)!important;border:1px solid var(--color-border-default)!important;border-radius:999px!important;font-size:10px!important;font-weight:700!important;line-height:1.25!important;white-space:normal!important;text-align:left!important;opacity:1!important}
+#azzyFloating .az-sources button:hover{background:var(--color-selected-surface)!important;color:var(--color-action-ink)!important;border-color:var(--color-selected-edge)!important}
+#azzyFloating .az-answer-actions button{background:var(--color-action-soft)!important;color:var(--color-action-ink)!important;border:1px solid var(--color-action-primary)!important;font-weight:800!important;opacity:1!important}
+#azzyFloating .az-answer-actions button:hover{background:var(--color-action-primary)!important;color:var(--color-action-contrast)!important;border-color:var(--color-action-primary)!important}
+#azzyFloating .az-assistant-intro,#azzyFloating .az-assistant-intro>b{color:var(--color-text-primary)!important}
+#azzyFloating .az-assistant-intro p{color:var(--color-text-secondary)!important}
+#azzyFloating .az-quick button{background:var(--color-surface-subtle)!important;color:var(--color-text-primary)!important;border-color:var(--color-border-default)!important;opacity:1!important}
+#azzyFloating .az-quick button:hover{background:var(--color-selected-surface)!important;color:var(--color-action-ink)!important;border-color:var(--color-selected-edge)!important}
+#azzyFloating .azzy-input{flex:0 0 auto!important;background:var(--color-surface-default)!important;border-top:1px solid var(--color-border-default)!important}
+#azzyFloating .azzy-input input{background:var(--color-surface-default)!important;color:var(--color-text-primary)!important;border-color:var(--color-border-default)!important}
+#azzyFloating .azzy-input input::placeholder{color:var(--color-text-muted)!important;opacity:1!important}
+#azzyFloating .azzy-input button{background:var(--color-action-primary)!important;color:var(--color-action-contrast)!important;border:1px solid var(--color-action-primary)!important;opacity:1!important}
+#azzyFloating .azzy-panel>footer{flex:0 0 auto!important;color:var(--color-text-secondary)!important;background:var(--color-surface-default)!important;border-top:0!important}
+@media(max-width:650px){#azzyFloating .azzy-panel{left:10px!important;right:10px!important;width:auto!important;bottom:78px!important;max-height:calc(100vh - 96px)!important}#azzyFloating .azzy-modes{grid-template-columns:repeat(2,minmax(0,1fr))!important}#azzyFloating .azzy-conversation{max-height:50vh!important}}
