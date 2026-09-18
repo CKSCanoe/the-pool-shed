@@ -1,25 +1,11 @@
-Pool Shed v1.27.0 - My Work & Action Authority
+Pool Shed v1.27.1 - Deployment Lockfile Hotfix
+================================================
 
-Foundation:
-- Retains v1.26 Foundation Authority: canonical identity/roles, permission explanations, append-only audit authority, stable record routing and Permission Inspector.
-- Retains v1.25 Notifications Command as the awareness layer.
+Purpose
+-------
+Deployment packaging hotfix for v1.27.0 My Work & Action Authority.
+Synchronises package.json and pnpm-lock.yaml for frozen pnpm CI installs,
+retains all v1.27 operational functionality and advances the runtime/cache
+identifier to v1.27.1.
 
-New in v1.27.0:
-- Canonical Action Authority for owned operational work, SLA, lifecycle, snooze, escalation and deduplication.
-- Controlled Approval Authority for permission/limit rechecks and high-risk decisions.
-- First-class My Work workspace with My Work and Management/Admin Team views.
-- Operational source adapters across Purchasing, Sales, Warehouse, Projects, Finance, Automation and Engineer Requests.
-- Submitted Inventory stock takes now use the Approval Authority while Inventory remains the physical stock mutation owner.
-- My Work dark-mode selected-state authority and settled-theme browser visual acceptance.
-
-Verification status:
-- v1.27 Actions/Approvals: PASS
-- v1.26 Foundation retention: PASS
-- v1.25 Notifications retention: PASS
-- Executive Premium visual/contrast/readability guards: PASS
-- Public and built dist runtime validation: PASS
-- Production build: PASS
-- Release asset audit: PASS, 60 referenced assets, all public/server/API JavaScript parses
-- Real Chromium acceptance: PASS, 13 protected screens, My Work, Permission Inspector, stable routing, 6 visual captures, 0 uncaught browser errors
-- Full application validate: PASS until database-only test boundary
-- Database-only automated tests: NOT EXECUTED in this sandbox because @electric-sql/pglite cannot be installed due blocked package/DNS access. The declared dependency remains in package.json for connected CI/deployment verification.
+No business-process or UI behaviour is intentionally changed by this patch.

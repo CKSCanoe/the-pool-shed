@@ -1,0 +1,29 @@
+Pool Shed v1.27.1 - Deployment Lockfile Hotfix
+==============================================
+
+Corrects the v1.27.0 Vercel ERR_PNPM_OUTDATED_LOCKFILE failure.
+
+Root cause:
+package.json declared playwright-core ^1.55.0 while pnpm-lock.yaml did not.
+
+Corrected:
+- pnpm root importer synchronised
+- Playwright Core 1.55.0 package lock entry added
+- build-time manifest/lock regression guard added
+- v1.27 retained release guard made patch-forward compatible
+- runtime/cache identity advanced to 1.27.1
+
+No intended Pool Shed business workflow or UI behaviour changes.
+
+Verification:
+- deployment lock tests PASS
+- v1.27 Action/Approval suite PASS
+- v1.26 Foundation retention PASS
+- v1.25 Notifications retention PASS
+- production build PASS
+- public/dist runtime validation PASS
+- release assets PASS: 60 referenced assets, all JS parses
+
+Existing environment-only limitation:
+PGlite-backed database tests cannot execute in this sandbox because the
+package is not installed and this environment cannot reach the npm registry.
