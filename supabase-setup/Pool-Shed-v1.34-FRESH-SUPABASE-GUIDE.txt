@@ -1,0 +1,50 @@
+POOL SHED v1.34.0 - FRESH SUPABASE SETUP
+
+RECOMMENDED
+Create a NEW Supabase project and leave the existing Pool Shed Supabase untouched until the new environment passes Vercel Preview testing.
+
+WHAT THIS BACKEND COVERS
+- Supabase Auth + Pool Shed user profiles
+- secure shared workspace containing operational products, customers, suppliers, stock, Sales Orders, Purchase Orders and Projects
+- workspace revisions and safe CAS writes
+- Finance/Xero server authority
+- private project documents
+- project billing / AI / immutable history
+- Quote Studio publication, engagement, questions and acceptance
+- private Quote Media
+- quote conversion jobs and retry
+- private Product Media
+- private Customer / CRM Media
+
+PRIVATE STORAGE BUCKETS
+- project-documents
+- quote-media
+- product-media
+- customer-media
+
+PRODUCT MEDIA
+Main image, gallery, brochure, datasheet, installation guide, warranty, certificate and other approved Product Hub files. Product Hub stores stable product-media:<uuid> references. Quote Studio can reuse these automatically.
+
+CUSTOMER MEDIA
+Site photos, drawings, surveys, access documents, warranties, certificates and other CRM/site documents. Customer records store stable customer-media:<uuid> references.
+
+PROCESS
+1. Create a NEW Supabase project.
+2. SQL Editor -> run Pool-Shed-v1.34-FRESH-SUPABASE-FULL-INSTALL.sql.
+3. Expected marker: POOL SHED v1.34 FRESH SUPABASE SCHEMA INSTALLED.
+4. Authentication -> Users -> create the first Pool Shed staff user.
+5. Edit BOTH CHANGE-ME email placeholders in Pool-Shed-v1.34-ENROL-FIRST-ADMIN.sql.
+6. Run the admin enrolment SQL.
+7. Run Pool-Shed-v1.34-SUPABASE-VERIFY.sql.
+8. Confirm all four storage buckets exist and public=false.
+9. If existing Pool Shed business data must be preserved, migrate the existing pool-bros-main workspace snapshot before production cutover.
+10. Set Vercel Preview environment to the new Supabase project.
+11. Required Vercel variables: SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY, SUPABASE_SERVICE_ROLE_KEY, APP_ORIGIN, SECURE_WORKSPACE_WRITES=true.
+12. SUPABASE_SERVICE_ROLE_KEY is server-only. Never put it in browser config or public files.
+13. Optional quote email: RESEND_API_KEY and QUOTE_FROM_EMAIL.
+14. Test Vercel Preview: login, Product Hub import/upload, Product Media, CRM/customer data + Files, Quotes, Quote Media, customer proposal, acceptance, SO/Project/PO handover, Warehouse, Purchasing, Projects and Azzy.
+15. Promote the exact tested Preview only after all checks pass.
+16. Keep the old Supabase and previous Vercel deployment available for rollback until production is stable.
+
+IMPORTANT
+Do not run the old destructive July clean-install SQL on a database containing data you need. The v1.34 fresh installer is the current setup authority.

@@ -1,36 +1,60 @@
-# Pool Shed v1.32.1 · Elite Quote Builder
+# Pool Shed v1.33.0 - Process & Quote Authority
 
-Pool Shed is the Pool Bros operational system for CRM, Quotes, Sales Orders, Projects, Product Hub, Inventory, Purchasing, Warehouse, Fulfilment, Accounting, Analytics, Automation and controlled administration.
+> Current release: **v1.34.0 Product & CRM Media**. Product Hub and CRM now use private reusable Supabase media libraries, with Quote Studio inheritance.
 
-## Where quotes live
 
-Use **Quotes** in the left navigation, directly after **Sales Orders**, then press **New quote**. You can also use **CRM → customer → New quote** with the customer preselected.
+Pool Shed is the Pool Bros operational system for CRM, Quotes, Sales Orders, Projects, Product Hub, Inventory, Purchasing, Warehouse, Fulfilment, Finance, Analytics, Automation and controlled administration.
 
-Choose **Quick Quote** for repairs, light refurbishments, covers, plant replacements and straightforward work. Choose **Project Proposal** for new pools, major refurbishments and complex staged projects.
+## Quotes
 
-## Elite Quote Builder
+Use **Quotes -> New quote** or **CRM -> Customer -> New quote**.
 
-The v1.32 builder is a visual editor with Sections, Elements, Media and Products on the left, the live customer proposal in the middle and a contextual inspector on the right. Images can be uploaded for the proposal hero, product/option cards, image blocks and galleries, and reused from the quote Media Library.
+New quote setup is deliberately simple:
+- customer
+- quote/job name
+- work type
+- Quick Quote or Project Proposal
+- optional starting template
 
-Product Hub still owns the Product ID, SKU, supplier, cost and bundle truth underneath the presentation. The customer receives only the presentation-safe published version.
+Operational controls remain under **Advanced workflow** with safe defaults.
+
+### Quick Quote
+
+Accept -> Sales Order -> stock allocation -> supplier shortages / draft POs -> payment as configured.
+
+A Project is optional.
+
+### Project Proposal
+
+Accept -> Project -> Sales Order -> stock / purchasing -> payment milestones -> project execution.
+
+## Customer proposals
+
+Customer proposals are separate from the internal Pool Shed UI. Customers receive only the presentation-safe published version.
+
+Published and Sent are separate states. Only confirmed email-provider delivery marks a quote Sent.
+
+## Acceptance safety
+
+v1.33.0 writes the canonical customer acceptance atomically before attempting operational conversion. If conversion fails, acceptance remains valid and one idempotent conversion job can be retried by staff.
 
 ## Build and test
 
 ```bash
 npm run test:quotes
+npm run test:actions
 npm run test:deployment
 npm run build
 ```
 
-The deployable static app is written to `dist/`.
+`dist/` contains the deployable static application.
 
-The complete regression suite is `npm run validate`. Database execution tests require the normal development dependency `@electric-sql/pglite`, which is not installed in the sandbox used to prepare this package.
+## Database migrations
 
-## Release documents
+Apply Quote Studio migrations in order:
 
-Read `RELEASE-NOTES-1.32.1.md`, `ELITE-QUOTE-BUILDER-AUDIT-1.32.1.md` and `DEPLOYMENT-GUIDE-1.32.1.md` before production promotion.
+1. `database/007-quote-studio.sql`
+2. `database/008-quote-media.sql`
+3. `database/009-quote-process-authority.sql`
 
-
-## v1.32.1 secure quote media
-
-Apply `database/007-quote-studio.sql` then `database/008-quote-media.sql` before enabling production Quote Studio publication with uploaded media. Quote media is private and resolved through temporary signed URLs.
+Read `RELEASE-NOTES-1.33.0.md`, `PROCESS-AUTHORITY-AUDIT-1.33.0.md` and `DEPLOYMENT-GUIDE-1.33.0.md` before production promotion.

@@ -1,30 +1,34 @@
-# Start Here · Pool Shed v1.32.1
+# Start Here - Pool Shed v1.33.0
 
 ## Create a quote
 
-**Quotes → New quote** or **CRM → Customer → New quote**.
+Go to **Quotes -> New quote** or **CRM -> Customer -> New quote**.
 
-- Quick Quote: accepted quote goes straight to a Sales Order by default.
-- Project Proposal: accepted quote creates the full Project and linked Sales Order workflow.
+Choose:
+- **Quick Quote** for smaller, straightforward work
+- **Project Proposal** for larger or staged projects
 
-## Build a premium proposal
+Use a template when useful. Leave **Advanced workflow** closed unless the safe defaults need changing.
 
-1. **Details** — set project name, work type, hero story and upload/position a hero image.
-2. **Build Quote** — use Sections, Elements, Media and Products. Click anything on the live client canvas to edit it in the right inspector.
-3. **Pool Layout** — available for Project Proposals where required.
-4. **Review** — check commercial controls, preview the exact customer experience, then Review & Send.
+## Build the proposal
 
-Images support JPG, PNG and WebP. They are resized automatically and saved to that quote’s Media Library for reuse.
+1. Set the customer story and presentation.
+2. Build quote choices from Product Hub, bespoke options, images and content.
+3. Review commercial preflight and customer preview.
+4. Publish the secure proposal.
+5. Email separately if configured, or copy the secure link.
 
-## Customer boundary
+## Customer decision
 
-Customers see only the private presentation, permitted choices, investment, controlled documents/questions and acceptance. They do not receive Pool Shed navigation, Product Hub costs, margins, stock, Sales Orders, POs, approvals or Project Handover information.
+- Interactive proposals allow permitted choices and questions.
+- View + Accept proposals are read-only except for acceptance/decline.
+- Publishing a new version supersedes the previous live link.
+- Acceptance is recorded permanently before operational conversion starts.
+
+## After acceptance
+
+Pool Shed converts the frozen accepted version into the configured Sales Order / Project / stock / purchasing / finance workflow. A failed handover does not invalidate the customer acceptance and can be retried safely.
 
 ## Deploy
 
-Read `DEPLOYMENT-GUIDE-1.32.1.md` before changing the live Vercel/Supabase environment.
-
-
-## v1.32.1 secure quote media
-
-Apply `database/007-quote-studio.sql` then `database/008-quote-media.sql` before enabling production Quote Studio publication with uploaded media. Quote media is private and resolved through temporary signed URLs.
+Read `DEPLOYMENT-GUIDE-1.33.0.md` and apply migrations 007 -> 008 -> 009 in order where required.

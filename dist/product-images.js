@@ -2,7 +2,7 @@
 (function () {
   'use strict';
 
-  const VERSION = '1.11.4';
+  const VERSION = '1.34.0';
 
   function text(value) { return String(value == null ? '' : value); }
   function escapeHtmlSafe(value) {
@@ -46,12 +46,19 @@
   function validImageUrl(value) {
     const raw = text(value).trim();
     if (!raw) return '';
+    if (window.PoolShedBusinessMedia && window.PoolShedBusinessMedia.secureRef(raw)) return raw;
     try {
       const parsed = new URL(raw, window.location && window.location.href ? window.location.href : 'https://the-pool-shed.vercel.app/');
       if (!['http:', 'https:', 'data:', 'blob:'].includes(parsed.protocol)) return '';
       if (parsed.protocol === 'data:' && !/^data:image\//i.test(raw)) return '';
       return raw;
     } catch (_) { return ''; }
+  }
+  function displayImageUrl(value) {
+    const raw = validImageUrl(value);
+    if (!raw) return '';
+    if (window.PoolShedBusinessMedia && window.PoolShedBusinessMedia.secureRef(raw)) return window.PoolShedBusinessMedia.url(raw) || '';
+    return raw;
   }
   function explicitParentImageUrl(productRecord) {
     if (!productRecord) return '';
@@ -90,13 +97,16 @@
   function markup(productRecord, options) {
     options = options || {};
     const mode = options.mode === 'parent' ? 'parent' : 'variant';
-    const url = mode === 'parent' ? parentImageUrl(productRecord) : variantImageUrl(productRecord);
+    const source = mode === 'parent' ? parentImageUrl(productRecord) : variantImageUrl(productRecord);
+    const url = displayImageUrl(source);
+    const secure = window.PoolShedBusinessMedia && window.PoolShedBusinessMedia.secureRef(source);
+    if (secure && !url) window.PoolShedBusinessMedia.ensure([source]).catch(function(){});
     const className = text(options.className || '').trim();
     const size = text(options.size || 'md').trim();
     const classes = ['pb-product-image', 'pb-product-image-' + size, className, url ? 'has-image' : 'is-fallback'].filter(Boolean).join(' ');
     const alt = imageAlt(productRecord, mode, options.alt);
-    return '<span class="' + escapeHtmlSafe(classes) + '" data-product-image-shell="true" data-image-mode="' + mode + '">' +
-      (url ? '<img data-product-image="true" src="' + escapeHtmlSafe(url) + '" alt="' + escapeHtmlSafe(alt) + '" loading="lazy" decoding="async" referrerpolicy="no-referrer">' : '') +
+    return '<span class="' + escapeHtmlSafe(classes) + '" data-product-image-shell="true" data-image-mode="' + mode + '"' + (secure ? ' data-business-media-ref="' + escapeHtmlSafe(source) + '"' : '') + '>' +
+      '<img data-product-image="true"' + (secure ? ' data-business-media-ref="' + escapeHtmlSafe(source) + '"' : '') + (url ? ' src="' + escapeHtmlSafe(url) + '"' : '') + ' alt="' + escapeHtmlSafe(alt) + '" loading="lazy" decoding="async" referrerpolicy="no-referrer"' + (url ? '' : ' hidden') + '>' +
       '<span class="pb-product-image-fallback" aria-hidden="' + (url ? 'true' : 'false') + '">PB</span></span>';
   }
   function setParentImage(productRecord, value) {

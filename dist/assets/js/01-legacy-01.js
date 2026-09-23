@@ -1966,7 +1966,7 @@ const seed = {
           : effectiveMode === "mfa"
             ? '<button class="ps-login-link" type="button" data-login-cancel-mfa>Use a different account</button><span>Authenticator verification</span>'
             : effectiveMode === "denied" ? '<span></span>' : '<button class="ps-login-link" type="button" data-login-mode="login">Back to sign in</button><span></span>';
-        screen.innerHTML = '<main class="ps-login-stage"><section class="ps-login-shell"><aside class="ps-login-brand"><div><div class="ps-login-lockup"><span class="ps-login-logo"><img src="' + DEFAULT_POOL_BROS_LOGO + '" alt="Pool Bros logo"></span><div><span class="ps-login-kicker">Pool Bros</span><strong>THE POOL SHED</strong></div></div><div class="ps-login-hero"><span class="ps-login-kicker">Operations Command System</span><h1>One secure place to <span>run the operation.</span></h1><p>Secure access to the Pool Bros operations workspace. Sign in to continue to your authorised tools, tasks and information.</p></div></div><div class="ps-login-staff-note"><strong>Pool Bros staff access</strong><span>Your workspace and available tools are tailored to your account after sign-in.</span></div></aside><section class="ps-login-auth"><div class="ps-login-card"><div class="ps-login-card-head"><span class="ps-login-kicker">' + escapeHtml(meta.eyebrow) + '</span><h2>' + escapeHtml(meta.heading) + '</h2><p>' + escapeHtml(meta.intro) + '</p></div><form id="loginForm">' + fields + '<div id="loginMessage" class="ps-login-message' + (good ? ' good' : '') + '">' + escapeHtml(message || '') + '</div></form><div class="ps-login-helper">' + helper + '</div></div></section></section><footer class="ps-login-footer">Pool Shed v1.32.1 · Pool Bros Ltd</footer></main>';
+        screen.innerHTML = '<main class="ps-login-stage"><section class="ps-login-shell"><aside class="ps-login-brand"><div><div class="ps-login-lockup"><span class="ps-login-logo"><img src="' + DEFAULT_POOL_BROS_LOGO + '" alt="Pool Bros logo"></span><div><span class="ps-login-kicker">Pool Bros</span><strong>THE POOL SHED</strong></div></div><div class="ps-login-hero"><span class="ps-login-kicker">Operations Command System</span><h1>One secure place to <span>run the operation.</span></h1><p>Secure access to the Pool Bros operations workspace. Sign in to continue to your authorised tools, tasks and information.</p></div></div><div class="ps-login-staff-note"><strong>Pool Bros staff access</strong><span>Your workspace and available tools are tailored to your account after sign-in.</span></div></aside><section class="ps-login-auth"><div class="ps-login-card"><div class="ps-login-card-head"><span class="ps-login-kicker">' + escapeHtml(meta.eyebrow) + '</span><h2>' + escapeHtml(meta.heading) + '</h2><p>' + escapeHtml(meta.intro) + '</p></div><form id="loginForm">' + fields + '<div id="loginMessage" class="ps-login-message' + (good ? ' good' : '') + '">' + escapeHtml(message || '') + '</div></form><div class="ps-login-helper">' + helper + '</div></div></section></section><footer class="ps-login-footer">Pool Shed v1.34.0 · Pool Bros Ltd</footer></main>';
         bindLoginScreen(effectiveMode);
       }
 
@@ -9107,6 +9107,46 @@ const seed = {
         }, { value: 0, ready: 0 });
       }
 
+      function crmMediaUrl(ref) {
+        try { return window.PoolShedBusinessMedia ? window.PoolShedBusinessMedia.url(ref) : String(ref || ""); }
+        catch (_) { return String(ref || ""); }
+      }
+
+      function customerFilesPanel(c) {
+        c.mediaAttachments = Array.isArray(c.mediaAttachments) ? c.mediaAttachments : [];
+        if (window.PoolShedBusinessMedia) window.PoolShedBusinessMedia.ensureValue(c.mediaAttachments).catch(function(){});
+        const files = c.mediaAttachments.slice().sort(function(a,b){ return String(b.createdAt || "").localeCompare(String(a.createdAt || "")); });
+        const cards = files.map(function(file) {
+          const ref = file.ref || "", href = crmMediaUrl(ref), image = /^image\//i.test(file.type || ""), secure = window.PoolShedBusinessMedia && window.PoolShedBusinessMedia.secureRef(ref);
+          const preview = image
+            ? '<div class="crm-file-preview" ' + (secure ? 'data-business-media-ref="' + escapeHtml(ref) + '" ' : '') + 'style="' + (href ? 'background-image:url(&quot;' + escapeHtml(href) + '&quot;)' : '') + '">' + (href ? '' : '<span>Image</span>') + '</div>'
+            : '<div class="crm-file-preview"><span>PDF / document</span></div>';
+          return '<article class="crm-file-card">' + preview + '<div class="crm-file-body"><b>' + escapeHtml(file.title || file.name || "Customer file") + '</b><small>' + escapeHtml((file.kind || "document").replace(/_/g," ")) + ' · ' + escapeHtml(file.createdAt ? new Date(file.createdAt).toLocaleDateString("en-GB") : "") + '</small></div><div class="crm-file-actions"><a class="secondary" ' + (secure ? 'data-business-media-ref="' + escapeHtml(ref) + '" ' : '') + 'href="' + escapeHtml(href || '#') + '" target="_blank" rel="noopener" ' + (href ? '' : 'aria-disabled="true"') + '>Open</a><button class="secondary" data-crm-media-remove="' + escapeHtml(file.id || "") + '">Remove</button></div></article>';
+        }).join("") || '<div class="crm-empty-inline">No customer or site files yet.</div>';
+        return '<section class="crm-depth-card"><header><div><h3>Files & Site Media</h3><p>Private site photos, surveys, drawings, warranties and customer documents. Files are stored securely in Supabase and stay linked to this customer record.</p></div><div class="crm-files-upload"><button data-crm-media-upload="site_photo" data-crm-media-accept="image/jpeg,image/png,image/webp">＋ Site photo</button><button class="secondary" data-crm-media-upload="drawing" data-crm-media-accept="application/pdf,image/jpeg,image/png,image/webp">＋ Drawing</button><button class="secondary" data-crm-media-upload="survey" data-crm-media-accept="application/pdf,image/jpeg,image/png,image/webp">＋ Survey</button><button class="secondary" data-crm-media-upload="access" data-crm-media-accept="application/pdf,image/jpeg,image/png,image/webp">＋ Access</button><button class="secondary" data-crm-media-upload="warranty" data-crm-media-accept="application/pdf,image/jpeg,image/png,image/webp">＋ Warranty</button><button class="secondary" data-crm-media-upload="document" data-crm-media-accept="application/pdf,image/jpeg,image/png,image/webp">＋ Document</button></div></header><div class="crm-depth-body"><div class="crm-files-grid">' + cards + '</div></div></section>';
+      }
+
+      async function uploadCustomerMedia(customerId, kind, file) {
+        const c = customer(customerId);
+        if (!c) throw Error("Customer record not found.");
+        if (!window.PoolShedBusinessMedia) throw Error("Secure Customer Media is unavailable.");
+        const media = await window.PoolShedBusinessMedia.upload("customer", customerId, kind, file, { title: file.name || "Customer file" });
+        c.mediaAttachments = Array.isArray(c.mediaAttachments) ? c.mediaAttachments : [];
+        c.mediaAttachments.push({ id: media.id, ref: media.ref, name: media.name, title: media.title || media.name, type: media.type, kind: media.kind, size: media.size, createdAt: new Date().toISOString() });
+        saveAppData();
+        return media;
+      }
+
+      async function removeCustomerMedia(customerId, mediaId) {
+        const c = customer(customerId);
+        if (!c) throw Error("Customer record not found.");
+        c.mediaAttachments = Array.isArray(c.mediaAttachments) ? c.mediaAttachments : [];
+        const item = c.mediaAttachments.find(function(x){ return String(x.id) === String(mediaId); });
+        if (item && item.ref && window.PoolShedBusinessMedia && window.PoolShedBusinessMedia.secureRef(item.ref)) await window.PoolShedBusinessMedia.archive(item.ref);
+        c.mediaAttachments = c.mediaAttachments.filter(function(x){ return String(x.id) !== String(mediaId); });
+        saveAppData();
+      }
+
       function customerMegaProfile(c) {
         const orders = data.salesOrders.filter(function(order) { return order.customerId === c.id; });
         const value = orders.reduce(function(total, order) { return total + salesOrderValue(order); }, 0);
@@ -9143,7 +9183,7 @@ const seed = {
         return '<div class="crm-hero">' +
           '<div class="crm-hero-main"><span class="crm-hero-avatar">' + escapeHtml(initials) + '</span><div class="crm-hero-copy"><h2>' + escapeHtml(c.name) + '</h2><p>' + escapeHtml([c.firstName,c.lastName].filter(Boolean).join(" ") || "No named contact") + ' · ' + escapeHtml(c.code || "No code") + ' · ' + escapeHtml(c.customerType || "Customer") + ' account</p><div class="crm-relationship-meta"><span>Last activity <b>' + lastActivity + '</b></span><span>Owner <b>' + escapeHtml(c.owner || "Office") + '</b></span></div><div class="crm-hero-meta"><span class="crm-pill ' + (healthIssues.length ? 'amber' : 'good') + '">' + healthLabel + ' account</span><span class="crm-pill info">' + Number(c.creditDays||0) + ' day terms</span><span class="crm-pill info">' + escapeHtml(String(c.priceList||"rrp").toUpperCase()) + '</span></div></div>' +
           '<div class="crm-hero-actions"><button class="secondary" data-crm-add-note="' + c.id + '">Add note</button><button class="secondary" data-crm-new-project="' + c.id + '">New job / project</button><button class="secondary" data-create-quote-customer="' + c.id + '">New quote</button><button data-create-sales-order-customer="' + c.id + '">New order</button><button class="secondary" data-crm-edit="' + c.id + '|account">Edit</button></div></div>' +
-          '<nav class="crm-profile-tabs" aria-label="Customer workspace"><button class="active" data-crm-profile-tab="overview">Overview</button><button data-crm-profile-tab="orders">Orders <i>' + orders.length + '</i></button><button data-crm-profile-tab="projects">Jobs &amp; Projects <i>' + jobs.length + '</i></button><button data-crm-profile-tab="people">People <i>' + peopleCount + '</i></button><button data-crm-profile-tab="locations">Locations <i>' + locationCount + '</i></button><button data-crm-profile-tab="finance">Finance</button><button data-crm-profile-tab="history">History</button></nav>' +
+          '<nav class="crm-profile-tabs" aria-label="Customer workspace"><button class="active" data-crm-profile-tab="overview">Overview</button><button data-crm-profile-tab="orders">Orders <i>' + orders.length + '</i></button><button data-crm-profile-tab="projects">Jobs &amp; Projects <i>' + jobs.length + '</i></button><button data-crm-profile-tab="people">People <i>' + peopleCount + '</i></button><button data-crm-profile-tab="locations">Locations <i>' + locationCount + '</i></button><button data-crm-profile-tab="finance">Finance</button><button data-crm-profile-tab="files">Files <i>' + (Array.isArray(c.mediaAttachments)?c.mediaAttachments.length:0) + '</i></button><button data-crm-profile-tab="history">History</button></nav>' +
         '</div>' +
 
         '<div class="crm-profile-page active" data-crm-profile-page="overview">' +
@@ -9189,6 +9229,8 @@ const seed = {
         '<div class="crm-profile-page" data-crm-profile-page="locations"><section class="crm-depth-card"><header><div><h3>Locations</h3><p>Reusable account, billing and delivery locations.</p></div><button data-crm-edit="' + c.id + '|locations">Edit locations</button></header><div class="crm-depth-body">' + ["primary","billing","delivery"].map(function(type){ var a=addressObject(c,type); return '<div class="crm-location-row"><span><b>' + type.charAt(0).toUpperCase()+type.slice(1) + ' address</b><small>' + displayAddress(a) + '</small><span class="crm-rolebadges"><i>' + type + '</i></span></span><button class="secondary" data-crm-edit="' + c.id + '|locations">Edit</button></div>'; }).join("") + '</div></section></div>' +
 
         '<div class="crm-profile-page" data-crm-profile-page="finance"><section class="crm-depth-card"><header><div><h3>Finance</h3><p>Pricing, terms, exposure and account controls.</p></div><button data-crm-edit="' + c.id + '|finance">Edit financial settings</button></header><div class="crm-depth-body"><div class="crm-finance-grid"><div class="crm-stat"><span>Credit limit</span><strong>' + money(Number(c.creditLimit||0)) + '</strong><small>Account limit</small></div><div class="crm-stat"><span>Discount</span><strong>' + Number(c.discount||0) + '%</strong><small>Customer discount</small></div><div class="crm-stat"><span>Terms</span><strong>' + Number(c.creditDays||0) + ' days</strong><small>' + escapeHtml(c.creditTermType||"Net") + '</small></div><div class="crm-stat"><span>Currency</span><strong>' + escapeHtml(c.currency||"GBP") + '</strong><small>' + escapeHtml(c.taxCode||"T20") + '</small></div></div></div></section></div>' +
+
+        '<div class="crm-profile-page" data-crm-profile-page="files">' + customerFilesPanel(c) + '</div>' +
 
         '<div class="crm-profile-page" data-crm-profile-page="history"><section class="crm-depth-card"><header><div><h3>History</h3><p>One chronological customer record across operational and account activity.</p></div></header><div class="crm-depth-body">' + recentActivity + '</div></section></div>' +
 
@@ -9487,6 +9529,44 @@ const seed = {
           button.addEventListener("click", function() {
             const target = document.querySelector('[data-crm-profile-tab="' + button.dataset.crmProfileJump + '"]');
             if (target) target.click();
+          });
+        });
+        document.querySelectorAll("[data-crm-media-upload]").forEach(function(button) {
+          button.addEventListener("click", function() {
+            const c = customer(selectedCrmCustomerId);
+            if (!c) return toast("Choose a customer first.");
+            const input = document.createElement("input");
+            input.type = "file";
+            input.accept = button.dataset.crmMediaAccept || "application/pdf,image/jpeg,image/png,image/webp";
+            input.hidden = true;
+            document.body.appendChild(input);
+            input.addEventListener("change", async function() {
+              const file = input.files && input.files[0];
+              input.remove();
+              if (!file) return;
+              try {
+                toast("Uploading " + file.name + "…");
+                await uploadCustomerMedia(c.id, button.dataset.crmMediaUpload || "document", file);
+                toast("Customer file uploaded securely.");
+                render();
+                const filesTab = document.querySelector('[data-crm-profile-tab="files"]');
+                if (filesTab) filesTab.click();
+              } catch (err) { toast(err.message || "Customer file upload failed."); }
+            });
+            input.click();
+          });
+        });
+        document.querySelectorAll("[data-crm-media-remove]").forEach(function(button) {
+          button.addEventListener("click", async function() {
+            const c = customer(selectedCrmCustomerId);
+            if (!c) return;
+            try {
+              await removeCustomerMedia(c.id, button.dataset.crmMediaRemove);
+              toast("Customer file removed from the profile.");
+              render();
+              const filesTab = document.querySelector('[data-crm-profile-tab="files"]');
+              if (filesTab) filesTab.click();
+            } catch (err) { toast(err.message || "Customer file could not be removed."); }
           });
         });
         let crmEditorDirty = false;
@@ -14554,5 +14634,5 @@ const seed = {
         updateOfflineStatus();
         restoreOfflineSnapshotIfNeeded();
         syncPendingOfflineData();
-        if ("serviceWorker" in navigator && location.protocol !== "file:") navigator.serviceWorker.register("./service-worker.js?v=1.32.1", { updateViaCache:"none" }).catch(function() {});
+        if ("serviceWorker" in navigator && location.protocol !== "file:") navigator.serviceWorker.register("./service-worker.js?v=1.34.0", { updateViaCache:"none" }).catch(function() {});
       });

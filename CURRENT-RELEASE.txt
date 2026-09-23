@@ -1,3 +1,1 @@
-Pool Shed v1.32.1 - Elite Quote Builder Secure Media
-Status: RELEASE CANDIDATE - secure media hardening and build gates passed
-Built: 2026-09-18
+Pool Shed v1.34.0 - Product & CRM Media

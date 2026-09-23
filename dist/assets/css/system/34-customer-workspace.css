@@ -194,3 +194,6 @@
   .crm-edit-page .form-grid.two{grid-template-columns:1fr}
 }
 @media(prefers-reduced-motion:reduce){.crm-edit-drawer{transition:none}}
+
+/* v1.34 secure CRM customer files */
+.crm-files-upload{display:flex;flex-wrap:wrap;gap:8px;align-items:center}.crm-files-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:12px}.crm-file-card{border:1px solid var(--color-border);border-radius:13px;background:var(--color-surface);overflow:hidden}.crm-file-preview{height:138px;background:var(--color-surface-subtle) center/cover no-repeat;display:grid;place-items:center}.crm-file-preview span{font-size:12px;font-weight:800;color:var(--color-text-muted)}.crm-file-body{padding:11px}.crm-file-body b,.crm-file-body small{display:block}.crm-file-body small{margin-top:4px;color:var(--color-text-muted)}.crm-file-actions{display:flex;gap:7px;padding:0 11px 11px}.crm-file-actions>*{flex:1}.crm-file-actions a[aria-disabled="true"]{pointer-events:none;opacity:.55}

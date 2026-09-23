@@ -17,7 +17,7 @@ const quick=qs.createQuote({customerId:'C1',projectName:'Light refurbishment',pr
 assert.equal(quick.workflow,'quick');assert.equal(quick.handoverPolicy.createProjectOnAcceptance,false);assert.equal(quick.handoverPolicy.createSalesOrderOnAcceptance,true);assert.equal(quick.handoverPolicy.xeroRequestMode,'full');
 const qsec=quick.sections[0];const qo=qs.addProductOption(quick.id,qsec.id,'P1');qsec.options.forEach(o=>o.selected=o.id===qo.id);
 const qver=await qs.buildVersion(quick);quick.versions.push(qver);quick.currentVersion=quick.publishedVersion=qver.number;
-const publicText=JSON.stringify(qver.publicSnapshot);assert(!publicText.includes('handoverPolicy'));assert(!publicText.includes('workflow'));assert.equal(qver.publicSnapshot.payment.mode,'full');
+const publicText=JSON.stringify(qver.publicSnapshot);assert(!publicText.includes('handoverPolicy'));assert.equal(qver.publicSnapshot.workflow,'quick');assert.equal(qver.publicSnapshot.payment.mode,'full');
 const qconv=qs.convertAccepted(quick.id,qver.number,{signer:'Client'});assert.equal(qconv.workflow,'quick');assert.equal(qconv.projectId,'');assert(qconv.salesOrderId);assert.equal(qconv.deposit.mode,'full');assert.equal(qconv.deposit.status,'Ready to queue');
 assert.equal(data.jobs.length,0,'quick quote must not create Project by default');assert.equal(data.salesOrders.length,1);
 
@@ -33,4 +33,4 @@ const pub={id:'11111111-1111-1111-1111-111111111111',quote_id:'Q-SRV',version_nu
 const acceptance={id:'A1',accepted_at:new Date().toISOString(),signer:'Client',terms_version:'4.3',selections:{S1:['O1']}};
 const out=convertSnapshot(base,{publication:pub,acceptance});assert.equal(out.conversion.workflow,'quick');assert.equal(out.conversion.projectId,'');assert(out.conversion.salesOrderId);assert.equal(out.snapshot.jobs.length,1,'server quick conversion must not create Project');assert.equal(out.snapshot.salesOrders.length,2);assert.equal(out.conversion.deposit.mode,'full');assert.equal(out.conversion.deposit.amount,2520);assert.equal(out.snapshot.purchaseOrders.length,2);assert.equal(out.snapshot.purchaseOrders.find(x=>x.id!=='PO-OLD').depositGate,'Awaiting payment');
 const again=convertSnapshot(out.snapshot,{publication:pub,acceptance});assert.equal(again.alreadyConverted,true);assert.equal(again.snapshot.salesOrders.length,out.snapshot.salesOrders.length);
-console.log('PASS v1.32.1 Quick Quote direct-to-SO, optional Project, frozen workflow authority, payment modes, stock/PO handover and idempotency');
+console.log('PASS v1.34.0 Quick Quote direct-to-SO, optional Project, frozen workflow authority, payment modes, stock/PO handover and idempotency');
