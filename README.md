@@ -1,3 +1,7 @@
+## Current release
+
+**v1.38.0 Commercial Studio** adds persistent Pool Shed navigation, a distinct Quote Studio identity, per-quote margin/deposit/payment controls, bespoke proposal themes and the staff-preview reliability fix. See `RELEASE-NOTES-1.38.0.md`.
+
 # Pool Shed v1.33.0 - Process & Quote Authority
 
 > Current release: **v1.34.0 Product & CRM Media**. Product Hub and CRM now use private reusable Supabase media libraries, with Quote Studio inheritance.

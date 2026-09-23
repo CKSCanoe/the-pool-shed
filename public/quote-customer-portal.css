@@ -39,6 +39,23 @@
 @media(max-width:760px){.pc-nav{height:64px}.pc-brand{min-width:0}.pc-private{display:none}.pc-hero{min-height:590px}.pc-hero h1{font-size:40px}.pc-hero-meta{gap:14px}.pc-scroll-cue{display:none}.pc-section{padding:50px 20px}.pc-confidence{grid-template-columns:1fr 1fr}.pc-confidence-item:nth-child(2){border-right:0}.pc-options,.pc-options.count-1,.pc-options.count-2,.pc-options.layout-cards,.pc-options.layout-comparison,.pc-options.layout-compact{grid-template-columns:1fr!important}.pc-options.layout-rows .pc-option{grid-template-columns:1fr}.pc-options.layout-rows .pc-option-image{height:220px;min-height:220px}.pc-options.layout-rows .pc-option-body{grid-column:1}.pc-doc-grid{grid-template-columns:1fr}.pc-gallery{grid-template-columns:1fr 1fr}.pc-project-bar .left{display:none}.pc-project-bar{bottom:10px}.pc-project-bar .total{margin-left:0}.pc-accept-top,.pc-accept-body{padding:30px 24px}.pc-accept-step{padding:13px 10px;font-size:7px}.pc-footer{padding:28px 20px;flex-direction:column}.pc-layout-meta{grid-template-columns:1fr 1fr}}
 
 
-/* v1.37.0 customer data confirmation */
+/* v1.38.0 customer data confirmation */
 .pc-confirm-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px}.pc-confirm-grid .full{grid-column:1/-1}.pc-confirm-note{margin-top:18px;padding:15px 17px;border:1px solid rgba(167,137,88,.28);background:rgba(210,185,135,.10);border-radius:12px}.pc-confirm-note b{display:block;font-size:12px;color:var(--ink)}.pc-confirm-note span{display:block;margin-top:4px;font-size:11px;color:var(--muted);line-height:1.5}
 @media(max-width:720px){.pc-confirm-grid{grid-template-columns:1fr}.pc-confirm-grid .full{grid-column:auto}}
+
+/* v1.38.0 per-quote bespoke portal styling */
+:root{--portal-primary:#17343d;--portal-accent:#c79b5b;--portal-paper:#f7f6f1;--portal-radius:12px}
+.pc-shell,.pc-loading{background:var(--portal-paper)}
+.pc-nav{background:color-mix(in srgb,var(--portal-paper) 94%,transparent)}
+.pc-hero-bg{background:linear-gradient(125deg,color-mix(in srgb,var(--portal-primary) 88%,#071313),color-mix(in srgb,var(--portal-primary) 72%,#fff) 58%,color-mix(in srgb,var(--portal-primary) 55%,#8fd8e1))}
+.pc-callout{border-left-color:var(--portal-accent)}
+.pc-option{border-radius:var(--portal-radius)}.pc-option.selected{border-color:var(--portal-accent);box-shadow:0 0 0 1px var(--portal-accent)}
+.pc-option-badge,.pc-section-label{color:var(--portal-accent)}
+.pc-option.selected .pc-select,.pc-primary{background:var(--portal-primary);border-color:var(--portal-primary)}
+.pc-investment,.pc-accept-top{background:var(--portal-primary)}
+.pc-total small{color:color-mix(in srgb,var(--portal-accent) 78%,#fff)}
+.pc-terms{border-left-color:var(--portal-accent)}
+.pc-review-btn{color:var(--portal-primary)}
+body[data-portal-density="balanced"] .pc-section{padding-top:68px;padding-bottom:68px}
+body[data-portal-density="compact"] .pc-section{padding-top:48px;padding-bottom:48px}
+body[data-portal-density="compact"] .pc-section-intro{margin-bottom:28px}

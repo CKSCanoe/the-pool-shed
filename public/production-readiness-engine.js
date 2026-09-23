@@ -1,6 +1,6 @@
 (function(global){
 'use strict';
-const VERSION='1.37.0';
+const VERSION='1.38.0';
 const TERMINOLOGY={customerFinance:['Paid','Part Paid','Overdue'],fulfilment:['Shipped','Collected'],purchasing:['Short','BLOCK PAYMENT'],automation:['Approval Required']};
 const JOURNEYS=[
  {id:'order-to-cash',label:'Order to Cash',module:'accounting',page:'Invoice Ready'},
