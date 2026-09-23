@@ -1,9 +1,9 @@
-/* Pool Shed v1.34.0 Quote Studio engine.
+/* Pool Shed v1.35.0 Quote Studio engine.
  * One quote state drives staff editing, customer publication, engagement, acceptance and operational handover.
  */
 (function(global){
 'use strict';
-const VERSION='1.34.0';
+const VERSION='1.35.0';
 const signedMedia=new Map();
 const editHistory=new Map();
 const MEDIA_REF_PREFIX='quote-media:';

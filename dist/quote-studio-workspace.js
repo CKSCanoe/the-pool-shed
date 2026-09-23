@@ -1,4 +1,4 @@
-/* Pool Shed v1.34.0 Process & Quote Authority staff workspace. */
+/* Pool Shed v1.35.0 Process & Quote Authority staff workspace. */
 (function(global){
 'use strict';
 const engine=global.PoolShedQuoteStudio;if(!engine)return;

@@ -2,7 +2,7 @@
 (function () {
   'use strict';
 
-  const VERSION = '1.34.0';
+  const VERSION = '1.35.0';
 
   function text(value) { return String(value == null ? '' : value); }
   function escapeHtmlSafe(value) {

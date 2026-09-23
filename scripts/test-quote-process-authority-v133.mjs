@@ -7,7 +7,7 @@ const workspace=fs.readFileSync('public/quote-studio-workspace.js','utf8');
 const portal=fs.readFileSync('public/quote-customer-portal.js','utf8');
 const migration=fs.readFileSync('database/009-quote-process-authority.sql','utf8');
 const adapters=fs.readFileSync('public/action-source-adapters.js','utf8');
-assert.equal(pkg.version,'1.34.0');
+assert.equal(pkg.version,'1.35.0');
 for(const t of ['ps_quote_accept_atomic','ps_quote_conversion_jobs','ps_quote_conversion_claim','ps_quote_conversion_finish'])assert(migration.includes(t),'009 migration missing '+t);
 const atomic=api.indexOf("rpc/ps_quote_accept_atomic"), conversion=api.indexOf('processConversionJob(refreshed,acceptance)');
 assert(atomic>=0&&conversion>atomic,'acceptance must be recorded atomically before operational conversion');
@@ -18,4 +18,4 @@ for(const t of ['Advanced workflow','Start from template','Review & Publish','do
 for(const t of ['function quotes(d)','customer-question','handover-failed','payment-pending','published-not-sent'])assert(adapters.includes(t),'My Work quote adapter missing '+t);
 assert(!workspace.includes('<b>Publish & Send</b>'),'workspace must not imply publication equals delivery');
 assert(workspace.includes("qt.workflow==='quick'?'QUOTE TOTAL':'PROJECT INVESTMENT'"),'Quick Quote heading must not say Project Investment');
-console.log('PASS v1.34.0 atomic acceptance, publication authority, permissions, delivery truthfulness, templates and staff process improvements');
+console.log('PASS v1.35.0 atomic acceptance, publication authority, permissions, delivery truthfulness, templates and staff process improvements');
