@@ -96,7 +96,7 @@ new vm.Script(productImagesSource, { filename: 'product-images.js' });
 const productImagesCss = fs.readFileSync(productImagesCssPath, 'utf8');
 for (const requiredImageFeature of [
   'PoolShedProductImages',
-  "const VERSION = '1.40.0'",
+  "const VERSION = '1.41.0'",
   'explicitParentImageUrl',
   'parentImageUrl',
   'variantImageUrl',
@@ -259,7 +259,7 @@ windowStub.navigator = context.navigator;
 vm.createContext(context);
 vm.runInContext(productImagesSource, context, { filename: 'product-images-diagnostics.js' });
 const imageDiagnostics = windowStub.PoolShedProductImages;
-if (!imageDiagnostics || imageDiagnostics.version !== '1.40.0') {
+if (!imageDiagnostics || imageDiagnostics.version !== '1.41.0') {
   throw new Error('Product image diagnostics API did not initialise');
 }
 context.data.products = [

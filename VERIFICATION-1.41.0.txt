@@ -1,0 +1,61 @@
+npm warn Unknown env config "http-proxy". This will stop working in the next major version of npm.
+
+> the-pool-shed@1.41.0 test:quotes
+> node scripts/test-quote-layout-workspace-v141.mjs && node scripts/test-quote-layout-v141.mjs && node scripts/test-quote-signing-flow-v140.mjs && node scripts/test-quote-signing-api-v140.mjs && node scripts/test-quote-signatures-v140.mjs && node scripts/test-quote-refined-v139.mjs && node scripts/test-quote-command-v138.mjs && node scripts/test-quote-design-parity-v137.mjs && node scripts/test-quote-studio-v136.mjs && node scripts/test-business-media-v134.mjs && node scripts/test-quote-process-authority-v133.mjs && node scripts/test-quote-media-v1321.mjs && node scripts/test-quote-builder-v132.mjs && node scripts/test-quote-studio-v131.mjs && node scripts/test-quote-portal-v131.mjs && node scripts/test-quote-portal-v135.mjs && node scripts/test-quote-workflows-v131.mjs
+
+PASS laptop panel defaults, long quote title, every quote stage, working setup links, workflow disclosure, publish and back navigation
+PASS quote layout containment, retired fixed-width rules, canvas spacing and text contrast across all workspace palettes
+PASS separate signing page, back/forward draft retention, blank signatures, typed and drawn request payloads, clear/redraw, failure retry and accepted-state rendering
+PASS real API handler stores signature with version, terms, customer and totals in atomic private evidence; invalid requests never write
+PASS typed and drawn signatures, explicit consent, blank drawing rejection, finite bounded coordinates, size limits and independent evidence
+PASS refined quote: live calculations, zero values, deposit caps, balanced stages, workflow authority and non-mutating scenarios
+Bespoke commercial strategy saved.
+Accepted commercial terms are locked. Create a revision.
+PASS real workspace handlers: quote data, design inspector, focus, stage history, pipeline return, zero-value saving and accepted-quote lock
+Pool Shed v1.38 Quote Studio Command, bespoke commercial control, theming and cross-tab preview: PASS
+Pool Shed v1.38 Design Lab parity + automation authority: PASS
+Pool Shed v1.38 Elite Quote Studio + acceptance automation: PASS
+PASS v1.41.0 private Product Hub + CRM media, reusable quote assets and service-role-only storage
+PASS v1.41.0 atomic acceptance, publication authority, permissions, delivery truthfulness, templates and staff process improvements
+PASS v1.41.0 private Quote Media storage, stable refs, staff signing and customer-safe signed resolution
+PASS v1.41.0 elite visual quote builder, working media library, customer-safe imagery and proposal layouts
+PASS v1.41.0 Quote Studio native wiring, one-state engine, safe public snapshot and SKU/bundle operational mapping
+PASS v1.41.0 customer portal isolation, service-role quote tables, immutable acceptance and non-duplicated engagement events
+PASS v1.41.0 V9.2 private-client proposal design with preserved secure customer interactions
+PASS v1.41.0 Quick Quote direct-to-SO, optional Project, frozen workflow authority, payment modes, stock/PO handover and idempotency
+
+npm warn Unknown env config "http-proxy". This will stop working in the next major version of npm.
+
+> the-pool-shed@1.41.0 build
+> bash scripts/build.sh
+
+PASS quote layout containment, retired fixed-width rules, canvas spacing and text contrast across all workspace palettes
+PASS laptop panel defaults, long quote title, every quote stage, working setup links, workflow disclosure, publish and back navigation
+PASS typed and drawn signatures, explicit consent, blank drawing rejection, finite bounded coordinates, size limits and independent evidence
+PASS separate signing page, back/forward draft retention, blank signatures, typed and drawn request payloads, clear/redraw, failure retry and accepted-state rendering
+PASS real API handler stores signature with version, terms, customer and totals in atomic private evidence; invalid requests never write
+PASS refined quote: live calculations, zero values, deposit caps, balanced stages, workflow authority and non-mutating scenarios
+Bespoke commercial strategy saved.
+Accepted commercial terms are locked. Create a revision.
+PASS real workspace handlers: quote data, design inspector, focus, stage history, pipeline return, zero-value saving and accepted-quote lock
+Pool Shed v1.38 Quote Studio Command, bespoke commercial control, theming and cross-tab preview: PASS
+Pool Shed v1.38 Design Lab parity + automation authority: PASS
+PASS v1.41.0 fresh Supabase installer, first-admin enrolment and Product/CRM media verification authority
+PASS v1.41.0 private Product Hub + CRM media, reusable quote assets and service-role-only storage
+PASS v1.41.0 atomic acceptance, publication authority, permissions, delivery truthfulness, templates and staff process improvements
+PASS v1.41.0 elite visual quote builder, working media library, customer-safe imagery and proposal layouts
+PASS v1.31 Quotes-first flow and direct Sales Order / Project purchasing authority
+PASS v1.41.0 Quote Studio native wiring, one-state engine, safe public snapshot and SKU/bundle operational mapping
+PASS v1.41.0 customer portal isolation, service-role quote tables, immutable acceptance and non-duplicated engagement events
+PASS v1.41.0 Quick Quote direct-to-SO, optional Project, frozen workflow authority, payment modes, stock/PO handover and idempotency
+PASS package.json and pnpm-lock.yaml are synchronised for frozen CI installs
+PASS v1.27.2 Azzy floating assistant semantic colours and WCAG text contrast light quick action=10.73:1, light primary copy=15.82:1, light secondary copy=5.34:1, light header secondary=4.74:1, dark quick action=11.89:1, dark primary copy=15.21:1, dark secondary copy=8.11:1, dark header secondary=7.40:1
+PASS v1.27.3 Azzy visibility, source-chip readability and compact answer layout
+PASS v1.27.3 Azzy panel/cache authority retained on v1.41.0
+PASS v1.28.0 responsive layout authority, navigation ownership and banner-removal guard
+Built app.css from 34 maintained CSS modules.
+Runtime validation passed: 0 inline scripts, service worker, offline sales search, catalogue intelligence, PO supplier-offer search, partial shipment balance test, solid catalogue search UI and required app functions.
+Built deployable static application into /workspace/scratch/48b5c222118d/Pool-Shed-1.41.0-Quote-Workspace-Layout/dist
+
+CSS architecture checks passed.
+Browser visual verification was not completed.

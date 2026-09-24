@@ -1,10 +1,14 @@
-# Current release: 1.40.0
+# Current release: v1.41.0
+
+Quote Studio responsive layout and readability update. See [release notes](RELEASE-NOTES-1.41.0.md).
+
+## Acceptance introduced in v1.40.0
 
 Quote acceptance now has a separate signing page, with typed and drawn signatures. See [release notes](RELEASE-NOTES-1.40.0.md) for deployment and verification details.
 
-# Pool Shed v1.40.0 - Refined Visual Quote Studio
+## Retained visual editor features
 
-## Current release
+### Editor capabilities
 
 Implements the approved V10 refinement of the V9.2 Design Lab in the existing application.
 
@@ -14,7 +18,7 @@ Implements the approved V10 refinement of the V9.2 Design Lab in the existing ap
 - Live commercial preview uses the existing quote totals and payment-plan engines. Unsaved scenarios never alter published prices, approvals or customer data. The additional planning allowance is not saved as an actual cost.
 - Existing per-quote commercial terms are saved through the existing strategy form. Accepted and Won terms remain locked.
 
-Validation for this release: `npm run test:quotes`, `npm run build` and `node scripts/test-css-architecture.mjs` passed. The focused test also executes actual workspace handlers for quote opening, inspector, focus mode, Back, strategy saving and accepted-quote locking. Browser visual QA could not be run because the available browser blocks local preview URLs. No live deployment or database execution was performed.
+Earlier editor verification: `npm run test:quotes`, `npm run build` and `node scripts/test-css-architecture.mjs` passed. The focused test also executes actual workspace handlers for quote opening, inspector, focus mode, Back, strategy saving and accepted-quote locking. Browser visual QA could not be run because the available browser blocks local preview URLs. No live deployment or database execution was performed.
 
 No new Supabase migration or environment variable is required. Existing production data, backend endpoints and customer-portal permissions are unchanged. Deploy through the existing Vercel project using the existing environment variables; do not run a fresh database installation for this UI release.
 

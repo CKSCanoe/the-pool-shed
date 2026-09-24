@@ -23,7 +23,7 @@ assert.match(ws,/exit-quote-studio/,'Quote Studio must provide an explicit Pool 
 assert.match(ws,/BUILD PROPOSAL/);
 assert.match(ws,/CUSTOMER & OPERATIONS/);
 assert.match(css,/body:has\(#screen-quotes:not\(\.hidden\)\) \.sidebar/,'Quote Studio must own the full application surface');
-assert.match(css,/grid-template-columns:225px minmax\(0,1fr\) 282px/,'Visual builder should retain premium three-column proportions');
+assert.match(css,/grid-template-columns:240px minmax\(0,1fr\) 304px/,'Visual builder should retain premium three-column proportions');
 assert.equal(css,systemCss,'System CSS authority must match public Quote Studio CSS');
 
 assert.match(eng,/schema:5/,'Customer proposal schema must include confirmed contact prefill and v1.38 presentation/payment data');

@@ -6,7 +6,7 @@ const api=fs.readFileSync('api/quote.js','utf8');
 const sql=fs.readFileSync('database/007-quote-studio.sql','utf8');
 const vercel=JSON.parse(fs.readFileSync('vercel.json','utf8'));
 assert.match(html,/noindex,nofollow,noarchive/);
-assert.match(html,/quote-customer-portal\.js\?v=1\.40\.0/);
+assert.match(html,/quote-customer-portal\.js\?v=1\.41\.0/);
 for(const internal of ['01-legacy-01.js','quote-studio-engine.js','quote-studio-workspace.js','project-workspace.js','purchase-workspace.js'])assert(!html.includes(internal),'customer portal must not load '+internal);
 for(const forbidden of ['unitCost','supplierSnapshot','commercialSnapshot','purchaseOrders','costSnapshot','financeDocumentId'])assert(!js.includes(forbidden),'customer JavaScript must not contain internal field '+forbidden);
 assert.match(api,/public_payload/);assert.match(api,/commercial_payload/);assert.match(api,/token_hash/);assert.match(api,/tokenHash\(plain\)/);
@@ -22,7 +22,7 @@ assert.equal((js.match(/track\('option_change'/g)||[]).length,0,'choice endpoint
 assert.equal((js.match(/track\('question'/g)||[]).length,0,'question endpoint is the single source of question tracking');
 assert.equal((js.match(/track\('accepted'/g)||[]).length,0,'accept endpoint is the single source of accepted tracking');
 assert.match(js,/track\('acceptance'/,'acceptance-start signal should remain separate from accepted event');
-console.log('PASS v1.40.0 customer portal isolation, service-role quote tables, immutable acceptance and non-duplicated engagement events');
+console.log('PASS v1.41.0 customer portal isolation, service-role quote tables, immutable acceptance and non-duplicated engagement events');
 
 assert.match(api,/source_id=like.*QUOTE-%/,'staff finance feed must include both quote deposits and quick-quote payment requests');
 assert.match(api,/salesOrderCreated/,'acceptance response must report Sales Order creation independently from Project creation');

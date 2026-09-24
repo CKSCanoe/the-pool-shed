@@ -11,7 +11,7 @@ const css=read('public/quote-studio.css');
 const eng=read('public/quote-studio-engine.js');
 const api=read('api/quote.js');
 const server=read('server/quote.js');
-assert.equal(pkg.version,'1.40.0');
+assert.equal(pkg.version,'1.41.0');
 assert.match(ws,/builderPanel='elements'/,'Design Lab should open on Elements');
 assert.match(ws,/Elements<\/button>.*Products<\/button>.*Sections<\/button>.*Uploads<\/button>/s,'Left library order must match Design Lab interaction model');
 assert.match(ws,/toggle-builder-left/);assert.match(ws,/toggle-builder-right/);assert.match(ws,/focus-canvas/);

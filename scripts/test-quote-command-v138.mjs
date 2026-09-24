@@ -15,14 +15,14 @@ const portalCss=read('public/quote-customer-portal.css');
 const index=read('public/index.html');
 const proposal=read('public/proposal.html');
 
-assert.equal(pkg.version,'1.40.0');
-assert.match(eng,/const VERSION='1\.40\.0'/);
+assert.equal(pkg.version,'1.41.0');
+assert.match(eng,/const VERSION='1\.41\.0'/);
 
 // Navigation authority
 assert.match(ws,/qs-globalbar/,'Quote Studio pages must own a persistent navigation bar');
 assert.match(ws,/data-qs-action="exit-quote-studio"/,'Every quote surface must provide an explicit Pool Shed exit');
 assert.match(ws,/qs-commanddeck/,'Quote detail must use the non-compressing command deck');
-assert.match(css,/\.qs-commanddeck-main\{display:grid;grid-template-columns:minmax\(260px,/,'Desktop command deck must reserve a real identity column');
+assert.match(css,/\.qs-commanddeck-main\{display:grid;grid-template-columns:minmax\(320px,/,'Desktop command deck must reserve a real identity column');
 assert.match(css,/body:has\(#screen-quotes:not\(\.hidden\)\) \.subnav\{display:none!important\}/,'Legacy Pool Shed quote subnav must not compete with Quote Studio navigation');
 
 // Bespoke per-quote commercial authority
@@ -73,8 +73,8 @@ assert.doesNotMatch(snapshot,/costSnapshot/);
 
 // CSS authority stays single-source and assets are current.
 assert.equal(css,publicCss);
-assert(index.includes('app.css?v=1.40.0'));
-assert(proposal.includes('quote-customer-portal.css?v=1.40.0'));
-assert(proposal.includes('quote-customer-portal.js?v=1.40.0'));
+assert(index.includes('app.css?v=1.41.0'));
+assert(proposal.includes('quote-customer-portal.css?v=1.41.0'));
+assert(proposal.includes('quote-customer-portal.js?v=1.41.0'));
 
 console.log('Pool Shed v1.38 Quote Studio Command, bespoke commercial control, theming and cross-tab preview: PASS');
