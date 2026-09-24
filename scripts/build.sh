@@ -3,7 +3,11 @@ set -euo pipefail
 ROOT=$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)
 DIST="$ROOT/dist"
 
-node "$ROOT/scripts/test-quote-commercial-studio-v138.mjs"
+node "$ROOT/scripts/test-quote-signatures-v140.mjs"
+node "$ROOT/scripts/test-quote-signing-flow-v140.mjs"
+node "$ROOT/scripts/test-quote-signing-api-v140.mjs"
+node "$ROOT/scripts/test-quote-refined-v139.mjs"
+node "$ROOT/scripts/test-quote-command-v138.mjs"
 node "$ROOT/scripts/test-quote-design-parity-v137.mjs"
 node "$ROOT/scripts/test-supabase-fresh-v134.mjs"
 node "$ROOT/scripts/test-business-media-v134.mjs"

@@ -11,4 +11,4 @@ assert(admin.includes("'pool-bros-main'"),'admin enrol must create workspace mem
 assert(admin.includes("'Admin'"),'first staff enrol must set Pool Shed Admin role');
 for(const t of ['ps_product_media','ps_customer_media','product-media','customer-media']) assert(verify.includes(t),`verification missing ${t}`);
 assert(!/drop table\s+if exists\s+public\.(?:products|customers|sales_orders|purchase_orders)/i.test(full),'fresh installer must not recreate/destructively reset legacy duplicate operational tables');
-console.log('PASS v1.38.0 fresh Supabase installer, first-admin enrolment and Product/CRM media verification authority');
+console.log('PASS v1.40.0 fresh Supabase installer, first-admin enrolment and Product/CRM media verification authority');

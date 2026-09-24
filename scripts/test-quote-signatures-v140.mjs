@@ -1,0 +1,16 @@
+import assert from 'node:assert/strict';
+import * as quote from '../server/quote.js';
+assert.equal(typeof quote.validateQuoteSignature, 'function', 'Acceptance must validate and retain a typed or drawn signature');
+const validate = quote.validateQuoteSignature;
+assert.deepEqual(validate({method:'typed',text:'  Aaron Boyer  '},true),{version:1,method:'typed',text:'Aaron Boyer'});
+const drawing={method:'drawn',strokes:[[[.1,.5],[.2,.2],[.4,.7]]]};
+const accepted=validate(drawing,true);
+assert.equal(accepted.method,'drawn');
+assert.deepEqual(accepted.strokes,drawing.strokes);
+drawing.strokes[0][0][0]=.9;
+assert.equal(accepted.strokes[0][0][0],.1,'Accepted signature must be an independent snapshot');
+for (const signature of [null,{}, {method:'typed',text:' '},{method:'typed',text:'x'.repeat(201)},{method:'drawn',strokes:[]},{method:'drawn',strokes:[[[.1,.1],[.1,.1]]]},{method:'drawn',strokes:[[[0,0],[2,1]]]},{method:'drawn',strokes:[[[0,0],[NaN,1]]]},{method:'drawn',strokes:[Array.from({length:3001},(_,i)=>[i%2,0])]},{method:'image',data:'<svg/>'}]) assert.throws(()=>validate(signature,true));
+assert.throws(()=>validate({method:'typed',text:'Aaron Boyer'},false),/agree/i);
+assert.throws(()=>validate({method:'typed',text:'Aaron Boyer'},'true'),/agree/i);
+console.log('PASS typed and drawn signatures, explicit consent, blank drawing rejection, finite bounded coordinates, size limits and independent evidence');
+assert.equal(quote.acceptedTotals({vatRate:0},[{qty:1,unitPrice:100}]).gross,100,'Acceptance record must preserve a zero VAT rate');

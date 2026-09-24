@@ -23,10 +23,10 @@ assert.match(ws,/exit-quote-studio/,'Quote Studio must provide an explicit Pool 
 assert.match(ws,/BUILD PROPOSAL/);
 assert.match(ws,/CUSTOMER & OPERATIONS/);
 assert.match(css,/body:has\(#screen-quotes:not\(\.hidden\)\) \.sidebar/,'Quote Studio must own the full application surface');
-assert.match(css,/grid-template-columns:258px minmax\(680px,1fr\) 330px/,'Visual builder should retain premium three-column proportions');
+assert.match(css,/grid-template-columns:225px minmax\(0,1fr\) 282px/,'Visual builder should retain premium three-column proportions');
 assert.equal(css,systemCss,'System CSS authority must match public Quote Studio CSS');
 
-assert.match(eng,/schema:4/,'Customer proposal schema must include confirmed contact prefill');
+assert.match(eng,/schema:5/,'Customer proposal schema must include confirmed contact prefill and v1.38 presentation/payment data');
 assert.match(eng,/customerAddress\(c\)/);
 assert.match(eng,/email:c\.email/);
 assert.match(portal,/pcCustomerEmail/);
@@ -113,4 +113,4 @@ const job=result.snapshot.jobs.find(x=>x.id===result.conversion.projectId);
 assert.equal(job.customerId,'C-1');
 assert.equal(job.project.materialPlan[0].productId,'P-1');
 
-console.log('Pool Shed v1.37 Elite Quote Studio + acceptance automation: PASS');
+console.log('Pool Shed v1.38 Elite Quote Studio + acceptance automation: PASS');

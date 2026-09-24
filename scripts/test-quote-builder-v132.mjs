@@ -9,7 +9,7 @@ const engineSource=fs.readFileSync('public/quote-studio-engine.js','utf8');
 const portal=fs.readFileSync('public/quote-customer-portal.js','utf8');
 const css=fs.readFileSync('public/assets/css/system/59-quote-studio.css','utf8');
 const customerCss=fs.readFileSync('public/quote-customer-portal.css','utf8');
-assert.match(pkg.version,/^1\.(?:32\.[1-9]\d*|3[3-9]\.\d+)$/);
+assert.match(pkg.version,/^1\.(?:32\.[1-9]\d*|(?:3[3-9]|[4-9]\d)\.\d+)$/);
 for(const token of ['Media library','Upload project image','data-qs-upload-target','quoteImageData','qsImageUpload','CLIENT CANVAS','Review & Send','quick section','Add image']){
   assert(workspace.toLowerCase().includes(token.toLowerCase()),`workspace missing elite builder capability: ${token}`);
 }
@@ -32,4 +32,4 @@ assert.equal(snap.sections[0].options[0].image,media.url,'option media must surv
 assert.equal(snap.sections[0].blocks[0].images.length,2,'gallery media must survive safe customer snapshot');
 for(const forbidden of ['costSnapshot','supplierSnapshot','supplierSkuSnapshot','commercialSnapshot','unitCost'])assert(!txt.includes(forbidden),'customer snapshot leaked '+forbidden);
 qs.removeMedia(q.id,media.id);assert.equal(q.mediaLibrary.length,0);
-console.log('PASS v1.38.0 elite visual quote builder, working media library, customer-safe imagery and proposal layouts');
+console.log('PASS v1.40.0 elite visual quote builder, working media library, customer-safe imagery and proposal layouts');

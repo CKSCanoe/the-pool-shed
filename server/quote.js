@@ -22,7 +22,7 @@ export function selectedOptionIds(publicPayload,state={}){
  for(const section of publicPayload.sections||[]){const allowed=new Set((section.options||[]).map(o=>o.id));let ids=Array.isArray(selections[section.id])?selections[section.id].filter(id=>allowed.has(id)):null;if(ids===null)ids=(section.options||[]).filter(o=>section.rule==='locked'||o.selected).map(o=>o.id);if(section.rule==='locked')ids=[...allowed];if(section.rule==='single'&&ids.length!==1)throw Error(section.title+': choose exactly one option');if(section.required&&section.rule!=='locked'&&!ids.length)throw Error(section.title+': a selection is required');if(section.rule==='optional'&&ids.length>1)throw Error(section.title+': choose at most one option');ids.forEach(id=>out.add(id))}return out;
 }
 export function acceptedLines(publicPayload,commercialPayload,state={}){const selected=selectedOptionIds(publicPayload,state),matrix=commercialPayload.operationalOptions||[];if(matrix.length)return matrix.filter(x=>selected.has(x.optionId)||x.rule==='locked').flatMap(x=>clone(x.lines||[]));return clone(commercialPayload.operationalLines||[])}
-export function acceptedTotals(publicPayload,lines){const net=money(lines.reduce((s,l)=>s+Number(l.qty||0)*Number(l.unitPrice||0),0)),vat=money(net*Number(publicPayload.vatRate||20)/100),gross=money(net+vat),deposit=money(gross*Number(publicPayload.depositPercent||50)/100),cost=money(lines.filter(l=>l.bundleRole!=='head').reduce((s,l)=>s+Number(l.qty||0)*Number(l.unitCost||0),0));return {net,vat,gross,deposit,cost,profit:money(net-cost),margin:net?money((net-cost)/net*100):0}}
+export function acceptedTotals(publicPayload,lines){const net=money(lines.reduce((s,l)=>s+Number(l.qty||0)*Number(l.unitPrice||0),0)),vat=money(net*Number(publicPayload.vatRate??20)/100),gross=money(net+vat),deposit=money(gross*Number(publicPayload.depositPercent||50)/100),cost=money(lines.filter(l=>l.bundleRole!=='head').reduce((s,l)=>s+Number(l.qty||0)*Number(l.unitCost||0),0));return {net,vat,gross,deposit,cost,profit:money(net-cost),margin:net?money((net-cost)/net*100):0}}
 function nextId(list,prefix,start){const used=new Set((list||[]).map(x=>x.id));let n=start+(list||[]).length,id;do{id=prefix+'-'+n++}while(used.has(id));return id}
 function nextJobId(d){return nextId(d.jobs,'J',1001)}
 function productMap(d){return new Map((d.products||[]).map(p=>[String(p.id),p]))}
@@ -44,4 +44,29 @@ export function convertSnapshot(snapshot,{publication,acceptance}){
 }
 export async function saveQuoteWorkspace(w,actor,expected,snapshot){const result=await db('rpc/ps_quote_workspace_save',{method:'POST',body:{w,actor,expected,snapshot}});if(!result)throw Object.assign(Error('The workspace changed while the customer was accepting. No data was overwritten; retry the acceptance.'),{statusCode:409});return result}
 export async function tryQueueDeposit(w,publication,conversion,snapshot){const dep=conversion?.deposit||{},mode=dep.mode||publication.commercial_payload?.handoverPolicy?.xeroRequestMode||'deposit';if(mode==='none'||dep.status==='Not required')return {status:'Not required',reason:'Automatic Xero request is disabled for this quote'};const readiness=xeroIntegrationReadiness();const customer=(snapshot.customers||[]).find(c=>String(c.id)===String(publication.commercial_payload?.customerId||''));const contact=customer?.xeroContactId||customer?.xeroContactID||'';if(!readiness.liveEnabled)return {status:'Ready for Xero',reason:'Xero live connection is not enabled'};if(!contact)return {status:'Ready for Xero',reason:'Customer is not linked to a Xero ContactID'};const [connection]=await db('ps_finance_connections?workspace_id=eq.'+eq(w)+'&select=tenant_id');if(!connection?.tenant_id)return {status:'Ready for Xero',reason:'Xero organisation is not selected'};const members=await db('ps_finance_members?workspace_id=eq.'+eq(w)+'&role=in.(admin,accountant)&select=user_id,role&order=role.asc&limit=1');if(!members.length)return {status:'Ready for Xero',reason:'No finance admin/accountant is configured for automated queueing'};const totals=conversion.acceptedTotals||{},net=Number(totals.net||0),depositPct=Number(publication.public_payload?.depositPercent||50),netAmount=mode==='full'?net:money(net*depositPct/100),description=mode==='full'?'Payment for accepted quote':'Deposit to secure project',invoice={Type:'ACCREC',Contact:{ContactID:contact},Date:date(),DueDate:new Date(Date.now()+7*86400000).toISOString().slice(0,10),CurrencyCode:'GBP',LineAmountTypes:'Exclusive',Status:'DRAFT',LineItems:[{Description:description+' · '+publication.public_payload.projectName+' · '+publication.quote_id+' v'+publication.version_number,Quantity:1,UnitAmount:money(netAmount),AccountCode:'4000',TaxType:'OUTPUT2'}]};const source=(mode==='full'?'QUOTE-PAYMENT:':'QUOTE-DEPOSIT:')+publication.quote_id+':V'+publication.version_number,doc=randomUUID();const id=await db('rpc/ps_finance_enqueue',{method:'POST',body:{w,actor:members[0].user_id,doc,source,kind_value:'ACCREC',invoice}});return {status:'Queued to Xero',financeDocumentId:id,reason:'Automated after accepted quote conversion',mode}
+}
+
+// Normalised strokes are inert data, retained in the existing private acceptance evidence.
+export function validateQuoteSignature(signature, termsAccepted) {
+ if (termsAccepted !== true) throw Error('Please agree to the Terms & Conditions before signing.');
+ if (!signature || typeof signature !== 'object') throw Error('Type or draw your signature before accepting.');
+ if (signature.method === 'typed') {
+  const text = typeof signature.text === 'string' ? signature.text.trim() : '';
+  if (text.length < 2 || text.length > 200) throw Error('Type your signature using 2 to 200 characters.');
+  return {version:1, method:'typed', text};
+ }
+ if (signature.method !== 'drawn' || !Array.isArray(signature.strokes) || !signature.strokes.length || signature.strokes.length > 100) throw Error('Draw your signature before accepting.');
+ let count=0, distance=0;
+ const strokes=signature.strokes.map(stroke=>{
+  if (!Array.isArray(stroke) || !stroke.length) throw Error('Invalid signature stroke.');
+  let last=null;
+  return stroke.map(point=>{
+   if (++count>3000 || !Array.isArray(point) || point.length!==2 || !point.every(n=>typeof n==='number' && Number.isFinite(n) && n>=0 && n<=1)) throw Error('Invalid or oversized signature. Clear the signature and try again.');
+   const clean=point.map(n=>Math.round(n*10000)/10000);
+   if(last) distance+=Math.hypot(clean[0]-last[0],clean[1]-last[1]);
+   last=clean; return clean;
+  });
+ });
+ if (distance<.01) throw Error('Draw your signature before accepting.');
+ return {version:1,method:'drawn',coordinateSystem:'unit-square',strokes};
 }

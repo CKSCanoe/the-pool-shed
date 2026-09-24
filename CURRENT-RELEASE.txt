@@ -1,1 +1,4 @@
-Pool Shed v1.38.0 - Design Lab Parity Quote Studio
+Pool Shed v1.40.0
+Separate quote acceptance page with typed and drawn signatures.
+Full project release. No new Supabase migration relative to 1.39.0.
+See RELEASE-NOTES-1.40.0.md.

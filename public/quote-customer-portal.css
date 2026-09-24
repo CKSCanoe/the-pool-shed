@@ -39,23 +39,53 @@
 @media(max-width:760px){.pc-nav{height:64px}.pc-brand{min-width:0}.pc-private{display:none}.pc-hero{min-height:590px}.pc-hero h1{font-size:40px}.pc-hero-meta{gap:14px}.pc-scroll-cue{display:none}.pc-section{padding:50px 20px}.pc-confidence{grid-template-columns:1fr 1fr}.pc-confidence-item:nth-child(2){border-right:0}.pc-options,.pc-options.count-1,.pc-options.count-2,.pc-options.layout-cards,.pc-options.layout-comparison,.pc-options.layout-compact{grid-template-columns:1fr!important}.pc-options.layout-rows .pc-option{grid-template-columns:1fr}.pc-options.layout-rows .pc-option-image{height:220px;min-height:220px}.pc-options.layout-rows .pc-option-body{grid-column:1}.pc-doc-grid{grid-template-columns:1fr}.pc-gallery{grid-template-columns:1fr 1fr}.pc-project-bar .left{display:none}.pc-project-bar{bottom:10px}.pc-project-bar .total{margin-left:0}.pc-accept-top,.pc-accept-body{padding:30px 24px}.pc-accept-step{padding:13px 10px;font-size:7px}.pc-footer{padding:28px 20px;flex-direction:column}.pc-layout-meta{grid-template-columns:1fr 1fr}}
 
 
-/* v1.38.0 customer data confirmation */
+/* v1.40.0 customer data confirmation */
 .pc-confirm-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px}.pc-confirm-grid .full{grid-column:1/-1}.pc-confirm-note{margin-top:18px;padding:15px 17px;border:1px solid rgba(167,137,88,.28);background:rgba(210,185,135,.10);border-radius:12px}.pc-confirm-note b{display:block;font-size:12px;color:var(--ink)}.pc-confirm-note span{display:block;margin-top:4px;font-size:11px;color:var(--muted);line-height:1.5}
 @media(max-width:720px){.pc-confirm-grid{grid-template-columns:1fr}.pc-confirm-grid .full{grid-column:auto}}
 
-/* v1.38.0 per-quote bespoke portal styling */
-:root{--portal-primary:#17343d;--portal-accent:#c79b5b;--portal-paper:#f7f6f1;--portal-radius:12px}
-.pc-shell,.pc-loading{background:var(--portal-paper)}
-.pc-nav{background:color-mix(in srgb,var(--portal-paper) 94%,transparent)}
-.pc-hero-bg{background:linear-gradient(125deg,color-mix(in srgb,var(--portal-primary) 88%,#071313),color-mix(in srgb,var(--portal-primary) 72%,#fff) 58%,color-mix(in srgb,var(--portal-primary) 55%,#8fd8e1))}
-.pc-callout{border-left-color:var(--portal-accent)}
-.pc-option{border-radius:var(--portal-radius)}.pc-option.selected{border-color:var(--portal-accent);box-shadow:0 0 0 1px var(--portal-accent)}
-.pc-option-badge,.pc-section-label{color:var(--portal-accent)}
-.pc-option.selected .pc-select,.pc-primary{background:var(--portal-primary);border-color:var(--portal-primary)}
-.pc-investment,.pc-accept-top{background:var(--portal-primary)}
-.pc-total small{color:color-mix(in srgb,var(--portal-accent) 78%,#fff)}
-.pc-terms{border-left-color:var(--portal-accent)}
-.pc-review-btn{color:var(--portal-primary)}
-body[data-portal-density="balanced"] .pc-section{padding-top:68px;padding-bottom:68px}
-body[data-portal-density="compact"] .pc-section{padding-top:48px;padding-bottom:48px}
-body[data-portal-density="compact"] .pc-section-intro{margin-bottom:28px}
+/* ============================================================
+   v1.38 per-quote portal theming
+   The secure customer renderer consumes only customer-safe theme values.
+   ============================================================ */
+.pc-shell{background:var(--pc-paper,var(--paper))}
+.pc-nav{background:color-mix(in srgb,var(--pc-primary,var(--forest)) 96%,#000);border-bottom-color:color-mix(in srgb,var(--pc-accent,var(--gold)) 24%,transparent)}
+.pc-hero{background:var(--pc-primary,var(--forest))}.pc-hero-bg{background:linear-gradient(125deg,color-mix(in srgb,var(--pc-primary,var(--forest)) 92%,#000),color-mix(in srgb,var(--pc-primary,var(--forest)) 78%,var(--water)) 62%,color-mix(in srgb,var(--pc-primary,var(--forest)) 58%,var(--water2)))}
+.pc-eyebrow,.pc-section-label,.pc-option-badge{color:var(--pc-accent,var(--gold))}
+.pc-callout{border-left-color:var(--pc-accent,var(--gold));background:color-mix(in srgb,var(--pc-paper,var(--paper)) 82%,var(--pc-accent,var(--gold)))}
+.pc-option.selected{border-color:var(--pc-accent,var(--gold));box-shadow:0 0 0 1px var(--pc-accent,var(--gold))}
+.pc-option.selected .pc-select{background:var(--pc-primary,var(--forest));border-color:var(--pc-primary,var(--forest));color:#fff}
+.pc-options.layout-comparison .pc-option{border-top-color:var(--pc-accent,var(--gold))}
+.pc-investment,.pc-section.dark,.pc-accept-top{background:var(--pc-primary,var(--forest))}
+.pc-project-bar{background:color-mix(in srgb,var(--pc-primary,var(--forest)) 96%,#000)}
+.pc-footer{background:var(--pc-paper,var(--paper))}
+
+.pc-shell.theme-waterline{--pc-soft:color-mix(in srgb,var(--pc-paper) 84%,#dbe9e9)}.pc-shell.theme-waterline .pc-section:not(.dark){background:var(--pc-soft)}.pc-shell.theme-waterline .pc-option,.pc-shell.theme-waterline .pc-doc{border-radius:14px}.pc-shell.theme-waterline .pc-hero-bg{filter:saturate(1.08)}
+.pc-shell.theme-minimal .pc-option,.pc-shell.theme-minimal .pc-doc,.pc-shell.theme-minimal .pc-accept-card{box-shadow:none!important}.pc-shell.theme-minimal .pc-option{border-color:color-mix(in srgb,var(--pc-primary) 18%,#ddd)}.pc-shell.theme-minimal .pc-confidence{border-top:1px solid #ddd;border-bottom:1px solid #ddd}
+.pc-shell.theme-contrast .pc-hero,.pc-shell.theme-contrast .pc-investment,.pc-shell.theme-contrast .pc-section.dark,.pc-shell.theme-contrast .pc-accept-top{background:color-mix(in srgb,var(--pc-primary) 82%,#000)}.pc-shell.theme-contrast .pc-section-label,.pc-shell.theme-contrast .pc-option-badge{font-weight:950}.pc-shell.theme-contrast .pc-option.selected{box-shadow:0 0 0 2px var(--pc-accent)}
+
+/* Dedicated acceptance page and accessible signature input. */
+.pc-next-page .pc-section-inner{display:flex;align-items:center;justify-content:space-between;gap:32px}
+.pc-next-page h2{font-family:Georgia,serif;font-weight:400;font-size:clamp(28px,3vw,40px);margin:12px 0}
+.pc-next-page p{color:#59665e;line-height:1.6}
+.pc-next-page a.pc-primary{display:inline-flex;align-items:center;text-decoration:none;white-space:nowrap}
+.pc-back-link{display:inline-block;color:#354b41;font-size:13px;font-weight:600;margin:0 0 28px;text-underline-offset:4px}
+.pc-menu [aria-current]{font-size:13px;color:#354b41;font-weight:700}
+.pc-signing{margin:24px 0;padding:20px;border:1px solid #c9cdc5;border-radius:12px;min-width:0;background:#faf9f5}
+.pc-signing legend{font-weight:700;padding:0 8px;font-size:16px;color:#24332d}
+.pc-signing p{font-size:13px;line-height:1.6;margin:0 0 14px;color:#59665e}
+.pc-signature-methods{display:flex;gap:8px;margin:12px 0 20px}
+.pc-signature-methods button{flex:1;min-height:44px;padding:10px 14px;border:1px solid #c9cdc5;border-radius:8px;background:#fff;color:#24332d;font:inherit;font-size:13px;cursor:pointer}
+.pc-signature-methods button[aria-pressed="true"]{background:#24332d;color:#fff;border-color:#24332d}
+.pc-signing [hidden]{display:none!important}
+.pc-signing label{display:block;margin-bottom:8px;font-size:13px;font-weight:600}
+.pc-signing input{display:block;width:100%;box-sizing:border-box;padding:12px;border:1px solid #b6bfb5;border-radius:8px;background:#fff;color:#24332d;font:inherit;font-size:16px}
+.pc-signature-caption{display:block;margin:14px 0 8px;font-size:12px;color:#59665e}
+#pcSignatureCanvas{display:block;width:100%;height:auto;aspect-ratio:3.2;background:#fff;border:1px solid #b6bfb5;border-radius:8px;touch-action:none;cursor:crosshair;box-sizing:border-box}
+.pc-signature-tools{display:flex;gap:12px;justify-content:space-between;align-items:center;margin-top:10px;font-size:12px;color:#59665e}
+.pc-signature-tools button{border:1px solid #c9cdc5;border-radius:6px;background:#fff;padding:10px;color:#24332d;font:inherit;cursor:pointer;min-height:44px;flex-shrink:0}
+.pc-shell button:focus-visible,.pc-shell a:focus-visible,.pc-shell input:focus-visible{outline:3px solid #936b31;outline-offset:3px}
+.pc-shell button:disabled{opacity:.55;cursor:wait}
+.pc-project-bar .pc-sign-next{background:#24332d;color:#fff}
+.pc-signature-box{overflow-wrap:anywhere}
+#pcAcceptanceHeading:focus{outline:none}
+@media(max-width:760px){.pc-next-page .pc-section-inner{flex-direction:column;align-items:stretch}.pc-next-page a.pc-primary{justify-content:center;white-space:normal}.pc-signing{padding:14px}.pc-project-bar .pc-review-btn:not(.pc-sign-next){display:none}.pc-project-bar .pc-sign-next{display:inline-flex}.pc-signature-methods button{padding:10px 8px}.pc-accept-top .pc-back-link{margin-bottom:20px}}
