@@ -1,6 +1,6 @@
-# Current release: v1.41.0
+# Current release: v1.41.1
 
-Quote Studio responsive layout and readability update. See [release notes](RELEASE-NOTES-1.41.0.md).
+Quote Studio inspector refinement: readable layer names and types, roomier right panel, grouped content and options, visible editing states, and keyboard focus indicators. No API or database changes. Verified with `npm run test:quotes`, `npm run build` and `node scripts/test-css-architecture.mjs`. Live visual inspection behind staff sign-in remains unverified. Previous layout release: [v1.41.0](RELEASE-NOTES-1.41.0.md).
 
 ## Acceptance introduced in v1.40.0
 

@@ -1,3 +1,2 @@
-Pool Shed v1.41.0 Quote Studio Layout
-Responsive Quote Studio layout, readable forms and contained editor panels.
-See RELEASE-NOTES-1.41.0.md.
+Pool Shed v1.41.1 Layers Refinement
+Readable inspector layers, clearer option states and improved text wrapping.

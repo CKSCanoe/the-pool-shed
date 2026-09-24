@@ -39,7 +39,7 @@
 @media(max-width:760px){.pc-nav{height:64px}.pc-brand{min-width:0}.pc-private{display:none}.pc-hero{min-height:590px}.pc-hero h1{font-size:40px}.pc-hero-meta{gap:14px}.pc-scroll-cue{display:none}.pc-section{padding:50px 20px}.pc-confidence{grid-template-columns:1fr 1fr}.pc-confidence-item:nth-child(2){border-right:0}.pc-options,.pc-options.count-1,.pc-options.count-2,.pc-options.layout-cards,.pc-options.layout-comparison,.pc-options.layout-compact{grid-template-columns:1fr!important}.pc-options.layout-rows .pc-option{grid-template-columns:1fr}.pc-options.layout-rows .pc-option-image{height:220px;min-height:220px}.pc-options.layout-rows .pc-option-body{grid-column:1}.pc-doc-grid{grid-template-columns:1fr}.pc-gallery{grid-template-columns:1fr 1fr}.pc-project-bar .left{display:none}.pc-project-bar{bottom:10px}.pc-project-bar .total{margin-left:0}.pc-accept-top,.pc-accept-body{padding:30px 24px}.pc-accept-step{padding:13px 10px;font-size:7px}.pc-footer{padding:28px 20px;flex-direction:column}.pc-layout-meta{grid-template-columns:1fr 1fr}}
 
 
-/* v1.41.0 customer data confirmation */
+/* v1.41.1 customer data confirmation */
 .pc-confirm-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px}.pc-confirm-grid .full{grid-column:1/-1}.pc-confirm-note{margin-top:18px;padding:15px 17px;border:1px solid rgba(167,137,88,.28);background:rgba(210,185,135,.10);border-radius:12px}.pc-confirm-note b{display:block;font-size:12px;color:var(--ink)}.pc-confirm-note span{display:block;margin-top:4px;font-size:11px;color:var(--muted);line-height:1.5}
 @media(max-width:720px){.pc-confirm-grid{grid-template-columns:1fr}.pc-confirm-grid .full{grid-column:auto}}
 
