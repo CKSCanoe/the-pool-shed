@@ -1,0 +1,37 @@
+import fs from 'node:fs';
+import vm from 'node:vm';
+import assert from 'node:assert/strict';
+import {webcrypto} from 'node:crypto';
+const data={customers:[{id:'C1',name:'A customer with a long household name'}],products:[],quotes:[]};
+const listeners={},screen={innerHTML:'',querySelector(){return null}};
+const context={console,crypto:webcrypto,Date,Math,Intl,URLSearchParams,TextEncoder,TextDecoder,navigator:{onLine:false},matchMedia:()=>({matches:true}),localStorage:{getItem(){return null},setItem(){}},setTimeout(){},setInterval(){},__POOL_SHED_GET_DATA__:()=>data,__POOL_SHED_SAVE_APP_DATA__:()=>true,__POOL_SHED_CURRENT_USER__:()=>({id:'test'}),document:{addEventListener(type,fn){(listeners[type]??=[]).push(fn)},getElementById:id=>id==='screen-quotes'?screen:null,activeElement:null}};
+vm.createContext(context);vm.runInContext(fs.readFileSync('public/quote-studio-engine.js','utf8'),context);
+const engine=context.PoolShedQuoteStudio;
+const quote=engine.createQuote({customerId:'C1',projectName:'Indoor pool refurbishment with a bespoke cover and plant room',workflow:'project'});
+engine.addCustomOption(quote.id,quote.sections[0].id,{title:'Pool equipment and installation',qty:1,unitPrice:12500,costSnapshot:7000,selected:true});
+vm.runInContext(fs.readFileSync('public/quote-studio-workspace.js','utf8'),context);
+async function click(selector,dataset){for(const fn of listeners.click||[])await fn({target:{closest:s=>s===selector?{dataset}:null}})}
+const first=quote.sections[0];
+const second=engine.addSection(quote.id,{title:'Heating & circulation',rule:'single',options:[],blocks:[]});
+const option=engine.addCustomOption(quote.id,second.id,{title:'Inverter heat pump',qty:1,unitPrice:2300,selected:true});
+await click('[data-qs-open]',{qsOpen:quote.id});
+assert(screen.innerHTML.includes('data-qs-section-select'),'Section picker is accessible without opening Library');
+const before=JSON.stringify(quote.sections);
+async function pick(value){for(const fn of listeners.change||[])await fn({target:{value,matches:s=>s==='[data-qs-section-select]',closest:()=>null}})}
+await pick(second.id);
+assert(screen.innerHTML.includes('name="optionId" value="'+option.id+'"'),'Section picker opens the correct section option');
+assert.equal(JSON.stringify(quote.sections),before,'Section navigation does not mutate quote data');
+assert(screen.innerHTML.includes('<legend>Customer content</legend>'));
+assert(screen.innerHTML.includes('<legend>Pricing &amp; selection</legend>')||screen.innerHTML.includes('<legend>Pricing & selection</legend>'));
+assert(screen.innerHTML.includes('Image & presentation'));
+for(const name of ['title','description','qty','unitPrice','subtitle','benefits','badge','selected','visible','recommended'])assert(screen.innerHTML.includes('name="'+name+'"'),'Option editor retains field '+name);
+await click('[data-qs-inspector]',{qsInspector:'layers'});
+assert(screen.innerHTML.includes('Content layers'));
+await pick(first.id);
+assert(screen.innerHTML.includes('Pool equipment and installation'));
+const unchanged=screen.innerHTML;
+await pick('non-existent-section');
+assert.equal(screen.innerHTML,unchanged,'Stale or invalid section IDs cannot switch the editor');
+await click('[data-qs-inspector]',{qsInspector:'content'});
+assert(screen.innerHTML.includes('Back to layers'));
+console.log('PASS section picker, invalid IDs, non-mutating navigation, correct option editor, grouped fields and return to Layers');

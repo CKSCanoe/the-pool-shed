@@ -1966,7 +1966,7 @@ const seed = {
           : effectiveMode === "mfa"
             ? '<button class="ps-login-link" type="button" data-login-cancel-mfa>Use a different account</button><span>Authenticator verification</span>'
             : effectiveMode === "denied" ? '<span></span>' : '<button class="ps-login-link" type="button" data-login-mode="login">Back to sign in</button><span></span>';
-        screen.innerHTML = '<main class="ps-login-stage"><section class="ps-login-shell"><aside class="ps-login-brand"><div><div class="ps-login-lockup"><span class="ps-login-logo"><img src="' + DEFAULT_POOL_BROS_LOGO + '" alt="Pool Bros logo"></span><div><span class="ps-login-kicker">Pool Bros</span><strong>THE POOL SHED</strong></div></div><div class="ps-login-hero"><span class="ps-login-kicker">Operations Command System</span><h1>One secure place to <span>run the operation.</span></h1><p>Secure access to the Pool Bros operations workspace. Sign in to continue to your authorised tools, tasks and information.</p></div></div><div class="ps-login-staff-note"><strong>Pool Bros staff access</strong><span>Your workspace and available tools are tailored to your account after sign-in.</span></div></aside><section class="ps-login-auth"><div class="ps-login-card"><div class="ps-login-card-head"><span class="ps-login-kicker">' + escapeHtml(meta.eyebrow) + '</span><h2>' + escapeHtml(meta.heading) + '</h2><p>' + escapeHtml(meta.intro) + '</p></div><form id="loginForm">' + fields + '<div id="loginMessage" class="ps-login-message' + (good ? ' good' : '') + '">' + escapeHtml(message || '') + '</div></form><div class="ps-login-helper">' + helper + '</div></div></section></section><footer class="ps-login-footer">Pool Shed v1.41.1 · Pool Bros Ltd</footer></main>';
+        screen.innerHTML = '<main class="ps-login-stage"><section class="ps-login-shell"><aside class="ps-login-brand"><div><div class="ps-login-lockup"><span class="ps-login-logo"><img src="' + DEFAULT_POOL_BROS_LOGO + '" alt="Pool Bros logo"></span><div><span class="ps-login-kicker">Pool Bros</span><strong>THE POOL SHED</strong></div></div><div class="ps-login-hero"><span class="ps-login-kicker">Operations Command System</span><h1>One secure place to <span>run the operation.</span></h1><p>Secure access to the Pool Bros operations workspace. Sign in to continue to your authorised tools, tasks and information.</p></div></div><div class="ps-login-staff-note"><strong>Pool Bros staff access</strong><span>Your workspace and available tools are tailored to your account after sign-in.</span></div></aside><section class="ps-login-auth"><div class="ps-login-card"><div class="ps-login-card-head"><span class="ps-login-kicker">' + escapeHtml(meta.eyebrow) + '</span><h2>' + escapeHtml(meta.heading) + '</h2><p>' + escapeHtml(meta.intro) + '</p></div><form id="loginForm">' + fields + '<div id="loginMessage" class="ps-login-message' + (good ? ' good' : '') + '">' + escapeHtml(message || '') + '</div></form><div class="ps-login-helper">' + helper + '</div></div></section></section><footer class="ps-login-footer">Pool Shed v1.44.0 · Pool Bros Ltd</footer></main>';
         bindLoginScreen(effectiveMode);
       }
 
@@ -5648,6 +5648,7 @@ const seed = {
       }
 
       function salesOrdersSubMenu() {
+        if (sidebarSubGroups('salesorders').includes('Sales Orders') && sidebarSubGroups('salesorders').includes('Sales Credits') && sidebarSubGroups('salesorders').includes('Invoices')) return '';
         return '<div class="subnav"><button class="pill ' + (["list", "detail", "goodsnote", "customerAccounting", "customerOrders"].includes(salesOrderView) ? "blue" : "dark") + '" data-sales-subview="list">Sales Orders</button><button class="pill ' + (["credits", "creditDetail"].includes(salesOrderView) ? "blue" : "dark") + '" data-sales-subview="credits">Sales Credits</button><button class="pill ' + (salesOrderView === "invoices" ? "blue" : "dark") + '" data-sales-subview="invoices">Invoices</button></div>';
       }
 
@@ -10728,6 +10729,10 @@ const seed = {
       }
 
       function subNav(items) {
+        const side = sidebarSubGroups(active);
+        const uniqueItems = items.filter(item => !side.includes(item));
+        if (!uniqueItems.length) return '';
+        items = uniqueItems;
         return '<div class="subnav">' + items.map(function(item) { return '<span class="pill blue">' + item + '</span>'; }).join("") + '</div>';
       }
 
@@ -12529,6 +12534,7 @@ const seed = {
       }
 
       function handlePurchaseOrderSaveAction(action, poId) {
+        if(['review','email'].includes(action)&&typeof psProjectPurchaseCheck==='function'){try{const order=purchaseOrderById(poId);if(order)psProjectPurchaseCheck(order,data);}catch(e){toast(e.message);return;}}
         const po = purchaseOrderById(poId);
         if (!po) return toast("Purchase order not found.");
         purchaseOrderSaveMenuOpen = false;
@@ -12798,6 +12804,7 @@ const seed = {
       }
 
       function updatePurchaseOrderStatus(poId, status) {
+        if(['Ready To Email','Sent','Ordered'].includes(status)&&typeof psProjectPurchaseCheck==='function'){try{const order=purchaseOrderById(poId);if(order)psProjectPurchaseCheck(order,data);}catch(e){toast(e.message);return;}}
         const po = purchaseOrderById(poId);
         if (!po) return toast("Purchase order not found.");
         const previous = po.status;
@@ -12866,6 +12873,7 @@ const seed = {
       }
 
       function preparePurchaseOrderSupplierEmail(poId) {
+        if(typeof psProjectPurchaseCheck==='function'){try{const order=purchaseOrderById(poId);if(order)psProjectPurchaseCheck(order,data);}catch(e){toast(e.message);return;}}
         const po = purchaseOrderById(poId);
         if (!po) return toast("Purchase order not found.");
         if (po.reviewStatus !== "Reviewed") return toast("Review the PO first before preparing the supplier email.");
@@ -12889,6 +12897,7 @@ const seed = {
       }
 
       function markPurchaseOrderSupplierEmailSent(poId) {
+        if(typeof psProjectPurchaseCheck==='function'){try{const order=purchaseOrderById(poId);if(order)psProjectPurchaseCheck(order,data);}catch(e){toast(e.message);return;}}
         const po = purchaseOrderById(poId);
         if (!po) return toast("Purchase order not found.");
         if (po.supplierEmailStatus !== "Ready to send") return toast("Prepare the supplier email before marking it sent.");
@@ -14634,5 +14643,5 @@ const seed = {
         updateOfflineStatus();
         restoreOfflineSnapshotIfNeeded();
         syncPendingOfflineData();
-        if ("serviceWorker" in navigator && location.protocol !== "file:") navigator.serviceWorker.register("./service-worker.js?v=1.41.1", { updateViaCache:"none" }).catch(function() {});
+        if ("serviceWorker" in navigator && location.protocol !== "file:") navigator.serviceWorker.register("./service-worker.js?v=1.44.0", { updateViaCache:"none" }).catch(function() {});
       });

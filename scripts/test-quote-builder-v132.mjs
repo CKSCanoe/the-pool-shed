@@ -32,4 +32,4 @@ assert.equal(snap.sections[0].options[0].image,media.url,'option media must surv
 assert.equal(snap.sections[0].blocks[0].images.length,2,'gallery media must survive safe customer snapshot');
 for(const forbidden of ['costSnapshot','supplierSnapshot','supplierSkuSnapshot','commercialSnapshot','unitCost'])assert(!txt.includes(forbidden),'customer snapshot leaked '+forbidden);
 qs.removeMedia(q.id,media.id);assert.equal(q.mediaLibrary.length,0);
-console.log('PASS v1.41.1 elite visual quote builder, working media library, customer-safe imagery and proposal layouts');
+console.log('PASS v1.44.0 elite visual quote builder, working media library, customer-safe imagery and proposal layouts');

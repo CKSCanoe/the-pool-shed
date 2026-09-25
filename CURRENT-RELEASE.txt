@@ -1,2 +1,3 @@
-Pool Shed v1.41.1 Layers Refinement
-Readable inspector layers, clearer option states and improved text wrapping.
+Pool Shed v1.44.0 Project Control
+Project settings in the left menu; extras, customer emails, correspondence and linked order pricing.
+No database migration. Email uses RESEND_API_KEY, QUOTE_FROM_EMAIL and APP_ORIGIN.

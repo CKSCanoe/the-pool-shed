@@ -1,7 +1,7 @@
-/* Pool Shed v1.41.1 secure Product Hub and CRM media client */
+/* Pool Shed v1.44.0 secure Product Hub and CRM media client */
 (function(global){
   'use strict';
-  const VERSION='1.41.1';
+  const VERSION='1.44.0';
   const cache=new Map(),pending=new Map();
   const workspace=()=>typeof global.__POOL_SHED_WORKSPACE_ID__==='function'?global.__POOL_SHED_WORKSPACE_ID__():(global.__POOL_SHED_WORKSPACE_ID__||'pool-bros-main');
   const token=async()=>global.__POOL_SHED_AUTH_TOKEN__?await global.__POOL_SHED_AUTH_TOKEN__():'';

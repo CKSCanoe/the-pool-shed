@@ -1,6 +1,14 @@
-# Current release: v1.41.1
+# Pool Shed v1.44.0 · Project Control
 
-Quote Studio inspector refinement: readable layer names and types, roomier right panel, grouped content and options, visible editing states, and keyboard focus indicators. No API or database changes. Verified with `npm run test:quotes`, `npm run build` and `node scripts/test-css-architecture.mjs`. Live visual inspection behind staff sign-in remains unverified. Previous layout release: [v1.41.0](RELEASE-NOTES-1.41.0.md).
+Full deployable project. Project Settings appears only in the project left menu. Repeated project, Settings and Automation page navigation is consolidated; source record actions remain available.
+
+Includes dashboard margin and cost visibility, linked sales cost/selling prices, labelled extras, approved-extra order allocation, configurable minimum/warning/target margins, risk buffer, project goals, correspondence and follow-ups. Labour and costs can replace a general remaining allowance without duplication. Invoice recommendations retain the existing agreed milestone and Xero-review controls.
+
+Extra approval emails use the authenticated `/api/project-email` endpoint and the existing `RESEND_API_KEY`, `QUOTE_FROM_EMAIL`, `APP_ORIGIN` and Supabase environment settings. The server validates the synced extra and recipient, records provider acceptance in the existing finance audit, and deduplicates retries. Delivery and customer approval are separate: record the actual customer reply or signed reference in Extras & Approvals. No email is sent during build/tests.
+
+No Supabase schema migration or data reset. Existing project IDs, order links, stock, invoices and customer acceptance records are preserved. New projects default to a 20% minimum; existing configured minima are retained. The archive is not a deployment confirmation.
+
+Verification commands: `npm run build`, `node scripts/test-project-control-v144.mjs`, `node scripts/test-project-email-v144.mjs`. Production build and the project, email-provider mocks, quote acceptance, CSS architecture, Settings and Automation checks passed. The project database integration test could not run because @electric-sql/pglite is not installed. Authenticated visual/browser verification remains outstanding.
 
 ## Acceptance introduced in v1.40.0
 

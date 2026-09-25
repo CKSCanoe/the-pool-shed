@@ -116,6 +116,9 @@
     },
     "api/media.js": {
       "maxDuration": 60
+    },
+    "api/project-email.js": {
+      "maxDuration": 60
     }
   }
 }
