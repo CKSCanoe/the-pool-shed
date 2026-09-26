@@ -4,10 +4,11 @@ const js = fs.readFileSync('public/project-workspace.js','utf8');
 const failures = [];
 const must = (ok, msg) => { if (!ok) failures.push(msg); };
 
-must(js.includes('>PROJECT DETAILS<'), 'project detail kicker must read PROJECT DETAILS');
-must(js.includes('aria-label="Project Details sections"'), 'project detail tab navigation must be labelled Project Details');
-must(js.includes('No current Project Details exception is above its configured threshold.'), 'project detail empty health copy must use Project Details wording');
-must(js.includes('Project Details links their material demand and costs.'), 'linked Sales Order guidance must use Project Details wording');
+const current=fs.readFileSync('public/project-design-parity.js','utf8');
+must(current.includes('PROJECT WORKSPACE'), 'current project workspace heading missing');
+must(current.includes('aria-label="This project"'), 'current record navigation must be labelled');
+must(current.includes('What needs attention'), 'current project health panel missing');
+must(js.includes('Sales orders · cost & selling prices'), 'linked pricing workspace missing');
 
 for (const visibleLegacy of [
   '>PROJECT 360<',

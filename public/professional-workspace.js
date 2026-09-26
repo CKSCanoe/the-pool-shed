@@ -62,7 +62,7 @@ function psToolApply(action, v) {
 }
 function psToolTransaction(action,values) {
  const before=JSON.stringify(data);
- try {const result=psToolApply(action,values);localStorage.setItem('poolshed:v172:pendingSync','1');localStorage.setItem('poolshed:v172:appData',JSON.stringify(data));saveAppData();return result;}
+ try {const result=psToolApply(action,values);if(saveAppData()===false||(typeof workspaceLocalSaveFailed!=='undefined'&&workspaceLocalSaveFailed))throw Error('Tool changes could not be saved locally.');return result;}
  catch(e){data=JSON.parse(before);throw e;}
 }
 function psOperationalIssues() {
@@ -116,6 +116,7 @@ function psToolWorkspace() {
   // recovery controls that belong in Settings / data-management tooling.
   document.getElementById('psSyncConflict')?.remove();
 
+  screen.classList.toggle('ps-workspace-compat',active==='products'&&['create','bulk','prices','health'].includes(productView)||active==='locations'&&['location','manage-locations'].includes(inventoryView)||active==='jobs'&&selectedSubPage('jobs')==='Tool Register');
   // Module-wide destinations live in the sidebar. Record tabs stay inside the record.
   // Never clone the sidebar into a second navigation strip above the workspace.
   screen.querySelectorAll(':scope > .ps-section-nav').forEach(n=>n.remove());

@@ -60,7 +60,8 @@ assert.deepEqual(Array.from(c.sidebarSubGroups('warehouse')),['Work Queue','Inbo
 c.renderWarehouse();
 const html=screen.innerHTML;
 assert(html.includes('warehouse-precision-page'),'selected Precision Desk root must render');
-for (const label of ['Work Queue','Inbound','Transfers','Returns & Quarantine','Counts','Audit']) assert(html.includes(label),label+' view must be reachable');
+for (const label of ['Work Queue','Inbound','Transfers','Returns & Quarantine','Counts','Audit']) assert(c.sidebarSubGroups('warehouse').includes(label),label+' view must be reachable from the sidebar');
+assert(!html.includes('warehouse-precision-tabs'),'Warehouse must not duplicate module navigation on the page');
 assert(html.includes('Receive') && html.includes('QC') && html.includes('Putaway'),'Inbound lifecycle must visibly connect Receive, QC and Putaway');
 assert.match(html,/FIFO/i,'FIFO allocation must be explained in Warehouse');
 assert.match(html,/oldest/i,'oldest-order allocation rule must be visible');

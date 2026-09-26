@@ -1,6 +1,8 @@
-# Pool Shed v1.45.0 · Project Hire & Workflow
+# Pool Shed v1.45.1 · Workspace Audit
 
-Full deployable project based on v1.44.1. Shared table controls now wrap multiline text inside padded, automatically sized borders. Module navigation stays in the left menu, while individual Sales Order, Project and Purchase Order tabs stay on the record page. Legacy Projects entry points route to the current workspace. Project Settings is only rendered when its record tab is selected.
+Full deployable project based on v1.45.0. This release fixes inventory routes, removes repeated module navigation, modernises project editing and remaining specialist forms, and protects project and tool edits when saving fails. Project surfaces follow shared theme tokens. See WORKSPACE-AUDIT-1.45.1.md for findings and verification limits.
+
+ Shared table controls now wrap multiline text inside padded, automatically sized borders. Module navigation stays in the left menu, while individual Sales Order, Project and Purchase Order tabs stay on the record page. Legacy Projects entry points route to the current workspace. Project Settings is only rendered when its record tab is selected.
 
 Project creation captures customer, owner, quote/estimate reference, acceptance evidence, value excluding VAT, initial remaining budget, margin thresholds, risk buffer and goals. The form previews starting profit and margin. Accepted values are locked; subsequent agreed changes use extras. Planning projects remain labelled provisional. Existing quotes already converted to projects should be opened instead of creating another project.
 
@@ -10,7 +12,7 @@ The project forecast includes the full known hire period or purchase cost. Equip
 
 No database migration or data reset. Existing IDs, quotes, orders, POs, costs and stock remain intact. Existing email configuration is unchanged: RESEND_API_KEY, QUOTE_FROM_EMAIL, APP_ORIGIN and Supabase settings. No email is sent by the tests. This archive has not been deployed.
 
-Verification: `npm run build` includes project hire/date/DST tests, matching-bill and extra-allowance tests, project creation rollback/permission checks, workspace navigation/form checks and existing project/quote/signature/API-mock regressions. Live authenticated browser visual verification remains outstanding. The optional database integration suite requires @electric-sql/pglite, which is not installed here.
+Verification: `npm run build` includes project hire/date/DST tests, matching-bill and extra-allowance tests, project creation rollback/permission checks, workspace navigation/form checks and existing project/quote/signature/API-mock regressions. Live authenticated browser visual verification remains outstanding. The database integration suite passed using @electric-sql/pglite. The full current validation suite also passed. Historical test limitations are documented in the audit report.
 
 ## Acceptance introduced in v1.40.0
 

@@ -289,11 +289,7 @@
     return { openPos: openPos.length, inbound: inbound, receiving: receiving, quarantine: quarantine, allocated: allocated, available: availableUnits };
   }
 
-  function whTabs(activeView) {
-    return '<div class="warehouse-precision-tabs" role="tablist" aria-label="Warehouse workspace">' + warehouseViews.map(function (view) {
-      return '<button type="button" role="tab" class="' + (view === activeView ? 'active' : '') + '" data-wh-view="' + whEsc(view) + '">' + whEsc(view) + '</button>';
-    }).join('') + '</div>';
-  }
+  function whTabs(activeView) {return ''; /* Use the warehouse sidebar destinations. */}
 
   function whCommandStrip() {
     const kpi = whStockKpis();

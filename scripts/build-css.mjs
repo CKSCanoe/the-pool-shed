@@ -41,6 +41,7 @@ const sources = [
   "system/60-responsive-layout.css",
   "system/61-project-design-parity.css",
   "system/62-record-controls.css",
+  "system/63-workspace-compatibility.css",
 ];
 const banner = `/*
  Pool Shed application stylesheet.

@@ -62,7 +62,7 @@
 .project-profit-metrics span{font-size:12px;font-weight:700;color:var(--color-text-secondary)}
 .project-profit-metrics strong{font-size:24px;line-height:1.3;margin:10px 0;color:var(--color-text-primary)}
 .project-profit-metrics small{font-size:12px;line-height:1.5;color:var(--color-text-secondary)}
-.project-profit-metrics .is-loss{border-color:#ac4e4e;background:#fff5f4}.project-profit-metrics .is-loss strong{color:#912d2d}.project-profit-metrics .is-loss span,.project-profit-metrics .is-loss small{color:#6f4141}
+.project-profit-metrics .is-loss{border-color:var(--color-status-danger-line);background:var(--color-status-danger-bg)}.project-profit-metrics .is-loss strong{color:var(--color-status-danger-text)}.project-profit-metrics .is-loss span,.project-profit-metrics .is-loss small{color:var(--color-status-danger-text)}
 .project-profit-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:20px;align-items:start}
 .project-profit-alerts{display:grid;gap:8px}.project-profit-alerts:empty{display:none}
 .project-profit-control .project-360-card{min-width:0;margin:0}
@@ -89,10 +89,10 @@
 .project-360-commercial-bar>.project-metric-primary{grid-column:span 3}
 .project-360-commercial-bar>.project-metric-secondary{grid-column:span 4;border-top:1px solid var(--color-border-strong)}
 .project-360-commercial-bar>.project-metric-secondary strong{font-size:17px}
-.project-360-commercial-bar span{color:#d6e4e9}.project-360-commercial-bar strong{color:#fff}
+.project-360-commercial-bar span{color:var(--color-border-default)}.project-360-commercial-bar strong{color:var(--color-surface-default)}
 .project-nav-group{min-width:0}.project-nav-group>span{display:block;margin:0 0 9px;font-size:11px;letter-spacing:.07em;font-weight:750;text-transform:uppercase;color:var(--color-text-secondary)}
 .project-nav-group>div{display:flex;flex-wrap:wrap;gap:6px}.project-360-tabs button{min-width:0;max-width:100%;white-space:normal;line-height:1.4;text-align:left;padding:10px 12px;font-size:13px}
-.project-360-tabs button.active{background:var(--color-action-primary);color:var(--color-action-contrast);border-color:var(--color-action-primary)}
+.project-360-tabs button.active{background:var(--color-selected-surface);color:var(--color-text-primary);border-color:var(--color-selected-edge)}
 .project-progress-details{border:1px solid var(--color-border-default);border-radius:10px;background:var(--color-surface-default)}
 .project-progress-details summary{padding:14px 18px;cursor:pointer;font-size:13px;color:var(--color-text-secondary)}
 .project-progress-details summary b{margin-left:14px;color:var(--color-text-primary)}.project-progress-details summary small{margin-left:14px;font-size:12px}
@@ -131,6 +131,6 @@
 .project-scope-tag{display:inline-block;padding:4px 8px;background:var(--color-surface-subtle);color:var(--color-text-secondary);border-radius:5px;font-size:11px;margin-bottom:5px}
 .project-144-disclosure{margin:20px;border:1px solid var(--color-border-default);border-radius:8px}.project-144-disclosure summary{cursor:pointer;padding:16px;font-weight:700}
 .project-360-card textarea{min-height:100px;resize:vertical}.project-wrap{white-space:pre-wrap;min-width:220px}
-.project-email-dialog{color:var(--color-text-primary);background:var(--color-surface-default);border:1px solid var(--color-border-default);border-radius:12px;padding:24px;max-width:640px;width:calc(100% - 24px);max-height:90vh;overflow:auto}.project-email-dialog::backdrop{background:#102f3980}.project-email-dialog section{border:1px solid var(--color-border-default);padding:20px;margin:16px 0;border-radius:8px}.project-email-dialog p{white-space:pre-wrap}
+.project-email-dialog{color:var(--color-text-primary);background:var(--color-surface-default);border:1px solid var(--color-border-default);border-radius:12px;padding:24px;max-width:640px;width:calc(100% - 24px);max-height:90vh;overflow:auto}.project-email-dialog::backdrop{background:var(--color-overlay-scrim)}.project-email-dialog section{border:1px solid var(--color-border-default);padding:20px;margin:16px 0;border-radius:8px}.project-email-dialog p{white-space:pre-wrap}
 @media(max-width:1050px){.project-144-layout{grid-template-columns:170px minmax(0,1fr);gap:16px}.project-144-layout .project-360-two-col,.project-144-layout .project-360-overview-grid{grid-template-columns:1fr}}
 @media(max-width:700px){.project-144-layout{grid-template-columns:1fr}.project-144-layout .project-360-tabs{position:static;display:grid;grid-template-columns:repeat(2,minmax(0,1fr))}.project-margin-band{flex-wrap:wrap}.project-144-layout .project-360-form-grid{grid-template-columns:1fr}}

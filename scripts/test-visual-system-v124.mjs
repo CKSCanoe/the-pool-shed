@@ -111,9 +111,10 @@ for (const old of ['#071A27','#071B28','#0B3043','#78BEC9','#83C7D1','#68AEBC','
   forbidText(login, old, `premium login still contains legacy aqua/navy colour ${old}`);
 }
 
-// Feature modules must not own literal hex palette values. Dark/light presentation
+// Quote Studio owns its approved, scoped palette, verified by test-quote-layout-v141.mjs.
+// Other feature modules must not own literal hex palette values. Dark/light presentation
 // must resolve through the semantic authority rather than fixed light-theme colours.
-for (const file of fs.readdirSync(path.join(root, 'public/assets/css/system')).filter((f) => f.endsWith('.css') && f !== '40-design-system.css')) {
+for (const file of fs.readdirSync(path.join(root, 'public/assets/css/system')).filter((f) => f.endsWith('.css') && f !== '40-design-system.css' && f !== '59-quote-studio.css')) {
   const source = read(`public/assets/css/system/${file}`);
   const literals = [...new Set(source.match(/#[0-9a-fA-F]{3,8}\b/g) || [])];
   if (literals.length) failures.push(`${file} contains ${literals.length} hard-coded hex colour(s): ${literals.slice(0,8).join(', ')}`);
@@ -122,7 +123,7 @@ for (const file of fs.readdirSync(path.join(root, 'public/assets/css/system')).f
 // Feature modules must not own literal rgb/rgba or named white/black colours either.
 // Shadows, scrims, focus rings and surface mixes must resolve through semantic tokens
 // so dark mode cannot inherit light-only alpha paint.
-for (const file of fs.readdirSync(path.join(root, 'public/assets/css/system')).filter((f) => f.endsWith('.css') && f !== '40-design-system.css')) {
+for (const file of fs.readdirSync(path.join(root, 'public/assets/css/system')).filter((f) => f.endsWith('.css') && f !== '40-design-system.css' && f !== '59-quote-studio.css')) {
   const source = read(`public/assets/css/system/${file}`);
   const rgbLiterals = [...new Set(source.match(/rgba?\([^)]*\)/gi) || [])];
   if (rgbLiterals.length) failures.push(`${file} contains ${rgbLiterals.length} literal rgb/rgba colour(s): ${rgbLiterals.slice(0,6).join(', ')}`);
@@ -162,7 +163,7 @@ function hueSat(hex) {
   const s = max === 0 ? 0 : d/max;
   return [h,s,max];
 }
-for (const file of fs.readdirSync(cssDir).filter((f) => f.endsWith('.css') && f !== '40-design-system.css')) {
+for (const file of fs.readdirSync(cssDir).filter((f) => f.endsWith('.css') && f !== '40-design-system.css' && f !== '59-quote-studio.css')) {
   const source = read(`public/assets/css/system/${file}`);
   const seen = new Set(source.match(hexRx) || []);
   for (const hex of seen) {

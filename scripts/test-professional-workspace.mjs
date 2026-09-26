@@ -1,6 +1,6 @@
 import fs from 'node:fs';import vm from 'node:vm';import assert from 'node:assert/strict';import {webcrypto} from 'node:crypto';
 const src=fs.readFileSync('public/professional-workspace.js','utf8').split('(function(){')[0];
-const c={data:{products:[{id:'P'}],locations:[{id:'VAN'}],jobs:[{id:'JOB',status:'In Progress'}],stock:[],purchaseOrders:[],salesOrders:[]},crypto:webcrypto,canAccessTab:()=>true,isAdminUser:()=>true,currentUser:()=>({name:'Test user'}),todayIso:()=>new Date().toISOString().slice(0,10),poLinePending:l=>Math.max(0,l.qty-l.received),localStorage:{setItem:()=>{}},saveAppData:()=>{}};vm.createContext(c);vm.runInContext(src,c);
+const c={data:{products:[{id:'P'}],locations:[{id:'VAN'}],jobs:[{id:'JOB',status:'In Progress'}],stock:[],purchaseOrders:[],salesOrders:[]},crypto:webcrypto,canAccessTab:()=>true,isAdminUser:()=>true,currentUser:()=>({name:'Test user'}),todayIso:()=>new Date().toISOString().slice(0,10),poLinePending:l=>Math.max(0,l.qty-l.received),localStorage:{setItem:()=>{}},saveAppData:()=>{c.localStorage.setItem('poolshed:v172:appData',JSON.stringify(c.data));}};vm.createContext(c);vm.runInContext(src,c);
 let tool=c.psToolTransaction('save',{name:'Drill',code:'TOOL-1',replacementValue:400,dailyRate:20,kit:'Battery\nCharger'});
 assert.throws(()=>c.psToolTransaction('save',{name:'Other',code:'TOOL-1',replacementValue:10,dailyRate:0}),/exists/);assert.equal(c.data.toolAssets.length,1);
 c.psToolTransaction('allocate',{id:tool.id,jobId:'JOB',locationId:'VAN',responsible:'Engineer',expectedReturn:'2030-01-01'});assert.equal(c.psToolJobOutstanding('JOB').length,1);
@@ -13,3 +13,5 @@ assert.equal(c.psToolCost({startedAt:'2026-01-01T00:00:00Z',returnedAt:'2026-01-
 const count=c.data.toolAssets.length;c.localStorage.setItem=()=>{throw Error('Storage full')};assert.throws(()=>c.psToolTransaction('save',{name:'Unsaved',replacementValue:1,dailyRate:0}),/Storage/);assert.equal(c.data.toolAssets.length,count);
 c.data.stock.push({productId:'MISSING',locationId:'VAN',qty:2,allocated:3});assert.equal(c.psOperationalIssues().length,2);
 assert(c.data.toolHistory.every(h=>h.user==='Test user'));console.log('PASS tool creation, duplicate codes, allocation, repeated allocation protection, kit checks, inspection, hire/off-hire, cost dates, job outstanding checks, audit history, storage rollback and diagnostics');
+
+c.localStorage.setItem=()=>{};c.saveAppData=()=>false;assert.throws(()=>c.psToolTransaction('save',{name:'Failed save',replacementValue:1,dailyRate:0}),/saved locally/);assert.equal(c.data.toolAssets.length,count);

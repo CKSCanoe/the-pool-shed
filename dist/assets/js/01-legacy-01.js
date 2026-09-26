@@ -1966,7 +1966,7 @@ const seed = {
           : effectiveMode === "mfa"
             ? '<button class="ps-login-link" type="button" data-login-cancel-mfa>Use a different account</button><span>Authenticator verification</span>'
             : effectiveMode === "denied" ? '<span></span>' : '<button class="ps-login-link" type="button" data-login-mode="login">Back to sign in</button><span></span>';
-        screen.innerHTML = '<main class="ps-login-stage"><section class="ps-login-shell"><aside class="ps-login-brand"><div><div class="ps-login-lockup"><span class="ps-login-logo"><img src="' + DEFAULT_POOL_BROS_LOGO + '" alt="Pool Bros logo"></span><div><span class="ps-login-kicker">Pool Bros</span><strong>THE POOL SHED</strong></div></div><div class="ps-login-hero"><span class="ps-login-kicker">Operations Command System</span><h1>One secure place to <span>run the operation.</span></h1><p>Secure access to the Pool Bros operations workspace. Sign in to continue to your authorised tools, tasks and information.</p></div></div><div class="ps-login-staff-note"><strong>Pool Bros staff access</strong><span>Your workspace and available tools are tailored to your account after sign-in.</span></div></aside><section class="ps-login-auth"><div class="ps-login-card"><div class="ps-login-card-head"><span class="ps-login-kicker">' + escapeHtml(meta.eyebrow) + '</span><h2>' + escapeHtml(meta.heading) + '</h2><p>' + escapeHtml(meta.intro) + '</p></div><form id="loginForm">' + fields + '<div id="loginMessage" class="ps-login-message' + (good ? ' good' : '') + '">' + escapeHtml(message || '') + '</div></form><div class="ps-login-helper">' + helper + '</div></div></section></section><footer class="ps-login-footer">Pool Shed v1.45.0 · Pool Bros Ltd</footer></main>';
+        screen.innerHTML = '<main class="ps-login-stage"><section class="ps-login-shell"><aside class="ps-login-brand"><div><div class="ps-login-lockup"><span class="ps-login-logo"><img src="' + DEFAULT_POOL_BROS_LOGO + '" alt="Pool Bros logo"></span><div><span class="ps-login-kicker">Pool Bros</span><strong>THE POOL SHED</strong></div></div><div class="ps-login-hero"><span class="ps-login-kicker">Operations Command System</span><h1>One secure place to <span>run the operation.</span></h1><p>Secure access to the Pool Bros operations workspace. Sign in to continue to your authorised tools, tasks and information.</p></div></div><div class="ps-login-staff-note"><strong>Pool Bros staff access</strong><span>Your workspace and available tools are tailored to your account after sign-in.</span></div></aside><section class="ps-login-auth"><div class="ps-login-card"><div class="ps-login-card-head"><span class="ps-login-kicker">' + escapeHtml(meta.eyebrow) + '</span><h2>' + escapeHtml(meta.heading) + '</h2><p>' + escapeHtml(meta.intro) + '</p></div><form id="loginForm">' + fields + '<div id="loginMessage" class="ps-login-message' + (good ? ' good' : '') + '">' + escapeHtml(message || '') + '</div></form><div class="ps-login-helper">' + helper + '</div></div></section></section><footer class="ps-login-footer">Pool Shed v1.45.1 · Pool Bros Ltd</footer></main>';
         bindLoginScreen(effectiveMode);
       }
 
@@ -5427,6 +5427,7 @@ const seed = {
       }
 
       function jobManagerForm(jobItem) {
+        if(jobItem&&jobItem.id!=='__new'&&typeof psProjectEditView==='function')return psProjectEditView(jobItem);
         const editing = jobItem && jobItem.id && jobItem.id !== "__new";
         const j = editing ? jobItem : { id: nextJobId(), customerId: jobCreateCustomerId || (data.customers[0] || {}).id || '', name: '', status: 'Planning', locationId: '', owner: currentUser().name, notes: '' };
         const statusOptions = ["Planning", "Approved", "Procurement", "Ready for Site", "In Progress", "Commercial Review", "Ready to Invoice", "Completed", "On Hold", "Cancelled"];
@@ -5511,6 +5512,7 @@ const seed = {
       function saveJobFromForm(form) {
         if (!isAdminUser()) return toast("Only admin or managers can create and edit job references.");
         const values = Object.fromEntries(new FormData(form).entries());
+        const beforeProjectEdit=JSON.stringify(data);
         if (!values.name) return toast("Enter the job/project name first.");
         let id = values.id || values.jobCode || nextJobId();
         id = String(id).trim() || nextJobId();
@@ -5528,10 +5530,10 @@ const seed = {
         j.customerRef = values.customerRef || "";
         j.invoiceStage = values.invoiceStage || "Not reviewed";
         j.notes = values.notes || "";
+        if(saveAppData()===false||workspaceLocalSaveFailed){data=JSON.parse(beforeProjectEdit);return toast("Project changes were not saved. Correct the local saving problem and try again.");}
         selectedJobId = "";
         jobCreateCustomerId = "";
-        activeSubPage.jobs = "Job List";
-        saveAppData();
+        activeSubPage.jobs = "Projects";
         toast((created ? "Created " : "Saved ") + j.id + ".");
         render();
       }
@@ -14643,5 +14645,5 @@ const seed = {
         updateOfflineStatus();
         restoreOfflineSnapshotIfNeeded();
         syncPendingOfflineData();
-        if ("serviceWorker" in navigator && location.protocol !== "file:") navigator.serviceWorker.register("./service-worker.js?v=1.45.0", { updateViaCache:"none" }).catch(function() {});
+        if ("serviceWorker" in navigator && location.protocol !== "file:") navigator.serviceWorker.register("./service-worker.js?v=1.45.1", { updateViaCache:"none" }).catch(function() {});
       });

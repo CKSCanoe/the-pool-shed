@@ -3,7 +3,8 @@
   if (!global.PoolShedProductHub || typeof renderProducts !== 'function') return;
 
   const hub=global.PoolShedProductHub;
-  const legacyRenderProducts=renderProducts;
+  const baseProductFormRenderer=renderProducts;
+  function legacyRenderProducts(){const result=baseProductFormRenderer();document.getElementById('screen-products')?.classList?.add('ps-workspace-compat');return result;}
   const legacySidebarSubGroups=typeof sidebarSubGroups==='function'?sidebarSubGroups:null;
   const legacyOpenSidebarSubGroup=typeof openSidebarSubGroup==='function'?openSidebarSubGroup:null;
   const sections=['Product Command','Catalogue','Replenishment','Product Groups','Bundle Studio','Imports','Catalogue Health'];
@@ -42,7 +43,7 @@
     };
   }
 
-  function nav(section){return '<div class="ph-section-nav">'+sections.map(function(s){return '<button type="button" class="'+(section===s?'active':'')+'" data-ph-section="'+esc(s)+'">'+esc(s)+'</button>';}).join('')+'</div>';}
+  function nav(section){return ''; /* Module navigation is owned by the sidebar. */}
   function shell(section,body,actions){return '<div class="product-hub-v111"><header class="ph-page-head"><div><div class="ph-kicker">PRODUCT MASTER / '+esc(section.toUpperCase())+'</div><h1>'+esc(section)+'</h1><p>One product truth for sales, purchasing, warehouse, projects, pricing and replenishment.</p></div><div class="ph-head-actions">'+(actions||'')+'</div></header>'+nav(section)+body+'</div>';}
 
   function catalogueMargin(p){return num(p.rrp)>0?((num(p.rrp)-num(p.cost))/num(p.rrp))*100:null;}
