@@ -1,4 +1,3 @@
-Pool Shed v1.44.1 Project Design Parity
-Design Lab project layout, single sidebar, responsive tables, timeline and focused entry dialogs.
-No database migration. Existing financial and approval controls retained.
-Build and regression checks passed. Authenticated visual browser check outstanding. Not deployed.
+Pool Shed v1.45.0 Project Hire & Workflow
+Daily equipment accrual, one-off purchases, guided financial project setup, table control sizing and module/record navigation ownership.
+No database migration. Live browser visual verification outstanding. Not deployed.

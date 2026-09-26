@@ -20,6 +20,65 @@ function psProjectStockSummary(j,source){
 }
 function psProjectHealth(j,summary){const s=summary||psProjectSummary(j);const minimum=Number(psProjectModel(j).minimumMargin??Math.max(0,s.target-5));if(s.missingCosts||s.margin===null)return {level:'Attention',tone:'warn'};if(s.profit<0||s.margin!==null&&s.margin<=Number(psProjectModel(j).lossWarningMargin??5))return {level:'Critical',tone:'bad'};if(s.margin!==null&&s.margin<minimum)return {level:'At Risk',tone:'bad'};if((s.alerts||[]).some(a=>a.severity==='warn')||s.margin!==null&&s.margin<s.target)return {level:'Attention',tone:'warn'};return {level:'Healthy',tone:'good'};}
 
+// One cost authority for browser, reports and server-side margin checks.
+function psProjectUKDate(now=Date.now()) {return new Intl.DateTimeFormat('en-CA',{timeZone:'Europe/London',year:'numeric',month:'2-digit',day:'2-digit'}).format(new Date(now));}
+function psProjectDate(value) {return /^\d{4}-\d{2}-\d{2}$/.test(String(value))&&Number.isFinite(Date.parse(value))&&new Date(value+'T00:00:00Z').toISOString().slice(0,10)===value;}
+function psProjectToolCharge(a,now=Date.now()) {
+ if(!a.chargeModel){const end=a.ownership==='Hired In'?a.offHireAt:a.returnedAt;const days=Math.max(1,Math.ceil(((end?Date.parse(end):now)-Date.parse(a.startedAt))/86400000));const net=Math.round(days*Number(a.dailyRate||0)*100)/100;return {days,accrued:net,forecast:net,running:!end};}
+ const today=psProjectUKDate(now),start=a.startDate,last=a.lastChargeDate||'',started=start<=today;
+ if(a.chargeModel==='purchase'){const net=started?Number(a.purchaseNet||0):0;return {days:0,accrued:net,forecast:Number(a.purchaseNet||0),running:false};}
+ const count=end=>Math.max(0,Math.round((Date.parse(end)-Date.parse(start))/86400000)+1),days=started?count(last&&last<today?last:today):0,forecastDays=last?count(last):days;
+ return {days,accrued:Math.round(days*Number(a.dailyRate)*100)/100,forecast:Math.round(forecastDays*Number(a.dailyRate)*100)/100,running:started&&(!last||last>=today)};
+}
+function psProjectToolApply(j,p,v,now,action){
+ data.toolAssets=data.toolAssets||[];data.toolAssignments=data.toolAssignments||[];data.toolHistory=data.toolHistory||[];
+ const text=(x,label)=>{const t=String(x||'').trim();if(!t)throw Error('Enter '+label);return t;},amount=x=>{const n=Number(x);if(!Number.isFinite(n)||n<0)throw Error('Enter a valid non-negative tool cost.');return psProjectPence(n)/100;};
+ let a=data.toolAssignments.find(x=>x.id===v.id&&x.jobId===j.id),tool;
+ if(action==='tool-add'){
+  if(['Completed','Invoiced','Cancelled'].includes(j.status))throw Error('Choose an open project.');
+  const mode=v.mode;if(!['hire','purchase','owned'].includes(mode))throw Error('Choose hire, purchase or an existing tool.');
+  const name=mode==='owned'?'':text(v.name,'the equipment name'),supplier=mode==='owned'?'':text(v.supplier,'the supplier'),reference=text(v.reference,'a unique hire or purchase reference'),responsible=text(v.responsible,'the responsible person');
+  const start=v.startDate,last=v.lastChargeDate||'';if(!psProjectDate(start)||last&&(!psProjectDate(last)||last<start))throw Error('Enter valid dates; the final charge date cannot precede the start.');
+  const dailyRate=mode==='purchase'?0:amount(v.dailyRate),purchaseNet=mode==='purchase'?amount(v.purchaseNet):0;if(mode==='hire'&&!dailyRate)throw Error('Enter the daily hire cost.');
+  if(v.variationId&&!p.variations.some(x=>x.id===v.variationId&&x.status==='Approved'))throw Error('Choose an approved extra.');
+  if(data.toolAssignments.some(x=>x.jobId===j.id&&String(x.reference||'').toLowerCase()===reference.toLowerCase()))throw Error('That tool reference is already recorded for this project.');
+  if(mode==='owned'){tool=data.toolAssets.find(t=>t.id===v.toolId&&t.ownership!=='Hired In');if(!tool||tool.status!=='Available'||data.toolAssignments.some(x=>x.toolId===tool.id&&(!x.returnedAt||(x.ownership==='Hired In'&&!x.offHireAt))))throw Error('Choose an available owned tool.');if(tool.serviceDue&&tool.serviceDue<psProjectUKDate(now))throw Error('Service is overdue. Inspect this tool first.');}
+  else{tool={id:crypto.randomUUID(),code:'TOOL-'+crypto.randomUUID().slice(0,8).toUpperCase(),name,ownership:mode==='hire'?'Hired In':'Owned',supplier,replacementValue:purchaseNet,dailyRate,kit:[],createdAt:now};data.toolAssets.push(tool);}
+  a={id:crypto.randomUUID(),toolId:tool.id,jobId:j.id,locationId:'',ownership:tool.ownership,chargeModel:mode==='purchase'?'purchase':'calendar-day',startDate:start,lastChargeDate:mode==='purchase'?'':last,startedAt:start+'T00:00:00Z',expectedReturn:v.expectedReturn||last||'',dailyRate,purchaseNet,reference,responsible,supplier:tool.supplier||'',kit:(tool.kit||[]).slice(),variationId:v.variationId||'',notes:String(v.notes||'')};
+  if(a.expectedReturn&&(!psProjectDate(a.expectedReturn)||a.expectedReturn<a.startDate))throw Error('Enter a valid expected return date.');
+  if(v.replaceRemaining==='yes'){if(a.variationId)throw Error('An extra already has its own allowance.');const replace=psProjectToolCharge(a,Date.parse(now)).forecast;if(replace>Number(p.remainingNet||0))throw Error('Tool forecast exceeds the remaining allowance.');p.remainingNet=amount(p.remainingNet-replace);a.remainingReplaced=replace;}
+  data.toolAssignments.push(a);tool.status='Allocated';
+ }else{
+  if(!a||!a.chargeModel)throw Error('Use the Tool Register to update this existing allocation.');tool=data.toolAssets.find(t=>t.id===a.toolId);if(!tool)throw Error('Tool record unavailable.');
+  if(action==='tool-stop'){
+   if(a.chargeModel==='purchase')throw Error('A purchase is a one-off charge.');if(a.returnedAt)throw Error('Returned equipment retains its final charge record.');
+   const last=v.lastChargeDate;if(!psProjectDate(last)||last<a.startDate)throw Error('Choose a final charge date on or after the start.');
+   const ref=text(v.stopReference,'the stop or schedule reference');
+   const check={...a,lastChargeDate:last};const matched=p.costs.filter(c=>!c.voidedAt&&c.toolAssignmentId===a.id).reduce((n,c)=>n+Number(c.coverageNet||0),0);if(matched>psProjectToolCharge(check,Date.parse(now)).forecast)throw Error('Correct matched bills before reducing the charge period below their coverage.');
+   a.lastChargeDate=last;a.stopReference=ref;a.chargeChangedAt=now;
+  }else if(action==='tool-return'){
+   if(a.returnedAt)throw Error('This tool has already been returned.');if(a.startDate>psProjectUKDate(now))throw Error('Equipment has not reached its allocation date.');
+   if(a.ownership==='Hired In'&&(!a.lastChargeDate||a.lastChargeDate>psProjectUKDate(now)))throw Error('Stop hire charges before confirming return.');
+   if(v.returnConfirmed!=='on')throw Error('Confirm all equipment and kit has been returned in good condition.');
+   a.returnedAt=now;a.condition='Good';a.returnNote=text(v.returnNote,'the return reference');a.missingItems=[];
+   if(a.ownership==='Hired In'){a.offHireAt=now;tool.status='Off hired';}else{if(a.chargeModel==='calendar-day'&&(!a.lastChargeDate||a.lastChargeDate>psProjectUKDate(now)))a.lastChargeDate=psProjectUKDate(now);tool.status='Available';}
+  }else throw Error('Unknown project tool action.');
+ }
+ data.toolHistory.push({id:crypto.randomUUID(),toolId:tool.id,action,date:now,user:currentUser().name,assignment:JSON.parse(JSON.stringify(a))});
+ return a;
+}
+function psProjectCreate(v){
+ if(!canAccessTab('jobs')||!isAdminUser())throw Error('A manager must create a project.');
+ const name=String(v.name||'').trim(),owner=String(v.owner||'').trim(),id=String(v.jobCode||'').trim()||nextJobId();
+ if(!name||!owner)throw Error('Enter a project name and owner.');if(data.jobs.some(j=>j.id.toLowerCase()===id.toLowerCase()))throw Error('That project reference already exists.');
+ if(!(data.customers||[]).some(c=>c.id===v.customerId))throw Error('Choose a customer.');if(v.locationId&&!(data.locations||[]).some(l=>l.id===v.locationId))throw Error('Choose a valid site or bin.');
+ if(!String(v.quoteRef||'').trim())throw Error('Enter the quote or estimate reference.');if(!['accepted','planning'].includes(v.acceptance))throw Error('Choose whether the quote is accepted or still being planned.');
+ if(v.acceptance==='accepted'&&(!(Number(v.quoteNet)>0)||!String(v.acceptanceRef||'').trim()))throw Error('An accepted project needs a positive contract value and acceptance evidence.');
+ for(const field of ['reviewDue','targetCompletion'])if(v[field]&&!psProjectDate(v[field]))throw Error('Enter valid project dates.');
+ const j={id,name,owner,customerId:v.customerId,locationId:v.locationId||'',customerRef:v.customerRef||'',notes:v.notes||'',status:v.acceptance==='accepted'?'Approved':'Planning',invoiceStage:'Not reviewed',created:psProjectUKDate(),createdBy:currentUser().name};data.jobs.push(j);
+ psProjectApply('settings',{...v,jobId:id,quoteAccepted:v.acceptance==='accepted'?'on':'',settingsReason:'Initial project setup',lossWarningMargin:5,invoiceExposureThresholdPct:40,invoiceExposureThresholdNet:0});
+ Object.assign(j.project,{acceptanceRef:String(v.acceptanceRef||''),originalCostBudget:Number(v.remainingNet||0)});return j;
+}
 function psProjectSummary(j,source,now){
  source=source||data;now=now||Date.now();const p=psProjectModel(j),cents=psProjectPence;
  const orders=(source.salesOrders||[]).filter(o=>o.jobId===j.id&&!['Cancelled','Canceled'].includes(o.status)),orderIds=new Set(orders.map(o=>o.id));
@@ -54,6 +113,8 @@ function psProjectSummary(j,source,now){
   items.push({order:o.id,orderStatus:o.status||'',due:o.due||'',index,productId:l.productId,name:productMap.get(l.productId)?.name||l.productId,qty:Number(l.qty||0),allocated:Number(l.allocated||0),shipped:Number(l.shipped||0),open:Math.max(0,Number(l.qty||0)-Number(l.shipped||0)),covered});
  }));
  Object.entries(orderMaterialAmounts).forEach(([orderId,value])=>{const covered=costs.filter(c=>c.orderId===orderId&&c.state==='Actual').reduce((n,c)=>n+cents(c.coverageNet||0),0);uncommitted+=Math.max(0,value-covered);});
+ const toolForecasts=new Map();let tools=0,toolAccrued=0,toolFuture=0;
+ (source.toolAssignments||[]).filter(a=>a.jobId===j.id).forEach(a=>{const charge=psProjectToolCharge(a,now),covered=costs.filter(c=>c.toolAssignmentId===a.id&&c.state==='Actual').reduce((n,c)=>n+cents(c.coverageNet||0),0),forecast=Math.max(0,cents(charge.forecast)-covered),accrued=Math.max(0,cents(charge.accrued)-covered);tools+=forecast;toolAccrued+=accrued;toolFuture+=Math.max(0,forecast-accrued);toolForecasts.set(a.id,forecast);});
  variations.forEach(v=>{
   const linked=orders.filter(o=>o.variationId===v.id),linkedIds=new Set(linked.map(o=>o.id));
   const linkedPo=poRows.filter(r=>(r.lines||[]).every(l=>linkedIds.has(l.salesOrderId)));
@@ -62,9 +123,10 @@ function psProjectSummary(j,source,now){
   const orderForecast=linked.reduce((n,o)=>n+Math.max(0,(orderMaterialAmounts[o.id]||0)-costs.filter(c=>c.orderId===o.id&&c.state==='Actual').reduce((m,c)=>m+cents(c.coverageNet||0),0)),0);
   const purchaseForecast=psProjectLinkedPoLines(j,source).filter(({po,line})=>linkedIds.has(line.salesOrderId)&&!['Cancelled','Canceled'].includes(po.status)).reduce((n,{line})=>n+cents(Number(line.qty||0)*Number(line.unitCost??line.cost??productMap.get(line.productId)?.cost??0)),0);
   const matched=costs.filter(c=>linkedPoIds.has(c.poId)&&c.state==='Actual').reduce((n,c)=>n+cents(c.coverageNet||0),0);
-  uncommitted+=Math.max(0,cents(v.costNet||0)-recorded-orderForecast-Math.max(0,purchaseForecast-matched));
+  const toolForecast=(source.toolAssignments||[]).filter(a=>a.jobId===j.id&&a.variationId===v.id).reduce((n,a)=>n+(toolForecasts.get(a.id)||0),0);
+  uncommitted+=Math.max(0,cents(v.costNet||0)-recorded-toolForecast-orderForecast-Math.max(0,purchaseForecast-matched));
  });
- let tools=0;(source.toolAssignments||[]).filter(a=>a.jobId===j.id).forEach(a=>{if(typeof psToolCost==='function')tools+=cents(psToolCost(a,now));else{const end=a.ownership==='Hired In'?a.offHireAt:a.returnedAt;tools+=cents(Math.max(1,Math.ceil(((end?Date.parse(end):now)-Date.parse(a.startedAt))/86400000))*Number(a.dailyRate||0));}});
+
  // Explain ledger costs without adding them to the forecast a second time.
  const categoryMap=new Map();costs.forEach(c=>{const name=c.category||'Other',row=categoryMap.get(name)||{name,actual:0,committed:0,hours:0};row[c.state==='Actual'?'actual':'committed']+=cents(c.net);if(c.category==='Labour'&&c.state==='Actual')row.hours+=Number(c.hours||0);categoryMap.set(name,row);});
  const costCategories=[...categoryMap.values()].sort((a,b)=>a.name.localeCompare(b.name));
@@ -72,6 +134,7 @@ function psProjectSummary(j,source,now){
  const forecast=actual+estimatedReceived+committed+uncommitted+tools,profit=revenue-forecast,margin=revenue>0?100*profit/revenue:null;
  const target=Number(p.targetMargin??30),headroom=Math.round(revenue*(1-target/100))-forecast;
  const alerts=[];
+ const openHire=(source.toolAssignments||[]).filter(a=>a.jobId===j.id&&a.chargeModel==='calendar-day'&&!a.lastChargeDate&&Number(a.dailyRate)>0);if(openHire.length)alerts.push({severity:'warn',text:openHire.length+' tools have open-ended daily charges. Forecast includes accrued days only; set a final charge date or maintain a remaining allowance.'});
  if(!p.quoteAccepted)alerts.push({severity:'warn',text:'The quote has not been recorded as accepted. Revenue is provisional.'});
  if(margin===null)alerts.push({severity:'warn',text:'Set the total quote value before relying on profit forecasts.'});
  else if(profit<0)alerts.push({severity:'bad',text:'Forecast loss: '+(Math.abs(profit)/100).toFixed(2)+'. Review costs and approved scope now.'});
@@ -97,7 +160,7 @@ function psProjectSummary(j,source,now){
  const invoicedQueued=(p.phases||[]).filter(ph=>ph.invoiceRequested).reduce((n,ph)=>n+cents(ph.amountNet),0),costExposure=actual+estimatedReceived+committed+tools,exposureGap=Math.max(0,costExposure-invoicedQueued),pct=Number(p.invoiceExposureThresholdPct??40),netThreshold=cents(p.invoiceExposureThresholdNet||0),pctThreshold=revenue>0?Math.round(revenue*pct/100):0,thresholdTriggered=(pctThreshold>0&&costExposure>=pctThreshold&&exposureGap>0)||(netThreshold>0&&exposureGap>=netThreshold);
  const invoiceExposure={costExposure,invoicedQueued,exposureGap,thresholdPct:pct,thresholdNet:netThreshold,thresholdTriggered};if(thresholdTriggered)alerts.push({severity:'warn',text:'Invoice review recommended: project cost exposure is '+(costExposure/100).toFixed(2)+' while '+(invoicedQueued/100).toFixed(2)+' is queued/invoiced against the configured exposure threshold.'});
  const marginMovement=[{label:'Accepted contract',amount:revenue,type:'revenue'},{label:'Actual recorded cost',amount:-actual,type:'cost'},{label:'Received PO estimate',amount:-estimatedReceived,type:'cost'},{label:'Outstanding commitments',amount:-committed,type:'cost'},{label:'Remaining forecast',amount:-uncommitted,type:'cost'},{label:'Tools & hire',amount:-tools,type:'cost'}];
- return {missingCosts,costCategories,orderCostCoverage,quote,approvedExtra,revenue,actual,estimatedReceived,committed,uncommitted,tools,forecast,profit,margin,headroom,target,minimumMargin,alerts,recommendations,items,orders,poRows,orderMaterialAmounts,stock,materialVariance,invoiceExposure,marginMovement,pendingExtra:pending.reduce((n,v)=>n+cents(v.sellNet),0),phaseTotal:(p.phases||[]).reduce((n,ph)=>n+cents(ph.amountNet),0)};
+ return {toolAccrued,toolFuture,missingCosts,costCategories,orderCostCoverage,quote,approvedExtra,revenue,actual,estimatedReceived,committed,uncommitted,tools,forecast,profit,margin,headroom,target,minimumMargin,alerts,recommendations,items,orders,poRows,orderMaterialAmounts,stock,materialVariance,invoiceExposure,marginMovement,pendingExtra:pending.reduce((n,v)=>n+cents(v.sellNet),0),phaseTotal:(p.phases||[]).reduce((n,ph)=>n+cents(ph.amountNet),0)};
 }
 function psProjectCloseoutBlockers(j,source,finance,now){
  source=source||data;finance=finance||{};now=now||Date.now();const p=psProjectModel(j),s=psProjectSummary(j,source,now),blockers=[];
@@ -118,12 +181,14 @@ function psProjectCloseoutBlockers(j,source,finance,now){
 function psProjectApply(action,v){
  if(!canAccessTab('jobs'))throw Error('You do not have access to projects.');
  if(!isAdminUser())throw Error('A manager must change project costs, scope and billing.');
+ if(action==='create')return psProjectCreate(v);
  if(action==='time'){const hours=Number(v.hours),rate=Number(v.hourlyRate);if(!Number.isFinite(hours)||hours<=0||!Number.isFinite(rate)||rate<=0)throw Error('Enter valid hours and an hourly employment cost.');v={...v,net:hours*rate,category:'Labour',state:'Actual'};action='cost';}
  let j=data.jobs.find(j=>j.id===v.jobId);if(!j)throw Error('Choose a job first');const p=psProjectModel(j),now=new Date().toISOString();
  const amount=(x,allowNegative=false)=>{const n=Number(x);if(!Number.isFinite(n)||(!allowNegative&&n<0))throw Error('Enter a valid '+(allowNegative?'':'non-negative ')+'amount');return psProjectPence(n)/100;};
  const text=(x,label)=>{const t=String(x||'').trim();if(!t)throw Error('Enter '+label);return t;};
  const id=()=>crypto.randomUUID();
- if(action==='settings'){
+ if(['tool-add','tool-stop','tool-return'].includes(action)){psProjectToolApply(j,p,v,now,action);
+ }else if(action==='settings'){
   const quote=amount(v.quoteNet),target=Number(v.targetMargin),minimum=v.minimumMargin==null||v.minimumMargin===''?Math.max(0,target-5):Number(v.minimumMargin),loss=Number(v.lossWarningMargin),exposurePct=v.invoiceExposureThresholdPct==null||v.invoiceExposureThresholdPct===''?40:Number(v.invoiceExposureThresholdPct),exposureNet=v.invoiceExposureThresholdNet==null||v.invoiceExposureThresholdNet===''?0:amount(v.invoiceExposureThresholdNet);
   if(target<0||target>=100||minimum<0||minimum>target||loss<0||loss>minimum||!Number.isFinite(target)||!Number.isFinite(minimum)||!Number.isFinite(loss))throw Error('Set target, minimum and near-loss margins in descending order below 100%.');
   if(exposurePct<0||exposurePct>100||!Number.isFinite(exposurePct))throw Error('Invoice exposure percentage must be between 0 and 100.');
@@ -142,9 +207,10 @@ function psProjectApply(action,v){
  }else if(action==='forecast'){
   p.remainingNet=amount(v.remainingNet);p.forecastReviewedAt=now;
  }else if(action==='link'){
-  const o=data.salesOrders.find(o=>o.id===v.orderId);if(!o)throw Error('Choose a sales order');if(o.jobId&&o.jobId!==j.id)throw Error('That sales order already belongs to another project.');if(o.customerId!==j.customerId)throw Error('Project and sales order must have the same customer.');
+  const beforeLink=psProjectSummary(j).forecast;
+  const o=data.salesOrders.find(o=>o.id===v.orderId);if(!o)throw Error('Choose a sales order');if(o.jobId&&o.jobId!==j.id)throw Error('That sales order already belongs to another project.');if(o.jobId===j.id&&v.replaceRemaining==='yes')throw Error('This order is already allocated; its budget cannot be replaced again.');if(o.customerId!==j.customerId)throw Error('Project and sales order must have the same customer.');
   if(o.invoiceSource||o.invoiceDate||o.xeroRef&&!['Draft',''].includes(o.xeroRef))throw Error('Review existing invoices before moving this order into project phase billing.');
-  if(v.variationId){const extra=p.variations.find(x=>x.id===v.variationId);if(!extra||extra.status!=='Approved')throw Error('Select a customer-approved extra before allocating an order.');if(o.variationId&&o.variationId!==v.variationId)throw Error('This order already belongs to another extra.');o.variationId=extra.id;}else if(o.variationId)throw Error('Existing extra allocation must remain attached to its source.');o.jobId=j.id;
+  if(v.variationId){const extra=p.variations.find(x=>x.id===v.variationId);if(!extra||extra.status!=='Approved')throw Error('Select a customer-approved extra before allocating an order.');if(o.variationId&&o.variationId!==v.variationId)throw Error('This order already belongs to another extra.');o.variationId=extra.id;}else if(o.variationId)throw Error('Existing extra allocation must remain attached to its source.');o.jobId=j.id;if(v.replaceRemaining==='yes'){if(v.variationId)throw Error('Approved extras use their own cost allowance.');const added=Math.max(0,psProjectSummary(j).forecast-beforeLink)/100;if(added>Number(p.remainingNet||0))throw Error('Order forecast exceeds the remaining allowance.');p.remainingNet=amount(p.remainingNet-added);o.projectBudgetReplaced=added;}
  }else if(action==='material-plan'){
   const productId=text(v.productId,'a product'),plannedQty=Number(v.plannedQty),budgetUnitCost=Number(v.budgetUnitCost);if(!Number.isFinite(plannedQty)||plannedQty<=0)throw Error('Enter a positive planned quantity.');if(!Number.isFinite(budgetUnitCost)||budgetUnitCost<0)throw Error('Enter a valid budget unit cost.');if(!(data.products||[]).some(x=>x.id===productId))throw Error('Product not found.');const existing=p.materialPlan.find(x=>x.productId===productId);const row={id:existing?.id||id(),productId,plannedQty,budgetUnitCost,note:String(v.note||'')};if(existing)Object.assign(existing,row);else p.materialPlan.push(row);
  }else if(action==='remove-material-plan'){
@@ -160,12 +226,13 @@ function psProjectApply(action,v){
  }else if(action==='cost'){
   const net=amount(v.net),ref=text(v.ref,'a receipt, timesheet or invoice reference'),supplier=text(v.supplier,'a supplier or employee');
   if(p.costs.some(c=>!c.voidedAt&&c.ref.trim().toLowerCase()===ref.toLowerCase()&&c.supplier.trim().toLowerCase()===supplier.toLowerCase()))throw Error('That supplier/reference is already recorded.');
-  const poId=v.poId||'',orderId=v.orderId||'',coverageNet=poId||orderId?amount(v.coverageNet):0;if(poId&&orderId)throw Error('Match a bill to either its PO or an order material estimate, not both.');
+  const poId=v.poId||'',orderId=v.orderId||'',toolAssignmentId=v.toolAssignmentId||'',coverageNet=poId||orderId||toolAssignmentId?amount(v.coverageNet):0;if([poId,orderId,toolAssignmentId].filter(Boolean).length>1)throw Error('Match a bill to either its PO or an order material estimate, not both.');
+  if(toolAssignmentId){const a=(data.toolAssignments||[]).find(a=>a.id===toolAssignmentId&&a.jobId===j.id);if(!a||v.state!=='Actual')throw Error('Choose a project tool and record an actual bill.');if(coverageNet<=0)throw Error('Enter the tool estimate amount replaced by this bill.');const covered=p.costs.filter(c=>!c.voidedAt&&c.toolAssignmentId===a.id).reduce((n,c)=>n+psProjectPence(c.coverageNet||0),0);if(covered+psProjectPence(coverageNet)>psProjectPence(psProjectToolCharge(a).forecast))throw Error('Matched coverage exceeds the tool forecast.');v.variationId=a.variationId||'';}
   if(orderId){const s=psProjectSummary(j);if(!s.orders.some(o=>o.id===orderId)||v.state!=='Actual')throw Error('Choose a linked order and record an actual cost.');const covered=p.costs.filter(c=>!c.voidedAt&&c.orderId===orderId).reduce((n,c)=>n+psProjectPence(c.coverageNet||0),0);if(covered+psProjectPence(coverageNet)>(s.orderMaterialAmounts[orderId]||0))throw Error('The matched amount exceeds the uncovered order material estimate.');}
   if(poId){const po=psProjectSummary(j).poRows.find(r=>r.po.id===poId);if(!po)throw Error('Choose a PO linked to this project.');if(v.state!=='Actual')throw Error('PO commitments are already counted. Match only an actual bill to a PO.');if(psProjectPence(coverageNet)+po.covered>po.total)throw Error('The matched PO amount exceeds its unbilled value.');}
   if(v.variationId&&!p.variations.some(x=>x.id===v.variationId))throw Error('Extra not found.');
-  const remainingReplaced=v.replaceRemaining==='yes'?net:0;if(remainingReplaced&&(poId||orderId||v.variationId))throw Error('Match either the general remaining allowance or a source estimate, not both.');if(remainingReplaced>Number(p.remainingNet||0))throw Error('This cost exceeds the general remaining allowance.');if(remainingReplaced)p.remainingNet=amount(p.remainingNet-remainingReplaced);
-  p.costs.push({id:id(),remainingReplaced,net,ref,supplier,category:v.category||'Other',state:v.state==='Committed'?'Committed':'Actual',poId,orderId,coverageNet,variationId:v.variationId||'',date:v.date||now.slice(0,10),notes:String(v.notes||''),...(v.hours?{hours:Number(v.hours),hourlyRate:Number(v.hourlyRate)}:{})});
+  const remainingReplaced=v.replaceRemaining==='yes'?net:0;if(remainingReplaced&&(poId||orderId||toolAssignmentId||v.variationId))throw Error('Match either the general remaining allowance or a source estimate, not both.');if(remainingReplaced>Number(p.remainingNet||0))throw Error('This cost exceeds the general remaining allowance.');if(remainingReplaced)p.remainingNet=amount(p.remainingNet-remainingReplaced);
+  p.costs.push({id:id(),remainingReplaced,net,ref,supplier,category:v.category||'Other',state:v.state==='Committed'?'Committed':'Actual',poId,orderId,toolAssignmentId,coverageNet,variationId:v.variationId||'',date:v.date||now.slice(0,10),notes:String(v.notes||''),...(v.hours?{hours:Number(v.hours),hourlyRate:Number(v.hourlyRate)}:{})});
  }else if(action==='void-cost'){
   const c=p.costs.find(x=>x.id===v.id);if(!c||c.voidedAt)throw Error('Cost is already corrected.');const reason=text(v.reason,'a correction reason');c.voidedAt=now;c.voidReason=reason;if(c.remainingReplaced)p.remainingNet=amount(Number(p.remainingNet||0)+Number(c.remainingReplaced));
  }else if(action==='phase'){

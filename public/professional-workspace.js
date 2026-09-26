@@ -7,6 +7,7 @@ function psToolData() {
 function psToolOpen(a) {return !a.returnedAt || (a.ownership === 'Hired In' && !a.offHireAt);}
 function psToolJobOutstanding(jobId) {psToolData();return data.toolAssignments.filter(a=>a.jobId===jobId && psToolOpen(a));}
 function psToolCost(a, now) {
+ if(a.chargeModel&&typeof psProjectToolCharge==='function')return psProjectToolCharge(a,now??Date.now()).accrued;
  const end = a.ownership === 'Hired In' ? a.offHireAt : a.returnedAt;
  const days = Math.max(1,Math.ceil(((end ? Date.parse(end) : now || Date.now())-Date.parse(a.startedAt))/86400000));
  return Math.round(days * Number(a.dailyRate || 0) * 100)/100;
@@ -41,14 +42,14 @@ function psToolApply(action, v) {
    tool.status='Allocated';
   } else if(action==='return') {
    if(!assignment || assignment.returnedAt)throw Error('There is no active allocation to return.');
-   assignment.returnedAt=now;
+   assignment.returnedAt=now;if(assignment.chargeModel==='calendar-day'&&assignment.ownership!=='Hired In'&&(!assignment.lastChargeDate||assignment.lastChargeDate>psProjectUKDate()))assignment.lastChargeDate=psProjectUKDate();
    assignment.missingItems=(assignment.kit||[]).filter((_,i)=>!v['kit'+i]);
    assignment.condition=v.condition||'Inspection required';
    assignment.returnNote=String(v.returnNote||'');
    tool.status=assignment.missingItems.length || assignment.condition!=='Good'?'Inspection required':assignment.ownership==='Hired In'?'Off hire required':'Available';
   } else if(action==='offhire') {
    if(!assignment || assignment.ownership!=='Hired In' || !assignment.returnedAt)throw Error('Return the hired tool before confirming off-hire.');
-   assignment.offHireAt=now;
+   assignment.offHireAt=now;if(assignment.chargeModel==='calendar-day'&&(!assignment.lastChargeDate||assignment.lastChargeDate>psProjectUKDate()))assignment.lastChargeDate=psProjectUKDate();
    tool.status='Off hired';
   } else if(action==='service') {
    if(!isAdminUser())throw Error('An administrator must release a tool after inspection.');
@@ -115,14 +116,12 @@ function psToolWorkspace() {
   // recovery controls that belong in Settings / data-management tooling.
   document.getElementById('psSyncConflict')?.remove();
 
-  // Modern command modules own their own section navigation. Only legacy modules
-  // receive the generic workspace sub-navigation so a page never renders two tab bars.
+  // Module-wide destinations live in the sidebar. Record tabs stay inside the record.
+  // Never clone the sidebar into a second navigation strip above the workspace.
   screen.querySelectorAll(':scope > .ps-section-nav').forEach(n=>n.remove());
-  const selfManagedSectionNav=new Set(['settings','automation','locations','products','fulfilment','warehouse']);
-  const groups=sidebarSubGroups(active);if(groups.length&&!selfManagedSectionNav.has(active)){const nav=document.createElement('nav');nav.className='ps-section-nav';nav.setAttribute('aria-label','Section navigation');nav.innerHTML=groups.map(g=>'<button type="button" data-section-open="'+escapeHtml(g)+'" class="'+((selectedSubPage(active)||defaultSubPage(active))===g?'active':'')+'" '+((selectedSubPage(active)||defaultSubPage(active))===g?'aria-current="page"':'')+'>'+escapeHtml(g)+'</button>').join('');screen.prepend(nav);}
 
   // Keep the selected item visible when a compact navigation strip must scroll.
-  requestAnimationFrame(()=>{const nav=screen.querySelector('.settings-command-tabs,.analytics-subnav,.automation-subnav,.inventory-subnav,.ff-subnav,.ph-section-nav,.finance-command-subnav,.warehouse-precision-tabs,.supplier-detail-tabs,.project-360-tabs,.po-command-tabs,.crm-profile-tabs,.crm-edit-tabs,.ps-section-nav');const selected=nav?.querySelector('.active,.on,[aria-current="page"]');if(nav&&selected&&nav.scrollWidth>nav.clientWidth){const target=selected.offsetLeft-(nav.clientWidth-selected.offsetWidth)/2;nav.scrollTo({left:Math.max(0,target),behavior:'auto'});}});
+  requestAnimationFrame(()=>{const nav=screen.querySelector('.settings-command-tabs,.analytics-subnav,.automation-subnav,.inventory-subnav,.ff-subnav,.ph-section-nav,.finance-command-subnav,.warehouse-precision-tabs,.supplier-detail-tabs,.pl-record-nav,.project-360-tabs,.po-command-tabs,.crm-profile-tabs,.crm-edit-tabs,.ps-section-nav');const selected=nav?.querySelector('.active,.on,[aria-current="page"]');if(nav&&selected&&nav.scrollWidth>nav.clientWidth){const target=selected.offsetLeft-(nav.clientWidth-selected.offsetWidth)/2;nav.scrollTo({left:Math.max(0,target),behavior:'auto'});}});
   screen.querySelectorAll('table').forEach(t=>{if(t.closest('.table-scroll,.order-lines-scroll,.po-lines-wrap,.ps-table-region'))return;const wrap=document.createElement('div');wrap.className='ps-table-region';wrap.tabIndex=0;wrap.setAttribute('aria-label','Scrollable table');t.before(wrap);wrap.append(t);});
   document.querySelectorAll('#nav [data-tab]').forEach(b=>{if(b.dataset.tab===active)b.setAttribute('aria-current','page');else b.removeAttribute('aria-current');});
  };

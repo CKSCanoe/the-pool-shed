@@ -1,4 +1,4 @@
-/* Pool Shed v1.44.1 Quote Studio Command + commercial strategy + acceptance automation. */
+/* Pool Shed v1.45.0 Quote Studio Command + commercial strategy + acceptance automation. */
 (function(global){
 'use strict';
 const engine=global.PoolShedQuoteStudio;if(!engine)return;

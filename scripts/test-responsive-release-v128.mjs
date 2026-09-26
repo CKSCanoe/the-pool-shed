@@ -18,8 +18,7 @@ assert.match(css,/\.sidebar\{[\s\S]*display:none!important/,'tablet sidebar coll
 assert.match(css,/\.settings-metrics\{grid-template-columns:repeat\(auto-fit,minmax\(160px,1fr\)\)!important\}/,'responsive Settings KPI authority missing');
 assert.match(css,/dashboard-project-table-wrap table\{[\s\S]*min-width:1060px/,'dashboard local table-scroll contract missing');
 assert.doesNotMatch(workspace,/Shared workspace has newer changes/,'blocking workspace conflict banner copy must not render');
-assert.match(workspace,/selfManagedSectionNav=new Set\(\['settings','automation','locations','products','fulfilment','warehouse'\]\)/,'duplicate-nav ownership set missing');
-assert.match(workspace,/groups\.length&&!selfManagedSectionNav\.has\(active\)/,'generic section nav must defer to module-owned navigation');
+assert.ok(!workspace.includes('screen.prepend(nav)'), 'Module sidebar must not be cloned above page content');
 assert.match(index,new RegExp('app\\.css\\?v='+release.replace(/\./g,'\\.')));
 assert.match(sw,new RegExp('pool-shed-v'+release.replace(/\./g,'\\.')+'-'));
 assert.match(pkg.scripts['test:responsive']||'',/test-responsive-layout-v128\.cjs/);

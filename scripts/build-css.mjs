@@ -40,6 +40,7 @@ const sources = [
   "system/59-quote-studio.css",
   "system/60-responsive-layout.css",
   "system/61-project-design-parity.css",
+  "system/62-record-controls.css",
 ];
 const banner = `/*
  Pool Shed application stylesheet.

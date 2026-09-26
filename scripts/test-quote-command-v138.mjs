@@ -15,8 +15,8 @@ const portalCss=read('public/quote-customer-portal.css');
 const index=read('public/index.html');
 const proposal=read('public/proposal.html');
 
-assert.equal(pkg.version,'1.44.1');
-assert.match(eng,/const VERSION='1\.44\.1'/);
+assert.equal(pkg.version,'1.45.0');
+assert.match(eng,/const VERSION='1\.45\.0'/);
 
 // Navigation authority
 assert.match(ws,/qs-globalbar/,'Quote Studio pages must own a persistent navigation bar');
@@ -73,8 +73,8 @@ assert.doesNotMatch(snapshot,/costSnapshot/);
 
 // CSS authority stays single-source and assets are current.
 assert.equal(css,publicCss);
-assert(index.includes('app.css?v=1.44.1'));
-assert(proposal.includes('quote-customer-portal.css?v=1.44.1'));
-assert(proposal.includes('quote-customer-portal.js?v=1.44.1'));
+assert(index.includes('app.css?v=1.45.0'));
+assert(proposal.includes('quote-customer-portal.css?v=1.45.0'));
+assert(proposal.includes('quote-customer-portal.js?v=1.45.0'));
 
 console.log('Pool Shed v1.38 Quote Studio Command, bespoke commercial control, theming and cross-tab preview: PASS');
