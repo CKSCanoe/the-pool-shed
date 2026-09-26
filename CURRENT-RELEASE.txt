@@ -1,3 +1,4 @@
-Pool Shed v1.44.0 Project Control
-Project settings in the left menu; extras, customer emails, correspondence and linked order pricing.
-No database migration. Email uses RESEND_API_KEY, QUOTE_FROM_EMAIL and APP_ORIGIN.
+Pool Shed v1.44.1 Project Design Parity
+Design Lab project layout, single sidebar, responsive tables, timeline and focused entry dialogs.
+No database migration. Existing financial and approval controls retained.
+Build and regression checks passed. Authenticated visual browser check outstanding. Not deployed.

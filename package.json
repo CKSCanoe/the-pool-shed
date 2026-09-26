@@ -36,7 +36,7 @@
     "test:responsive": "node scripts/test-responsive-layout-v128.cjs",
     "test:quotes": "node scripts/test-quote-editor-flow-v1412.mjs && node scripts/test-quote-layers-v1411.mjs && node scripts/test-quote-layout-workspace-v141.mjs && node scripts/test-quote-layout-v141.mjs && node scripts/test-quote-signing-flow-v140.mjs && node scripts/test-quote-signing-api-v140.mjs && node scripts/test-quote-signatures-v140.mjs && node scripts/test-quote-refined-v139.mjs && node scripts/test-quote-command-v138.mjs && node scripts/test-quote-design-parity-v137.mjs && node scripts/test-quote-studio-v136.mjs && node scripts/test-business-media-v134.mjs && node scripts/test-quote-process-authority-v133.mjs && node scripts/test-quote-media-v1321.mjs && node scripts/test-quote-builder-v132.mjs && node scripts/test-quote-studio-v131.mjs && node scripts/test-quote-portal-v131.mjs && node scripts/test-quote-portal-v135.mjs && node scripts/test-quote-workflows-v131.mjs"
   },
-  "version": "1.44.0",
+  "version": "1.44.1",
   "description": "The Pool Shed inventory, secure visual quotes, purchasing, sales, warehouse and project management application",
   "devDependencies": {
     "@electric-sql/pglite": "^0.5.8",

@@ -1,6 +1,6 @@
-# Pool Shed v1.44.0 · Project Control
+# Pool Shed v1.44.1 · Project Design Parity
 
-Full deployable project. Project Settings appears only in the project left menu. Repeated project, Settings and Automation page navigation is consolidated; source record actions remain available.
+Full deployable project. Project details now use the approved Design Lab palette and spacing, a four-card dashboard, margin health panel, five-step lifecycle, dated correspondence timeline and focused entry dialogs. The main app sidebar owns project section navigation; the nested project sidebar has been removed. Operational tables, invoice stages, files, stock and settings share the same scoped visual styling. Project Settings appears only in the project left menu. Repeated project, Settings and Automation page navigation is consolidated; source record actions remain available.
 
 Includes dashboard margin and cost visibility, linked sales cost/selling prices, labelled extras, approved-extra order allocation, configurable minimum/warning/target margins, risk buffer, project goals, correspondence and follow-ups. Labour and costs can replace a general remaining allowance without duplication. Invoice recommendations retain the existing agreed milestone and Xero-review controls.
 
@@ -8,7 +8,7 @@ Extra approval emails use the authenticated `/api/project-email` endpoint and th
 
 No Supabase schema migration or data reset. Existing project IDs, order links, stock, invoices and customer acceptance records are preserved. New projects default to a 20% minimum; existing configured minima are retained. The archive is not a deployment confirmation.
 
-Verification commands: `npm run build`, `node scripts/test-project-control-v144.mjs`, `node scripts/test-project-email-v144.mjs`. Production build and the project, email-provider mocks, quote acceptance, CSS architecture, Settings and Automation checks passed. The project database integration test could not run because @electric-sql/pglite is not installed. Authenticated visual/browser verification remains outstanding.
+Verification commands: `npm run build`, `node scripts/test-project-control-v144.mjs`, `node scripts/test-project-email-v144.mjs`. Production build, project navigation, dialog submission success/failure, labour persistence, email-provider mocks and quote acceptance checks passed. The project database integration test could not run because @electric-sql/pglite is not installed. Authenticated visual/browser verification remains outstanding.
 
 ## Acceptance introduced in v1.40.0
 
