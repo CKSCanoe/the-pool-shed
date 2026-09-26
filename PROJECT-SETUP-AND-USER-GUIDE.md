@@ -39,7 +39,7 @@ Uploading an invoice does **not** automatically create a cost. There is no OCR o
 
 Follow `ACCOUNTING-SETUP.md` for the Xero credentials and connection. For this project release:
 
-- Apply database migrations `001` through `006` in order in a staging environment first. If the accounting migration is already installed, apply the remaining migrations. The migrations add project storage, protected phase billing, an optional AI throttle and project-history guards.
+- Apply the current database migrations through `011` in order in a staging environment first. Existing environments already through `010` only need `database/011-project-extra-quotes.sql` for this completion candidate. The project migrations provide private storage, protected phase billing, optional AI throttling and immutable project/quote approval history. No data reset is required.
 - Enrol authorised users in both `ps_workspace_members` and, for accounting access, `ps_finance_members`. These permissions are controlled in the database, not by the browser’s Admin label.
 - Set `SECURE_WORKSPACE_WRITES=true` and deploy the updated whole project. Migration 002 removes legacy direct snapshot-write access, so coordinate the update and preserve offline work first.
 - Verify that existing generic Supabase Storage policies do not grant wider access to the new private `project-documents` bucket. Test uploads/downloads with an authorised user and a user from another workspace.

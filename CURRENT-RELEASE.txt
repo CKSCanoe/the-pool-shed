@@ -1,3 +1,5 @@
-Pool Shed v1.45.1 - Workspace Audit
-Inventory route fixes, shared workspace form styling, single module navigation, project edit and tool-save reliability, theme-aware project screens.
-No database migration. Not deployed. Authenticated visual verification outstanding.
+Pool Shed v1.45.1 - Focused Completion Candidate · Pass 1
+Multiple project quotes/extras and credits are now linked to the existing accepted project. Customer acceptance is distinct from email delivery, accepted extra evidence is retained, only accepted extras/credits change agreed project revenue, and Sales Orders keep the accepted quote price/cost snapshot.
+Project finance now exposes original contract, approved extras, total selling value, actual costs, committed costs, remaining forecast costs, projected profit and projected margin. Project-summary cost matching was indexed for larger projects.
+Database migration 011-project-extra-quotes.sql is required after the existing migrations through 010. No data reset is required.
+Not deployed. Authenticated desktop/tablet/mobile verification, production migration execution and the remaining completion-order items are still outstanding.

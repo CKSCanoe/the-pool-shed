@@ -3,8 +3,12 @@
   "baseline": "1.45.0",
   "changed": [
     "CURRENT-RELEASE.txt",
+    "FOCUSED-COMPLETION-PASS-1.md",
+    "PROJECT-SETUP-AND-USER-GUIDE.md",
     "README.md",
+    "START-HERE.md",
     "WORKSPACE-AUDIT-1.45.1.md",
+    "database/011-project-extra-quotes.sql",
     "dist/assets/css/app.css",
     "dist/assets/css/system/45-project-360-command.css",
     "dist/assets/css/system/59-quote-studio.css",
@@ -20,6 +24,7 @@
     "dist/product-images.js",
     "dist/production-readiness-engine.js",
     "dist/professional-workspace.js",
+    "dist/project-engine.js",
     "dist/project-setup-tools.js",
     "dist/project-workspace.js",
     "dist/proposal.html",
@@ -46,6 +51,7 @@
     "public/product-images.js",
     "public/production-readiness-engine.js",
     "public/professional-workspace.js",
+    "public/project-engine.js",
     "public/project-setup-tools.js",
     "public/project-workspace.js",
     "public/proposal.html",
@@ -61,7 +67,12 @@
     "scripts/test-business-media-v134.mjs",
     "scripts/test-contrast-text-rhythm.mjs",
     "scripts/test-professional-workspace.mjs",
+    "scripts/test-project-database.mjs",
     "scripts/test-project-details-v124.mjs",
+    "scripts/test-project-extra-quotes-v146.mjs",
+    "scripts/test-project-extra-sql-v146.mjs",
+    "scripts/test-project-performance-v146.mjs",
+    "scripts/test-project-workspace-v143.mjs",
     "scripts/test-quote-builder-v132.mjs",
     "scripts/test-quote-command-v138.mjs",
     "scripts/test-quote-design-parity-v137.mjs",
@@ -75,7 +86,10 @@
     "scripts/test-visual-system-v124.mjs",
     "scripts/test-warehouse-precision-desk-v180.mjs",
     "scripts/test-workspace-audit-v1451.mjs",
-    "scripts/validate-runtime.mjs"
+    "scripts/validate-runtime.mjs",
+    "server/quote.js",
+    "supabase-setup/Pool-Shed-v1.34-FRESH-SUPABASE-FULL-INSTALL.sql",
+    "supabase-setup/Pool-Shed-v1.34-FRESH-SUPABASE-GUIDE.txt"
   ],
   "removed": []
 }

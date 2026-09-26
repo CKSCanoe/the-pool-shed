@@ -31,4 +31,4 @@ Pool Shed converts the frozen accepted version into the configured Sales Order /
 
 ## Deploy
 
-Read `DEPLOYMENT-GUIDE-1.33.0.md` and apply migrations 007 -> 008 -> 009 in order where required.
+For this completion candidate, existing environments already through migration 010 must apply `database/011-project-extra-quotes.sql` before deploying the matching build. Fresh/staging environments should apply migrations 001 through 011 in order. Historical deployment guides remain under `docs/archive/releases/`.

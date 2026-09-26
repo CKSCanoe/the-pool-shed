@@ -1,6 +1,6 @@
-# Pool Shed v1.45.1 · Workspace Audit
+# Pool Shed v1.45.1 · Focused Completion Candidate
 
-Full deployable project based on v1.45.0. This release fixes inventory routes, removes repeated module navigation, modernises project editing and remaining specialist forms, and protects project and tool edits when saving fails. Project surfaces follow shared theme tokens. See WORKSPACE-AUDIT-1.45.1.md for findings and verification limits.
+Full deployable project based on the v1.45.1 Workspace Audit baseline. Focused completion pass 1 adds multiple project-linked Quote Studio extras/credits, customer-acceptance handover, the required project financial dashboard metrics and project-summary performance indexing. See FOCUSED-COMPLETION-PASS-1.md for the completed scope and verification limits, and WORKSPACE-AUDIT-1.45.1.md for the baseline audit.
 
  Shared table controls now wrap multiline text inside padded, automatically sized borders. Module navigation stays in the left menu, while individual Sales Order, Project and Purchase Order tabs stay on the record page. Legacy Projects entry points route to the current workspace. Project Settings is only rendered when its record tab is selected.
 
@@ -10,13 +10,24 @@ Project Tools supports daily external hire, one-off equipment purchases and allo
 
 The project forecast includes the full known hire period or purchase cost. Equipment cards also show accrued cost separately. Match actual equipment bills using Costs & margin and the estimate-replaced amount, preventing duplicate costing. New tool or order allocations can explicitly replace a remaining budget allowance. Approved-extra equipment uses its existing extra allowance. Tool assets, assignments and return history use existing shared records.
 
-No database migration or data reset. Existing IDs, quotes, orders, POs, costs and stock remain intact. Existing email configuration is unchanged: RESEND_API_KEY, QUOTE_FROM_EMAIL, APP_ORIGIN and Supabase settings. No email is sent by the tests. This archive has not been deployed.
+Database migration `database/011-project-extra-quotes.sql` is required after the existing migrations through 010; no data reset is required. Existing IDs, accepted original quotes, orders, POs, costs and stock remain intact. Existing email configuration is unchanged: RESEND_API_KEY, QUOTE_FROM_EMAIL, APP_ORIGIN and Supabase settings. No email is sent by the tests. This archive has not been deployed.
 
 Verification: `npm run build` includes project hire/date/DST tests, matching-bill and extra-allowance tests, project creation rollback/permission checks, workspace navigation/form checks and existing project/quote/signature/API-mock regressions. Live authenticated browser visual verification remains outstanding. The database integration suite passed using @electric-sql/pglite. The full current validation suite also passed. Historical test limitations are documented in the audit report.
 
+
+## Repository layout
+
+- `public/` — maintained application source/assets.
+- `dist/` — deployable build output retained for this release archive.
+- `api/`, `server/`, `database/`, `supabase-setup/` — backend and database resources.
+- `scripts/` — build, validation and QA tooling.
+- `docs/` — current documentation and design references. Historical release/audit output is under `docs/archive/`.
+
+Generated browser-QA folders (`qa-v*/`) are intentionally excluded from this cleaned archive; the QA scripts recreate them when needed.
+
 ## Acceptance introduced in v1.40.0
 
-Quote acceptance now has a separate signing page, with typed and drawn signatures. See [release notes](RELEASE-NOTES-1.40.0.md) for deployment and verification details.
+Quote acceptance now has a separate signing page, with typed and drawn signatures. See [release notes](docs/archive/releases/RELEASE-NOTES-1.40.0.md) for deployment and verification details.
 
 ## Retained visual editor features
 
@@ -91,4 +102,4 @@ python3 scripts/qa-browser-v138-portal.py
 
 ## Supabase
 
-v1.38.0 introduces no new Supabase migration. Continue using the backend through migration `010` from the v1.34 Product & CRM Media release.
+The inherited v1.38.0 quote redesign introduced no migration, but this completion candidate adds `database/011-project-extra-quotes.sql`. Existing environments through migration 010 should apply 011 before deploying this matching build.

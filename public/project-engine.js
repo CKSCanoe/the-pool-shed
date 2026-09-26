@@ -4,8 +4,29 @@ function psProjectModel(j){
  const p=j.project||(j.project={version:2,quoteNet:0,quoteRef:'',quoteAccepted:false,targetMargin:30,minimumMargin:20,lossWarningMargin:5,remainingNet:0,billingMode:'orders',invoiceExposureThresholdPct:40,invoiceExposureThresholdNet:0,variations:[],costs:[],phases:[],tasks:[],documents:[],materialPlan:[],stockEvents:[],audit:[]});
  if(!Array.isArray(p.variations))p.variations=[];if(!Array.isArray(p.costs))p.costs=[];if(!Array.isArray(p.phases))p.phases=[];if(!Array.isArray(p.tasks))p.tasks=[];if(!Array.isArray(p.documents))p.documents=[];if(!Array.isArray(p.materialPlan))p.materialPlan=[];if(!Array.isArray(p.stockEvents))p.stockEvents=[];if(!Array.isArray(p.audit))p.audit=[];
  if(!Number.isFinite(Number(p.targetMargin)))p.targetMargin=30;if(!Number.isFinite(Number(p.minimumMargin)))p.minimumMargin=Math.max(0,Number(p.targetMargin)-5);if(!Number.isFinite(Number(p.lossWarningMargin)))p.lossWarningMargin=5;if(!Number.isFinite(Number(p.invoiceExposureThresholdPct)))p.invoiceExposureThresholdPct=40;if(!Number.isFinite(Number(p.invoiceExposureThresholdNet)))p.invoiceExposureThresholdNet=0;
- if(!Array.isArray(p.correspondence))p.correspondence=[];if(p.warningMargin==null)p.warningMargin=Math.max(Number(p.minimumMargin),Math.min(Number(p.targetMargin),25));if(p.riskBufferNet==null)p.riskBufferNet=0;
- p.version=Math.max(2,Number(p.version||1));return p;
+ if(!Array.isArray(p.correspondence))p.correspondence=[];if(!Array.isArray(p.quoteLinks))p.quoteLinks=[];if(p.warningMargin==null)p.warningMargin=Math.max(Number(p.minimumMargin),Math.min(Number(p.targetMargin),25));if(p.riskBufferNet==null)p.riskBufferNet=0;
+ p.version=Math.max(3,Number(p.version||1));return p;
+}
+function psProjectQuoteSnapshotTotals(q){
+ const versions=Array.isArray(q?.versions)?q.versions:[],published=versions.find(v=>Number(v.number)===Number(q?.publishedVersion)),latest=published||versions.slice().sort((a,b)=>Number(b.number||0)-Number(a.number||0))[0],totals=latest?.commercialSnapshot?.totals||q?.conversion?.acceptedTotals||{};
+ return {net:Number(totals.net||0),cost:Number(totals.cost||0),version:Number(latest?.number||q?.publishedVersion||q?.currentVersion||0)};
+}
+function psProjectQuoteRows(j,source){
+ source=source||data;const p=psProjectModel(j),rows=[],seen=new Set(),quotes=Array.isArray(source.quotes)?source.quotes:[];
+ const originalLink=(p.quoteLinks||[]).find(x=>x.role==='Original'),originalId=String(originalLink?.quoteId||p.quoteRef||'').split(/\s+v\d+$/i)[0];
+ rows.push({quoteId:originalId||String(p.quoteRef||'Original contract'),version:Number(originalLink?.version||0),role:'Original',title:'Original contract',status:p.quoteAccepted?'Accepted':'Pending',sellNet:Number(p.quoteNet||0),costNet:Number(p.originalCostBudget||0),approvalRef:String(originalLink?.approvalRef||p.acceptanceRef||p.quoteRef||''),acceptedAt:String(originalLink?.acceptedAt||''),variationId:''});if(originalId)seen.add(originalId);
+ for(const q of quotes){const link=q?.projectLink||{},linked=String(link.projectId||'')===String(j.id)&&['extra','credit'].includes(String(link.type||'').toLowerCase());if(!linked||seen.has(String(q.id)))continue;const v=(p.variations||[]).find(x=>String(x.quoteId||'')===String(q.id)),snap=psProjectQuoteSnapshotTotals(q),remoteAccepted=q.status==='Accepted'||!!q.acceptance,rejected=['Declined','Rejected','Cancelled','Canceled','Expired'].includes(String(q.status||''));let status=v?.status==='Approved'?'Accepted':v?.status==='Rejected'?'Rejected':remoteAccepted?'Accepted':rejected?'Rejected':'Pending';rows.push({quoteId:String(q.id),version:Number(v?.quoteVersion||snap.version||0),role:String(link.type||'extra').toLowerCase()==='credit'?'Credit':'Extra',title:String(v?.title||q.projectName||q.id),status,sellNet:Number(v?.sellNet??(link.type==='credit'?-Math.abs(snap.net):snap.net)),costNet:Number(v?.costNet??snap.cost),approvalRef:String(v?.approvalRef||q.acceptance?.id||''),acceptedAt:String(v?.acceptedAt||q.acceptance?.at||''),variationId:String(v?.id||''),handoverPending:remoteAccepted&&v?.status!=='Approved'});seen.add(String(q.id));}
+ for(const v of p.variations||[]){if(v.quoteId||seen.has(String(v.id)))continue;rows.push({quoteId:'',version:Number(v.version||1),role:Number(v.sellNet)<0?'Credit':'Extra',title:String(v.title||v.id),status:v.status==='Approved'?'Accepted':v.status==='Rejected'?'Rejected':'Pending',sellNet:Number(v.sellNet||0),costNet:Number(v.costNet||0),approvalRef:String(v.approvalRef||''),acceptedAt:String(v.decidedAt||''),variationId:String(v.id||'')});}
+ return rows;
+}
+function psProjectAcceptLinkedQuote(j,q,totals,acceptance,versionNumber){
+ const p=psProjectModel(j),link=q?.projectLink||{},type=String(link.type||'').toLowerCase();if(String(link.projectId||'')!==String(j.id)||!['extra','credit'].includes(type))throw Error('This quote is not linked to the selected project.');if(!p.quoteAccepted)throw Error('Accept the original project contract before accepting an extra.');if(String(j.customerId||'')!==String(q.customerId||''))throw Error('The extra quote customer must match the project customer.');
+ const acceptedAt=String(acceptance?.accepted_at||acceptance?.at||new Date().toISOString()),sellBase=Math.abs(Number(totals?.net||0)),sellNet=type==='credit'?-sellBase:sellBase,costNet=Math.max(0,Number(totals?.cost||0)),version=Number(versionNumber||q.publishedVersion||q.currentVersion||0),approvalRef='Accepted '+String(q.id)+' v'+version+' · '+acceptedAt;let extra=(p.variations||[]).find(v=>String(v.quoteId||'')===String(q.id));
+ if(extra?.status==='Rejected')throw Error('This linked extra was already rejected on the project. Create a new quote instead.');if(extra?.status==='Approved'){if(Number(extra.quoteVersion||version)!==version||psProjectPence(extra.sellNet)!==psProjectPence(sellNet))throw Error('Accepted extra quote evidence is immutable. Create a new quote for further changes.');return extra;}
+ const payload={title:String(q.projectName||('Extra '+q.id)),sellNet,costNet,status:'Approved',date:acceptedAt,version:1,description:String(q.projectName||q.id),programmeImpact:'See accepted quote',approvalDue:'',vatRate:Number(q.vatRate??20),quoteId:String(q.id),quoteVersion:version,approvalRef,approvalSource:'Quote Studio customer acceptance',acceptedAt,decidedAt:acceptedAt};if(extra)Object.assign(extra,payload);else{extra={id:'EXTRA-'+String(q.id).replace(/[^A-Za-z0-9_-]/g,'-'),...payload};p.variations.push(extra);}
+ let quoteLink=(p.quoteLinks||[]).find(x=>String(x.quoteId||'')===String(q.id));const linkRow={quoteId:String(q.id),version,role:type==='credit'?'Credit':'Extra',status:'Accepted',sellNet,costNet,variationId:extra.id,approvalRef,acceptedAt};if(quoteLink)Object.assign(quoteLink,linkRow);else p.quoteLinks.push(linkRow);
+ if(!p.correspondence.some(x=>x.sourceQuoteId===q.id&&x.type==='Customer quote accepted'))p.correspondence.push({id:crypto.randomUUID(),type:'Customer quote accepted',occurredAt:acceptedAt,createdAt:acceptedAt,user:'Quote Studio',contact:String(acceptance?.signer||'Customer'),body:'Customer accepted '+q.id+' v'+version+'. This approval is distinct from email delivery.',variationId:extra.id,sourceQuoteId:String(q.id),source:'Quote Studio acceptance'});
+ p.audit.push({id:crypto.randomUUID(),action:'extra_quote_accepted',at:acceptedAt,user:'Quote Studio',details:{quoteId:String(q.id),version,variationId:extra.id,sellNet,costNet}});return extra;
 }
 function psProjectLinkedPoLines(j,source){
  source=source||data;const allOrders=new Map((source.salesOrders||[]).map(o=>[o.id,o])),rows=[];
@@ -77,14 +98,18 @@ function psProjectCreate(v){
  for(const field of ['reviewDue','targetCompletion'])if(v[field]&&!psProjectDate(v[field]))throw Error('Enter valid project dates.');
  const j={id,name,owner,customerId:v.customerId,locationId:v.locationId||'',customerRef:v.customerRef||'',notes:v.notes||'',status:v.acceptance==='accepted'?'Approved':'Planning',invoiceStage:'Not reviewed',created:psProjectUKDate(),createdBy:currentUser().name};data.jobs.push(j);
  psProjectApply('settings',{...v,jobId:id,quoteAccepted:v.acceptance==='accepted'?'on':'',settingsReason:'Initial project setup',lossWarningMargin:5,invoiceExposureThresholdPct:40,invoiceExposureThresholdNet:0});
- Object.assign(j.project,{acceptanceRef:String(v.acceptanceRef||''),originalCostBudget:Number(v.remainingNet||0)});return j;
+ Object.assign(j.project,{acceptanceRef:String(v.acceptanceRef||''),originalCostBudget:Number(v.remainingNet||0)});if(v.acceptance==='accepted'&&String(v.quoteRef||'').trim())j.project.quoteLinks=[{quoteId:String(v.quoteRef).trim(),version:0,role:'Original',status:'Accepted',sellNet:Number(v.quoteNet||0),costNet:Number(v.remainingNet||0),approvalRef:String(v.acceptanceRef||''),acceptedAt:new Date().toISOString()}];return j;
 }
 function psProjectSummary(j,source,now){
- source=source||data;now=now||Date.now();const p=psProjectModel(j),cents=psProjectPence;
+ source=source||data;now=now||Date.now();const p=psProjectModel(j),cents=psProjectPence,quoteRows=psProjectQuoteRows(j,source);
  const orders=(source.salesOrders||[]).filter(o=>o.jobId===j.id&&!['Cancelled','Canceled'].includes(o.status)),orderIds=new Set(orders.map(o=>o.id));
  const allOrders=new Map((source.salesOrders||[]).map(o=>[o.id,o]));
  const productMap=new Map((source.products||[]).map(x=>[x.id,x]));
  const costs=(p.costs||[]).filter(x=>!x.voidedAt),variations=(p.variations||[]).filter(v=>v.status==='Approved');
+ const costByPo=new Map(),costByOrder=new Map(),costByVariation=new Map(),costByTool=new Map();
+ const indexCost=(map,key,row)=>{if(!key)return;const k=String(key),list=map.get(k);if(list)list.push(row);else map.set(k,[row]);};
+ costs.forEach(row=>{indexCost(costByPo,row.poId,row);indexCost(costByOrder,row.orderId,row);indexCost(costByVariation,row.variationId,row);indexCost(costByTool,row.toolAssignmentId,row)});
+ const actualRows=rows=>(rows||[]).filter(x=>x.state==='Actual'),sumNet=rows=>(rows||[]).reduce((n,x)=>n+cents(x.net),0),sumCoverage=rows=>(rows||[]).reduce((n,x)=>n+cents(x.coverageNet||0),0);
  const quote=cents(p.quoteNet||0),approvedExtra=variations.reduce((n,v)=>n+cents(v.sellNet),0),revenue=quote+approvedExtra;
  let actual=0,committed=0,uncommitted=cents(p.remainingNet||0),estimatedReceived=0,missingCosts=0;
  const poRows=[],coverage=new Map();
@@ -97,7 +122,7 @@ function psProjectSummary(j,source,now){
    const unit=Number(rate||0),orderedQty=cancelled?Number(l.received||0):Number(l.qty||0);total+=cents(orderedQty*unit);received+=cents(Math.min(Number(l.qty||0),Number(l.received||0))*unit);
    if(orderIds.has(l.salesOrderId)){const key=l.salesOrderId+'|'+l.productId;coverage.set(key,(coverage.get(key)||0)+orderedQty);}
   });
-  const bills=costs.filter(x=>x.poId===po.id&&x.state==='Actual');const covered=bills.reduce((n,b)=>n+cents(b.coverageNet||0),0),billed=bills.reduce((n,b)=>n+cents(b.net),0);
+  const bills=actualRows(costByPo.get(String(po.id)));const covered=sumCoverage(bills),billed=sumNet(bills);
   const committedPo=!String(po.status).toLowerCase().includes('draft');
   const estimate=Math.max(0,received-covered),open=Math.max(0,total-Math.max(received,covered));actual+=billed;
   if(committedPo){estimatedReceived+=estimate;committed+=open;}else uncommitted+=open+estimate;
@@ -112,25 +137,30 @@ function psProjectSummary(j,source,now){
   const remaining=Math.max(0,Number(l.qty||0)-covered);orderMaterialAmounts[o.id]=(orderMaterialAmounts[o.id]||0)+cents(remaining*Number(rate||0));
   items.push({order:o.id,orderStatus:o.status||'',due:o.due||'',index,productId:l.productId,name:productMap.get(l.productId)?.name||l.productId,qty:Number(l.qty||0),allocated:Number(l.allocated||0),shipped:Number(l.shipped||0),open:Math.max(0,Number(l.qty||0)-Number(l.shipped||0)),covered});
  }));
- Object.entries(orderMaterialAmounts).forEach(([orderId,value])=>{const covered=costs.filter(c=>c.orderId===orderId&&c.state==='Actual').reduce((n,c)=>n+cents(c.coverageNet||0),0);uncommitted+=Math.max(0,value-covered);});
+ Object.entries(orderMaterialAmounts).forEach(([orderId,value])=>{const covered=sumCoverage(actualRows(costByOrder.get(orderId)));uncommitted+=Math.max(0,value-covered);});
  const toolForecasts=new Map();let tools=0,toolAccrued=0,toolFuture=0;
- (source.toolAssignments||[]).filter(a=>a.jobId===j.id).forEach(a=>{const charge=psProjectToolCharge(a,now),covered=costs.filter(c=>c.toolAssignmentId===a.id&&c.state==='Actual').reduce((n,c)=>n+cents(c.coverageNet||0),0),forecast=Math.max(0,cents(charge.forecast)-covered),accrued=Math.max(0,cents(charge.accrued)-covered);tools+=forecast;toolAccrued+=accrued;toolFuture+=Math.max(0,forecast-accrued);toolForecasts.set(a.id,forecast);});
+ const projectTools=(source.toolAssignments||[]).filter(a=>a.jobId===j.id),toolsByVariation=new Map();projectTools.forEach(a=>{indexCost(toolsByVariation,a.variationId,a);const charge=psProjectToolCharge(a,now),covered=sumCoverage(actualRows(costByTool.get(String(a.id)))),forecast=Math.max(0,cents(charge.forecast)-covered),accrued=Math.max(0,cents(charge.accrued)-covered);tools+=forecast;toolAccrued+=accrued;toolFuture+=Math.max(0,forecast-accrued);toolForecasts.set(a.id,forecast);});
+ const projectPoLines=psProjectLinkedPoLines(j,source),ordersByVariation=new Map(),poRowsByOrder=new Map(),poLinesByOrder=new Map();
+ orders.forEach(o=>{if(o.variationId){const key=String(o.variationId),list=ordersByVariation.get(key);if(list)list.push(o);else ordersByVariation.set(key,[o])}});
+ poRows.forEach(row=>(row.lines||[]).forEach(line=>{if(!line.salesOrderId)return;const key=String(line.salesOrderId),set=poRowsByOrder.get(key);if(set)set.add(row);else poRowsByOrder.set(key,new Set([row]))}));
+ projectPoLines.forEach(row=>{if(!row.line.salesOrderId)return;const key=String(row.line.salesOrderId),list=poLinesByOrder.get(key);if(list)list.push(row);else poLinesByOrder.set(key,[row])});
  variations.forEach(v=>{
-  const linked=orders.filter(o=>o.variationId===v.id),linkedIds=new Set(linked.map(o=>o.id));
-  const linkedPo=poRows.filter(r=>(r.lines||[]).every(l=>linkedIds.has(l.salesOrderId)));
-  const linkedPoIds=new Set(linkedPo.map(r=>r.po.id));
-  const recorded=costs.filter(c=>c.variationId===v.id||linkedIds.has(c.orderId)||linkedPoIds.has(c.poId)).reduce((n,c)=>n+cents(c.net),0);
-  const orderForecast=linked.reduce((n,o)=>n+Math.max(0,(orderMaterialAmounts[o.id]||0)-costs.filter(c=>c.orderId===o.id&&c.state==='Actual').reduce((m,c)=>m+cents(c.coverageNet||0),0)),0);
-  const purchaseForecast=psProjectLinkedPoLines(j,source).filter(({po,line})=>linkedIds.has(line.salesOrderId)&&!['Cancelled','Canceled'].includes(po.status)).reduce((n,{line})=>n+cents(Number(line.qty||0)*Number(line.unitCost??line.cost??productMap.get(line.productId)?.cost??0)),0);
-  const matched=costs.filter(c=>linkedPoIds.has(c.poId)&&c.state==='Actual').reduce((n,c)=>n+cents(c.coverageNet||0),0);
-  const toolForecast=(source.toolAssignments||[]).filter(a=>a.jobId===j.id&&a.variationId===v.id).reduce((n,a)=>n+(toolForecasts.get(a.id)||0),0);
+  const linked=ordersByVariation.get(String(v.id))||[],linkedIds=new Set(linked.map(o=>String(o.id))),candidatePoRows=new Set();linkedIds.forEach(id=>(poRowsByOrder.get(id)||[]).forEach(row=>candidatePoRows.add(row)));
+  const linkedPo=[...candidatePoRows].filter(r=>(r.lines||[]).every(l=>linkedIds.has(String(l.salesOrderId||''))));
+  const linkedPoIds=new Set(linkedPo.map(r=>String(r.po.id))),recordedRows=new Set(costByVariation.get(String(v.id))||[]);
+  linkedIds.forEach(id=>(costByOrder.get(id)||[]).forEach(c=>recordedRows.add(c)));linkedPoIds.forEach(id=>(costByPo.get(id)||[]).forEach(c=>recordedRows.add(c)));
+  const recorded=sumNet([...recordedRows]);
+  const orderForecast=linked.reduce((n,o)=>n+Math.max(0,(orderMaterialAmounts[o.id]||0)-sumCoverage(actualRows(costByOrder.get(String(o.id))))),0);
+  let purchaseForecast=0;linkedIds.forEach(id=>(poLinesByOrder.get(id)||[]).forEach(({po,line})=>{if(!['Cancelled','Canceled'].includes(po.status))purchaseForecast+=cents(Number(line.qty||0)*Number(line.unitCost??line.cost??productMap.get(line.productId)?.cost??0))}));
+  let matched=0;linkedPoIds.forEach(id=>{matched+=sumCoverage(actualRows(costByPo.get(id)))});
+  const toolForecast=(toolsByVariation.get(String(v.id))||[]).reduce((n,a)=>n+(toolForecasts.get(a.id)||0),0);
   uncommitted+=Math.max(0,cents(v.costNet||0)-recorded-toolForecast-orderForecast-Math.max(0,purchaseForecast-matched));
  });
 
  // Explain ledger costs without adding them to the forecast a second time.
  const categoryMap=new Map();costs.forEach(c=>{const name=c.category||'Other',row=categoryMap.get(name)||{name,actual:0,committed:0,hours:0};row[c.state==='Actual'?'actual':'committed']+=cents(c.net);if(c.category==='Labour'&&c.state==='Actual')row.hours+=Number(c.hours||0);categoryMap.set(name,row);});
  const costCategories=[...categoryMap.values()].sort((a,b)=>a.name.localeCompare(b.name));
- const orderCostCoverage=orders.map(o=>{const estimate=orderMaterialAmounts[o.id]||0,matched=costs.filter(c=>c.orderId===o.id&&c.state==='Actual').reduce((n,c)=>n+cents(c.coverageNet||0),0);return {id:o.id,status:o.status||'Open',estimate,matched,remaining:Math.max(0,estimate-matched)};});
+ const orderCostCoverage=orders.map(o=>{const estimate=orderMaterialAmounts[o.id]||0,matched=sumCoverage(actualRows(costByOrder.get(String(o.id))));return {id:o.id,status:o.status||'Open',estimate,matched,remaining:Math.max(0,estimate-matched)};});
  const forecast=actual+estimatedReceived+committed+uncommitted+tools,profit=revenue-forecast,margin=revenue>0?100*profit/revenue:null;
  const target=Number(p.targetMargin??30),headroom=Math.round(revenue*(1-target/100))-forecast;
  const alerts=[];
@@ -142,8 +172,8 @@ function psProjectSummary(j,source,now){
  else if(margin<target)alerts.push({severity:'warn',text:'Forecast margin '+margin.toFixed(1)+'% is below the '+target+'% target.'});
  if(missingCosts)alerts.push({severity:'warn',text:missingCosts+' material lines have missing or zero costs. The forecast may be too optimistic.'});
  if(!p.forecastReviewedAt||now-Date.parse(p.forecastReviewedAt)>7*86400000)alerts.push({severity:'warn',text:'Review the remaining-cost forecast; it is unconfirmed or over seven days old.'});
- Object.entries(orderMaterialAmounts).forEach(([orderId,value])=>{const covered=costs.filter(c=>c.orderId===orderId).reduce((n,c)=>n+cents(c.coverageNet||0),0);if(covered>value)alerts.push({severity:'warn',text:orderId+' has matched material costs that overlap its current PO coverage. Review the matching.'});});
- const pending=(p.variations||[]).filter(v=>v.status==='Proposed');if(pending.length)alerts.push({severity:'warn',text:pending.length+' extras await approval. Their selling value is excluded from agreed revenue.'});
+ Object.entries(orderMaterialAmounts).forEach(([orderId,value])=>{const covered=sumCoverage(costByOrder.get(orderId));if(covered>value)alerts.push({severity:'warn',text:orderId+' has matched material costs that overlap its current PO coverage. Review the matching.'});});
+ const pending=(p.variations||[]).filter(v=>v.status==='Proposed'),pendingQuoted=quoteRows.filter(r=>r.role!=='Original'&&r.status==='Pending'&&!r.variationId),acceptedUnposted=quoteRows.filter(r=>r.role!=='Original'&&r.status==='Accepted'&&r.handoverPending);const pendingCount=pending.length+pendingQuoted.length;if(pendingCount)alerts.push({severity:'warn',text:pendingCount+' extras await approval. Their selling value is excluded from agreed revenue.'});if(acceptedUnposted.length)alerts.push({severity:'bad',text:acceptedUnposted.length+' customer-accepted extra quote'+(acceptedUnposted.length===1?' has':'s have')+' not completed project handover. Retry quote conversion before relying on agreed revenue.'});
  const today=new Date(now).toISOString().slice(0,10);
  if(p.reviewDue&&p.reviewDue<=today)alerts.push({severity:'warn',text:'The scheduled project cost review is due: '+p.reviewDue+'.'});
  const overdue=(p.tasks||[]).filter(t=>t.status!=='Done'&&t.due&&t.due<today);if(overdue.length)alerts.push({severity:'warn',text:overdue.length+' tasks are overdue.'});
@@ -159,8 +189,9 @@ function psProjectSummary(j,source,now){
  if(materialVariance>0)alerts.push({severity:materialVariance>Math.max(50000,revenue*0.05)?'bad':'warn',text:'Material forecast is '+(materialVariance/100).toFixed(2)+' above the project material budget. Review added quantities, PO costs and unplanned materials.'});
  const invoicedQueued=(p.phases||[]).filter(ph=>ph.invoiceRequested).reduce((n,ph)=>n+cents(ph.amountNet),0),costExposure=actual+estimatedReceived+committed+tools,exposureGap=Math.max(0,costExposure-invoicedQueued),pct=Number(p.invoiceExposureThresholdPct??40),netThreshold=cents(p.invoiceExposureThresholdNet||0),pctThreshold=revenue>0?Math.round(revenue*pct/100):0,thresholdTriggered=(pctThreshold>0&&costExposure>=pctThreshold&&exposureGap>0)||(netThreshold>0&&exposureGap>=netThreshold);
  const invoiceExposure={costExposure,invoicedQueued,exposureGap,thresholdPct:pct,thresholdNet:netThreshold,thresholdTriggered};if(thresholdTriggered)alerts.push({severity:'warn',text:'Invoice review recommended: project cost exposure is '+(costExposure/100).toFixed(2)+' while '+(invoicedQueued/100).toFixed(2)+' is queued/invoiced against the configured exposure threshold.'});
- const marginMovement=[{label:'Accepted contract',amount:revenue,type:'revenue'},{label:'Actual recorded cost',amount:-actual,type:'cost'},{label:'Received PO estimate',amount:-estimatedReceived,type:'cost'},{label:'Outstanding commitments',amount:-committed,type:'cost'},{label:'Remaining forecast',amount:-uncommitted,type:'cost'},{label:'Tools & hire',amount:-tools,type:'cost'}];
- return {toolAccrued,toolFuture,missingCosts,costCategories,orderCostCoverage,quote,approvedExtra,revenue,actual,estimatedReceived,committed,uncommitted,tools,forecast,profit,margin,headroom,target,minimumMargin,alerts,recommendations,items,orders,poRows,orderMaterialAmounts,stock,materialVariance,invoiceExposure,marginMovement,pendingExtra:pending.reduce((n,v)=>n+cents(v.sellNet),0),phaseTotal:(p.phases||[]).reduce((n,ph)=>n+cents(ph.amountNet),0)};
+ const committedCosts=estimatedReceived+committed,remainingForecastCosts=uncommitted+tools,marginMovement=[{label:'Accepted contract',amount:revenue,type:'revenue'},{label:'Actual recorded cost',amount:-actual,type:'cost'},{label:'Received PO estimate',amount:-estimatedReceived,type:'cost'},{label:'Outstanding commitments',amount:-committed,type:'cost'},{label:'Remaining forecast',amount:-uncommitted,type:'cost'},{label:'Tools & hire',amount:-tools,type:'cost'}];
+ const pendingExtra=pending.reduce((n,v)=>n+cents(v.sellNet),0)+pendingQuoted.reduce((n,r)=>n+cents(r.sellNet),0),rejectedExtra=quoteRows.filter(r=>r.role!=='Original'&&r.status==='Rejected').reduce((n,r)=>n+cents(r.sellNet),0);
+ return {toolAccrued,toolFuture,missingCosts,costCategories,orderCostCoverage,quote,approvedExtra,revenue,totalSellingValue:revenue,actual,estimatedReceived,committed,committedCosts,uncommitted,tools,remainingForecastCosts,forecast,profit,margin,headroom,target,minimumMargin,alerts,recommendations,items,orders,poRows,orderMaterialAmounts,stock,materialVariance,invoiceExposure,marginMovement,quoteRows,pendingExtra,rejectedExtra,pendingExtraCount:pendingCount,acceptedExtraCount:quoteRows.filter(r=>r.role!=='Original'&&r.status==='Accepted'&&!r.handoverPending).length,rejectedExtraCount:quoteRows.filter(r=>r.role!=='Original'&&r.status==='Rejected').length,phaseTotal:(p.phases||[]).reduce((n,ph)=>n+cents(ph.amountNet),0)};
 }
 function psProjectCloseoutBlockers(j,source,finance,now){
  source=source||data;finance=finance||{};now=now||Date.now();const p=psProjectModel(j),s=psProjectSummary(j,source,now),blockers=[];
@@ -256,7 +287,7 @@ function psProjectApply(action,v){
 }
 function psProjectTransaction(action,v){const before=JSON.stringify(data);try{const j=psProjectApply(action,v);if(saveAppData()===false||workspaceLocalSaveFailed)throw Error('Project could not be saved locally.');return j;}catch(e){data=JSON.parse(before);throw e;}}
 // Shared pure summary is also used by the server's optional advisory endpoint.
-globalThis.PoolShedProjectEngine={summary:psProjectSummary,stockSummary:psProjectStockSummary,health:psProjectHealth,closeout:psProjectCloseoutBlockers};
+globalThis.PoolShedProjectEngine={summary:psProjectSummary,stockSummary:psProjectStockSummary,health:psProjectHealth,closeout:psProjectCloseoutBlockers,quoteRows:psProjectQuoteRows,acceptLinkedQuote:psProjectAcceptLinkedQuote};
 
 function psProjectExtraCheck(j,extra,source){
  const s=psProjectSummary(j,source),p=psProjectModel(j),floor=Number(p.minimumMargin),sell=psProjectPence(extra.sellNet),cost=psProjectPence(extra.costNet||0);

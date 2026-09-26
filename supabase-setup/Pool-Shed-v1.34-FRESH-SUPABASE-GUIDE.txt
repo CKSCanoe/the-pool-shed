@@ -1,4 +1,4 @@
-POOL SHED v1.34.0 - FRESH SUPABASE SETUP
+POOL SHED - FRESH SUPABASE SETUP (v1.34 base + current completion migrations through 011)
 
 RECOMMENDED
 Create a NEW Supabase project and leave the existing Pool Shed Supabase untouched until the new environment passes Vercel Preview testing.
@@ -9,7 +9,7 @@ WHAT THIS BACKEND COVERS
 - workspace revisions and safe CAS writes
 - Finance/Xero server authority
 - private project documents
-- project billing / AI / immutable history
+- project billing / AI / immutable history, including accepted linked extra/credit quote evidence
 - Quote Studio publication, engagement, questions and acceptance
 - private Quote Media
 - quote conversion jobs and retry
@@ -47,4 +47,4 @@ PROCESS
 16. Keep the old Supabase and previous Vercel deployment available for rollback until production is stable.
 
 IMPORTANT
-Do not run the old destructive July clean-install SQL on a database containing data you need. The v1.34 fresh installer is the current setup authority.
+Do not run the old destructive July clean-install SQL on a database containing data you need. The retained v1.34-named fresh installer is the current setup authority and now includes the completion migrations through 011.

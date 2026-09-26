@@ -4,6 +4,9 @@ ROOT=$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)
 DIST="$ROOT/dist"
 
 node "$ROOT/scripts/test-workspace-audit-v1451.mjs"
+node "$ROOT/scripts/test-project-extra-quotes-v146.mjs"
+node "$ROOT/scripts/test-project-performance-v146.mjs"
+node "$ROOT/scripts/test-project-extra-sql-v146.mjs"
 node "$ROOT/scripts/test-project-hire-v145.mjs"
 node "$ROOT/scripts/test-project-control-v144.mjs"
 node "$ROOT/scripts/test-project-email-v144.mjs"
