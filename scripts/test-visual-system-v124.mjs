@@ -3,8 +3,10 @@ import path from 'node:path';
 
 const root = process.cwd();
 const read = (p) => fs.readFileSync(path.join(root, p), 'utf8');
+const colourPath = 'public/assets/css/system/00-color-tokens.css';
 const designPath = 'public/assets/css/system/40-design-system.css';
 const componentPath = 'public/assets/css/system/56-executive-premium-components.css';
+const colours = read(colourPath);
 const design = read(designPath);
 const login = read('public/assets/css/system/55-login-command.css');
 const build = read('scripts/build-css.mjs');
@@ -27,7 +29,7 @@ const forbidText = (source, text, message) => {
 const [maj,min,patch]=pkg.version.split('.').map(Number);
 if (maj !== 1 || min < 24 || (min === 24 && patch < 1)) failures.push(`package version must retain v1.24.1+ Executive Premium foundations, found ${pkg.version}`);
 
-if (!html.includes('<meta name="theme-color" content="#101820">')) failures.push('browser theme colour must use the Executive Premium shell colour #101820');
+if (!html.includes('<meta name="theme-color" content="#0F1B24">')) failures.push('browser theme colour must use the Industrial Aqua shell colour #0F1B24');
 for (const requiredTest of ['test-visual-system-v124.mjs','test-theme-semantic-contrast-v124.mjs','test-semantic-surface-usage-v124.mjs','test-project-details-v124.mjs']) {
   if (!pkg.scripts.validate.includes(requiredTest)) failures.push(`validate script must include ${requiredTest}`);
 }
@@ -40,50 +42,53 @@ for (const oldReportColour of ['color:#102B3A','border-bottom:1px solid #D7E0E5'
 if (/#[0-9a-fA-F]{3,8}\b/.test(financeLegacyCss)) failures.push('legacy Finance Command compatibility stylesheet must resolve through semantic tokens, not fixed hex colours');
 
 for (const token of [
-  '--color-shell: #101820;',
-  '--color-shell-secondary: #17232D;',
-  '--color-surface-canvas: #F5F7F8;',
+  '--color-shell: #0F1B24;',
+  '--color-shell-secondary: #172832;',
+  '--color-surface-canvas: #F4F6F5;',
   '--color-surface-default: #FFFFFF;',
-  '--color-surface-subtle: #EEF2F4;',
-  '--color-surface-raised: #E5EAED;',
-  '--color-text-primary: #18242C;',
-  '--color-text-secondary: #5F6D75;',
-  '--color-text-muted: #89959C;',
-  '--color-border-default: #D8E0E4;',
-  '--color-border-strong: #C2CCD1;',
-  '--color-action-primary: #2F6B84;',
-  '--color-action-primary-hover: #24566A;',
-  '--color-action-soft: #E7F0F4;',
-  '--color-action-ink: #173847;'
-]) requireText(design, token, `missing Executive Premium token: ${token}`);
+  '--color-surface-subtle: #EEF3F3;',
+  '--color-surface-raised: #E6ECEC;',
+  '--color-text-primary: #17242C;',
+  '--color-text-secondary: #5C6971;',
+  '--color-text-muted: #616E76;',
+  '--color-border-default: #D6DEE1;',
+  '--color-border-strong: #BFCBD0;',
+  '--color-action-primary: #187C8C;',
+  '--color-action-primary-hover: #126273;',
+  '--color-action-soft: #E2F1F3;',
+  '--color-action-ink: #0F5965;'
+]) requireText(colours, token, `missing Industrial Aqua token: ${token}`);
 
 for (const darkToken of [
-  '--color-shell: #0B1015;',
-  '--color-shell-secondary: #121920;',
-  '--color-surface-canvas: #0F1419;',
-  '--color-surface-default: #161D23;',
-  '--color-surface-subtle: #1D252C;',
-  '--color-surface-raised: #263039;',
-  '--color-text-primary: #EEF3F5;',
-  '--color-text-secondary: #A9B5BB;',
-  '--color-text-muted: #7F8C93;',
-  '--color-border-default: #2C3841;',
-  '--color-border-strong: #3A4852;',
-  '--color-action-primary: #69A8C2;',
-  '--color-action-primary-hover: #4E8DA7;',
-  '--color-action-soft: #17313D;',
-  '--color-action-ink: #DFF3FB;'
-]) requireText(design, darkToken, `missing dark Executive Premium token: ${darkToken}`);
+  '--color-shell: #0B151C;',
+  '--color-shell-secondary: #11212A;',
+  '--color-surface-canvas: #0F171C;',
+  '--color-surface-default: #162127;',
+  '--color-surface-subtle: #1B2930;',
+  '--color-surface-raised: #223139;',
+  '--color-text-primary: #EDF3F4;',
+  '--color-text-secondary: #AAB8BE;',
+  '--color-text-muted: #8E9EA5;',
+  '--color-border-default: #2D3D45;',
+  '--color-border-strong: #41535C;',
+  '--color-action-primary: #45A7B4;',
+  '--color-action-primary-hover: #5CB8C3;',
+  '--color-action-soft: #17383E;',
+  '--color-action-ink: #86CED6;'
+]) requireText(colours, darkToken, `missing dark Industrial Aqua token: ${darkToken}`);
 
 for (const interaction of [
   '--color-hover-surface:',
   '--color-selected-surface:',
   '--color-selected-edge:',
   '--color-focus-ring:'
-]) requireText(design, interaction, `missing interaction token ${interaction}`);
+]) requireText(colours, interaction, `missing interaction token ${interaction}`);
 
-const aliases = ['--brand:', '--accent:', '--ps-cyan:', '--pb-teal:', '--ci-cyan:', '--bs-blue:', '--b2-blue:'];
-for (const alias of aliases) requireText(design, alias, `compatibility alias missing: ${alias}`);
+const retiredAliases = ['--brand:', '--accent:', '--ps-cyan:', '--pb-teal:', '--ci-cyan:', '--bs-blue:', '--b2-blue:', '--color-dark-canvas:', '--color-brand-navy:'];
+for (const alias of retiredAliases) {
+  if (design.includes(alias) || colours.includes(alias)) failures.push(`retired compatibility alias must stay removed: ${alias}`);
+}
+if (/--color-(?:shell|surface-default|text-primary|action-primary)\s*:/.test(design)) failures.push('40-design-system.css must not redeclare canonical colour tokens');
 
 if (!fs.existsSync(path.join(root, componentPath))) {
   failures.push('Executive Premium shared component authority file is missing');
@@ -103,7 +108,7 @@ if (i55 >= 0 && i56 >= 0 && i56 < i55) failures.push('Executive Premium componen
 for (const required of [
   'background:var(--color-shell)',
   'background:var(--color-surface-default)',
-  'border-color:var(--color-action-primary)',
+  'var(--color-action-',
   'box-shadow:var(--focus-ring)'
 ]) requireText(login, required, `premium login must consume semantic colour authority: ${required}`);
 
@@ -111,10 +116,8 @@ for (const old of ['#071A27','#071B28','#0B3043','#78BEC9','#83C7D1','#68AEBC','
   forbidText(login, old, `premium login still contains legacy aqua/navy colour ${old}`);
 }
 
-// Quote Studio owns its approved, scoped palette, verified by test-quote-layout-v141.mjs.
-// Other feature modules must not own literal hex palette values. Dark/light presentation
-// must resolve through the semantic authority rather than fixed light-theme colours.
-for (const file of fs.readdirSync(path.join(root, 'public/assets/css/system')).filter((f) => f.endsWith('.css') && f !== '40-design-system.css' && f !== '59-quote-studio.css')) {
+// The canonical colour token file is the only maintained CSS source allowed to own literal palette values.
+for (const file of fs.readdirSync(path.join(root, 'public/assets/css/system')).filter((f) => f.endsWith('.css') && f !== '00-color-tokens.css')) {
   const source = read(`public/assets/css/system/${file}`);
   const literals = [...new Set(source.match(/#[0-9a-fA-F]{3,8}\b/g) || [])];
   if (literals.length) failures.push(`${file} contains ${literals.length} hard-coded hex colour(s): ${literals.slice(0,8).join(', ')}`);
@@ -123,7 +126,7 @@ for (const file of fs.readdirSync(path.join(root, 'public/assets/css/system')).f
 // Feature modules must not own literal rgb/rgba or named white/black colours either.
 // Shadows, scrims, focus rings and surface mixes must resolve through semantic tokens
 // so dark mode cannot inherit light-only alpha paint.
-for (const file of fs.readdirSync(path.join(root, 'public/assets/css/system')).filter((f) => f.endsWith('.css') && f !== '40-design-system.css' && f !== '59-quote-studio.css')) {
+for (const file of fs.readdirSync(path.join(root, 'public/assets/css/system')).filter((f) => f.endsWith('.css') && f !== '00-color-tokens.css')) {
   const source = read(`public/assets/css/system/${file}`);
   const rgbLiterals = [...new Set(source.match(/rgba?\([^)]*\)/gi) || [])];
   if (rgbLiterals.length) failures.push(`${file} contains ${rgbLiterals.length} literal rgb/rgba colour(s): ${rgbLiterals.slice(0,6).join(', ')}`);
@@ -144,7 +147,7 @@ for (const file of fs.readdirSync(path.join(root, 'public/assets/css/system')).f
 }
 
 // Feature modules must not retain hard-coded saturated blue/teal/purple brand/action colours.
-// Those hues are allowed only as semantic token definitions in 40-design-system.css.
+// Those hues are allowed only as semantic token definitions in 00-color-tokens.css.
 const cssDir = path.join(root, 'public/assets/css/system');
 const hexRx = /#[0-9a-fA-F]{6}\b/g;
 function hueSat(hex) {
@@ -163,7 +166,7 @@ function hueSat(hex) {
   const s = max === 0 ? 0 : d/max;
   return [h,s,max];
 }
-for (const file of fs.readdirSync(cssDir).filter((f) => f.endsWith('.css') && f !== '40-design-system.css' && f !== '59-quote-studio.css')) {
+for (const file of fs.readdirSync(cssDir).filter((f) => f.endsWith('.css') && f !== '00-color-tokens.css')) {
   const source = read(`public/assets/css/system/${file}`);
   const seen = new Set(source.match(hexRx) || []);
   for (const hex of seen) {
@@ -186,4 +189,4 @@ if (failures.length) {
   console.error(failures.map((x) => `FAIL: ${x}`).join('\n'));
   process.exit(1);
 }
-console.log('PASS v1.24 Executive Premium Steel Blue visual contract: semantic palette, premium login, no purple, no hard-coded feature action hues, current release wiring.');
+console.log('PASS Industrial Aqua visual contract: single semantic colour authority, no retired palette aliases, no hard-coded feature hues, current release wiring.');

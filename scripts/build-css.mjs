@@ -5,6 +5,7 @@ import { fileURLToPath } from "node:url";
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 const cssRoot = path.join(root, "public", "assets", "css");
 const sources = [
+  "system/00-color-tokens.css",
   "system/10-legacy-compat.css",
   "system/20-sales-product.css",
   "system/21-catalogue.css",
@@ -46,7 +47,7 @@ const sources = [
 const banner = `/*
  Pool Shed application stylesheet.
  GENERATED FILE — do not edit directly.
- Source order is deliberately stable. Shared component/design authority lives
+ Source order is deliberately stable. Colour authority lives in system/00-color-tokens.css; shared component/design authority lives
  in system/40-design-system.css.
 */\n`;
 const output = banner + sources.map((rel) => {

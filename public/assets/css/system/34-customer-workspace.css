@@ -16,7 +16,7 @@
 .crm-directory-head input{width:100%;min-height:36px;padding:8px 9px;border:1px solid var(--color-border-default);border-radius:5px;background:var(--color-surface-default);color:var(--color-status-info-text)}
 .crm-filter-chips{display:flex;gap:6px;margin-top:7px;overflow:auto}
 .crm-filter-chips button{min-height:26px;padding:4px 7px;border:1px solid var(--color-border-default);background:var(--color-action-soft);color:var(--color-text-secondary);border-radius:999px;font-size:10px;white-space:nowrap}
-.crm-filter-chips button.active{background:var(--color-action-soft);color:var(--color-action-primary);border-color:var(--color-border-default);font-weight:800}
+.crm-filter-chips button.active{background:var(--color-action-soft);color:var(--color-action-ink);border-color:var(--color-text-secondary);font-weight:800}
 .crm-directory-list{overflow:auto;max-height:calc(100vh - 225px)}
 .crm-customer-card{position:relative;display:grid;gap:2px;width:100%;min-height:58px;padding:9px 10px;text-align:left;background:var(--color-surface-default);color:var(--color-status-info-text);border:0;border-bottom:1px solid var(--color-border-default);border-radius:0}
 .crm-customer-card:hover,.crm-customer-card:focus-visible{background:var(--color-surface-default)}
@@ -41,13 +41,13 @@
 .crm-pill.info{background:var(--color-status-info-bg);color:var(--color-text-secondary);border:1px solid var(--color-status-info-line)}
 .crm-pill.amber{background:var(--color-status-attention-bg);color:var(--color-status-attention-text);border:1px solid var(--color-status-attention-line)}
 .crm-hero-actions{display:flex;gap:7px;flex-wrap:wrap;justify-content:flex-end;align-items:center}
-.crm-hero-actions button{min-height:36px;padding:7px 11px;border-radius:6px;font-weight:750;background:var(--color-action-primary);color:var(--color-action-contrast);border:1px solid var(--color-action-primary)}.crm-hero-actions button.secondary{background:var(--color-action-soft);color:var(--color-action-primary);border:1px solid var(--color-border-default)}
+.crm-hero-actions button{min-height:36px;padding:7px 11px;border-radius:6px;font-weight:750;background:var(--color-action-primary);color:var(--color-action-contrast);border:1px solid var(--color-action-primary)}.crm-hero-actions button.secondary{background:var(--color-action-soft);color:var(--color-action-ink);border:1px solid var(--color-border-default)}
 
 .crm-profile-tabs{display:flex;gap:0;padding:0 14px;border-top:1px solid var(--color-border-default);background:var(--color-surface-subtle);overflow:auto;scrollbar-width:thin}
 .crm-profile-tabs button{min-height:44px;padding:11px 12px;white-space:nowrap;border:0;border-bottom:2px solid transparent;border-radius:0;background:transparent;color:var(--color-text-secondary);font-size:11px}
-.crm-profile-tabs button.active{color:var(--color-action-primary);border-bottom-color:var(--color-action-primary);font-weight:850}
+.crm-profile-tabs button.active{color:var(--color-action-ink);border-bottom-color:var(--color-action-ink);font-weight:850}
 .crm-profile-tabs i{display:inline-grid;place-items:center;min-width:20px;height:20px;padding:0 6px;margin-left:4px;border-radius:999px;background:var(--color-surface-subtle);color:var(--color-text-secondary);font-style:normal;font-size:10px;font-weight:800}
-.crm-profile-tabs button.active i{background:var(--color-action-soft);color:var(--color-action-primary)}
+.crm-profile-tabs button.active i{background:var(--color-action-soft);color:var(--color-action-ink)}
 
 .crm-profile-page{display:none}
 .crm-profile-page.active{display:grid;gap:10px}
@@ -70,13 +70,13 @@
 .crm-cardhead h3,.crm-depth-card h3{margin:0;font-size:14px;line-height:1.2;color:var(--color-status-info-text);letter-spacing:-.01em}
 .crm-cardhead p,.crm-depth-card header p{margin:2px 0 0;color:var(--color-text-secondary);font-size:10px;line-height:1.4}
 .crm-cardbody,.crm-depth-body{padding:11px 13px}
-.crm-link-button,.crm-copy{border:0;background:transparent;color:var(--color-action-primary);font-size:10px;font-weight:800;padding:2px 4px;min-height:auto}
+.crm-link-button,.crm-copy{border:0;background:transparent;color:var(--color-action-ink);font-size:10px;font-weight:800;padding:2px 4px;min-height:auto}
 
-.crm-core-account{background:var(--color-surface-default);border-color:var(--color-border-default);border-top:1px solid var(--color-border-default)}
-.crm-core-account .crm-cardhead{align-items:flex-start;min-height:58px;padding:11px 13px;background:var(--color-surface-default);border-bottom-color:var(--color-border-default)}
+.crm-core-account{background:var(--color-surface-default);border-color:var(--color-text-secondary);border-top:1px solid var(--color-border-default)}
+.crm-core-account .crm-cardhead{align-items:flex-start;min-height:58px;padding:11px 13px;background:var(--color-surface-default);border-bottom-color:var(--color-text-secondary)}
 .crm-core-account .crm-cardhead h3{font-size:16px;color:var(--color-status-info-text);margin-top:2px;letter-spacing:-.015em}
 .crm-core-account .crm-cardhead p{margin:3px 0 0;color:var(--color-text-secondary);font-size:10px;font-weight:500}
-.crm-section-kicker{display:block;color:var(--color-action-primary);font-size:10px;font-weight:850;text-transform:uppercase;letter-spacing:.07em}
+.crm-section-kicker{display:block;color:var(--color-action-ink);font-size:10px;font-weight:850;text-transform:uppercase;letter-spacing:.07em}
 .crm-core-account .crm-cardbody{padding:12px 13px 13px;background:var(--color-surface-default)}
 .crm-account-warning{display:flex;gap:10px;align-items:center;padding:8px 9px;margin-bottom:10px;border:1px solid var(--color-status-attention-line);background:var(--color-status-attention-bg);color:var(--color-status-attention-text);border-radius:5px}
 .crm-account-warning span{font-size:10px;font-weight:850;text-transform:uppercase;letter-spacing:.05em}
@@ -86,7 +86,7 @@
 .crm-readable-core{min-width:0}.crm-readable-core .crm-core-band+.crm-core-band{border-top:1px solid var(--color-border-default)}
 .crm-core-band{min-width:0;background:var(--color-surface-default);border:0;border-radius:0;overflow:hidden}
 .crm-core-band-head{display:flex;gap:9px;align-items:center;min-height:48px;padding:9px 10px;background:var(--color-surface-default);border-bottom:1px solid var(--color-border-default)}
-.crm-core-band-head>span{display:grid;place-items:center;flex:0 0 22px;height:22px;border-radius:4px;background:var(--color-surface-default);color:var(--color-action-primary);font-size:10px;font-weight:900}
+.crm-core-band-head>span{display:grid;place-items:center;flex:0 0 22px;height:22px;border-radius:4px;background:var(--color-surface-default);color:var(--color-action-ink);font-size:10px;font-weight:900}
 .crm-core-band-head b{display:block;color:var(--color-status-info-text);font-size:11px}
 .crm-core-band-head small{display:block;margin-top:1px;color:var(--color-text-secondary);font-size:10px;line-height:1.35}
 .crm-core-band-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr))}
@@ -145,7 +145,7 @@
 .crm-drawer-close{margin-left:auto;border:0;background:transparent;color:var(--color-status-info-text);font-size:20px;line-height:1}
 .crm-edit-tabs{display:flex;gap:5px;padding:8px 12px;border-bottom:1px solid var(--color-border-default);overflow:auto;background:var(--color-surface-subtle)}
 .crm-edit-tabs button{border:1px solid var(--color-border-default);background:var(--color-action-soft);color:var(--color-text-secondary);padding:6px 8px;border-radius:5px;font-size:10px;white-space:nowrap}
-.crm-edit-tabs button.active{background:var(--color-action-soft);color:var(--color-action-primary);border-color:var(--color-border-default);font-weight:800}
+.crm-edit-tabs button.active{background:var(--color-action-soft);color:var(--color-action-ink);border-color:var(--color-text-secondary);font-weight:800}
 .crm-edit-body{overflow:auto;padding:14px 16px}
 .crm-edit-page{display:none}
 .crm-edit-page.active{display:block}
@@ -196,4 +196,4 @@
 @media(prefers-reduced-motion:reduce){.crm-edit-drawer{transition:none}}
 
 /* v1.34 secure CRM customer files */
-.crm-files-upload{display:flex;flex-wrap:wrap;gap:8px;align-items:center}.crm-files-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:12px}.crm-file-card{border:1px solid var(--color-border);border-radius:13px;background:var(--color-surface);overflow:hidden}.crm-file-preview{height:138px;background:var(--color-surface-subtle) center/cover no-repeat;display:grid;place-items:center}.crm-file-preview span{font-size:12px;font-weight:800;color:var(--color-text-muted)}.crm-file-body{padding:11px}.crm-file-body b,.crm-file-body small{display:block}.crm-file-body small{margin-top:4px;color:var(--color-text-muted)}.crm-file-actions{display:flex;gap:7px;padding:0 11px 11px}.crm-file-actions>*{flex:1}.crm-file-actions a[aria-disabled="true"]{pointer-events:none;opacity:.55}
+.crm-files-upload{display:flex;flex-wrap:wrap;gap:8px;align-items:center}.crm-files-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:12px}.crm-file-card{border:1px solid var(--color-border-default);border-radius:13px;background:var(--color-surface-default);overflow:hidden}.crm-file-preview{height:138px;background:var(--color-surface-subtle) center/cover no-repeat;display:grid;place-items:center}.crm-file-preview span{font-size:12px;font-weight:800;color:var(--color-text-muted)}.crm-file-body{padding:11px}.crm-file-body b,.crm-file-body small{display:block}.crm-file-body small{margin-top:4px;color:var(--color-text-muted)}.crm-file-actions{display:flex;gap:7px;padding:0 11px 11px}.crm-file-actions>*{flex:1}.crm-file-actions a[aria-disabled="true"]{pointer-events:none;opacity:.55}

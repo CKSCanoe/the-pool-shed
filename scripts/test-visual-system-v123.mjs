@@ -3,6 +3,7 @@ import path from 'node:path';
 
 const root = process.cwd();
 const read = (p) => fs.readFileSync(path.join(root, p), 'utf8');
+const colors = read('public/assets/css/system/00-color-tokens.css');
 const design = read('public/assets/css/system/40-design-system.css');
 const legacyCss = read('public/assets/css/system/10-legacy-compat.css');
 const login = read('public/assets/css/system/55-login-command.css');
@@ -28,7 +29,7 @@ for (const token of [
   '--color-action-soft:',
   '--color-hover-surface:',
   '--color-selected-surface:'
-]) requireText(design, token, `missing retained v1.23 semantic visual authority: ${token}`);
+]) requireText(colors, token, `missing retained v1.23 semantic visual authority: ${token}`);
 
 requireText(design, 'background: var(--color-surface-subtle);', 'shared design system must use neutral subtle surfaces');
 requireText(design, 'background: color-mix(in srgb, var(--color-action-primary) 4%, var(--color-surface-default));', 'table hover must use a very soft primary tint');

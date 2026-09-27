@@ -9,6 +9,7 @@ const prod=read('public/assets/css/system/24-product-hub.css');
 const core=read('public/assets/css/system/30-workspace-core.css');
 const polish=read('public/assets/css/system/33-workspace-polish.css');
 const design=read('public/assets/css/system/40-design-system.css');
+const colours=read('public/assets/css/system/00-color-tokens.css');
 function no(cond,msg){ if(!cond) fail.push(msg); }
 no(!/body\[data-theme="dark"\]\s+\.topbar,[\s\S]{0,500}?background:\s*var\(--color-brand-navy\)/.test(legacy),'legacy dark mode must not repaint normal panels/cards/topbar to shell');
 no(!/body\[data-theme="dark"\][\s\S]{0,300}?h1,[\s\S]{0,250}?strong\s*\{\s*color:\s*var\(--color-status-info\)/.test(legacy),'legacy dark mode must not force all headings/strong text to info blue');
@@ -26,6 +27,7 @@ no(/dashboard-reference-hero[\s\S]{0,180}?color:\s*var\(--color-shell-text\)/.te
 no(!/body\[data-theme="dark"\] \.main \.panel[\s\S]{0,240}?background:var\(--color-brand-navy\)!important/.test(core),'workspace core must not repaint dark panels to shell');
 no(!/body\[data-theme="dark"\] \.main h1[\s\S]{0,220}?color:var\(--color-status-info\)!important/.test(core),'workspace core must not force all dark text to info blue');
 no(!/body\[data-theme="dark"\] \.ps-section-nav button.active[\s\S]{0,160}?color:var\(--color-surface-default\)!important/.test(polish),'dark active nav must use semantic selected text, not themed surface as text');
-for (const token of ['--color-dark-canvas:','--color-dark-border:','--color-dark-muted:']) no(design.includes(token),`design system must define compatibility alias ${token}`);
+for (const token of ['--color-dark-canvas','--color-dark-border','--color-dark-muted','--color-brand-navy']) no(!design.includes(token) && !colours.includes(token),`retired compatibility colour token must stay removed: ${token}`);
+for (const token of ['--color-surface-canvas:','--color-border-default:','--color-text-muted:']) no(colours.includes(token),`canonical colour authority missing ${token}`);
 if(fail.length){console.error('FAIL contrast cascade v1.24.1'); fail.forEach(x=>console.error('- '+x)); process.exit(1)}
 console.log('PASS contrast cascade v1.24.1');

@@ -41,10 +41,11 @@ for (const rel of featureModules) {
 }
 
 const appHtml = fs.readFileSync(path.join(root, "public", "index.html"), "utf8");
-const stylesheetLinks = [...appHtml.matchAll(/<link[^>]+rel=["']stylesheet["'][^>]*>/gi)];
-if (stylesheetLinks.length !== 1 || !stylesheetLinks[0][0].includes("./assets/css/app.css")) {
-  failures.push("Production must still load exactly one generated app.css");
-}
+const stylesheetLinks = [...appHtml.matchAll(/<link[^>]+rel=["']stylesheet["'][^>]*>/gi)].map((m) => m[0]);
+const appCssLinks = stylesheetLinks.filter((link) => link.includes("./assets/css/app.css"));
+if (appCssLinks.length !== 1) failures.push("Production must load exactly one generated app.css");
+const unexpectedStylesheets = stylesheetLinks.filter((link) => !link.includes("./assets/css/app.css") && !link.includes("./azzy-live.css"));
+if (unexpectedStylesheets.length) failures.push(`Unexpected production stylesheet outside app.css/Azzy integration: ${unexpectedStylesheets.join(", ")}`);
 
 if (failures.length) {
   console.error(failures.join("\n"));

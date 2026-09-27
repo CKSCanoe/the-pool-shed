@@ -18,34 +18,34 @@ const seed = {
         salesCredits: [],
         notifications: [],
         statuses: [
-          { name: "New Order", color: "#A7B7C0", group: "Intake", remindDays: 1, hidden: false },
-          { name: "Needs Review", color: "#B36A05", group: "Intake", remindDays: 1, hidden: false },
-          { name: "Part Stock", color: "#B36A05", group: "Allocation", remindDays: 1, hidden: false },
-          { name: "Ordered", color: "#176B91", group: "Purchasing", remindDays: 3, hidden: false },
-          { name: "Part Received", color: "#176B91", group: "Purchasing", remindDays: 1, hidden: false },
-          { name: "Ready To Pick", color: "#007A8C", group: "Warehouse", remindDays: 0, hidden: false },
-          { name: "Picking", color: "#176B91", group: "Warehouse", remindDays: 0, hidden: false },
-          { name: "Ready To Ship", color: "#218653", group: "Fulfilment", remindDays: 0, hidden: false },
-          { name: "Part Shipped", color: "#B36A05", group: "Fulfilment", remindDays: 1, hidden: false },
-          { name: "Shipped", color: "#218653", group: "Fulfilment", remindDays: 0, hidden: false },
-          { name: "Invoice Ready", color: "#102B3A", group: "Finance", remindDays: 1, hidden: false },
-          { name: "Invoiced", color: "#102B3A", group: "Finance", remindDays: 0, hidden: true },
-          { name: "On Hold", color: "#B83A43", group: "Exception", remindDays: 1, hidden: false }
+          { name: "New Order", color: "#BFCBD0", group: "Intake", remindDays: 1, hidden: false },
+          { name: "Needs Review", color: "#C07A20", group: "Intake", remindDays: 1, hidden: false },
+          { name: "Part Stock", color: "#C07A20", group: "Allocation", remindDays: 1, hidden: false },
+          { name: "Ordered", color: "#397FA5", group: "Purchasing", remindDays: 3, hidden: false },
+          { name: "Part Received", color: "#397FA5", group: "Purchasing", remindDays: 1, hidden: false },
+          { name: "Ready To Pick", color: "#187C8C", group: "Warehouse", remindDays: 0, hidden: false },
+          { name: "Picking", color: "#397FA5", group: "Warehouse", remindDays: 0, hidden: false },
+          { name: "Ready To Ship", color: "#27825B", group: "Fulfilment", remindDays: 0, hidden: false },
+          { name: "Part Shipped", color: "#C07A20", group: "Fulfilment", remindDays: 1, hidden: false },
+          { name: "Shipped", color: "#27825B", group: "Fulfilment", remindDays: 0, hidden: false },
+          { name: "Invoice Ready", color: "#0F1B24", group: "Finance", remindDays: 1, hidden: false },
+          { name: "Invoiced", color: "#0F1B24", group: "Finance", remindDays: 0, hidden: true },
+          { name: "On Hold", color: "#B9474F", group: "Exception", remindDays: 1, hidden: false }
         ],
         tags: [
-          { name: "Website", group: "Source", color: "#176B91" },
-          { name: "Quotient", group: "Source", color: "#007A8C" },
-          { name: "Trade", group: "Customer", color: "#176B91" },
-          { name: "Domestic", group: "Customer", color: "#218653" },
-          { name: "Wholesale", group: "Customer", color: "#102B3A" },
-          { name: "Backorder", group: "Stock", color: "#B36A05" },
-          { name: "Part Shipped", group: "Fulfilment", color: "#B36A05" },
-          { name: "Dropship", group: "Fulfilment", color: "#176B91" },
-          { name: "Invoice Ready", group: "Finance", color: "#102B3A" },
-          { name: "Heavy", group: "Handling", color: "#B83A43" },
-          { name: "Collection", group: "Fulfilment", color: "#5B6972" },
-          { name: "Delivery", group: "Fulfilment", color: "#176B91" },
-          { name: "Priority", group: "Priority", color: "#B83A43" }
+          { name: "Website", group: "Source", color: "#397FA5" },
+          { name: "Quotient", group: "Source", color: "#187C8C" },
+          { name: "Trade", group: "Customer", color: "#397FA5" },
+          { name: "Domestic", group: "Customer", color: "#27825B" },
+          { name: "Wholesale", group: "Customer", color: "#0F1B24" },
+          { name: "Backorder", group: "Stock", color: "#C07A20" },
+          { name: "Part Shipped", group: "Fulfilment", color: "#C07A20" },
+          { name: "Dropship", group: "Fulfilment", color: "#397FA5" },
+          { name: "Invoice Ready", group: "Finance", color: "#0F1B24" },
+          { name: "Heavy", group: "Handling", color: "#B9474F" },
+          { name: "Collection", group: "Fulfilment", color: "#5C6971" },
+          { name: "Delivery", group: "Fulfilment", color: "#397FA5" },
+          { name: "Priority", group: "Priority", color: "#B9474F" }
         ],
         automationRules: [],
         integrations: [
@@ -926,7 +926,7 @@ const seed = {
         const actualNames = Array.from(new Set((data.salesOrders || []).map(function(order) { return String(order.status || "New Order").trim(); }).filter(Boolean)));
         actualNames.forEach(function(name) {
           if (!base.some(function(status) { return status.name === name; })) {
-            base.push({ name: name, color: "#5B6972", group: "Other", remindDays: 1, hidden: false });
+            base.push({ name: name, color: "#5C6971", group: "Other", remindDays: 1, hidden: false });
           }
         });
         const saved = readPreference("dashboardStatusOrder", []);
@@ -1147,16 +1147,16 @@ const seed = {
       }
 
       function statusMeta(name) {
-        return data.statuses.find(function(status) { return status.name === name; }) || { name: name, color: "#5B6972", group: "Other", remindDays: 0, hidden: false };
+        return data.statuses.find(function(status) { return status.name === name; }) || { name: name, color: "#5C6971", group: "Other", remindDays: 0, hidden: false };
       }
 
       function textColourFor(hex) {
-        const clean = String(hex || "#5B6972").replace("#", "");
+        const clean = String(hex || "#5C6971").replace("#", "");
         if (clean.length !== 6) return "#FFFFFF";
         const r = parseInt(clean.slice(0, 2), 16);
         const g = parseInt(clean.slice(2, 4), 16);
         const b = parseInt(clean.slice(4, 6), 16);
-        return ((r * 299 + g * 587 + b * 114) / 1000) > 150 ? "#102B3A" : "#FFFFFF";
+        return ((r * 299 + g * 587 + b * 114) / 1000) > 150 ? "#0F1B24" : "#FFFFFF";
       }
 
       function statusInlineStyle(name) {
@@ -1166,15 +1166,15 @@ const seed = {
 
       function purchaseStatusInlineStyle(name) {
         const colours = {
-          "Draft - Review": "#B36A05",
-          "Ready To Email": "#007A8C",
-          "Sent": "#176B91",
-          "Part Received": "#B36A05",
-          "Received": "#218653",
-          "On Hold": "#B83A43",
-          "Cancelled": "#5B6972"
+          "Draft - Review": "#C07A20",
+          "Ready To Email": "#187C8C",
+          "Sent": "#397FA5",
+          "Part Received": "#C07A20",
+          "Received": "#27825B",
+          "On Hold": "#B9474F",
+          "Cancelled": "#5C6971"
         };
-        const colour = colours[name] || "#5B6972";
+        const colour = colours[name] || "#5C6971";
         return '--status-bg:' + colour + ';--status-fg:' + textColourFor(colour);
       }
 
@@ -2796,7 +2796,7 @@ const seed = {
 
       function dashboardBreakdownDonutHtml(rows, total) {
         if (!rows.length) return '<div class="dashboard-empty-copy">No sales breakdown for this period.</div>';
-        const palette = ["#00A7C4","#60839A","#46B879","#E0B33A","#F06A4F","#6F58C9"];
+        const palette = ["#52A8B4","#616E76","#59B987","#D79A47","#D76A71","#397FA5"];
         const radius = 46, circumference = 2 * Math.PI * radius;
         let offset = 0;
         const circles = rows.slice(0,6).map(function(row, index) {
@@ -8351,7 +8351,7 @@ const seed = {
       function salesOrderBoard() {
         const boardStatuses = ["New Order", "Part Stock", "Ordered", "Ready To Pick", "Ready To Ship", "Invoice Ready"];
         return '<div class="board">' + boardStatuses.map(function(status) {
-          const statusMeta = data.statuses.find(function(item) { return item.name === status; }) || { color: "#5B6972" };
+          const statusMeta = data.statuses.find(function(item) { return item.name === status; }) || { color: "#5C6971" };
           const cards = data.salesOrders.filter(function(order) { return order.status === status || (status === "Invoice Ready" && order.tags.includes("Invoice Ready")); }).map(function(order) {
             const c = customer(order.customerId);
             return '<div class="order-tile"><strong>' + order.id + '</strong><span class="muted">' + c.name + ' · ' + order.source + '</span><p>' + tagList(order.tags.slice(0, 3)) + '</p><p class="muted">' + money(salesOrderValue(order)) + ' · Due ' + order.due + '</p></div>';
@@ -9910,7 +9910,7 @@ const seed = {
           const cost = items.reduce(function(total, p) {
             return total + stockRowsForProduct(p.id).reduce(function(sum, row) { return sum + row.qty * p.cost; }, 0);
           }, 0);
-          return '<tr><td>' + category + '</td><td>' + items.length + '</td><td class="right">' + money(cost) + '</td><td><span class="health" style="--health:' + (cost > 1000 ? '#218653' : cost > 200 ? '#B36A05' : '#B83A43') + '"></span></td></tr>';
+          return '<tr><td>' + category + '</td><td>' + items.length + '</td><td class="right">' + money(cost) + '</td><td><span class="health" style="--health:' + (cost > 1000 ? '#27825B' : cost > 200 ? '#C07A20' : '#B9474F') + '"></span></td></tr>';
         }).join("");
         document.getElementById("screen-analytics").innerHTML =
           '<div class="grid kpis">' +
@@ -9956,29 +9956,29 @@ const seed = {
 
 
       const DEFAULT_SALES_STATUSES = [
-        { name: "New Order", color: "#5B6972", ral: "Pool Shed / Neutral", group: "Intake", remindDays: 1, hidden: false },
-        { name: "Needs Review", color: "#B36A05", ral: "Pool Shed / Attention", group: "Intake", remindDays: 1, hidden: false },
-        { name: "Part Stock", color: "#B36A05", ral: "Pool Shed / Attention", group: "Allocation", remindDays: 1, hidden: false },
-        { name: "Ordered", color: "#176B91", ral: "Pool Shed / Info", group: "Purchasing", remindDays: 3, hidden: false },
-        { name: "Part Received", color: "#176B91", ral: "Pool Shed / Info", group: "Purchasing", remindDays: 1, hidden: false },
-        { name: "Ready To Pick", color: "#007A8C", ral: "Pool Shed / Pool teal", group: "Warehouse", remindDays: 0, hidden: false },
-        { name: "Picking", color: "#176B91", ral: "Pool Shed / Info", group: "Warehouse", remindDays: 0, hidden: false },
-        { name: "Ready To Ship", color: "#218653", ral: "Pool Shed / Success", group: "Fulfilment", remindDays: 0, hidden: false },
-        { name: "Part Shipped", color: "#B36A05", ral: "Pool Shed / Attention", group: "Fulfilment", remindDays: 1, hidden: false },
-        { name: "Shipped", color: "#218653", ral: "Pool Shed / Success", group: "Fulfilment", remindDays: 0, hidden: false },
-        { name: "Invoice Ready", color: "#102B3A", ral: "Pool Shed / Navy", group: "Finance", remindDays: 1, hidden: false },
-        { name: "Invoiced", color: "#102B3A", ral: "Pool Shed / Navy", group: "Finance", remindDays: 0, hidden: true },
-        { name: "On Hold", color: "#B83A43", ral: "Pool Shed / Danger", group: "Exception", remindDays: 1, hidden: false }
+        { name: "New Order", color: "#5C6971", ral: "Pool Shed / Neutral", group: "Intake", remindDays: 1, hidden: false },
+        { name: "Needs Review", color: "#C07A20", ral: "Pool Shed / Attention", group: "Intake", remindDays: 1, hidden: false },
+        { name: "Part Stock", color: "#C07A20", ral: "Pool Shed / Attention", group: "Allocation", remindDays: 1, hidden: false },
+        { name: "Ordered", color: "#397FA5", ral: "Pool Shed / Info", group: "Purchasing", remindDays: 3, hidden: false },
+        { name: "Part Received", color: "#397FA5", ral: "Pool Shed / Info", group: "Purchasing", remindDays: 1, hidden: false },
+        { name: "Ready To Pick", color: "#187C8C", ral: "Pool Shed / Pool teal", group: "Warehouse", remindDays: 0, hidden: false },
+        { name: "Picking", color: "#397FA5", ral: "Pool Shed / Info", group: "Warehouse", remindDays: 0, hidden: false },
+        { name: "Ready To Ship", color: "#27825B", ral: "Pool Shed / Success", group: "Fulfilment", remindDays: 0, hidden: false },
+        { name: "Part Shipped", color: "#C07A20", ral: "Pool Shed / Attention", group: "Fulfilment", remindDays: 1, hidden: false },
+        { name: "Shipped", color: "#27825B", ral: "Pool Shed / Success", group: "Fulfilment", remindDays: 0, hidden: false },
+        { name: "Invoice Ready", color: "#0F1B24", ral: "Pool Shed / Navy", group: "Finance", remindDays: 1, hidden: false },
+        { name: "Invoiced", color: "#0F1B24", ral: "Pool Shed / Navy", group: "Finance", remindDays: 0, hidden: true },
+        { name: "On Hold", color: "#B9474F", ral: "Pool Shed / Danger", group: "Exception", remindDays: 1, hidden: false }
       ];
       const POOL_SHED_STATUS_COLOURS = [
-        ["Neutral", "#5B6972"],
-        ["Pool teal", "#007A8C"],
-        ["Aqua", "#00A7C4"],
-        ["Success", "#218653"],
-        ["Attention", "#B36A05"],
-        ["Danger", "#B83A43"],
-        ["Info", "#176B91"],
-        ["Navy", "#102B3A"]
+        ["Neutral", "#5C6971"],
+        ["Pool teal", "#187C8C"],
+        ["Aqua", "#52A8B4"],
+        ["Success", "#27825B"],
+        ["Attention", "#C07A20"],
+        ["Danger", "#B9474F"],
+        ["Info", "#397FA5"],
+        ["Navy", "#0F1B24"]
       ];
 
       function normaliseStatusColour(value) {
@@ -9986,7 +9986,7 @@ const seed = {
         const direct = POOL_SHED_STATUS_COLOURS.find(function(item) { return item[1] === source; });
         if (direct) return direct[1];
         const match = /^#([0-9A-F]{6})$/.exec(source);
-        if (!match) return "#5B6972";
+        if (!match) return "#5C6971";
         const rgb = [
           parseInt(match[1].slice(0, 2), 16),
           parseInt(match[1].slice(2, 4), 16),
@@ -10023,7 +10023,7 @@ const seed = {
         if (!data.statuses.length) data.statuses = DEFAULT_SALES_STATUSES.map(clone);
         data.statuses.forEach(function(existing) {
           const defaultStatus = DEFAULT_SALES_STATUSES.find(function(item) { return item.name === existing.name; });
-          existing.color = normaliseStatusColour(existing.color || (defaultStatus ? defaultStatus.color : "#5B6972"));
+          existing.color = normaliseStatusColour(existing.color || (defaultStatus ? defaultStatus.color : "#5C6971"));
           if (!existing.group) existing.group = defaultStatus ? defaultStatus.group : "Other";
           if (existing.remindDays === undefined || existing.remindDays === null) existing.remindDays = defaultStatus ? defaultStatus.remindDays : 0;
           if (existing.hidden === undefined) existing.hidden = defaultStatus ? defaultStatus.hidden : false;
@@ -10046,7 +10046,7 @@ const seed = {
         if (!modal) return;
         editingStatusName = statusName || "";
         const existing = statusName ? data.statuses.find(function(item) { return item.name === statusName; }) : null;
-        const status = existing ? clone(existing) : { name: "", group: "Intake", color: "#007A8C", ral: "", remindDays: 1, hidden: false };
+        const status = existing ? clone(existing) : { name: "", group: "Intake", color: "#187C8C", ral: "", remindDays: 1, hidden: false };
         modal.className = "modal-backdrop show";
         modal.innerHTML = '<form id="statusEditorForm" class="modal status-modal"><header><div><strong>' + (existing ? 'Edit sales order status' : 'Create sales order status') + '</strong><p>Configure the label, workflow group, reminder and approved Pool Shed status colour.</p></div><button type="button" class="secondary" data-close-status-editor="true">Close</button></header><div class="modal-body">' +
           '<div class="form-grid two"><label>Status name *<input name="name" required maxlength="50" value="' + escapeHtml(status.name) + '" placeholder="Example: Awaiting customer"></label><label>Workflow group<select name="group">' + optionList(["Intake","Allocation","Purchasing","Warehouse","Fulfilment","Finance","Exception","Other"], status.group) + '</select></label></div>' +
@@ -10114,7 +10114,7 @@ const seed = {
         const settingsSubPage = selectedSubPage("settings");
         ensureDefaultSalesStatuses();
         const statuses = data.statuses.map(function(s) {
-          const colour = normaliseStatusColour(s.color || "#5B6972");
+          const colour = normaliseStatusColour(s.color || "#5C6971");
           return '<tr><td><span class="status-preview-chip" style="background:' + colour + ';color:' + textColourFor(colour) + '"><span class="tag-dot" style="--tag:' + colour + '"></span>' + escapeHtml(s.name) + '</span></td><td>' + escapeHtml(s.group || "Other") + '</td><td><strong>' + escapeHtml(statusColourLabel(colour)) + '</strong><div class="code">' + colour.toUpperCase() + '</div></td><td>' + Number(s.remindDays || 0) + ' day' + (Number(s.remindDays || 0) === 1 ? '' : 's') + '</td><td>' + (s.hidden ? '<span class="pill bad">Hidden</span>' : '<span class="pill good">Visible</span>') + '</td><td class="right"><span class="status-action-buttons"><button type="button" class="status-action-icon" data-edit-status="' + escapeHtml(s.name) + '" aria-label="Edit ' + escapeHtml(s.name) + '" title="Edit status">' + statusIcon("edit") + '</button><button type="button" class="status-action-icon delete" data-delete-status="' + escapeHtml(s.name) + '" aria-label="Delete ' + escapeHtml(s.name) + '" title="Delete status">' + statusIcon("delete") + '</button></span></td></tr>';
         }).join("");
         const tags = data.tags.map(function(t) {
@@ -10281,7 +10281,7 @@ const seed = {
         const snippets = {
           p: "<p>Your text here</p>",
           strong: "<strong>Important text</strong>",
-          button: '<p><a href="{tracking}" style="display:inline-block;background:#102B3A;color:#FFFFFF;text-decoration:none;padding:12px 18px;border-radius:6px;font-weight:700">View tracking</a></p>',
+          button: '<p><a href="{tracking}" style="display:inline-block;background:#0F1B24;color:#FFFFFF;text-decoration:none;padding:12px 18px;border-radius:6px;font-weight:700">View tracking</a></p>',
           tracking: "<p><strong>Courier:</strong> {courier}<br><strong>Tracking:</strong> {tracking}</p>"
         };
         const snippet = snippets[type] || "";
@@ -10740,7 +10740,7 @@ const seed = {
 
       function tagList(tags) {
         return (tags || []).map(function(name) {
-          const tag = data.tags.find(function(item) { return item.name === name; }) || { color: "#5B6972" };
+          const tag = data.tags.find(function(item) { return item.name === name; }) || { color: "#5C6971" };
           const colour = normaliseStatusColour(tag.color);
           return '<span class="pill dark"><span class="tag-dot" style="--tag:' + colour + '"></span>' + name + '</span>';
         }).join(" ");
@@ -10954,7 +10954,7 @@ const seed = {
         const order = salesOrder(note.salesOrderId);
         const c = customer(order.customerId);
         const progress = goodsNoteProgress(note);
-        const selected = note.id === selectedGoodsNoteId ? " style=\"border-color:var(--accent);\"" : "";
+        const selected = note.id === selectedGoodsNoteId ? " style=\"border-color:var(--color-action-primary);\"" : "";
         return '<div class="mini-card"' + selected + '><h3><label class="inline-check"><input type="checkbox" data-goods-out-select="' + note.id + '"> ' + note.id + '</label> <span class="pill ' + statusClass(goodsNoteStatus(note)) + '">' + goodsNoteStatus(note) + '</span></h3><p><strong>' + order.id + '</strong> for ' + c.name + '</p><p>' + progress.picked + '/' + progress.required + ' picked, ' + progress.packed + '/' + progress.required + ' packed, ' + progress.shipped + '/' + progress.required + ' shipped</p><p><span class="pill dark">' + note.shippingMethod + '</span> <span class="pill blue">' + order.channel + '</span> <span class="pill ' + (note.priority ? "warn" : "blue") + '">' + (note.priority ? "Priority" : "Normal") + '</span></p><button class="secondary" data-open-note="' + note.id + '">Open goods note</button></div>';
       }
 

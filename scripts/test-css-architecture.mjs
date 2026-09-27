@@ -5,6 +5,7 @@ const root = process.cwd();
 const html = fs.readFileSync(path.join(root, "public", "index.html"), "utf8");
 const cssRoot = path.join(root, "public", "assets", "css");
 const modules = [
+  "system/00-color-tokens.css",
   "system/10-legacy-compat.css",
   "system/20-sales-product.css",
   "system/21-catalogue.css",
@@ -30,8 +31,11 @@ const modules = [
 const failures = [];
 
 const stylesheetLinks = [...html.matchAll(/<link[^>]+rel=["']stylesheet["'][^>]*>/gi)];
-if (stylesheetLinks.length !== 1 || !stylesheetLinks[0][0].includes("./assets/css/app.css")) {
-  failures.push("index.html must load exactly one application stylesheet: assets/css/app.css");
+if (!stylesheetLinks.some((link) => link[0].includes("./assets/css/app.css"))) {
+  failures.push("index.html must load the generated application stylesheet: assets/css/app.css");
+}
+for (const link of stylesheetLinks) {
+  if (!link[0].includes("./assets/css/app.css") && !link[0].includes("./azzy-live.css")) failures.push(`Unexpected runtime stylesheet: ${link[0]}`);
 }
 for (const rel of modules) {
   if (!fs.existsSync(path.join(cssRoot, rel))) failures.push(`Missing maintained CSS module: ${rel}`);
@@ -57,7 +61,7 @@ const sharedBaseSelectors = new Set([
   ".record-card",".mini-card",".profile-card",".breadcrumb",
   "button","input","select","textarea","table","th","td"
 ]);
-for (const rel of modules.filter((rel) => rel !== "system/40-design-system.css")) {
+for (const rel of modules.filter((rel) => !["system/00-color-tokens.css", "system/40-design-system.css"].includes(rel))) {
   const source = fs.readFileSync(path.join(cssRoot, rel), "utf8");
   for (const selector of sharedBaseSelectors) {
     const escaped = selector.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
@@ -66,13 +70,15 @@ for (const rel of modules.filter((rel) => rel !== "system/40-design-system.css")
   }
 }
 
+const colourTokens = fs.readFileSync(path.join(cssRoot, "system/00-color-tokens.css"), "utf8");
+for (const token of ["--color-shell", "--color-surface-default", "--color-text-primary", "--color-action-primary", "--color-status-success"]) {
+  if (!colourTokens.includes(token)) failures.push(`Colour-token authority missing ${token}`);
+}
 const designSystem = fs.readFileSync(path.join(cssRoot, "system/40-design-system.css"), "utf8");
-for (const token of [
-  "--color-action-primary", "--ps-control-height", "--ps-table-row-height",
-  "--ps-radius-control", "--ps-radius-panel", "--ps-font-page-title"
-]) {
+for (const token of ["--ps-control-height", "--ps-table-row-height", "--ps-radius-control", "--ps-radius-panel", "--ps-font-page-title"]) {
   if (!designSystem.includes(token)) failures.push(`Design-system authority missing ${token}`);
 }
+if (/--color-(?:shell|surface-default|text-primary|action-primary|status-success)\s*:/.test(designSystem)) failures.push("40-design-system.css must not redeclare canonical colour tokens");
 const app = fs.readFileSync(path.join(cssRoot, "app.css"), "utf8");
 let previous = -1;
 for (const rel of modules) {
@@ -85,4 +91,4 @@ if (failures.length) {
   console.error(failures.join("\n"));
   process.exit(1);
 }
-console.log(`CSS architecture checks passed: 1 runtime bundle, ${modules.length} ownership modules, 6 separate print styles, shared primitives owned by design system.`);
+console.log(`CSS architecture checks passed: canonical colour authority + generated runtime bundle, ${modules.length} ownership modules, 6 separate print styles, shared primitives owned by design system.`);

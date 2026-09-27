@@ -14,7 +14,7 @@ window.PoolShedSignature={
   const canvas=document.getElementById('pcSignatureCanvas');if(!canvas)return;
   const ctx=canvas.getContext('2d'),input=document.getElementById('pcSignatureText'),status=document.getElementById('pcSignatureStatus');
   let stroke=null,pointerId=null;
-  function paint(){if(!ctx)return;ctx.clearRect(0,0,canvas.width,canvas.height);ctx.strokeStyle='#24332d';ctx.lineWidth=3;ctx.lineCap='round';ctx.lineJoin='round';state.strokes.forEach(points=>{ctx.beginPath();points.forEach(([x,y],i)=>{if(i)ctx.lineTo(x*canvas.width,y*canvas.height);else ctx.moveTo(x*canvas.width,y*canvas.height)});ctx.stroke()})}
+  function paint(){if(!ctx)return;ctx.clearRect(0,0,canvas.width,canvas.height);ctx.strokeStyle='#17242C';ctx.lineWidth=3;ctx.lineCap='round';ctx.lineJoin='round';state.strokes.forEach(points=>{ctx.beginPath();points.forEach(([x,y],i)=>{if(i)ctx.lineTo(x*canvas.width,y*canvas.height);else ctx.moveTo(x*canvas.width,y*canvas.height)});ctx.stroke()})}
   function sync(){document.getElementById('pcTypedSignature').hidden=state.method!=='typed';document.getElementById('pcDrawnSignature').hidden=state.method!=='drawn';document.querySelectorAll('[data-signature-method]').forEach(b=>b.setAttribute('aria-pressed',String(b.dataset.signatureMethod===state.method)));input.value=state.text;document.getElementById('pcSignaturePreview').textContent=state.text.trim()||'Your signature';paint()}
   document.querySelectorAll('[data-signature-method]').forEach(b=>b.onclick=()=>{state.method=b.dataset.signatureMethod;sync();if(state.method==='typed')input.focus()});
   input.oninput=()=>{state.text=input.value;document.getElementById('pcSignaturePreview').textContent=state.text.trim()||'Your signature'};

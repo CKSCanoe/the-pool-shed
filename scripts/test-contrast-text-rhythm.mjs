@@ -11,7 +11,7 @@ for (const required of [
   "ACCESSIBLE COLOUR + TEXT RHYTHM CONTRACT",
   "::selection",
   "background: var(--color-action-primary)",
-  "color: #FFFFFF",
+  "color: var(--color-surface-default)",
   "var(--color-status-success-bg)",
   "var(--color-status-attention-bg)",
   "var(--color-status-danger-bg)",

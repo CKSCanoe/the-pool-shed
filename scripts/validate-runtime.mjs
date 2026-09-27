@@ -204,7 +204,7 @@ for (const requiredStyle of [
   'position: fixed',
   'prefers-reduced-motion',
   '.ci-popover-results',
-  'background: var(--surface)',
+  'background: var(--color-surface-default)',
   'solid Product Hub refinements',
   '.ci-search-backdrop',
   'background: var(--color-surface-default) !important',

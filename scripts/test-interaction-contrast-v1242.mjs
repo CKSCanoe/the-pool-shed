@@ -6,6 +6,7 @@ const root = path.resolve(path.dirname(new URL(import.meta.url).pathname), '..')
 const legacyJs = fs.readFileSync(path.join(root, 'public/assets/js/01-legacy-01.js'), 'utf8');
 const coreCss = fs.readFileSync(path.join(root, 'public/assets/css/system/30-workspace-core.css'), 'utf8');
 const designCss = fs.readFileSync(path.join(root, 'public/assets/css/system/40-design-system.css'), 'utf8');
+const colourCss = fs.readFileSync(path.join(root, 'public/assets/css/system/00-color-tokens.css'), 'utf8');
 const componentsCss = fs.readFileSync(path.join(root, 'public/assets/css/system/56-executive-premium-components.css'), 'utf8');
 
 // Creation/save CTAs are primary actions, never semantic success controls.
@@ -15,13 +16,13 @@ walk(path.join(root,'public'));
 const semanticSuccessButtons=[];
 for(const file of runtimeFiles){const src=fs.readFileSync(file,'utf8');for(const m of src.matchAll(/<button[^>]*class="[^"]*(?:success|green-action)[^"]*"[^>]*>(.*?)<\/button>/gsi))semanticSuccessButtons.push(`${path.relative(root,file)}: ${m[1].replace(/<[^>]+>/g,'').trim()}`);}
 assert.equal(semanticSuccessButtons.length, 0, `Runtime still uses success/green-action for action buttons: ${semanticSuccessButtons.join(', ')}`);
-assert.match(legacyJs, /class="primary" data-create-sales-order="true">New Sales Order<\/button>/, 'New Sales Order must be a primary Steel Blue CTA');
-assert.match(legacyJs, /class="primary" data-create-crm-profile="true">Save customer<\/button>/, 'Save customer must be a primary Steel Blue CTA');
+assert.match(legacyJs, /class="primary" data-create-sales-order="true">New Sales Order<\/button>/, 'New Sales Order must be a primary Pool Shed CTA');
+assert.match(legacyJs, /class="primary" data-create-crm-profile="true">Save customer<\/button>/, 'Save customer must be a primary Pool Shed CTA');
 
 // Legacy submenu rules must not force page/action colours over the shell hierarchy.
 assert.doesNotMatch(coreCss, /\.sidebar \.nav-subgroups button\s*\{[^}]*color\s*:\s*var\(--color-dark-muted\)\s*!important/si, 'Submenu text must not use legacy page-muted colour with !important');
-assert.doesNotMatch(coreCss, /\.sidebar \.nav-subgroups button\.active\s*\{[^}]*color\s*:\s*var\(--color-action-focus\)\s*!important/si, 'Active submenu text must not use Steel Blue as foreground on the dark shell');
-assert.match(designCss, /--color-shell-text-subnav\s*:\s*#[0-9A-Fa-f]{6}\s*;/, 'Design system must define a dedicated readable submenu shell text token');
+assert.doesNotMatch(coreCss, /\.sidebar \.nav-subgroups button\.active\s*\{[^}]*color\s*:\s*var\(--color-action-focus\)\s*!important/si, 'Active submenu text must not use the action colour as foreground on the dark shell');
+assert.match(colourCss, /--color-shell-text-subnav\s*:\s*[^;]+;/, 'Canonical colour authority must define a dedicated readable submenu shell text token');
 assert.match(componentsCss, /body \.sidebar \.nav-subgroups button\s*\{[^}]*color\s*:\s*var\(--color-shell-text-subnav\)/si, 'Executive component authority must explicitly own submenu text');
 assert.match(componentsCss, /body \.sidebar \.nav-subgroups button(?:\.active|\.on|\[aria-current="page"\])[^\{]*\{[^}]*color\s*:\s*var\(--color-shell-text\)/si, 'Active submenu must use high-contrast shell text');
 

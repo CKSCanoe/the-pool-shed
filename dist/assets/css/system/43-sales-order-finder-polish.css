@@ -1,24 +1,4 @@
-/*
-  Pool Shed Sales Order Product Finder + line polish.
-  v1.7.3 — final presentation owner for the approved finder and precision row.
-  Business/search/stock engines remain in the existing runtime.
-*/
 
-#screen-salesorders{
-  --so5-navy:var(--color-shell);
-  --so5-teal:var(--color-action-primary);
-  --so5-aqua:var(--color-action-focus);
-  --so5-ink:var(--color-text-primary);
-  --so5-slate:var(--color-text-secondary);
-  --so5-canvas:var(--color-surface-default);
-  --so5-soft:var(--color-surface-subtle);
-  --so5-line:var(--color-border-default);
-  --so5-green:var(--color-status-success);
-  --so5-green-bg:var(--color-status-success-bg);
-  --so5-green-line:var(--color-status-success-line);
-  --so5-amber:var(--color-status-attention);
-  --so5-amber-bg:var(--color-status-attention-bg);
-}
 
 /* Finder entry surface */
 #screen-salesorders .so4-finder-shell{
@@ -50,8 +30,8 @@
 #screen-salesorders #salesOrderProductSearch:focus,
 #screen-salesorders #salesOrderProductSearch.has-selection{
   background:var(--color-surface-default)!important;
-  color:var(--so5-ink)!important;
-  border-color:var(--so5-aqua)!important;
+  color:var(--color-text-primary)!important;
+  border-color:var(--color-action-ink)!important;
   box-shadow:var(--focus-ring)!important;
 }
 #screen-salesorders .so4-finder-controls>button,
@@ -62,8 +42,8 @@
 }
 #screen-salesorders .so4-finder-controls>button:not(.secondary),
 #screen-salesorders .so-smart-add-controls>button:not(.secondary){
-  background:var(--so5-teal)!important;
-  border-color:var(--so5-teal)!important;
+  background:var(--color-action-primary)!important;
+  border-color:var(--color-action-ink)!important;
   color:var(--color-action-contrast)!important;
 }
 #screen-salesorders .so4-finder-controls>button:not(.secondary):hover,
@@ -77,7 +57,7 @@
 #screen-salesorders .so-smart-search-hints button:hover,
 #screen-salesorders .so-smart-search-hints button:focus{
   background:var(--color-hover-surface)!important;
-  border-color:var(--color-border-default)!important;
+  border-color:var(--color-text-secondary)!important;
   color:var(--color-text-primary)!important;
 }
 
@@ -92,14 +72,14 @@
   border:1px solid var(--color-border-default)!important;
   border-radius:7px!important;
   background:var(--color-surface-default)!important;
-  color:var(--so5-ink)!important;
+  color:var(--color-text-primary)!important;
 }
 #screen-salesorders .so5-selected-product[hidden]{display:none!important}
 #screen-salesorders .so5-selected-product>strong{font-size:9px!important}
 #screen-salesorders .so5-selected-product>span{
   min-width:0!important;
   flex:1!important;
-  color:var(--so5-slate)!important;
+  color:var(--color-text-secondary)!important;
   font-size:9px!important;
   white-space:nowrap!important;
   overflow:hidden!important;
@@ -109,9 +89,9 @@
   height:30px!important;
   min-height:30px!important;
   padding:0 10px!important;
-  border:1px solid var(--so5-teal)!important;
+  border:1px solid var(--color-action-primary)!important;
   border-radius:5px!important;
-  background:var(--so5-teal)!important;
+  background:var(--color-action-primary)!important;
   color:var(--color-action-contrast)!important;
   font-size:9px!important;
   font-weight:850!important;
@@ -120,7 +100,7 @@
 /* Finder portal — keep semantic success green restricted to stock/readiness only. */
 body #salesOrderProductResults.so-smart-mega-results{
   background:var(--color-status-success-bg)!important;
-  color:var(--so5-ink)!important;
+  color:var(--color-text-primary)!important;
   border:1px solid var(--color-status-success-line)!important;
   border-radius:8px!important;
   box-shadow:0 18px 44px var(--shadow-color)!important;
@@ -131,7 +111,7 @@ body #salesOrderProductResults .so-finder-mega-head{
   background:var(--color-surface-default)!important;
 }
 body #salesOrderProductResults .so-finder-mega-head strong{
-  color:var(--so5-ink)!important;
+  color:var(--color-text-primary)!important;
   font-size:10px!important;
 }
 body #salesOrderProductResults .so-finder-mega-head>div>span{
@@ -171,7 +151,7 @@ body #salesOrderProductResults .so5-nav-item>span{
   width:24px!important;height:24px!important;
   display:grid!important;place-items:center!important;
   border:1px solid var(--color-border-default)!important;border-radius:5px!important;
-  background:var(--color-surface-default)!important;color:var(--so5-teal)!important;
+  background:var(--color-surface-default)!important;color:var(--color-action-ink)!important;
   font-size:9px!important;
 }
 body #salesOrderProductResults .so5-nav-item>strong{
@@ -188,12 +168,12 @@ body #salesOrderProductResults .so5-nav-item:hover,
 body #salesOrderProductResults .so5-nav-item:focus,
 body #salesOrderProductResults .so5-nav-item.active{
   background:var(--color-surface-default)!important;
-  border-color:var(--color-border-default)!important;
-  color:var(--color-action-primary)!important;
+  border-color:var(--color-text-secondary)!important;
+  color:var(--color-action-ink)!important;
   outline:none!important;
 }
 body #salesOrderProductResults .so5-nav-item.active{
-  box-shadow:inset 3px 0 0 var(--so5-aqua)!important;
+  box-shadow:inset 3px 0 0 var(--color-action-focus)!important;
 }
 body #salesOrderProductResults .so5-nav-sep{
   height:1px!important;margin:8px 4px!important;background:var(--color-surface-subtle)!important;
@@ -217,7 +197,7 @@ body #salesOrderProductResults .so5-did-you-mean{
 }
 body #salesOrderProductResults .so5-did-you-mean>span{
   width:28px!important;height:28px!important;display:grid!important;place-items:center!important;
-  border-radius:6px!important;background:var(--color-surface-default)!important;color:var(--so5-teal)!important;font-size:14px!important;
+  border-radius:6px!important;background:var(--color-surface-default)!important;color:var(--color-action-ink)!important;font-size:14px!important;
 }
 body #salesOrderProductResults .so5-did-you-mean strong{
   display:block!important;color:var(--color-text-secondary)!important;font-size:9px!important;
@@ -234,13 +214,13 @@ body #salesOrderProductResults .so-finder-result{
   border:1px solid transparent!important;
   border-radius:7px!important;
   background:var(--color-surface-default)!important;
-  color:var(--so5-ink)!important;
+  color:var(--color-text-primary)!important;
 }
 body #salesOrderProductResults .so-finder-result:hover,
 body #salesOrderProductResults .so-finder-result:focus{
   background:var(--color-hover-surface)!important;
-  border-color:var(--color-border-strong)!important;
-  color:var(--so5-ink)!important;
+  border-color:var(--color-text-secondary)!important;
+  color:var(--color-text-primary)!important;
   box-shadow:none!important;
   outline:none!important;
 }
@@ -248,8 +228,8 @@ body #salesOrderProductResults .so-finder-result.active,
 body #salesOrderProductResults .so-finder-result[aria-selected="true"],
 body #salesOrderProductResults .so-finder-result:active{
   background:var(--color-selected-surface)!important;
-  border-color:var(--color-border-strong)!important;
-  color:var(--so5-ink)!important;
+  border-color:var(--color-text-secondary)!important;
+  color:var(--color-text-primary)!important;
   box-shadow:inset 3px 0 0 var(--color-selected-edge)!important;
   outline:none!important;
 }
@@ -280,11 +260,11 @@ body #salesOrderProductResults .so5-mini-thumb img,
   width:100%!important;height:100%!important;object-fit:contain!important;padding:3px!important;background:var(--color-surface-default)!important;
 }
 body #salesOrderProductResults .so-finder-stock strong.good{
-  color:var(--so5-green)!important;
+  color:var(--color-status-success-text)!important;
   background:transparent!important;
 }
 body #salesOrderProductResults .so-finder-stock strong.warn{
-  color:var(--so5-amber)!important;
+  color:var(--color-status-attention-text)!important;
   background:transparent!important;
 }
 body #salesOrderProductResults .so-finder-stock strong.bad{
@@ -298,21 +278,21 @@ body #salesOrderProductResults .so-finder-reason{
   background:var(--color-surface-default)!important;
   color:var(--color-text-secondary)!important;
 }
-body #salesOrderProductResults .so-finder-reason strong{color:var(--color-action-primary)!important}
+body #salesOrderProductResults .so-finder-reason strong{color:var(--color-action-ink)!important}
 body #salesOrderProductResults .so-finder-select{
   min-height:30px!important;
   display:grid!important;place-items:center!important;
-  border:1px solid var(--so5-teal)!important;
+  border:1px solid var(--color-action-primary)!important;
   border-radius:5px!important;
-  background:var(--so5-teal)!important;
+  background:var(--color-action-primary)!important;
   color:var(--color-action-contrast)!important;
   font-size:8px!important;font-weight:900!important;
 }
 body #salesOrderProductResults .so-finder-result:hover .so-finder-select,
 body #salesOrderProductResults .so-finder-result:focus .so-finder-select,
 body #salesOrderProductResults .so-finder-result.active .so-finder-select{
-  background:var(--so5-teal)!important;
-  border-color:var(--so5-teal)!important;
+  background:var(--color-action-primary)!important;
+  border-color:var(--color-action-ink)!important;
   color:var(--color-action-contrast)!important;
 }
 
@@ -336,14 +316,14 @@ body #salesOrderProductResults .so5-customer-context{
 }
 body #salesOrderProductResults .so5-context-icon{
   width:30px!important;height:30px!important;display:grid!important;place-items:center!important;
-  border-radius:7px!important;background:var(--color-surface-default)!important;color:var(--so5-teal)!important;
+  border-radius:7px!important;background:var(--color-surface-default)!important;color:var(--color-action-ink)!important;
 }
 body #salesOrderProductResults .so5-customer-context h4{margin:0 0 2px!important}
 body #salesOrderProductResults .so5-customer-context strong{display:block!important;font-size:9px!important}
 body #salesOrderProductResults .so5-customer-context small{display:block!important;margin-top:2px!important;color:var(--color-text-secondary)!important;font-size:7px!important}
 body #salesOrderProductResults .so5-context-link,
 body #salesOrderProductResults .so5-panel-title>button{
-  border:0!important;background:transparent!important;color:var(--so5-teal)!important;
+  border:0!important;background:transparent!important;color:var(--color-action-ink)!important;
   font-size:8px!important;font-weight:900!important;box-shadow:none!important;
 }
 body #salesOrderProductResults .so5-panel-title{
@@ -362,7 +342,7 @@ body #salesOrderProductResults .so-finder-wide-action{
   border:1px solid var(--color-border-default)!important;
   border-radius:5px!important;
   background:var(--color-action-soft)!important;
-  color:var(--so5-teal)!important;
+  color:var(--color-action-ink)!important;
   box-shadow:none!important;
 }
 body #salesOrderProductResults .so-finder-customer-item button:hover,
@@ -370,7 +350,7 @@ body #salesOrderProductResults .so-finder-customer-item button:focus,
 body #salesOrderProductResults .so-finder-wide-action:hover,
 body #salesOrderProductResults .so-finder-wide-action:focus{
   background:var(--color-hover-surface)!important;
-  border-color:var(--color-border-default)!important;
+  border-color:var(--color-text-secondary)!important;
   color:var(--color-text-primary)!important;
 }
 body #salesOrderProductResults .so-finder-mega-foot{
@@ -387,7 +367,7 @@ body #salesOrderProductResults .so-finder-mega-foot>button:hover,
 body #salesOrderProductResults .so-finder-mega-foot>button:focus{
   background:var(--color-hover-surface)!important;
   color:var(--color-text-primary)!important;
-  border-color:var(--color-border-default)!important;
+  border-color:var(--color-text-secondary)!important;
 }
 
 /* Precision line — same quality and visual language as the finder */
@@ -420,7 +400,7 @@ body #salesOrderProductResults .so-finder-mega-foot>button:focus{
 #screen-salesorders .so5-line-product-copy{min-width:0!important}
 #screen-salesorders .so5-line-product-copy>strong{
   display:block!important;
-  color:var(--so5-ink)!important;
+  color:var(--color-text-primary)!important;
   font-size:11px!important;
   white-space:nowrap!important;
   overflow:hidden!important;
@@ -429,7 +409,7 @@ body #salesOrderProductResults .so-finder-mega-foot>button:focus{
 #screen-salesorders .so5-line-product-copy>small{
   display:block!important;
   margin-top:2px!important;
-  color:var(--so5-slate)!important;
+  color:var(--color-text-secondary)!important;
   font-size:8px!important;
   white-space:nowrap!important;
   overflow:hidden!important;
@@ -437,32 +417,32 @@ body #salesOrderProductResults .so-finder-mega-foot>button:focus{
 }
 #screen-salesorders .so5-line-product-copy .link-button{
   margin-top:4px!important;
-  color:var(--so5-teal)!important;
+  color:var(--color-action-ink)!important;
 }
 #screen-salesorders .so2-variant-cell{
   background:var(--color-surface-default)!important;
 }
 #screen-salesorders .so2-variant-control select:hover,
 #screen-salesorders .so2-variant-control select:focus{
-  border-color:var(--so5-aqua)!important;
+  border-color:var(--color-action-ink)!important;
   box-shadow:var(--focus-ring)!important;
 }
 #screen-salesorders .so2-stock-good{
-  color:var(--so5-green)!important;
+  color:var(--color-status-success-text)!important;
   background:transparent!important;
 }
 #screen-salesorders .so2-stock-warn{
-  color:var(--so5-amber)!important;
+  color:var(--color-status-attention-text)!important;
   background:transparent!important;
 }
 #screen-salesorders .so5-line-total strong{
-  color:var(--so5-navy)!important;
+  color:var(--color-text-primary)!important;
   font-size:11px!important;
 }
 #screen-salesorders .so2-menu-button:hover,
 #screen-salesorders .so2-menu-button:focus{
   background:var(--color-hover-surface)!important;
-  border-color:var(--color-border-default)!important;
+  border-color:var(--color-text-secondary)!important;
   color:var(--color-text-primary)!important;
 }
 #screen-salesorders .so2-line-menu button:hover,
@@ -491,7 +471,7 @@ body #salesOrderProductResults button.good:focus,
 body #salesOrderProductResults .selected,
 body #salesOrderProductResults .is-selected{
   background:var(--color-status-success-bg)!important;
-  color:var(--so5-ink)!important;
+  color:var(--color-text-primary)!important;
 }
 
 @media (max-width:1150px){

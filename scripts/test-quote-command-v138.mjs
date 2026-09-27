@@ -42,13 +42,11 @@ assert.match(ws,/qs-margin-band/);
 // Per-quote presentation authority
 assert.match(ws,/Client-facing brand/);
 assert.match(ws,/Proposal style/);
-assert.match(ws,/Proposal primary/);
-assert.match(ws,/Proposal accent/);
-assert.match(ws,/Proposal paper/);
-assert.match(portal,/themeVars='--pc-primary:/);
-assert.match(portalCss,/v1\.38 per-quote portal theming/);
-assert.match(portalCss,/var\(--pc-primary/);
-assert.match(portalCss,/var\(--pc-accent/);
+assert.match(ws,/Pool Shed palette/);
+assert.match(ws,/central Pool Shed design tokens and cannot be overridden per quote/);
+assert.doesNotMatch(ws,/Proposal primary|Proposal accent|Proposal paper/);
+assert.match(portal,/themeVars=''/);
+assert.doesNotMatch(portalCss,/var\(--pc-(?:primary|accent|paper|soft)/);
 assert.match(portalCss,/theme-waterline/);
 assert.match(portalCss,/theme-minimal/);
 assert.match(portalCss,/theme-contrast/);
@@ -77,4 +75,4 @@ assert(index.includes('app.css?v=1.45.1'));
 assert(proposal.includes('quote-customer-portal.css?v=1.45.1'));
 assert(proposal.includes('quote-customer-portal.js?v=1.45.1'));
 
-console.log('Pool Shed v1.38 Quote Studio Command, bespoke commercial control, theming and cross-tab preview: PASS');
+console.log('Pool Shed Quote Studio Command, bespoke commercial control, central presentation palette and cross-tab preview: PASS');

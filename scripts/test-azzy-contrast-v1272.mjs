@@ -1,14 +1,13 @@
 import fs from 'node:fs';
 import assert from 'node:assert/strict';
 
-const design = fs.readFileSync('public/assets/css/system/40-design-system.css','utf8');
+const design = fs.readFileSync('public/assets/css/system/00-color-tokens.css','utf8');
 const css = fs.readFileSync('public/assets/css/system/52-automation-command.css','utf8');
 const js = fs.readFileSync('public/automation-command-workspace.js','utf8');
 
 function token(name, dark=false) {
-  const region = dark
-    ? (design.match(/html\[data-theme="dark"\][\s\S]*?\/\* Core surfaces/) || [])[0]
-    : (design.match(/:root \{[\s\S]*?html\[data-theme="dark"\]/) || [])[0];
+  const darkMarker = design.indexOf('html[data-theme="dark"]');
+  const region = dark ? design.slice(darkMarker) : design.slice(0, darkMarker);
   assert.ok(region, `could not resolve ${dark ? 'dark' : 'light'} token region`);
   const m = region.match(new RegExp(`${name}:\\s*(#[0-9A-Fa-f]{6})`));
   assert.ok(m, `missing token ${name} in ${dark ? 'dark' : 'light'} theme`);

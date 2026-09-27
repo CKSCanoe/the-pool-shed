@@ -1,0 +1,158 @@
+/*
+ Pool Shed colour tokens — single colour authority.
+ Industrial Aqua palette. All runtime UI colour must resolve through these semantic tokens.
+*/
+:root {
+  color-scheme: light;
+
+  /* Brand / shell */
+  --color-shell: #0F1B24;
+  --color-shell-secondary: #172832;
+
+  /* Surfaces */
+  --color-surface-canvas: #F4F6F5;
+  --color-surface-default: #FFFFFF;
+  --color-surface-subtle: #EEF3F3;
+  --color-surface-raised: #E6ECEC;
+  --color-surface-selected: #E2F1F3;
+
+  /* Text */
+  --color-text-primary: #17242C;
+  --color-text-secondary: #5C6971;
+  --color-text-muted: #616E76;
+  --color-text-inverse: #FFFFFF;
+  --color-text-disabled: color-mix(in srgb, var(--color-text-secondary) 70%, var(--color-surface-default));
+  --color-shell-text: #EDF3F4;
+  --color-shell-text-muted: #AAB8BE;
+  --color-shell-text-subnav: color-mix(in srgb, var(--color-shell-text) 78%, var(--color-shell));
+  --color-logo-surface: var(--color-surface-default);
+
+  /* Borders */
+  --color-border-default: #D6DEE1;
+  --color-border-strong: #BFCBD0;
+  --color-border-subtle: #E5EAEC;
+
+  /* Primary actions */
+  --color-action-primary: #187C8C;
+  --color-action-primary-hover: #126273;
+  --color-action-primary-active: #0F5360;
+  --color-action-soft: #E2F1F3;
+  --color-action-line: #A9D2D8;
+  --color-action-ink: #0F5965;
+  --color-action-contrast: #FFFFFF;
+  --color-action-focus: #52A8B4;
+
+  /* Secondary accent */
+  --color-accent-secondary: #3E738A;
+  --color-accent-secondary-hover: #315F73;
+  --color-accent-secondary-soft: #E6EEF1;
+
+  /* Interaction */
+  --color-hover-surface: #EDF3F3;
+  --color-selected-surface: #E2F1F3;
+  --color-selected-edge: #187C8C;
+  --color-focus-ring: #52A8B4;
+
+  /* Status */
+  --color-status-success: #27825B;
+  --color-status-success-text: #1D6848;
+  --color-status-success-bg: #E7F4ED;
+  --color-status-success-line: #A8D4BE;
+
+  --color-status-attention: #C07A20;
+  --color-status-attention-text: #8C5613;
+  --color-status-attention-bg: #FBF1E3;
+  --color-status-attention-line: #E5BE86;
+
+  --color-status-danger: #B9474F;
+  --color-status-danger-text: #91353C;
+  --color-status-danger-bg: #F9E9EA;
+  --color-status-danger-line: #DFACB0;
+
+  --color-status-info: #397FA5;
+  --color-status-info-text: #2B6482;
+  --color-status-info-bg: #E8F1F6;
+  --color-status-info-line: #AFCFDF;
+
+  /* Overlay / elevation */
+  --color-overlay-scrim: color-mix(in srgb, var(--color-shell) 72%, transparent);
+  --color-overlay-soft: color-mix(in srgb, var(--color-shell) 10%, transparent);
+  --shadow-color: color-mix(in srgb, var(--color-shell) 8%, transparent);
+  --shadow-color-strong: color-mix(in srgb, var(--color-shell) 18%, transparent);
+  --focus-ring: 0 0 0 3px color-mix(in srgb, var(--color-focus-ring) 34%, transparent);
+  --shadow-panel: none;
+  --shadow-raised: 0 8px 24px var(--shadow-color);
+  --shadow-dialog: 0 24px 64px var(--shadow-color-strong);
+}
+
+html[data-theme="dark"],
+body[data-theme="dark"],
+[data-theme="dark"] {
+  color-scheme: dark;
+
+  --color-shell: #0B151C;
+  --color-shell-secondary: #11212A;
+
+  --color-surface-canvas: #0F171C;
+  --color-surface-default: #162127;
+  --color-surface-subtle: #1B2930;
+  --color-surface-raised: #223139;
+  --color-surface-selected: #16343A;
+
+  --color-text-primary: #EDF3F4;
+  --color-text-secondary: #AAB8BE;
+  --color-text-muted: #8E9EA5;
+  --color-text-inverse: #0F1B24;
+  --color-text-disabled: color-mix(in srgb, var(--color-text-secondary) 66%, var(--color-surface-default));
+  --color-shell-text: #EDF3F4;
+  --color-shell-text-muted: #AAB8BE;
+  --color-shell-text-subnav: color-mix(in srgb, var(--color-shell-text) 78%, var(--color-shell));
+  --color-logo-surface: var(--color-surface-default);
+
+  --color-border-default: #2D3D45;
+  --color-border-strong: #41535C;
+  --color-border-subtle: #24333A;
+
+  --color-action-primary: #45A7B4;
+  --color-action-primary-hover: #5CB8C3;
+  --color-action-primary-active: #318E9A;
+  --color-action-soft: #17383E;
+  --color-action-line: #356A72;
+  --color-action-ink: #86CED6;
+  --color-action-contrast: #081215;
+  --color-action-focus: #63BDC7;
+
+  --color-accent-secondary: #6795A9;
+  --color-accent-secondary-hover: #79A6B9;
+  --color-accent-secondary-soft: #21323A;
+
+  --color-hover-surface: #1C2B31;
+  --color-selected-surface: #16343A;
+  --color-selected-edge: #45A7B4;
+  --color-focus-ring: #63BDC7;
+
+  --color-status-success: #59B987;
+  --color-status-success-text: #91D4AD;
+  --color-status-success-bg: #173328;
+  --color-status-success-line: #285D45;
+
+  --color-status-attention: #D79A47;
+  --color-status-attention-text: #EDC17F;
+  --color-status-attention-bg: #392A17;
+  --color-status-attention-line: #705126;
+
+  --color-status-danger: #D76A71;
+  --color-status-danger-text: #EDA0A5;
+  --color-status-danger-bg: #3B2024;
+  --color-status-danger-line: #713940;
+
+  --color-status-info: #69A8C7;
+  --color-status-info-text: #9CC9DD;
+  --color-status-info-bg: #19303C;
+  --color-status-info-line: #355B6D;
+
+  --color-overlay-scrim: color-mix(in srgb, var(--color-shell) 72%, transparent);
+  --color-overlay-soft: color-mix(in srgb, var(--color-shell) 18%, transparent);
+  --shadow-color: color-mix(in srgb, var(--color-shell) 52%, transparent);
+  --shadow-color-strong: color-mix(in srgb, var(--color-shell) 72%, transparent);
+}
