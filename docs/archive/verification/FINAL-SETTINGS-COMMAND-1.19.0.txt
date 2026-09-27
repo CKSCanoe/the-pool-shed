@@ -1,0 +1,9 @@
+
+> the-pool-shed@1.19.0 test:settings-command
+> node scripts/test-settings-permissions-engine-v119.mjs && node scripts/test-settings-command-workspace-v119.mjs && node scripts/test-settings-permission-integration-v119.mjs && node scripts/test-settings-security-enforcement-v119.mjs && node scripts/test-settings-command-release-v119.mjs
+
+PASS Settings permission roles, overrides, approval limits, location scope, finance visibility and audit
+PASS Settings Command approved Option C structure and action coverage
+PASS Settings permission integration hooks for UI, assistant, automation and analytics
+PASS Settings security enforcement across assistant locations/finance, Analytics export and Automation authority
+PASS Settings Command v1.19.0 runtime, permission ordering, CSS and cache wiring

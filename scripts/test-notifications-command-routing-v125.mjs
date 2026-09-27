@@ -1,0 +1,18 @@
+import fs from 'node:fs';
+import assert from 'node:assert/strict';
+const js=fs.readFileSync('public/assets/js/01-legacy-01.js','utf8');
+const bellStart=js.indexOf('document.getElementById("notificationButton")');
+assert.ok(bellStart>=0,'notification bell handler missing');
+const bellBlock=js.slice(bellStart,bellStart+900);
+assert.ok(bellBlock.includes('PoolShedNotificationsWorkspace'),'bell must delegate to Notifications Command workspace');
+assert.ok(!bellBlock.includes('Missing Stock'),'bell must no longer route to Missing Stock');
+assert.ok(js.includes('__POOL_SHED_OPEN_NOTIFICATION_TARGET__'),'permission-aware notification route bridge missing');
+const bridgeStart=js.indexOf('__POOL_SHED_OPEN_NOTIFICATION_TARGET__');
+const bridge=js.slice(bridgeStart,bridgeStart+6500);
+for(const token of ['salesorders','crm','jobs','purchase','locations','warehouse','fulfilment','accounting','automation','settings']) assert.ok(bridge.includes(token),`route bridge missing ${token}`);
+for(const token of ['selectedSalesOrderId','selectedCrmCustomerId','selectedPurchaseOrderId','selectedInventoryLocationId','selectedGoodsNoteId','canAccessTab','render()']) assert.ok(bridge.includes(token),`route bridge missing ${token}`);
+assert.ok(bridge.includes('permission'),'permission-safe route result missing');
+const badgeArea=js.slice(Math.max(0,js.indexOf('function renderAccountMenu')-200),js.indexOf('function renderAccountMenu')+2200);
+assert.ok(badgeArea.includes('PoolShedNotificationsWorkspace')||badgeArea.includes('PoolShedNotificationsCommand'),'account menu badge must delegate to Notifications Command');
+assert.ok(badgeArea.includes('badge.hidden'),'zero unread badge should hide');
+console.log('PASS Notifications Command routing bridge replaces legacy bell shortcut');

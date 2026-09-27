@@ -1,0 +1,13 @@
+import fs from 'node:fs';
+import assert from 'node:assert/strict';
+const file='public/assets/css/system/57-notifications-command.css';
+assert.ok(fs.existsSync(file),'Notifications Command CSS authority missing');
+const css=fs.readFileSync(file,'utf8');
+for(const cls of ['.notifications-command-root','.notifications-command-backdrop','.notifications-command-drawer','.nc-filter','.nc-item','.nc-severity','.nc-empty','.nc-summary']) assert.ok(css.includes(cls),`missing ${cls}`);
+for(const token of ['--color-surface-default','--color-surface-subtle','--color-text-primary','--color-text-secondary','--color-border-default','--color-action-primary','--color-focus-ring']) assert.ok(css.includes(`var(${token})`),`missing semantic token ${token}`);
+assert.ok(!/#(?:[0-9a-f]{3}|[0-9a-f]{6}|[0-9a-f]{8})\b/i.test(css),'Notifications CSS must not own literal hex colours');
+assert.ok(!/rgba?\s*\(/i.test(css),'Notifications CSS must not own literal rgb/rgba colours');
+assert.ok(css.includes('body[data-theme="dark"]')||css.includes('[data-theme="dark"]'),'dark theme treatment missing');
+assert.ok(css.includes(':focus-visible'),'focus-visible treatment missing');
+assert.ok(css.includes('@media (max-width:'),'responsive drawer treatment missing');
+console.log('PASS Notifications Command visual authority uses semantic Executive Premium tokens');

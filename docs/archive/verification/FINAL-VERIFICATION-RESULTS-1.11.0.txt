@@ -1,0 +1,9 @@
+Pool Shed v1.11.0 Product Hub Command
+Final verification date: 2026-09-15
+
+PASS: npm run build (exit 0)
+PASS: all npm run validate checks before database-only stage
+BLOCKED BY ENVIRONMENT: accounting/workspace/project database tests require missing @electric-sql/pglite
+PASS separately after blocker: accounting API, project engine, project AI, bundle system v2, dashboard review, dashboard command, release assets
+PASS: 34 referenced assets exist and all public/server/API JavaScript parses
+Browser acceptance not claimed in this environment.

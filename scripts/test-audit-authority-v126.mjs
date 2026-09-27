@@ -1,0 +1,10 @@
+import fs from 'node:fs';import vm from 'node:vm';import assert from 'node:assert/strict';
+const file='public/audit-authority.js';assert.ok(fs.existsSync(file),'Audit authority must exist');
+const data={auditEvents:[]};let saves=0;const user={id:'u-admin',name:'Aaron',role:'Admin'};
+const ctx={console,Date,Math,JSON,globalThis:null,window:null,__POOL_SHED_GET_DATA__:()=>data,__POOL_SHED_CURRENT_USER__:()=>user,saveAppData:()=>saves++};ctx.globalThis=ctx;ctx.window=ctx;vm.createContext(ctx);vm.runInContext(fs.readFileSync(file,'utf8'),ctx,{filename:file});
+const a=ctx.PoolShedAudit;assert.ok(a);for(const fn of ['record','query','forRecord','forUser','export'])assert.equal(typeof a[fn],'function');assert.equal(typeof a.update,'undefined');assert.equal(typeof a.delete,'undefined');
+const row=a.record({action:'Role permission changed',category:'Security',severity:'warning',module:'settings',record:{type:'role',id:'Engineer',label:'Engineer'},before:{view:false,password:'dont-store'},after:{view:true,token:'secret-token'},reason:'Test',metadata:{nested:{apiKey:'abc',safe:'yes'}},source:'ui'});
+assert.equal(row.actor.userId,'u-admin');assert.equal(row.actor.role,'Admin');assert.equal(row.record.id,'Engineer');assert.equal(row.before.password,'[REDACTED]');assert.equal(row.after.token,'[REDACTED]');assert.equal(row.metadata.nested.apiKey,'[REDACTED]');assert.equal(row.metadata.nested.safe,'yes');assert.ok(row.id&&row.occurredAt);assert.ok(saves>0);
+assert.equal(a.forRecord('role','Engineer').length,1);assert.equal(a.forUser('u-admin').length,1);assert.equal(a.query({module:'settings'}).length,1);
+const out=a.export({module:'settings'});assert.ok(Array.isArray(out.events));assert.equal(out.events.length,1);assert.ok(data.auditEvents.some(e=>e.action==='Audit export generated'),'export must audit itself');
+console.log('PASS v1.26 append-only canonical audit authority, redaction, queries and export audit');

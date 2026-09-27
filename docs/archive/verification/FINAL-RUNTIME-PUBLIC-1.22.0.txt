@@ -1,0 +1,1 @@
+Runtime validation passed: 0 inline scripts, service worker, offline sales search, catalogue intelligence, PO supplier-offer search, partial shipment balance test, solid catalogue search UI and required app functions.

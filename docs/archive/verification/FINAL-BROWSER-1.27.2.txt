@@ -1,0 +1,13 @@
+Pool Shed v1.27.2 browser automation status
+============================================
+
+Repository browser smoke command: npm run test:browser
+Result in this sandbox: NOT EXECUTED SUCCESSFULLY
+Reason: playwright-core is declared in package.json/pnpm-lock.yaml but is not
+installed in this local execution environment, so Node reports MODULE_NOT_FOUND.
+A direct Chromium command-line rendering attempt was also unreliable because the
+container browser process stalled with D-Bus/zygote errors.
+
+No pixel-level browser automation claim is made for v1.27.2 in this sandbox.
+Static/runtime/contrast/release tests and the production build all pass as
+recorded in FINAL-RELEASE-CHECK-1.27.2.txt.

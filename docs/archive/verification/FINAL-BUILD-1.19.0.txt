@@ -1,0 +1,14 @@
+
+> the-pool-shed@1.19.0 build
+> bash scripts/build.sh
+
+Built app.css from 26 maintained CSS modules.
+Runtime validation passed: 0 inline scripts, service worker, offline sales search, catalogue intelligence, PO supplier-offer search, partial shipment balance test, solid catalogue search UI and required app functions.
+Built deployable static application into /mnt/data/poolshed_overhaul_work/Pool-Shed-1.19.0-Settings-Permissions/dist
+
+> the-pool-shed@1.19.0 build
+> bash scripts/build.sh
+
+Built app.css from 26 maintained CSS modules.
+Runtime validation passed: 0 inline scripts, service worker, offline sales search, catalogue intelligence, PO supplier-offer search, partial shipment balance test, solid catalogue search UI and required app functions.
+Built deployable static application into /mnt/data/poolshed_overhaul_work/Pool-Shed-1.19.0-Settings-Permissions/dist

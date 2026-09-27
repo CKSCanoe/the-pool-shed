@@ -1,0 +1,14 @@
+import fs from 'node:fs';import vm from 'node:vm';import assert from 'node:assert/strict';
+const file='public/record-router.js';assert.ok(fs.existsSync(file),'Record router must exist');
+const data={customers:[{id:'C-1'}],salesOrders:[{id:'SO-1'}],jobs:[{id:'J-1'}],purchaseOrders:[{id:'PO-1'}],suppliers:[{id:'SUP-1',name:'Certikin'}],products:[{id:'P-1'}],locations:[{id:'L-1'}],goodsNotes:[{id:'GN-1'}]};
+const opened=[];const history=[];const location={hash:'',href:'https://example.test/'};
+const ctx={console,Date,Math,JSON,Set,Map,globalThis:null,window:null,location,history:{replaceState(){},pushState(){}},addEventListener(){},__POOL_SHED_GET_DATA__:()=>data,__POOL_SHED_CURRENT_USER__:()=>({id:'u',role:'Sales'}),__POOL_SHED_CAN_ACCESS__:(m)=>m!=='accounting',__POOL_SHED_OPEN_NOTIFICATION_TARGET__:(route)=>{opened.push(route);return {ok:true,module:route.module,recordId:route.recordId};}};ctx.globalThis=ctx;ctx.window=ctx;vm.createContext(ctx);vm.runInContext(fs.readFileSync(file,'utf8'),ctx,{filename:file});
+const r=ctx.PoolShedRouter;assert.ok(r);for(const fn of ['parse','to','open','current','replace','href','canOpen','register'])assert.equal(typeof r[fn],'function');
+assert.equal(r.href('sales-order','SO-1'),'#/sales-orders/SO-1');assert.equal(r.href('customer','C-1'),'#/customers/C-1');assert.equal(r.href('project','J-1'),'#/projects/J-1');
+let route=r.parse('#/purchase-orders/PO-1');assert.equal(route.recordType,'purchase-order');assert.equal(route.recordId,'PO-1');assert.equal(route.module,'purchase');
+route=r.parse('#/settings/roles-permissions');assert.equal(route.module,'settings');assert.equal(route.page,'Roles & Permissions');
+assert.equal(r.canOpen(r.to('sales-order','SO-1')).ok,true);assert.equal(r.canOpen(r.to('sales-order','SO-X')).reason,'unavailable');assert.equal(r.canOpen({module:'accounting',path:'#/finance'}).reason,'permission');
+let res=r.open(r.to('sales-order','SO-1'),{updateHash:false});assert.equal(res.ok,true);assert.equal(opened.at(-1).module,'salesorders');assert.equal(opened.at(-1).recordId,'SO-1');
+res=r.open(r.to('sales-order','SO-X'),{updateHash:false});assert.equal(res.ok,false);assert.equal(opened.length,1,'missing record must not activate legacy target');
+assert.equal(r.parse('#/not-a-route').module,'dashboard');
+console.log('PASS v1.26 stable record router parsing, hrefs, permission and existence guards');

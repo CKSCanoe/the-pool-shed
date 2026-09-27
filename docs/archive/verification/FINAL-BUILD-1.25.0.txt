@@ -1,0 +1,7 @@
+
+> the-pool-shed@1.25.0 build
+> bash scripts/build.sh
+
+Built app.css from 30 maintained CSS modules.
+Runtime validation passed: 0 inline scripts, service worker, offline sales search, catalogue intelligence, PO supplier-offer search, partial shipment balance test, solid catalogue search UI and required app functions.
+Built deployable static application into /mnt/data/poolshed-v1250-notifications-work/Pool-Shed-1.24.2-Interaction-Navigation-Authority/dist

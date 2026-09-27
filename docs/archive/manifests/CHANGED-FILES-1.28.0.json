@@ -1,0 +1,27 @@
+{
+  "release": "1.28.0",
+  "purpose": "Responsive Workspace System and non-blocking workspace conflict presentation",
+  "changed": [
+    "public/assets/css/system/60-responsive-layout.css",
+    "public/assets/css/app.css",
+    "public/professional-workspace.js",
+    "public/index.html",
+    "public/service-worker.js",
+    "public/assets/js/01-legacy-01.js",
+    "public/production-readiness-engine.js",
+    "public/settings-command-workspace.js",
+    "scripts/build-css.mjs",
+    "scripts/build.sh",
+    "scripts/test-deployment-hotfix-v1271.mjs",
+    "scripts/test-release-v1273.mjs",
+    "scripts/test-action-authority-release-v127.mjs",
+    "scripts/test-responsive-release-v128.mjs",
+    "scripts/test-responsive-layout-v128.cjs",
+    "package.json",
+    "CURRENT-RELEASE.txt",
+    "RESPONSIVE-WORKSPACE-AUDIT-1.28.0.md",
+    "RESPONSIVE-BROWSER-RESULTS-1.28.0.json",
+    "FINAL-RESPONSIVE-WORKSPACE-1.28.0.txt",
+    "dist/"
+  ]
+}

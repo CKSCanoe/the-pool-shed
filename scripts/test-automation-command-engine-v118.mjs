@@ -1,0 +1,12 @@
+import fs from 'node:fs';import vm from 'node:vm';import assert from 'node:assert/strict';
+assert(fs.existsSync('public/automation-command-engine.js'),'Automation Command engine must exist');
+const data={automationCommand:{rules:[],runs:[],approvals:[],suggestions:[]},purchaseOrders:[{id:'PO1',status:'Ordered',due:'2026-09-10',lines:[{qty:10,received:6}]}],financeCommand:{customerDocuments:[{id:'INV1',type:'invoice',status:'authorised',dueDate:'2026-09-01',amountDue:1000}]}};
+const ctx={console,globalThis:null,window:null,Date,Math,Set,Map,Intl};ctx.globalThis=ctx;ctx.window=ctx;ctx.__POOL_SHED_GET_DATA__=()=>data;ctx.__POOL_SHED_CURRENT_USER__=()=>({id:'u1',name:'Aaron',role:'Admin'});vm.createContext(ctx);vm.runInContext(fs.readFileSync('public/automation-command-engine.js','utf8'),ctx);
+const a=ctx.PoolShedAutomationCommand;assert(a,'PoolShedAutomationCommand API missing');
+for(const t of ['Trigger','Schedule','Condition','Get Data','Branch','Wait','Action','Approval','Notify'])assert(a.nodeTypes().includes(t),`missing ${t} node`);
+const flow={id:'AUTO1',name:'Late PO chase',status:'Draft',authority:'Approval Required',nodes:[{type:'Trigger',config:{event:'PO overdue'}},{type:'Condition',config:{field:'outstandingQty',operator:'>',value:0}},{type:'Action',config:{action:'Create supplier chase'}},{type:'Approval',config:{role:'Purchasing'}},{type:'Notify',config:{target:'Purchasing'}}]};
+const valid=a.validate(flow);assert.equal(valid.ok,true);const sim=a.simulate(flow,{type:'purchaseOrder',id:'PO1'},'2026-09-16');assert.equal(sim.ok,true);assert(sim.steps.some(s=>s.type==='Approval'&&s.status==='pending-approval'));assert.equal(sim.liveChanges,0,'simulation must not mutate live data');
+const unsafe={id:'A2',name:'Change credit',status:'Draft',authority:'Automatic',nodes:[{type:'Trigger',config:{event:'Invoice overdue'}},{type:'Action',config:{action:'Change customer credit limit'}}]};assert.equal(a.validate(unsafe).ok,false,'sensitive policy change cannot be Automatic');
+const saved=a.saveRule(flow);assert.equal(saved.status,'Draft');const act=a.activateRule(saved.id,{simulationPassed:true});assert.equal(act.ok,true);assert.equal(data.automationCommand.rules[0].status,'Active');assert(data.automationCommand.runs.length>=1,'activation should be audited');
+const templates=a.templates();assert(templates.some(t=>t.id==='late-supplier-po'));assert(templates.some(t=>t.id==='overdue-customer-invoice'));
+console.log('PASS Automation Command flow validation, safe authority, simulation, templates and audit');

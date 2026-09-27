@@ -1,0 +1,12 @@
+import fs from 'node:fs';import vm from 'node:vm';import assert from 'node:assert/strict';
+const data={locations:[{id:'L1'},{id:'L2'}],auditLog:[],securityControl:{userOverrides:{},locationScopes:{'u-eng':['L1']}}};
+const users=[{id:'u-admin',name:'Aaron',role:'Admin',status:'Active'},{id:'u-eng',name:'Dave',role:'Engineer',status:'Active'},{id:'u-buy',name:'Buyer',role:'Purchasing',status:'Active'}];
+const ctx={console,Date,Math,Set,Map,Intl,JSON,globalThis:null,window:null,localStorage:{getItem:()=>null,setItem:()=>{}},__POOL_SHED_GET_DATA__:()=>data,__POOL_SHED_ALL_USERS__:()=>users,__POOL_SHED_CURRENT_USER__:()=>users[0],__POOL_SHED_SAVE_USERS__:()=>{}};ctx.globalThis=ctx;ctx.window=ctx;vm.createContext(ctx);vm.runInContext(fs.readFileSync('public/identity-authority.js','utf8'),ctx);vm.runInContext(fs.readFileSync('public/settings-permissions-engine.js','utf8'),ctx);
+const s=ctx.PoolShedSettingsPermissions;assert.equal(typeof s.explain,'function','permission engine must expose explain()');
+let e=s.explain('accounting','view',users[1]);assert.equal(e.allowed,false);assert.equal(e.role,'Engineer');assert.equal(e.source,'role');assert.match(e.reason,/Engineer/i);
+s.setUserOverride('u-eng','accounting','view',true,'cover');e=s.explain('accounting','view',users[1]);assert.equal(e.allowed,true);assert.equal(e.source,'user-override');assert.equal(e.override,true);
+s.setUserOverride('u-eng','accounting','view',false,'remove');e=s.explain('accounting','view',users[1]);assert.equal(e.allowed,false);assert.equal(e.source,'user-override');assert.equal(e.override,false);
+e=s.explain('locations','view',users[1],{locationId:'L2'});assert.equal(e.allowed,false);assert.equal(e.source,'location-scope');assert.equal(e.locationScope,'L2');
+e=s.explain('purchase','approve',users[2],{approvalKey:'purchaseOrder',amount:6000});assert.equal(e.allowed,false);assert.equal(e.source,'approval-limit');assert.equal(e.approval.amount,6000);
+const legacy=fs.readFileSync('public/assets/js/01-legacy-01.js','utf8');assert.match(legacy,/PoolShedSettingsPermissions\.roleMatrix/,'legacy default permission bridge must delegate to role matrix');assert.match(legacy,/PoolShedSettingsPermissions\.can\(tabId, "view", targetUser\)/,'legacy tab access must delegate to canonical authority');
+console.log('PASS v1.26 permission explanations and legacy delegation contract');

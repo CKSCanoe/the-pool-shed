@@ -1,0 +1,15 @@
+== test-accounting-api.mjs ==
+API: origin/role controls, signed webhook, draft export, returning paid status, repeat sync and ambiguous-create protection passed.
+== test-project-engine.mjs ==
+Project engine: margin, locked quote, revenue deduplication, PO/bill replacement, extras approval, duplicate expenses, stage dependencies/cap, loss alerts and save rollback passed.
+Cross-project PO line ownership does not duplicate costs.
+== test-project-ai.mjs ==
+Optional AI: manager auth path, bounded summary without documents/customer names, explicit non-storage and rate-limit guard passed (mock provider).
+== test-bundle-system-v2.mjs ==
+Bundle Product System checks passed: 9
+== test-dashboard-review.mjs ==
+Dashboard review: counts, read-only summary, personal-data exclusion, admin restriction, throttling, provider/config/origin failures passed.
+== test-dashboard-command.mjs ==
+Focused Dashboard checks passed with approved right-rail composition.
+== test-release-assets.mjs ==
+All 52 referenced assets exist; every public/server/API JavaScript file parses.

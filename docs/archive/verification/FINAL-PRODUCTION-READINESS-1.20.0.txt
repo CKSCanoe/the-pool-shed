@@ -1,0 +1,8 @@
+
+> the-pool-shed@1.20.0 test:production-readiness
+> node scripts/test-production-readiness-engine-v120.mjs && node scripts/test-production-readiness-workspace-v120.mjs && node scripts/test-production-readiness-cross-module-v120.mjs && node scripts/test-production-readiness-release-v120.mjs
+
+PASS v1.20 Production Readiness engine journeys, blockers, attention and source authority
+PASS v1.20 Production Readiness Settings surface and action coverage
+PASS v1.20 cross-module authority routes, lifecycle terminology and read-only diagnostics
+PASS v1.20 Production Readiness release, cache and runtime wiring

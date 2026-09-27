@@ -1,0 +1,28 @@
+POOL SHED v1.24.2 — INTERACTION & NAVIGATION AUTHORITY
+
+Baseline: v1.24.1 Executive Premium Contrast Authority
+
+Fixed:
+- New Sales Order is a Steel Blue primary CTA, not a green success control.
+- Save customer is a Steel Blue primary CTA.
+- Primary hover preserves high-contrast action text.
+- Green action-button misuse is blocked across runtime markup.
+- Success/warning/danger callout colours cannot override button text.
+- Sidebar submenu text is brighter and intentionally readable.
+- Active submenu uses shell text with restrained Steel Blue selection cues.
+- Legacy submenu !important foreground overrides are removed.
+- Light and dark mode use the same semantic interaction hierarchy.
+
+Verified:
+- Protected visual/module matrix: PASS
+- Primary contrast: 5.90:1
+- Primary hover contrast: 8.03:1
+- Public runtime validation: PASS
+- Production build: PASS
+- dist runtime validation: PASS
+- Release assets: 50/50 present; JS parses
+- Post-database-boundary non-DB suites: PASS
+
+Environment limits:
+- Database-only validator cannot start @electric-sql/pglite in this extracted environment.
+- Browser smoke cannot start because Playwright is not installed.

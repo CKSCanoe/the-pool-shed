@@ -1,0 +1,31 @@
+Pool Shed v1.24.0 - Executive Premium Steel Blue
+
+Baseline: v1.23.0 Visual System Overhaul
+Selected design: Executive Premium Steel Blue
+Staff project detail name: Project Details
+
+Key result:
+- premium login retained
+- new Steel Blue semantic interaction system
+- light and dark mode governed together
+- purple removed
+- legacy aqua/teal structural colouring removed
+- neutral tables and catalogue surfaces
+- soft hover and selected states
+- selected state uses Steel Blue edge marker
+- semantic status colours reserved for actual state
+- Project 360 staff-facing wording replaced by Project Details
+- hidden inline/runtime colour leftovers aligned
+- Sales catalogue danger-background mapping defect corrected
+
+Verification:
+- visual matrix: 0 failures
+- full validator: passes until missing @electric-sql/pglite database-only dependency
+- post-boundary non-database suites: pass
+- production build: pass
+- public runtime validation: pass
+- dist runtime validation: pass
+- release asset audit: 50/50 assets present, JS parses
+- browser automation: not executed because Playwright is absent
+
+Xero remains Ready to Connect. No live Xero connection is enabled.

@@ -1,0 +1,26 @@
+import fs from 'node:fs';
+import assert from 'node:assert/strict';
+const pkg=JSON.parse(fs.readFileSync('package.json','utf8'));
+const release=pkg.version;
+const cssBuild=fs.readFileSync('scripts/css-modules.mjs','utf8');
+const css=fs.readFileSync('public/assets/css/system/60-responsive-layout.css','utf8');
+const workspace=fs.readFileSync('public/professional-workspace.js','utf8');
+const index=fs.readFileSync('public/index.html','utf8');
+const sw=fs.readFileSync('public/service-worker.js','utf8');
+const current=fs.readFileSync('CURRENT-RELEASE.txt','utf8');
+{const [M,m,p]=release.split('.').map(Number);assert(M>1||(M===1&&(m>28||(m===28&&p>=0))),'responsive authority requires v1.28.0 or newer');}
+assert.match(current,new RegExp('Pool Shed v'+release.replace(/\./g,'\\.')+' .*Quote Studio|Pool Shed v'+release.replace(/\./g,'\\.')));
+assert.match(cssBuild,/system\/60-responsive-layout\.css/,'responsive authority must be in CSS build');
+assert.ok(cssBuild.indexOf('60-responsive-layout.css')>cssBuild.indexOf('59-my-work-action-authority.css'),'responsive authority must load last');
+assert.match(css,/\.main \.screen\.grid\{[\s\S]*grid-template-columns:minmax\(0,1fr\)!important/,'screen intrinsic-width containment missing');
+assert.match(css,/@media \(max-width:940px\)/,'tablet shell breakpoint missing');
+assert.match(css,/\.sidebar\{[\s\S]*display:none!important/,'tablet sidebar collapse missing');
+assert.match(css,/\.settings-metrics\{grid-template-columns:repeat\(auto-fit,minmax\(160px,1fr\)\)!important\}/,'responsive Settings KPI authority missing');
+assert.match(css,/dashboard-project-table-wrap table\{[\s\S]*min-width:1060px/,'dashboard local table-scroll contract missing');
+assert.doesNotMatch(workspace,/Shared workspace has newer changes/,'blocking workspace conflict banner copy must not render');
+assert.ok(!workspace.includes('screen.prepend(nav)'), 'Module sidebar must not be cloned above page content');
+assert.match(index,new RegExp('app\\.css\\?v='+release.replace(/\./g,'\\.')));
+assert.match(sw,new RegExp('pool-shed-v'+release.replace(/\./g,'\\.')+'-'));
+assert.match(pkg.scripts['test:responsive']||'',/test-responsive-layout-v128\.cjs/);
+assert.match(pkg.scripts['test:deployment']||'',/test-responsive-release-v128\.mjs/);
+console.log('PASS v1.28.0 responsive layout authority, navigation ownership and banner-removal guard');

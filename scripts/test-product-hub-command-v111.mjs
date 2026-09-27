@@ -1,0 +1,11 @@
+import fs from 'node:fs';import assert from 'node:assert/strict';
+assert(fs.existsSync('public/product-hub-workspace.js'),'Product Hub workspace authority must exist');
+const js=fs.readFileSync('public/product-hub-workspace.js','utf8');const html=fs.readFileSync('public/index.html','utf8');const pkg=JSON.parse(fs.readFileSync('package.json','utf8'));
+for(const token of ['Product Command','Catalogue','Replenishment','Product Groups','Bundle Studio','Imports','Catalogue Health','PRODUCT DETAILS','Identity & Groups','Suppliers & Cost','Price Books','Stock Rules','Accounting','Media & Docs','Bundles & Relations','Movement & Audit']) assert(js.includes(token),`Product Hub workspace missing ${token}`);
+for(const token of ['Available','On Hand','Allocated','Inbound','Supplier SKU','Margin','Reorder','Target','MOQ','Suggested']) assert(js.includes(token),`Catalogue/replenishment quick glance missing ${token}`);
+for(const token of ['Core','Purchasing','Sales','Warehouse']) assert(js.includes(token),`Quick view preset missing ${token}`);
+assert(js.includes('data-ph-quick-view'),'Catalogue must support row quick view');
+assert(js.includes('data-ph-create-replenishment-po'),'Replenishment must create reviewed Draft PO');
+assert(html.includes(`./product-hub-engine.js?v=${pkg.version}`),'Product Hub engine must be versioned in runtime');
+assert(html.includes(`./product-hub-workspace.js?v=${pkg.version}`),'Product Hub workspace must be versioned in runtime');
+console.log('PASS Product Hub Command, catalogue quick-glance and Product Details structure');

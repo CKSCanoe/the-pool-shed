@@ -1,0 +1,2027 @@
+/*
+ Pool Shed CSS source module: 40-design-system.css
+ This module preserves the established cascade while consolidating previously
+ fragmented active application styles. Shared visual authority lives in
+ 40-design-system.css; feature/workspace rules must remain scoped.
+*/
+
+/* Colour authority: system/00-color-tokens.css. No compatibility palette aliases live here. */
+
+/* Core surfaces are deliberately tied to semantic roles. */
+
+.ps-skip-link {
+  position: fixed;
+  inset-block-start: var(--ps-space-2, 8px);
+  inset-inline-start: var(--ps-space-2, 8px);
+  z-index: 10000;
+  padding: 10px 14px;
+  border: 2px solid var(--color-action-ink);
+  border-radius: var(--ps-radius-control, 5px);
+  background: var(--color-surface-default);
+  color: var(--color-text-primary);
+  font-weight: 800;
+  text-decoration: none;
+  transform: translateY(calc(-100% - 16px));
+}
+.ps-skip-link:focus { transform: translateY(0); }
+
+.main { background:var(--color-surface-canvas); }
+.sidebar { background:var(--color-shell); }
+button:focus-visible,
+input:focus-visible,
+select:focus-visible,
+textarea:focus-visible,
+summary:focus-visible,
+a:focus-visible { outline-color:var(--color-action-ink); }
+::selection { background:var(--color-action-soft); color:var(--color-text-primary); }
+
+/* Semantic status defaults used by legacy inline status variables. */
+.pill.good,.status-good,.success,.is-success { --status-bg:var(--color-status-success); --status-fg:var(--color-text-inverse); }
+.pill.warn,.status-warn,.warning,.is-warning { --status-bg:var(--color-status-attention); --status-fg:var(--color-text-inverse); }
+.pill.bad,.status-bad,.danger,.is-danger { --status-bg:var(--color-status-danger); --status-fg:var(--color-text-inverse); }
+
+/* ===== CONSOLIDATED FROM: assets/css/15-pool-shed-precision-foundation.css ===== */
+/*
+ * Pool Shed Precision Operations — canonical visual foundation
+ * Selected Concept B. Colour semantics remain defined by 00-pool-shed-tokens.css.
+ * This file intentionally loads last so legacy presentation layers converge on one
+ * spacing, typography, geometry, control, table, tab, panel and responsive system.
+ */
+
+:root {
+  --ps-space-1: 4px;
+  --ps-space-2: 8px;
+  --ps-space-3: 12px;
+  --ps-space-4: 16px;
+  --ps-space-5: 20px;
+  --ps-space-6: 24px;
+
+  --ps-control-height: 38px;
+  --ps-touch-target: 44px;
+  --ps-table-row-height: 39px;
+
+  --ps-radius-sm: 4px;
+  --ps-radius-control: 5px;
+  --ps-radius-panel: 6px;
+  --ps-radius-dialog: 8px;
+
+  --ps-font-page-title: 24px;
+  --ps-font-section-title: 18px;
+  --ps-font-panel-title: 13px;
+  --ps-font-body: 14px;
+  --ps-font-table: 13px;
+  --ps-font-label: 11px;
+  --ps-font-micro: 10px;
+
+  /* Existing component contracts resolve to the selected foundation. */
+  --workspace-gap: var(--ps-space-4);
+  --control-height: var(--ps-control-height);
+  --ps-radius: var(--ps-radius-panel);
+  --shadow-panel: none;
+  --ps-shadow: none;
+  
+}
+
+
+
+
+
+/* Shell */
+.main {
+  padding: var(--ps-space-5);
+  background: var(--color-surface-canvas);
+}
+
+.sidebar .brand {
+  gap: 9px;
+  padding: 2px 7px 13px;
+}
+
+.brand-mark,
+.ps-boot-logo {
+  background: transparent !important;
+  border: 0 !important;
+  box-shadow: none !important;
+}
+
+.brand-mark {
+  width: 38px;
+  height: 38px;
+  border-radius: 0 !important;
+  flex: 0 0 38px;
+}
+
+.brand-mark img,
+.ps-boot-logo img {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+}
+
+.ps-boot-logo {
+  width: 58px;
+  height: 58px;
+  border-radius: 0 !important;
+}
+
+.sidebar .brand strong {
+  font-size: 14px;
+  letter-spacing: 0;
+}
+
+.sidebar .brand span {
+  font-size: 11px;
+  margin-top: 1px;
+}
+
+.sidebar nav {
+  gap: 2px;
+}
+
+.sidebar nav button {
+  min-height: var(--ps-control-height);
+  padding: 8px 9px;
+  border-radius: var(--ps-radius-sm);
+  font-size: 13px;
+}
+
+.sidebar nav button.active {
+  background: var(--color-action-primary);
+  color: var(--color-text-inverse);
+  border-color: var(--color-action-ink);
+  box-shadow: none;
+}
+
+/* Page hierarchy */
+.main .topbar {
+  gap: var(--ps-space-3);
+  padding: 0 0 var(--ps-space-4);
+  margin: 0 0 var(--ps-space-4);
+  border-bottom: 1px solid var(--color-border-default) !important;
+}
+
+.main .topbar h1 {
+  margin: 3px 0 0;
+  font-size: var(--ps-font-page-title) !important;
+  line-height: 1.12;
+  font-weight: 730;
+  letter-spacing: -0.025em;
+}
+
+
+
+
+
+#pageIntro,
+.topbar .title p {
+  margin-top: 4px;
+  max-width: 72ch;
+  color: var(--color-text-secondary);
+  font-size: 12px;
+  line-height: 1.45;
+}
+
+
+
+/* Controls */
+.main :is(button, input, select, textarea) {
+  border-radius: var(--ps-radius-control);
+}
+
+
+
+input:not([type="checkbox"]):not([type="radio"]) {
+  min-height: var(--ps-control-height);
+}
+
+
+
+button:hover {
+  transform: none !important;
+  filter: none;
+  box-shadow: none;
+}
+
+button.secondary,
+button.ghost {
+  background: var(--color-surface-default);
+  color: var(--color-text-primary);
+  border: 1px solid var(--color-border-default);
+}
+
+button.secondary:hover,
+button.ghost:hover {
+  background: var(--color-surface-subtle);
+  border-color: var(--color-text-secondary);
+}
+
+
+/* v1.23 utility hierarchy: navigation and shell utilities are intentionally neutral. */
+.page-back-row button,
+.page-back-row .dashboard-back-button,
+.page-back-row .section-home-button {
+  background: var(--color-surface-default) !important;
+  color: var(--color-text-primary) !important;
+  border: 1px solid var(--color-border-default) !important;
+  box-shadow: none !important;
+}
+.page-back-row button:hover,
+.page-back-row .dashboard-back-button:hover,
+.page-back-row .section-home-button:hover {
+  background: var(--color-surface-subtle) !important;
+  border-color: var(--color-text-secondary) !important;
+}
+
+.top-utility-row :is(.theme-toggle,.icon-button,.notification-button,.reset-btn),
+.user-chip-button {
+  background: var(--color-surface-default);
+  color: var(--color-text-primary);
+  border-color: var(--color-text-secondary);
+  box-shadow: none;
+}
+.top-utility-row :is(.theme-toggle,.icon-button,.notification-button,.reset-btn):hover,
+.user-chip-button:hover {
+  background: var(--color-surface-subtle);
+  color: var(--color-text-primary);
+  border-color: var(--color-text-secondary);
+}
+.user-avatar {
+  background: var(--color-action-soft);
+  color: var(--color-action-ink);
+  border: 1px solid var(--color-action-line);
+}
+
+button:disabled,
+input:disabled,
+select:disabled,
+textarea:disabled {
+  opacity: .42;
+  cursor: not-allowed;
+}
+
+button:focus-visible,
+input:focus-visible,
+select:focus-visible,
+textarea:focus-visible,
+summary:focus-visible,
+a:focus-visible,
+[tabindex]:focus-visible {
+  outline: 2px solid var(--color-action-focus) !important;
+  outline-offset: 2px !important;
+  box-shadow: none !important;
+}
+
+/* Forms */
+
+
+.field label,
+.form-field label,
+label.field-label {
+  color: var(--color-text-secondary);
+  font-size: var(--ps-font-label);
+  font-weight: 700;
+}
+
+.field input,
+.field select,
+.field textarea {
+  margin-top: 0;
+  border-radius: var(--ps-radius-control);
+  border-color: var(--color-text-secondary);
+  font-size: 13px;
+  font-weight: 500;
+  padding-inline: 9px;
+}
+
+
+
+/* Border-led operational surfaces */
+.main :is(.panel,.record-card,.mini-card,.profile-card) {
+  border: 1px solid var(--color-border-default) !important;
+  border-radius: var(--ps-radius-panel) !important;
+  box-shadow: none !important;
+}
+
+
+
+.panel > header,
+.panel-header {
+  gap: var(--ps-space-3) !important;
+  padding: 0 0 var(--ps-space-3) !important;
+  margin-bottom: var(--ps-space-3);
+}
+
+.panel > .panel-body,
+.record-card-body {
+  padding: var(--ps-space-4) !important;
+}
+
+.profile-stat, .warehouse-kpi {
+  border-radius: var(--ps-radius-panel) !important;
+  padding: var(--ps-space-3) !important;
+  box-shadow: none !important;
+}
+
+/* Section navigation and record tabs: flat underline selection */
+
+
+.ps-section-nav button {
+  min-height: 35px;
+  padding: 0 12px;
+  border: 0;
+  border-bottom: 2px solid transparent;
+  border-radius: 0;
+  background: transparent;
+  color: var(--color-text-secondary);
+  font-size: 12px;
+  font-weight: 650;
+  white-space: nowrap;
+  animation: none !important;
+}
+
+.ps-section-nav button.active {
+  background: transparent;
+  color: var(--color-action-ink);
+  border-color: transparent;
+  border-bottom-color: var(--color-action-ink);
+  box-shadow: none !important;
+  animation: none !important;
+}
+
+.workspace-tabs, .sales-workspace .tabs-row {
+  display: flex !important;
+  flex-wrap: nowrap !important;
+  gap: 0 !important;
+  overflow-x: auto;
+  padding: 0 var(--ps-space-4) !important;
+  margin: 0;
+  border-bottom: 1px solid var(--color-border-default);
+}
+
+#screen-salesorders .tab-chip, .customer-tabs button, .sales-workspace .tab-chip {
+  min-height: 38px !important;
+  padding: 0 12px !important;
+  border: 0 !important;
+  border-bottom: 2px solid transparent !important;
+  border-radius: 0 !important;
+  background: transparent !important;
+  color: var(--color-text-secondary) !important;
+  font-size: 12px !important;
+  font-weight: 650 !important;
+  white-space: nowrap;
+  box-shadow: none !important;
+}
+
+.tab-chip.active,
+#screen-salesorders .tab-chip.active,
+.customer-tabs button.active,
+.sales-workspace .tab-chip.active {
+  background: transparent !important;
+  color: var(--color-action-ink) !important;
+  border-color: transparent !important;
+  border-bottom-color: var(--color-action-ink) !important;
+  box-shadow: none !important;
+}
+
+/* Tables: compact, bounded, sticky and numeric-friendly */
+.order-lines-scroll, .po-lines-wrap, .sales-table-scroll {
+  max-width: 100%;
+  overflow: auto;
+  overscroll-behavior: contain;
+  border: 1px solid var(--color-border-default);
+  border-radius: var(--ps-radius-control) !important;
+  scrollbar-gutter: stable;
+}
+
+
+
+
+
+#screen-salesorders .order-lines-table tbody td, .sales-workspace .order-lines-table td {
+  height: var(--ps-table-row-height);
+  padding: 6px 10px !important;
+  color: var(--color-text-primary);
+  font-size: var(--ps-font-table);
+  line-height: 1.35;
+  vertical-align: middle;
+  border-bottom: 1px solid var(--color-border-default);
+}
+
+#screen-salesorders .order-lines-table thead th,
+.sales-workspace .order-lines-table th {
+  height: 34px;
+  padding: 0 10px !important;
+  font-size: var(--ps-font-micro) !important;
+}
+
+tbody tr:hover {
+  background: color-mix(in srgb, var(--color-action-primary) 4%, var(--color-surface-default));
+}
+
+/* Status: compact text + colour + shape cue. */
+
+
+/* Dialogs: viewport-safe shell with persistent header/actions where markup permits. */
+.modal-backdrop.active,
+.modal-backdrop.show {
+  overflow: auto;
+  padding: var(--ps-space-4);
+  background: var(--color-overlay-scrim);
+}
+
+.modal-card, .modal-panel {
+  max-height: calc(100dvh - 32px);
+  border: 1px solid var(--color-border-default);
+  border-radius: var(--ps-radius-dialog) !important;
+  box-shadow: var(--shadow-dialog);
+  overflow: auto;
+}
+
+.modal header,
+.modal-card > header,
+.modal-panel > header,
+.modal footer,
+.modal-card > footer,
+.modal-panel > footer {
+  position: sticky;
+  z-index: 2;
+  background: var(--color-surface-default);
+}
+
+.modal header,
+.modal-card > header,
+.modal-panel > header {
+  top: 0;
+}
+
+.modal footer,
+.modal-card > footer,
+.modal-panel > footer {
+  bottom: 0;
+}
+
+/* Density modes retain the same geometry language instead of creating a second design system. */
+html[data-density="compact"] {
+  --control-height: 34px;
+  --workspace-gap: 12px;
+  --ps-table-row-height: 35px;
+}
+
+html[data-density="comfortable"] {
+  --control-height: 42px;
+  --workspace-gap: 20px;
+  --ps-table-row-height: 44px;
+}
+
+html[data-density="compact"] td {
+  padding-block: 4px !important;
+}
+
+html[data-density="comfortable"] td {
+  padding-block: 8px !important;
+}
+
+html[data-density="comfortable"] .panel {
+  padding: var(--ps-space-5);
+}
+
+/* Precision breakpoints: mobile <600, compact 600–899, desktop 900–1199, wide >=1200. */
+@media (max-width: 1199px) {
+  .main {
+    padding: var(--ps-space-4);
+  }
+}
+
+@media (max-width: 899px) {
+  .topbar {
+    gap: var(--ps-space-4);
+  }
+
+  .panel {
+    padding: var(--ps-space-4);
+  }
+
+  .screen.grid {
+    gap: var(--ps-space-4) !important;
+  }
+}
+
+@media (max-width: 599px) {
+  :root {
+    --control-height: var(--ps-touch-target);
+    --ps-table-row-height: 46px;
+  }
+
+  .main {
+    padding: var(--ps-space-3);
+  }
+
+  .topbar,
+  .main .topbar {
+    padding-bottom: var(--ps-space-3);
+    margin-bottom: var(--ps-space-3);
+  }
+
+  .main .topbar h1,
+  h1 {
+    font-size: 22px !important;
+  }
+
+  button,
+  input:not([type="checkbox"]):not([type="radio"]),
+  select {
+    min-height: var(--ps-touch-target);
+  }
+
+  .panel {
+    padding: 14px;
+  }
+
+  .panel > .panel-body,
+  .record-card-body {
+    padding: 14px !important;
+  }
+
+  .tabs-row,
+  .customer-tabs,
+  .workspace-tabs,
+  .sales-workspace .tabs-row {
+    padding-inline: var(--ps-space-3) !important;
+  }
+
+  td,
+  #screen-salesorders .order-lines-table tbody td,
+  .sales-workspace .order-lines-table td {
+    padding-block: 8px !important;
+  }
+
+  .modal-backdrop.active,
+  .modal-backdrop.show {
+    padding: var(--ps-space-3);
+  }
+
+  .modal,
+  .modal-card,
+  .modal-panel {
+    max-height: calc(100dvh - 24px);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .ps-section-nav button,
+  button,
+  .modal,
+  .modal-card,
+  .modal-panel {
+    transition: none !important;
+    animation: none !important;
+  }
+}
+
+/* ===== AUTHORITATIVE GLOBAL PRIMITIVES =====
+   Consolidated from repeated top-level global selectors across the historical cascade.
+   Feature modules must not redefine these unscoped primitives. ===== */
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+/* ========================================================================
+   AUTHORITATIVE SHARED COMPONENT SYSTEM
+   Precision Operations v1.0.6
+
+   Unscoped shared primitives live here only. Feature and workspace modules
+   may style feature-specific descendants/variants, but must not redefine the
+   base component contract.
+   ======================================================================== */
+
+html {
+  font-size: 14px;
+}
+
+body {
+  margin: 0;
+  font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  font-size: var(--ps-font-body);
+  line-height: 1.45;
+  color: var(--color-text-primary);
+  background: var(--color-surface-canvas);
+  -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
+}
+
+h1,
+h2,
+h3 {
+  margin-top: 0;
+  color: var(--color-text-primary);
+}
+
+h1 {
+  margin-bottom: var(--ps-space-2);
+  font-size: var(--ps-font-page-title);
+  line-height: 1.12;
+  font-weight: 730;
+  letter-spacing: -0.025em;
+}
+
+h2 {
+  margin-bottom: var(--ps-space-2);
+  font-size: var(--ps-font-section-title);
+  line-height: 1.25;
+  font-weight: 700;
+  letter-spacing: -0.015em;
+}
+
+h3 {
+  margin-bottom: var(--ps-space-2);
+  font-size: var(--ps-font-panel-title);
+  line-height: 1.3;
+  font-weight: 700;
+  letter-spacing: 0;
+}
+
+/* Controls */
+button,
+input,
+select,
+textarea {
+  font: inherit;
+}
+
+button {
+  min-height: var(--ps-control-height);
+  padding: 8px 12px;
+  border: 1px solid var(--color-action-primary);
+  border-radius: var(--ps-radius-control);
+  background: var(--color-action-primary);
+  color: var(--color-text-inverse);
+  font-size: 13px;
+  font-weight: 680;
+  line-height: 1.3;
+  box-shadow: none;
+  cursor: pointer;
+  transition: background-color .12s ease, border-color .12s ease, color .12s ease;
+}
+
+button:hover {
+  transform: none !important;
+  filter: none;
+  box-shadow: none;
+  background: var(--color-action-primary-hover);
+  border-color: var(--color-action-primary-hover);
+}
+
+button:active {
+  filter: brightness(.96);
+}
+
+button:disabled {
+  opacity: .42;
+  cursor: not-allowed;
+  filter: none;
+}
+
+input,
+select,
+textarea {
+  width: 100%;
+  max-width: 100%;
+  border: 1px solid var(--color-border-default);
+  border-radius: var(--ps-radius-control);
+  background: var(--color-surface-default);
+  color: var(--color-text-primary);
+  font-size: 13px;
+  font-weight: 500;
+  box-shadow: none;
+}
+
+input,
+select {
+  min-height: var(--ps-control-height);
+  padding: 8px 9px;
+}
+
+textarea {
+  min-height: calc(var(--ps-control-height) * 2);
+  padding: 9px;
+  resize: vertical;
+  line-height: 1.4;
+}
+
+input::placeholder,
+textarea::placeholder {
+  color: var(--color-text-secondary);
+  opacity: .72;
+}
+
+button:focus-visible,
+input:focus-visible,
+select:focus-visible,
+textarea:focus-visible,
+summary:focus-visible,
+a:focus-visible,
+[tabindex]:focus-visible {
+  outline: 2px solid var(--color-action-focus) !important;
+  outline-offset: 2px !important;
+  box-shadow: none !important;
+}
+
+/* Forms */
+.field {
+  display: grid;
+  gap: 5px;
+  min-width: 0;
+  padding: 0;
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+  align-self: start;
+}
+
+.form-grid {
+  display: grid;
+  gap: var(--ps-space-3);
+  min-width: 0;
+}
+
+/* Operational surfaces */
+.panel,
+.record-card,
+.mini-card,
+.profile-card {
+  min-width: 0;
+  border: 1px solid var(--color-border-default);
+  border-radius: var(--ps-radius-panel);
+  background: var(--color-surface-default);
+  box-shadow: none;
+}
+
+.panel {
+  padding: var(--ps-space-4);
+}
+
+.panel-head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: var(--ps-space-3);
+  padding: 0 0 var(--ps-space-3);
+  margin: 0 0 var(--ps-space-3);
+  border: 0;
+  border-bottom: 1px solid var(--color-border-default);
+  background: transparent;
+}
+
+.panel-body {
+  min-width: 0;
+  padding: 0;
+}
+
+.mini-card,
+.profile-card {
+  padding: var(--ps-space-3);
+}
+
+.record-card {
+  overflow: clip;
+}
+
+.kpi {
+  min-width: 0;
+  padding: var(--ps-space-3);
+  border: 1px solid var(--color-border-default);
+  border-radius: var(--ps-radius-panel);
+  background: var(--color-surface-default);
+  box-shadow: none;
+}
+
+/* Action groups */
+.action-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--ps-space-2);
+}
+
+/* Navigation */
+.breadcrumb {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--ps-space-2);
+  color: var(--color-text-secondary);
+  font-size: var(--ps-font-label);
+  line-height: 1.35;
+}
+
+.topbar {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: var(--ps-space-3);
+  margin: 0 0 var(--ps-space-4);
+  padding: 0 0 var(--ps-space-4);
+  border: 0;
+  border-bottom: 1px solid var(--color-border-default);
+  border-radius: 0;
+  background: transparent;
+  box-shadow: none;
+}
+
+.ps-section-nav,
+.tabs-row,
+.customer-tabs {
+  display: flex;
+  flex-wrap: nowrap;
+  align-items: end;
+  gap: 0;
+  width: max-content;
+  max-width: 100%;
+  overflow-x: auto;
+  overflow-y: hidden;
+  margin: 0 0 var(--ps-space-4);
+  padding: 0;
+  border: 0;
+  border-bottom: 1px solid var(--color-border-default);
+  border-radius: 0;
+  background: transparent;
+  box-shadow: none;
+  scrollbar-width: thin;
+}
+
+.tab-chip {
+  min-height: 38px;
+  padding: 0 12px;
+  border: 0;
+  border-bottom: 2px solid transparent;
+  border-radius: 0;
+  background: transparent;
+  color: var(--color-text-secondary);
+  font-size: 12px;
+  font-weight: 650;
+  line-height: 1.2;
+  white-space: nowrap;
+  box-shadow: none;
+}
+
+.tab-chip:hover {
+  background: var(--color-surface-subtle);
+  color: var(--color-text-primary);
+}
+
+.tab-chip.active {
+  background: transparent;
+  color: var(--color-action-ink);
+  border-bottom-color: var(--color-action-ink);
+}
+
+/* Status */
+.pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  min-height: 0;
+  max-width: 100%;
+  padding: 3px 7px;
+  border: 1px solid var(--color-border-default);
+  border-radius: 999px;
+  background: var(--color-surface-subtle);
+  color: var(--color-text-secondary);
+  font-size: var(--ps-font-micro);
+  font-weight: 800;
+  line-height: 1.2;
+  white-space: nowrap;
+}
+
+/* Tables */
+.table-scroll {
+  width: 100%;
+  max-width: 100%;
+  overflow: auto;
+  overscroll-behavior: contain;
+  border: 1px solid var(--color-border-default);
+  border-radius: var(--ps-radius-control);
+  scrollbar-gutter: stable;
+}
+
+table {
+  width: 100%;
+  border-collapse: separate;
+  border-spacing: 0;
+  font-size: var(--ps-font-table);
+  font-variant-numeric: tabular-nums;
+}
+
+th,
+td {
+  text-align: left;
+  border-bottom: 1px solid var(--color-border-default);
+  vertical-align: middle;
+}
+
+th {
+  position: sticky;
+  top: 0;
+  z-index: 2;
+  height: 34px;
+  padding: 0 10px;
+  background: var(--color-surface-subtle);
+  color: var(--color-text-secondary);
+  font-size: var(--ps-font-micro);
+  font-weight: 750;
+  line-height: 1.2;
+  letter-spacing: .045em;
+  text-transform: uppercase;
+  white-space: nowrap;
+}
+
+td {
+  height: var(--ps-table-row-height);
+  padding: 6px 10px;
+  background: var(--color-surface-default);
+  color: var(--color-text-primary);
+  font-size: var(--ps-font-table);
+  line-height: 1.35;
+}
+
+
+/* Quiet operational tables: colour marks state, it does not become the table. */
+thead th {
+  background: var(--color-surface-subtle) !important;
+  color: var(--color-text-secondary) !important;
+}
+tbody tr:hover > td {
+  background: color-mix(in srgb, var(--color-action-primary) 4%, var(--color-surface-default)) !important;
+}
+tbody tr:is(.selected,.is-selected,[aria-selected="true"]) > td {
+  background: var(--color-surface-selected) !important;
+}
+tbody tr:is(.selected,.is-selected,[aria-selected="true"]) > td:first-child {
+  box-shadow: inset 3px 0 0 var(--color-action-primary);
+}
+
+/* Dialog shell */
+.modal {
+  width: min(560px, 100%);
+  max-height: calc(100dvh - 32px);
+  overflow: auto;
+  border: 1px solid var(--color-border-default);
+  border-radius: var(--ps-radius-dialog);
+  background: var(--color-surface-default);
+  box-shadow: var(--shadow-dialog);
+}
+
+@media (max-width: 599px) {
+  button,
+  input:not([type="checkbox"]):not([type="radio"]),
+  select {
+    min-height: var(--ps-touch-target);
+  }
+
+  .topbar {
+    gap: var(--ps-space-3);
+    margin-bottom: var(--ps-space-3);
+    padding-bottom: var(--ps-space-3);
+  }
+
+  .panel {
+    padding: 14px;
+  }
+
+  .mini-card,
+  .profile-card,
+  .kpi {
+    padding: 12px;
+  }
+
+  .pill {
+    white-space: normal;
+  }
+
+  .modal {
+    max-height: calc(100dvh - 24px);
+  }
+}
+
+/* Shared responsive behaviour belongs with the shared component system. */
+@media (max-width: 1100px) {
+  .topbar {
+    flex-direction: column;
+  }
+}
+
+@media (max-width: 599px) {
+  .panel-head {
+    flex-direction: column;
+  }
+
+  .action-row {
+    align-items: stretch;
+  }
+
+  .table-scroll table {
+    min-width: 680px;
+  }
+
+  .modal {
+    width: min(96vw, 760px);
+  }
+}
+
+
+/* ========================================================================
+   FINAL VISUAL CONSISTENCY CONTRACT — v1.0.8
+   Feature modules own layout/behaviour. These recurring operational surfaces
+   share one visual treatment across Sales, Catalogue, Bundles and Product Hub.
+   ======================================================================== */
+
+:is(
+  .order-lines-scroll,
+  .health-table-wrap,
+  .bsi-table-wrap,
+  .dashboard-table-wrap,
+  .sales-table-scroll
+) {
+  border-color: var(--color-text-secondary);
+  background: var(--color-surface-default);
+  box-shadow: none;
+}
+
+:is(
+  .catalogue-row,
+  .ci-result-row,
+  .bundle-search-result,
+  .bundle-component-row,
+  .bs-component,
+  .dashboard-health-item
+) {
+  border-color: var(--color-text-secondary);
+  background: var(--color-surface-default);
+}
+
+:is(
+  .catalogue-row,
+  .ci-result-row,
+  .bundle-search-result,
+  .bundle-component-row,
+  .bs-component,
+  .dashboard-health-item
+):hover {
+  box-shadow: none;
+}
+
+:is(
+  .ci-command-centre,
+  .catalogue-health-command,
+  .bundle-hero,
+  .b2-header,
+  .bs-hero,
+  .product-hub-command,
+  .import-governance-hero
+) {
+  border-color: var(--color-text-secondary);
+  background: var(--color-surface-default);
+  box-shadow: none;
+}
+
+:is(
+  .so-search-popover,
+  .ci-search-popover,
+  .ci-search-popover-po,
+  .bs-picker-modal,
+  .so-customer-results,
+  .compare-drawer
+) {
+  border-color: var(--color-text-secondary);
+  border-radius: var(--ps-radius-dialog);
+  background: var(--color-surface-default);
+  box-shadow: var(--shadow-dialog);
+}
+
+:is(
+  .tab-chip.active,
+  #screen-salesorders .tab-chip.active,
+  .customer-tabs button.active,
+  .ps-section-nav button.active
+) {
+  color: var(--color-action-ink);
+  border-bottom-color: var(--color-action-ink);
+  box-shadow: none;
+}
+
+
+/* ========================================================================
+   ACCESSIBLE COLOUR + TEXT RHYTHM CONTRACT — v1.0.9
+   High-contrast highlights, calm text spacing and non-overlapping decoration.
+   ======================================================================== */
+
+::selection {
+  background: var(--color-action-primary);
+  color: var(--color-surface-default);
+  text-shadow: none;
+}
+
+mark,
+.highlight {
+  background: var(--color-status-attention-bg);
+  color: var(--color-status-attention-text);
+  border-radius: 3px;
+  padding-inline: 2px;
+}
+
+:is(p, small, label, .muted, .help, .hint, .status-reason) {
+  line-height: 1.45;
+}
+
+:is(h1, h2, h3, .record-title, .panel-title) {
+  overflow-wrap: anywhere;
+  text-decoration: none;
+}
+
+.panel-head {
+  position: relative;
+  isolation: isolate;
+}
+
+.panel-head > :is(div, h1, h2, h3, p, span, strong, small, button, .action-row) {
+  position: relative;
+  z-index: 1;
+}
+
+/* Status colour must communicate meaning without sacrificing legibility. */
+:is(.pill.good, .pill.green, .bs-pill.green, .bsi-pill.good, .stock-ledger-badge, .bs-linked-badge) {
+  background: var(--color-status-success-bg);
+  color: var(--color-status-success-text);
+  border-color: var(--color-status-success-line);
+}
+
+:is(.pill.warn, .pill.amber, .bs-pill.amber, .bsi-pill.warn) {
+  background: var(--color-status-attention-bg);
+  color: var(--color-status-attention-text);
+  border-color: var(--color-status-attention-line);
+}
+
+:is(.pill.bad, .pill.red, .bs-pill.red, .bsi-pill.bad) {
+  background: var(--color-status-danger-bg);
+  color: var(--color-status-danger-text);
+  border-color: var(--color-status-danger-line);
+}
+
+:is(.pill.blue, .pill.purple, .pill.dark, .bundle-pill) {
+  background: var(--color-status-info-bg);
+  color: var(--color-status-info-text);
+  border-color: var(--color-status-info-line);
+}
+
+.health-status-corrected,
+.health-status-warning {
+  border: 1px solid;
+}
+
+.health-status-corrected {
+  background: var(--color-status-success-bg);
+  color: var(--color-status-success-text);
+  border-color: var(--color-status-success-line);
+}
+
+.health-status-warning {
+  background: var(--color-status-attention-bg);
+  color: var(--color-status-attention-text);
+  border-color: var(--color-status-attention-line);
+}
+
+/* Selection/highlight states use a soft field plus explicit foreground instead of aqua-on-aqua. */
+:is(
+  .global-result:hover,
+  .global-result.active,
+  .po-product-result:hover,
+  .supplier-list-table tbody tr:hover,
+  .so-product-result:hover,
+  .so-product-result.is-active,
+  .so-product-result:focus-visible,
+  .ci-result-row:hover,
+  .ci-result-row.is-active,
+  button.ci-result-row:hover,
+  button.ci-result-row.is-active,
+  .health-issue-row:hover,
+  .bs-result:hover,
+  .bs-result:focus,
+  .bs-picker-row:hover,
+  .bs-picker-row.selected,
+  .bs-component.selected,
+  .so-customer-result:hover,
+  .so-customer-result.active
+) {
+  background: var(--color-action-soft);
+  color: var(--color-text-primary);
+}
+
+:is(
+  .global-result:hover,
+  .global-result.active,
+  .po-product-result:hover,
+  .so-product-result:hover,
+  .so-product-result.is-active,
+  .ci-result-row:hover,
+  .ci-result-row.is-active,
+  .bs-picker-row.selected,
+  .bs-component.selected,
+  .so-customer-result:hover,
+  .so-customer-result.active
+) :is(strong, span, small, p) {
+  color: inherit;
+}
+
+/* Search clear controls are neutral utility actions, not coloured call-to-action blocks. */
+:is(.so-search-clear, .ci-search-clear) {
+  background: transparent;
+  color: var(--color-text-secondary);
+  border-color: transparent;
+  box-shadow: none;
+}
+
+:is(.so-search-clear, .ci-search-clear):hover {
+  background: var(--color-action-soft);
+  color: var(--color-action-ink);
+  border-color: var(--color-text-secondary);
+}
+
+/* Operational card headers use quiet semantic fills so text remains readable. */
+.so-address-card-head,
+.so-address-card.primary .so-address-card-head {
+  background: var(--color-action-soft);
+  color: var(--color-text-primary);
+}
+
+.so-address-card.billing .so-address-card-head {
+  background: var(--color-status-attention-bg);
+  color: var(--color-status-attention-text);
+}
+
+.so-address-card.delivery .so-address-card-head {
+  background: var(--color-status-success-bg);
+  color: var(--color-status-success-text);
+}
+
+.so-customer-drawer {
+  background: var(--color-surface-default);
+  color: var(--color-text-primary);
+}
+
+#screen-accounting .panel,
+#screen-jobs .panel {
+  border-color: var(--color-text-secondary);
+}
+
+#screen-accounting table thead th,
+#screen-jobs table thead th {
+  background: var(--color-surface-subtle);
+  color: var(--color-text-secondary);
+}
+
+/* Fulfilment sequence is information, not a decorative colour bar. */
+#screen-fulfilment .panel:first-child::before {
+  content: "PRINT  →  PICK  →  PACK  →  SHIP";
+  display: block;
+  margin: 0 0 var(--ps-space-3);
+  padding: 7px 10px;
+  border: 1px solid var(--color-border-default);
+  border-radius: var(--ps-radius-control);
+  background: var(--color-surface-subtle);
+  color: var(--color-text-secondary);
+  font-size: var(--ps-font-label);
+  font-weight: 800;
+  line-height: 1.35;
+  letter-spacing: .06em;
+}
+
+/* Old decorative spectrum/stripe treatments are intentionally absent. */
+.hero-panel,
+.workspace-hero,
+.supplier-hero,
+.supplier-profile-hero,
+.supplier-catalogue-hero,
+.po-hero,
+.partial-fulfilment-head,
+.catalogue-health-command,
+.bundle-hero,
+.bs-hero,
+.b2-header {
+  background-image: none;
+}
+
+@media (max-width: 599px) {
+  :is(p, small, label, .muted, .help, .hint, .status-reason) {
+    line-height: 1.5;
+  }
+
+  #screen-fulfilment .panel:first-child::before {
+    letter-spacing: .035em;
+    white-space: normal;
+  }
+}
+
+
+/* ========================================================================
+   READABILITY HARDENING — v1.0.10
+   Final audit corrections after the whole-app contrast/text-rhythm pass.
+   ======================================================================== */
+
+/* Hero/command surfaces must never resolve to light text on a light surface. */
+:is(
+  .partial-fulfilment-head,
+  .catalogue-health-command,
+  .inventory-sync-banner,
+  .import-admin-banner,
+  #psBootScreen
+) {
+  background: var(--color-shell);
+  color: var(--color-shell-text);
+}
+
+:is(
+  .partial-fulfilment-head,
+  .catalogue-health-command,
+  .inventory-sync-banner,
+  .import-admin-banner,
+  #psBootScreen
+) :is(h1, h2, h3, strong, span, p, small, label) {
+  color: inherit;
+}
+
+:is(
+  .warehouse-command,
+  .customer-profile-summary,
+  .product-live-preview
+) {
+  background: var(--color-surface-default);
+  color: var(--color-text-primary);
+}
+
+/* Semantic surfaces use tint + semantic foreground, never same-colour-on-same-colour. */
+:is(
+  .line-type-badge.shipping,
+  .product-review-warnings .ready,
+  .crm-step-green,
+  .job-form-section.green .job-form-heading > span,
+  .so-search-connectivity,
+  .health-status-corrected,
+  .bs-linked-badge,
+  .b2-good,
+  .so-customer-linked-chip
+) {
+  background: var(--color-status-success-bg);
+  color: var(--color-status-success-text);
+  border-color: var(--color-status-success-line);
+}
+
+:is(
+  .warehouse-flow-step.yellow > span,
+  .product-review-warnings .warning,
+  .crm-step-yellow,
+  .crm-step-yellow .crm-step-number,
+  .product-wizard-step.yellow > span,
+  .job-form-section.yellow .job-form-heading > span,
+  .job-process-strip .step-yellow span,
+  .job-form-warning,
+  .so-search-connectivity.offline,
+  .bs-alert
+) {
+  background: var(--color-status-attention-bg);
+  color: var(--color-status-attention-text);
+  border-color: var(--color-status-attention-line);
+}
+
+:is(
+  .crm-step-red,
+  .job-form-section.red .job-form-heading > span,
+  .ci-basket-item button,
+  .danger-button
+) {
+  background: var(--color-status-danger-bg);
+  color: var(--color-status-danger-text);
+  border-color: var(--color-status-danger-line);
+}
+
+:is(
+  .crm-step-purple,
+  .pill.purple
+) {
+  background: var(--color-status-info-bg);
+  color: var(--color-status-info-text);
+  border-color: var(--color-status-info-line);
+}
+
+/* Aqua is an accent/focus colour, not a large text-bearing fill. */
+:is(
+  .warehouse-section-head,
+  .product-review-grid > div,
+  .product-wizard-step.navy,
+  .product-wizard-step.cyan,
+  .product-wizard-step.blue,
+  .job-process-strip .step-blue,
+  .job-project-meta > div,
+  .job-project-stats > div,
+  .detail-list > div,
+  .supplier-address-card,
+  .po-timeline section,
+  .po-stat-list > div,
+  .po-linked-banner,
+  .po-check-grid > div,
+  .partial-line-metrics span,
+  .health-help-strip > div,
+  .ci-result-metric,
+  .bs-component-metrics,
+  .bs-wizard-type > div
+) {
+  background: var(--color-surface-subtle);
+  color: var(--color-text-primary);
+  border-color: var(--color-text-secondary);
+}
+
+/* Text cannot drop below the locked micro size anywhere in normal UI copy. */
+:is(
+  small,
+  label,
+  .field span,
+  .status-reason,
+  .muted,
+  .help,
+  .hint,
+  [class*="kicker"],
+  [class*="breadcrumb"]
+) {
+  font-size: max(var(--ps-font-micro), 1em);
+}
+
+/* Preserve the established dense table language while keeping headers readable. */
+table th {
+  font-size: var(--ps-font-label);
+  line-height: 1.25;
+}
+
+/* Active navigation remains underline-led with readable foreground/background. */
+:is(.tab-chip.active, .customer-tabs button.active, .ps-section-nav button.active) {
+  background: transparent;
+  color: var(--color-action-ink);
+}
+
+/* ========================================================================
+   DASHBOARD SHELL HEADER CORRECTION — v1.2.2
+   Final cascade owner for the Dashboard command/search bar. These selectors
+   intentionally live in the last design-system module so workspace rules
+   cannot reopen the header into a two-row white block.
+   ======================================================================== */
+
+.app.dashboard-mode .main {
+  padding: 0 !important;
+  background: var(--color-surface-canvas);
+}
+
+.app.dashboard-mode .topbar,
+.app.dashboard-mode .main .topbar {
+  display: block !important;
+  min-height: 54px;
+  margin: 0 !important;
+  padding: 7px 18px !important;
+  border: 0 !important;
+  border-bottom: 1px solid var(--color-action-primary-active) !important;
+  border-radius: 0;
+  background: var(--color-shell) !important;
+  box-shadow: none !important;
+}
+
+.app.dashboard-mode .topbar .title {
+  display: none !important;
+}
+
+.app.dashboard-mode .top-actions {
+  display: grid !important;
+  grid-template-columns: minmax(320px, 1fr) auto !important;
+  align-items: center !important;
+  justify-content: stretch !important;
+  gap: 12px !important;
+  width: 100% !important;
+  min-width: 0 !important;
+  max-width: none !important;
+  margin: 0 !important;
+}
+
+.app.dashboard-mode .topbar .search {
+  display: block;
+  width: 100%;
+  min-width: 0;
+}
+
+.app.dashboard-mode .topbar .search input {
+  width: 100%;
+  min-height: 38px !important;
+  height: 38px !important;
+  padding: 7px 12px !important;
+  border: 1px solid var(--color-action-primary-active) !important;
+  border-radius: 6px !important;
+  background: var(--color-shell-secondary) !important;
+  color: var(--color-surface-default) !important;
+  font-size: 12px !important;
+  box-shadow: none !important;
+}
+
+.app.dashboard-mode .topbar .search input::placeholder {
+  color: var(--color-shell-text-muted);
+  opacity: 1;
+}
+
+.app.dashboard-mode .top-utility-row {
+  display: flex !important;
+  align-items: center !important;
+  justify-content: flex-end !important;
+  flex-wrap: nowrap !important;
+  gap: 7px !important;
+  width: auto !important;
+  min-width: max-content;
+  margin: 0 !important;
+}
+
+.app.dashboard-mode #workspaceDensity {
+  display: none !important;
+}
+
+.app.dashboard-mode .notification-button,
+.app.dashboard-mode .theme-toggle,
+.app.dashboard-mode .icon-button {
+  flex: 0 0 34px;
+  width: 34px !important;
+  min-width: 34px !important;
+  height: 34px !important;
+  min-height: 34px !important;
+  padding: 0 !important;
+  border: 1px solid var(--color-action-primary-active) !important;
+  border-radius: 6px !important;
+  background: var(--color-shell-secondary) !important;
+  color: var(--color-shell-text) !important;
+  box-shadow: none !important;
+}
+
+.app.dashboard-mode .user-chip-button {
+  min-height: 36px !important;
+  height: 36px;
+  padding: 5px 9px 5px 6px !important;
+  border: 1px solid var(--color-action-primary-active) !important;
+  border-radius: 6px !important;
+  background: var(--color-shell-secondary) !important;
+  color: var(--color-surface-default) !important;
+  box-shadow: none !important;
+}
+
+.app.dashboard-mode .notification-button:hover,
+.app.dashboard-mode .theme-toggle:hover,
+.app.dashboard-mode .icon-button:hover,
+.app.dashboard-mode .user-chip-button:hover,
+.app.dashboard-mode .notification-button:focus-visible,
+.app.dashboard-mode .theme-toggle:focus-visible,
+.app.dashboard-mode .icon-button:focus-visible,
+.app.dashboard-mode .user-chip-button:focus-visible {
+  border-color: var(--color-action-ink) !important;
+  background: var(--color-action-primary-active) !important;
+}
+
+@media (max-width: 760px) {
+  .app.dashboard-mode .topbar,
+  .app.dashboard-mode .main .topbar {
+    padding: 7px 10px !important;
+  }
+
+  .app.dashboard-mode .top-actions {
+    grid-template-columns: minmax(0, 1fr) auto !important;
+    gap: 7px !important;
+  }
+
+  .app.dashboard-mode .top-utility-row {
+    gap: 5px !important;
+  }
+
+  .app.dashboard-mode .user-chip-button #topUserName,
+  .app.dashboard-mode .account-chevron {
+    display: none;
+  }
+}
+
+@media (max-width: 560px) {
+  .app.dashboard-mode .notification-button,
+  .app.dashboard-mode .theme-toggle,
+  .app.dashboard-mode .icon-button {
+    display: none !important;
+  }
+}
+
+/* ========================================================================
+   CROSS-PAGE COHESION — v1.5.2
+   Approved system direction: Dashboard visual authority + module-specific
+   information architecture. Scoped to Dashboard, Customers and Sales Orders.
+   ======================================================================== */
+
+:root{
+  --ps-cohesion-workspace-gap:13px;
+  --ps-cohesion-workspace-pad:14px;
+  --ps-cohesion-panel-radius:8px;
+  --ps-cohesion-control-radius:5px;
+  --ps-cohesion-control-height:34px;
+  --ps-cohesion-input-height:38px;
+}
+
+/* Keep the Dashboard as the visual authority rather than restyling it into
+   another module. Its hero remains the only large dark command surface. */
+#screen-dashboard{
+  min-width:0;
+}
+#screen-dashboard .dashboard-reference-workspace,
+#screen-dashboard .dashboard-final-workspace{
+  gap:var(--ps-cohesion-workspace-gap);
+  padding:var(--ps-cohesion-workspace-pad);
+}
+#screen-dashboard :is(.dashboard-commercial-shell,.dashboard-projects-shell,.dashboard-rail-card){
+  border-radius:var(--ps-cohesion-panel-radius);
+  box-shadow:none;
+}
+#screen-dashboard :is(.dashboard-commercial-head,.dashboard-projects-head,.dashboard-rail-head){
+  min-height:55px;
+}
+
+/* Customers and Sales Orders begin on the same calm canvas and workspace
+   rhythm used beneath the Dashboard command hero. */
+#screen-crm,
+#screen-salesorders{
+  min-width:0;
+  padding:var(--ps-cohesion-workspace-pad) !important;
+  background:var(--color-surface-canvas);
+}
+#screen-crm .crm-page,
+#screen-salesorders .sales-workspace.sales-command-page{
+  gap:var(--ps-cohesion-workspace-gap);
+}
+
+/* Shared page-heading language. */
+#screen-crm .crm-pagehead{
+  min-height:42px;
+  align-items:flex-end;
+  gap:12px;
+}
+#screen-crm .crm-pagehead h1,
+#screen-salesorders .sales-workspace.sales-command-page .record-id>strong{
+  margin:0;
+  color:var(--color-text-primary);
+  font-size:20px !important;
+  font-weight:800;
+  line-height:1.15;
+  letter-spacing:-.02em;
+}
+#screen-crm .crm-pagehead p{
+  margin:3px 0 0;
+  color:var(--color-text-secondary);
+  font-size:10px;
+  line-height:1.4;
+}
+
+/* One control language across the previous approved pages. */
+#screen-crm :is(.crm-page-actions,.crm-hero-actions) button,
+#screen-salesorders .sales-workspace.sales-command-page :is(.detail-actions,.so-command-toolbar-actions) button{
+  min-height:var(--ps-cohesion-control-height);
+  height:var(--ps-cohesion-control-height);
+  border-radius:var(--ps-cohesion-control-radius);
+  box-shadow:none;
+}
+#screen-crm :is(.crm-directory-head input,.crm-edit-page input,.crm-edit-page select),
+#screen-salesorders .sales-workspace.sales-command-page :is(input,select){
+  border-radius:var(--ps-cohesion-control-radius);
+}
+#screen-crm .crm-directory-head input,
+#screen-salesorders .sales-workspace.sales-command-page #salesOrderProductSearch{
+  min-height:var(--ps-cohesion-input-height) !important;
+  height:var(--ps-cohesion-input-height);
+}
+
+/* Customer workspace: preserve the accepted light account identity while
+   matching Dashboard spacing, card geometry and visual weight. */
+#screen-crm .crm-master-detail{
+  grid-template-columns:290px minmax(0,1fr);
+  gap:var(--ps-cohesion-workspace-gap);
+}
+#screen-crm :is(.crm-directory,.crm-hero,.crm-card,.crm-depth-card){
+  border:1px solid var(--color-border-default);
+  border-radius:var(--ps-cohesion-panel-radius);
+  background:var(--color-surface-default);
+  box-shadow:none;
+}
+#screen-crm .crm-hero-main{
+  grid-template-columns:60px minmax(0,1fr) auto;
+  gap:14px;
+  padding:16px 18px;
+}
+#screen-crm .crm-hero-avatar{
+  width:56px;
+  height:56px;
+  font-size:16px;
+}
+#screen-crm .crm-hero-copy h2{
+  font-size:20px;
+  font-weight:800;
+  line-height:1.15;
+}
+#screen-crm .crm-hero-copy p{
+  margin-top:4px;
+  font-size:10px;
+}
+#screen-crm .crm-relationship-meta{
+  gap:12px;
+  margin-top:7px;
+  font-size:9px;
+}
+#screen-crm .crm-hero-meta{
+  gap:6px;
+  margin-top:8px;
+}
+#screen-crm .crm-pill{
+  min-height:23px;
+  padding:3px 7px;
+  font-size:9px;
+}
+#screen-crm .crm-profile-tabs{
+  padding-inline:12px;
+}
+#screen-crm .crm-profile-tabs button{
+  min-height:42px;
+  height:42px;
+  padding:0 11px;
+  font-size:10px;
+}
+#screen-crm .crm-profile{
+  gap:var(--ps-cohesion-workspace-gap);
+}
+#screen-crm .crm-profile-page.active{
+  gap:var(--ps-cohesion-workspace-gap);
+}
+#screen-crm .crm-summary{
+  gap:10px;
+}
+#screen-crm .crm-stat{
+  min-height:94px;
+  padding:11px 12px;
+  border-radius:7px;
+}
+#screen-crm .crm-stat span{
+  font-size:9px;
+}
+#screen-crm .crm-stat strong{
+  font-size:20px;
+}
+#screen-crm .crm-cardhead,
+#screen-crm .crm-depth-card>header{
+  min-height:55px;
+  padding:10px 13px;
+}
+#screen-crm .crm-cardhead h3,
+#screen-crm .crm-depth-card h3{
+  font-size:15px;
+  font-weight:800;
+}
+#screen-crm .crm-cardhead p,
+#screen-crm .crm-depth-card header p{
+  font-size:10px;
+}
+#screen-crm .crm-cardbody,
+#screen-crm .crm-depth-body{
+  padding:11px 13px;
+}
+#screen-crm .crm-core-account .crm-cardhead{
+  min-height:55px;
+  padding:10px 13px;
+}
+#screen-crm .crm-core-account .crm-cardhead h3{
+  font-size:16px;
+}
+#screen-crm .crm-section-kicker{
+  font-size:9px;
+}
+#screen-crm .crm-core-band-head{
+  min-height:46px;
+  padding:8px 10px;
+}
+#screen-crm .crm-core-field{
+  min-height:58px;
+}
+#screen-crm .crm-address-row{
+  min-height:58px;
+}
+#screen-crm .crm-account-health-card .crm-cardhead{
+  min-height:55px;
+  padding:10px 13px;
+}
+
+/* Sales Order Command: keep Concept A as the information architecture while
+   giving it the same card rhythm and hierarchy as the Dashboard/CRM pages. */
+#screen-salesorders .sales-workspace.sales-command-page{
+  --so-command-gap:var(--ps-cohesion-workspace-gap);
+  background:transparent;
+  border-radius:0;
+}
+#screen-salesorders .sales-workspace.sales-command-page>.record-top{
+  min-height:55px;
+  padding:10px 13px !important;
+  border-radius:var(--ps-cohesion-panel-radius) var(--ps-cohesion-panel-radius) 0 0;
+  box-shadow:none;
+}
+#screen-salesorders .sales-workspace.sales-command-page>.record-shell{
+  gap:var(--ps-cohesion-workspace-gap) !important;
+  padding:13px !important;
+}
+#screen-salesorders .sales-workspace.sales-command-page>.record-shell>*{
+  border-radius:7px !important;
+  box-shadow:none !important;
+}
+#screen-salesorders .sales-workspace.sales-command-page .customer-profile-compact,
+#screen-salesorders .sales-workspace.sales-command-page .so-order-details-card,
+#screen-salesorders .sales-workspace.sales-command-page .so-fulfilment-card{
+  padding:11px 12px !important;
+}
+#screen-salesorders .sales-workspace.sales-command-page .so-card-heading{
+  min-height:38px;
+  margin:0 0 8px;
+  padding:0 0 8px;
+}
+#screen-salesorders .sales-workspace.sales-command-page .so-card-heading span{
+  font-size:9px;
+}
+#screen-salesorders .sales-workspace.sales-command-page .so-card-heading strong{
+  font-size:12px;
+}
+#screen-salesorders .sales-workspace.sales-command-page>.tabs-row{
+  padding-inline:12px !important;
+}
+#screen-salesorders .sales-workspace.sales-command-page>.tabs-row .tab-chip{
+  min-height:40px !important;
+  height:40px;
+  padding-inline:11px !important;
+  font-size:10px !important;
+}
+#screen-salesorders .sales-workspace.sales-command-page .so-command-toolbar{
+  min-height:45px;
+  padding:7px 10px;
+}
+#screen-salesorders .sales-workspace.sales-command-page .so-command-table th{
+  height:34px;
+  font-size:9px !important;
+}
+#screen-salesorders .sales-workspace.sales-command-page .so-command-table td{
+  min-height:47px;
+  padding:7px 9px !important;
+  font-size:10px !important;
+}
+#screen-salesorders .sales-workspace.sales-command-page .so-command-table .status-reason,
+#screen-salesorders .sales-workspace.sales-command-page .so-command-table .muted{
+  font-size:9px;
+}
+#screen-salesorders .sales-workspace.sales-command-page .so-entry-and-totals{
+  gap:var(--ps-cohesion-workspace-gap);
+  padding:var(--ps-cohesion-workspace-gap);
+}
+#screen-salesorders .sales-workspace.sales-command-page .so-add-items,
+#screen-salesorders .sales-workspace.sales-command-page .so-line-composer,
+#screen-salesorders .sales-workspace.sales-command-page .so-command-totals{
+  border-radius:7px;
+  box-shadow:none;
+}
+#screen-salesorders .sales-workspace.sales-command-page .so-add-items{
+  padding:11px 12px;
+}
+#screen-salesorders .sales-workspace.sales-command-page .so-command-totals-head{
+  padding:10px 11px 9px;
+}
+#screen-salesorders .sales-workspace.sales-command-page .so-command-totals .order-total-box{
+  padding:8px 11px;
+}
+
+/* Popovers/sheets retain operational clarity above the newly unified surfaces. */
+#salesOrderProductResults.so-product-results-portal{
+  border-radius:7px;
+  box-shadow:0 14px 32px color-mix(in srgb, var(--color-shell-secondary) 16.0%, transparent);
+}
+.so-batch-drawer{
+  border-left-color:var(--color-text-secondary);
+}
+.so-batch-family,
+.so-batch-hint{
+  border-radius:6px;
+  box-shadow:none;
+}
+
+/* Responsive behaviour relaxes density for touch without inventing another
+   visual system. */
+@media(max-width:1199px){
+  #screen-crm,
+  #screen-salesorders{
+    padding:12px !important;
+  }
+  #screen-crm .crm-master-detail{
+    grid-template-columns:250px minmax(0,1fr);
+  }
+}
+@media(max-width:899px){
+  #screen-crm .crm-master-detail{
+    grid-template-columns:1fr;
+  }
+  #screen-crm .crm-directory{
+    position:static;
+    max-height:300px;
+  }
+  #screen-salesorders .sales-workspace.sales-command-page>.record-shell{
+    gap:10px !important;
+  }
+}
+@media(max-width:599px){
+  #screen-crm,
+  #screen-salesorders{
+    padding:10px !important;
+  }
+  #screen-crm .crm-hero-main{
+    grid-template-columns:44px minmax(0,1fr);
+    padding:13px 14px;
+  }
+  #screen-crm .crm-hero-avatar{
+    width:42px;
+    height:42px;
+  }
+  #screen-crm .crm-hero-actions{
+    grid-column:1/-1;
+  }
+  #screen-crm .crm-profile-tabs button{
+    min-height:44px;
+    height:44px;
+  }
+  #screen-salesorders .sales-workspace.sales-command-page>.record-top{
+    padding:10px 12px !important;
+  }
+  #screen-salesorders .sales-workspace.sales-command-page>.record-shell{
+    padding:10px 12px !important;
+  }
+}
+
+
+
+/* ========================================================================
+   UPDATED PAGE PALETTE GUARD — Sales Order List implementation
+   Dashboard keeps its intentional dark command surfaces. CRM and Sales Orders
+   use calm light controls in light mode so legacy dark-form rules cannot leak
+   into approved workspaces.
+   ======================================================================== */
+
+body:not([data-theme="dark"]) #screen-crm :is(input:not([type="checkbox"]):not([type="radio"]),select,textarea),
+body:not([data-theme="dark"]) #screen-salesorders :is(input:not([type="checkbox"]):not([type="radio"]),select,textarea){
+  background:var(--color-surface-default) !important;
+  color:var(--color-text-primary) !important;
+  border-color:var(--color-text-secondary) !important;
+  box-shadow:none;
+}
+
+body:not([data-theme="dark"]) #screen-crm :is(input,textarea)::placeholder,
+body:not([data-theme="dark"]) #screen-salesorders :is(input,textarea)::placeholder{
+  color:var(--color-text-secondary) !important;
+  opacity:.72;
+}
+
+body:not([data-theme="dark"]) #screen-crm :is(input[readonly],textarea[readonly],input:disabled,select:disabled,textarea:disabled),
+body:not([data-theme="dark"]) #screen-salesorders :is(input[readonly],textarea[readonly],input:disabled,select:disabled,textarea:disabled){
+  background:var(--color-surface-subtle) !important;
+  color:var(--color-text-secondary) !important;
+}
+
+body:not([data-theme="dark"]) #screen-salesorders .so-list-kpi.attention{
+  background:var(--color-status-attention-bg) !important;
+  border-color:var(--color-status-attention-line) !important;
+}
+
+body:not([data-theme="dark"]) #screen-salesorders .so-list-kpi.attention>strong{
+  color:var(--color-status-attention-text) !important;
+}

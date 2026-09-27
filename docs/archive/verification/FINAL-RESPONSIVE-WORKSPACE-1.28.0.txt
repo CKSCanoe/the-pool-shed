@@ -1,0 +1,32 @@
+Pool Shed v1.28.0 - Responsive Workspace System
+===============================================
+
+Result:
+- full responsive workspace overhaul complete
+- Shared workspace has newer changes blocking panel removed from operational UI
+- underlying workspace conflict/data protection retained
+- duplicate Settings/Automation/Inventory/Product Hub/Fulfilment/Warehouse navigation removed
+- page intrinsic-width overflow corrected globally
+- desktop/laptop/tablet/mobile behaviour standardised
+- tablet sidebar now collapses at 940px
+- KPI grids respond to available width
+- long navigation wraps on desktop and scrolls locally on compact screens
+- wide tables scroll inside their own regions rather than widening pages
+- Dashboard project headings remain readable
+- CRM wizard reflows on tablet and phone
+
+Browser responsive acceptance:
+498 structural checks across 15 modules
+0 hard page overflow
+0 duplicate generic navs on self-managed modules
+0 blocking workspace conflict banners
+0 page/runtime errors
+
+Production build: PASS
+Public runtime: PASS
+Dist runtime: PASS
+Release assets: PASS (60 referenced assets; JS parses)
+Core operational regression suites: PASS
+
+Known sandbox-only limitation:
+The broad validator stops at @electric-sql/pglite database-backed tests because that dependency is not installed in this extracted execution environment. Post-boundary non-database tests pass.

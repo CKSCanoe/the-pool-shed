@@ -1,0 +1,11 @@
+import fs from 'node:fs';import assert from 'node:assert/strict';
+const ws=fs.readFileSync('public/settings-command-workspace.js','utf8');const cssPath='public/assets/css/system/58-foundation-authority.css';
+assert.match(ws,/Permission Inspector/,'Roles & Permissions must include Permission Inspector');
+assert.match(ws,/data-permission-inspector-user/,'Inspector needs user selector');
+assert.match(ws,/data-permission-inspector-module/,'Inspector needs module selector');
+assert.match(ws,/data-permission-inspector-operation/,'Inspector needs operation selector');
+assert.match(ws,/sec\.explain\(/,'Inspector must use canonical permission explanation API');
+assert.match(ws,/PoolShedAudit/,'Audit & Security must prefer canonical audit authority');
+assert.ok(fs.existsSync(cssPath),'Foundation Authority CSS module must exist');
+const css=fs.readFileSync(cssPath,'utf8');assert.match(css,/permission-inspector/);assert.ok(!/#[0-9a-f]{3,8}\b/i.test(css),'Foundation CSS must use semantic tokens, not literal hex colours');
+console.log('PASS v1.26 Permission Inspector and canonical Audit Settings surface');

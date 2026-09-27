@@ -1,0 +1,19 @@
+Pool Shed v1.27.3 - Azzy Panel Visibility & Compact Layout Fix
+==============================================================
+
+Fixed from supplied production screenshot:
+- all four Azzy modes visible
+- close button visible
+- source chips readable
+- quick actions readable
+- short answers no longer create a tall blank panel
+- long answers scroll inside a capped conversation area
+- mobile mode layout improved
+- service worker/runtime cache identity advanced to 1.27.3
+
+No intended business-data or workflow changes.
+
+Verification passed:
+Azzy/Automation, Actions/Approvals, Foundation Authority, CSS architecture,
+semantic/colour contrast, release assets, public/dist runtime validation and
+production build.

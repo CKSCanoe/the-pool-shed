@@ -1,0 +1,31 @@
+PASS Analytics Command governed metrics, data-quality rules and management attention
+PASS Analytics reporting catalogue, joins, CSV/Excel export, full-system package and export audit
+PASS Analytics Command workspace, reporting areas and visual authority selectors
+PASS Analytics Command action coverage contract
+PASS Analytics visual authority guard
+PASS Analytics cross-module drill-down and export permission bridge
+PASS Analytics Command v1.17.0 release wiring
+PASS Finance Command engine AR/AP, allocation, credit exposure, three-way match, reconciliation and month-end controls
+PASS Supplier Command engine credit, timers, smart flags, supplier products and governed price lists
+PASS v1.14 Goods Note control engine pick runs, dispatch, lock and return handoff
+PASS Inventory control engine location, van readiness, alerts and connected transfer authority
+PASS Product Hub engine universal search and existing-SKU bundle rules
+Project 360 engine: margin thresholds, material planning, live stock, inbound, project-use/damage movements and invoice exposure passed.
+PASS Purchase Order Supplier Command structure and seven-tab contract
+PASS FIFO ignores PO-origin priority and allocates exact SKU oldest-first
+PASS FIFO tie-break is due-date then Sales Order ID and leaves surplus free
+PASS Receiving and Quarantine never hard-allocate
+PASS manual reallocation is reason-required, quantity-safe, status-aware and auditable
+Focused Dashboard checks passed with approved right-rail composition.
+Readability hardening checks passed: no remaining sub-micro copy and critical command surfaces have explicit readable foreground/background.
+CSS architecture checks passed: 1 runtime bundle, 21 ownership modules, 6 separate print styles, shared primitives owned by design system.
+All 44 referenced assets exist; every public/server/API JavaScript file parses.
+
+> the-pool-shed@1.17.0 build
+> bash scripts/build.sh
+
+Built app.css from 24 maintained CSS modules.
+Runtime validation passed: 0 inline scripts, service worker, offline sales search, catalogue intelligence, PO supplier-offer search, partial shipment balance test, solid catalogue search UI and required app functions.
+Built deployable static application into /mnt/data/poolshed_overhaul_work/Pool-Shed-1.17.0-Analytics-Command/dist
+Runtime validation passed: 0 inline scripts, service worker, offline sales search, catalogue intelligence, PO supplier-offer search, partial shipment balance test, solid catalogue search UI and required app functions.
+Runtime validation passed: 0 inline scripts, service worker, offline sales search, catalogue intelligence, PO supplier-offer search, partial shipment balance test, solid catalogue search UI and required app functions.

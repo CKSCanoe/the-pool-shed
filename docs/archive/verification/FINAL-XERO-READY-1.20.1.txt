@@ -1,0 +1,9 @@
+
+> the-pool-shed@1.20.1 test:xero-ready
+> node scripts/test-xero-readiness-engine-v1201.mjs && node scripts/test-xero-readiness-api-v1201.mjs && node scripts/test-xero-readiness-ui-v1201.mjs && node scripts/test-xero-readiness-release-v1201.mjs && node scripts/test-finance-command-api-v116.mjs
+
+PASS Xero readiness engine safe-mode and granular-scope contract
+PASS Xero API remains status-visible but provider-locked in Ready mode
+PASS Xero readiness UI contract
+PASS v1.20.1 Xero connection-ready release wiring
+PASS Finance Command Xero API enrichment contract

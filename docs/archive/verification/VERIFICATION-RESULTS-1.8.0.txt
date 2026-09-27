@@ -1,0 +1,43 @@
+Pool Shed v1.8.0 Warehouse Precision Desk
+
+PASS: test-warehouse-fifo-allocation-v180.mjs
+PASS: test-warehouse-precision-desk-v180.mjs
+PASS: test-warehouse-visual-guard-v180.mjs
+PASS: test-ui-ownership-v180.mjs
+PASS: test-sales-order-command-compact-v180.mjs
+PASS: test-sales-order-finder-polish-v174.mjs (release-aware)
+PASS: validate-runtime.mjs public
+PASS: test-css-architecture.mjs (16 modules)
+PASS: test-visual-consistency.mjs
+PASS: test-contrast-text-rhythm.mjs
+PASS: test-colour-contrast.mjs
+PASS: test-readability-hardening.mjs
+PASS: test-catalogue-health-actions.mjs
+PASS: test-bundle-studio.mjs
+PASS: test-fulfilment-lifecycle.mjs
+PASS: test-release-cleanup.mjs
+PASS: test-bundle-sales-intelligence.mjs
+PASS: test-po-catalogue-performance.mjs
+PASS: test-po-picker-ui.mjs
+PASS: test-production-overhaul.mjs
+PASS: test-sales-table-header.mjs
+PASS: test-sales-order-list-option-a.mjs
+PASS: test-sales-order-detail-v162.mjs
+PASS: test-sales-order-asset-freshness-v162.mjs (release-aware)
+PASS: test-sales-order-customer-picker.mjs
+PASS: test-receiving-ledger.mjs
+PASS: test-professional-workspace.mjs
+PASS: test-workspace-sync.mjs
+PASS: test-ledger-performance.mjs
+PASS: test-accounting.mjs
+PASS: test-accounting-api.mjs
+PASS: test-project-engine.mjs
+PASS: test-project-ai.mjs
+PASS: test-bundle-system-v2.mjs
+PASS: test-dashboard-review.mjs
+PASS: test-dashboard-command.mjs
+PASS: test-release-assets.mjs
+PASS: npm run build
+
+NOT EXECUTED: test-accounting-database.mjs, test-workspace-database.mjs, test-project-database.mjs because @electric-sql/pglite is absent from the extracted package.
+BROWSER ACCEPTANCE: not executable in this environment because Chromium blocks localhost and file URLs by administrator policy.

@@ -1,0 +1,35 @@
+{
+  "release": "1.27.2",
+  "purpose": "Azzy floating-assistant contrast and readability correction",
+  "sourceChanges": [
+    "CURRENT-RELEASE.txt",
+    "package.json",
+    "public/assets/css/system/52-automation-command.css",
+    "public/assets/css/app.css",
+    "public/automation-command-workspace.js",
+    "public/index.html",
+    "public/service-worker.js",
+    "public/assets/js/01-legacy-01.js",
+    "public/production-readiness-engine.js",
+    "public/settings-command-workspace.js",
+    "scripts/build.sh",
+    "scripts/test-deployment-hotfix-v1271.mjs",
+    "scripts/test-azzy-contrast-v1272.mjs",
+    "scripts/test-release-v1272.mjs"
+  ],
+  "generatedBuildChanges": [
+    "dist/assets/css/app.css",
+    "dist/assets/css/system/52-automation-command.css",
+    "dist/automation-command-workspace.js",
+    "dist/index.html",
+    "dist/service-worker.js",
+    "dist/assets/js/01-legacy-01.js",
+    "dist/production-readiness-engine.js",
+    "dist/settings-command-workspace.js"
+  ],
+  "documentation": [
+    "AZZY-CONTRAST-AUDIT-1.27.2.md",
+    "FINAL-AZZY-CONTRAST-1.27.2.txt",
+    "CHANGED-FILES-1.27.2.json"
+  ]
+}
