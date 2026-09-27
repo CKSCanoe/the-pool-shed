@@ -5,6 +5,6 @@ assert.ok(pkg.devDependencies?.['@electric-sql/pglite'],'PGlite must be declared
 assert.ok(pkg.devDependencies?.playwright||pkg.devDependencies?.['playwright-core'],'browser acceptance dependency must be declared');
 assert.match(pkg.scripts?.['test:database']||'',/test-accounting-database\.mjs/);assert.match(pkg.scripts?.['test:database']||'',/test-workspace-database\.mjs/);assert.match(pkg.scripts?.['test:database']||'',/test-project-database\.mjs/);
 assert.match(pkg.scripts?.['test:foundation']||'',/test-identity-authority-v126\.mjs/);assert.match(pkg.scripts?.['test:foundation']||'',/test-record-router-v126\.mjs/);
-const build=fs.readFileSync('scripts/build-css.mjs','utf8');assert.match(build,/58-foundation-authority\.css/,'foundation CSS must compile into app.css');
+const build=fs.readFileSync('scripts/css-modules.mjs','utf8');assert.match(build,/58-foundation-authority\.css/,'foundation CSS must compile into app.css');
 const browser=fs.readFileSync('scripts/test-browser-smoke.cjs','utf8');assert.match(browser,/PoolShedRouter/,'browser acceptance must exercise canonical router');assert.match(browser,/Permission Inspector/,'browser acceptance must cover Permission Inspector');
 console.log(`PASS v1.26 mandatory browser/database/foundation quality-gate retained on v${pkg.version}`);

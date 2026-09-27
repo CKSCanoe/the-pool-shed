@@ -1,5 +1,5 @@
 import fs from 'node:fs';import assert from 'node:assert/strict';
-const cssPath='public/assets/css/system/47-inventory-location-control.css';assert(fs.existsSync(cssPath),'Inventory CSS authority must exist');const css=fs.readFileSync(cssPath,'utf8');const build=fs.readFileSync('scripts/build-css.mjs','utf8');
+const cssPath='public/assets/css/system/47-inventory-location-control.css';assert(fs.existsSync(cssPath),'Inventory CSS authority must exist');const css=fs.readFileSync(cssPath,'utf8');const build=fs.readFileSync('scripts/css-modules.mjs','utf8');
 assert(build.includes('47-inventory-location-control.css'),'Inventory CSS must be included in generated app.css');
 assert(css.includes('.inventory-control-v112'),'Inventory selectors must be scoped');
 assert(css.includes('@media'),'Inventory CSS needs responsive guards');

@@ -1,5 +1,6 @@
 import fs from 'node:fs';
 import path from 'node:path';
+import { CSS_MODULES } from './css-modules.mjs';
 
 const root = process.cwd();
 const read = (...parts) => fs.readFileSync(path.join(root, ...parts), 'utf8');
@@ -36,6 +37,12 @@ if (!legacyRuntime.includes(`navigator.serviceWorker.register("./service-worker.
 if (!sw.includes(`const CACHE = 'pool-shed-v${release}-`)) {
   fail(`Service worker cache namespace is not release-coherent with ${release}`);
 }
+if (!sw.includes("CORE.map(url => new Request(url, { cache: 'reload' }))")) {
+  fail('Service-worker install must revalidate core assets instead of trusting stale HTTP cache entries');
+}
+if (!sw.includes('isVersionedRuntimeAsset') || !sw.includes("fetch(request, { cache: 'no-store' })")) {
+  fail('Versioned runtime CSS/JS must use network-first delivery with cache fallback');
+}
 const coreMatch = sw.match(/const CORE = (\[[^;]+\]);/s);
 if (!coreMatch) {
   fail('Could not read service-worker CORE list');
@@ -68,8 +75,28 @@ for (const required of ['transform: none', 'filter: none', 'box-shadow: none']) 
   if (!buttonHover.includes(required)) fail(`Authoritative design-system button:hover is missing ${required}`);
 }
 
-for (const module of ['system/34-customer-workspace.css','system/35-warehouse-workspace.css','system/41-sales-order-command.css','system/42-sales-order-parity.css','system/43-sales-order-finder-polish.css','system/44-purchase-order-command.css','system/45-project-360-command.css','system/46-product-hub-command.css','system/47-inventory-location-control.css','system/48-fulfilment-command.css']) {
-  if (!cssTest.includes(`"${module}"`)) fail(`CSS architecture test does not cover late module ${module}`);
+if (!cssTest.includes('CSS_MODULES')) {
+  fail('CSS architecture test must consume the canonical CSS module manifest');
+}
+for (const module of [
+  'system/49-supplier-command.css',
+  'system/50-finance-command.css',
+  'system/51-analytics-command.css',
+  'system/52-automation-command.css',
+  'system/53-settings-command.css',
+  'system/54-production-readiness.css',
+  'system/55-login-command.css',
+  'system/56-executive-premium-components.css',
+  'system/57-notifications-command.css',
+  'system/58-foundation-authority.css',
+  'system/59-my-work-action-authority.css',
+  'system/59-quote-studio.css',
+  'system/60-responsive-layout.css',
+  'system/61-project-design-parity.css',
+  'system/62-record-controls.css',
+  'system/63-workspace-compatibility.css',
+]) {
+  if (!CSS_MODULES.includes(module)) fail(`Canonical CSS manifest does not cover late module ${module}`);
 }
 
 if (failures.length) {

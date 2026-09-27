@@ -9,6 +9,22 @@
 
 /* Core surfaces are deliberately tied to semantic roles. */
 
+.ps-skip-link {
+  position: fixed;
+  inset-block-start: var(--ps-space-2, 8px);
+  inset-inline-start: var(--ps-space-2, 8px);
+  z-index: 10000;
+  padding: 10px 14px;
+  border: 2px solid var(--color-action-ink);
+  border-radius: var(--ps-radius-control, 5px);
+  background: var(--color-surface-default);
+  color: var(--color-text-primary);
+  font-weight: 800;
+  text-decoration: none;
+  transform: translateY(calc(-100% - 16px));
+}
+.ps-skip-link:focus { transform: translateY(0); }
+
 .main { background:var(--color-surface-canvas); }
 .sidebar { background:var(--color-shell); }
 button:focus-visible,

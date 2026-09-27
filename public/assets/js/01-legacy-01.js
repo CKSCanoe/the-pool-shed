@@ -2206,6 +2206,7 @@ const seed = {
         });
         const meta = tabs.find(function(tab) { return tab.id === active; }) || tabs[0];
         document.getElementById("pageTitle").textContent = meta.title;
+        document.title = meta.title === "The Pool Shed" ? "The Pool Shed" : meta.title + " · The Pool Shed";
         document.getElementById("pageIntro").textContent = meta.intro;
         const crumb = document.getElementById("breadcrumbCurrent");
         if (crumb) crumb.textContent = meta.title;
@@ -14041,27 +14042,63 @@ const seed = {
         return results.slice(0, 18);
       }
 
+      let globalSearchActiveIndex = -1;
+
+      function globalSearchOptionButtons() {
+        return Array.from(document.querySelectorAll("[data-global-result]"));
+      }
+
+      function setGlobalSearchActiveIndex(index) {
+        const input = document.getElementById("globalSearch");
+        const options = globalSearchOptionButtons();
+        if (!input || !options.length) {
+          globalSearchActiveIndex = -1;
+          if (input) input.removeAttribute("aria-activedescendant");
+          return;
+        }
+        globalSearchActiveIndex = (index + options.length) % options.length;
+        options.forEach(function(option, optionIndex) {
+          const activeOption = optionIndex === globalSearchActiveIndex;
+          option.classList.toggle("active", activeOption);
+          option.setAttribute("aria-selected", String(activeOption));
+        });
+        const selected = options[globalSearchActiveIndex];
+        input.setAttribute("aria-activedescendant", selected.id);
+        selected.scrollIntoView({ block: "nearest" });
+      }
+
       function renderGlobalSearchResults() {
         const box = document.getElementById("globalSearchResults");
-        if (!box) return;
+        const input = document.getElementById("globalSearch");
+        if (!box || !input) return;
         const q = searchTerm();
         const results = globalSearchResults();
+        globalSearchActiveIndex = -1;
+        input.removeAttribute("aria-activedescendant");
         if (q.length < 2) {
           box.classList.add("hidden");
           box.innerHTML = "";
+          input.setAttribute("aria-expanded", "false");
           return;
         }
         const rows = results.map(function(result, index) {
-          return '<button type="button" class="global-result" data-global-result="' + result.action + '|' + escapeHtml(result.id) + '"><div class="global-result-top"><strong>' + escapeHtml(result.title) + '</strong><span class="global-result-type">' + escapeHtml(result.type) + '</span></div><small>' + escapeHtml(result.snippet) + '</small></button>';
-        }).join("") || '<div class="global-result"><div class="global-result-top"><strong>No results found</strong><span class="global-result-type">Search</span></div><small>Try a sales order, PO, customer, supplier, SKU, barcode, location or tracking reference.</small></div>';
+          return '<button type="button" class="global-result" role="option" aria-selected="false" id="globalSearchOption-' + index + '" data-global-result="' + result.action + '|' + escapeHtml(result.id) + '"><div class="global-result-top"><strong>' + escapeHtml(result.title) + '</strong><span class="global-result-type">' + escapeHtml(result.type) + '</span></div><small>' + escapeHtml(result.snippet) + '</small></button>';
+        }).join("") || '<div class="global-result" role="status"><div class="global-result-top"><strong>No results found</strong><span class="global-result-type">Search</span></div><small>Try a sales order, PO, customer, supplier, SKU, barcode, location or tracking reference.</small></div>';
         box.innerHTML = rows;
         box.classList.remove("hidden");
+        input.setAttribute("aria-expanded", "true");
         bindGlobalSearchResultButtons();
       }
 
       function closeGlobalSearchResults() {
         const box = document.getElementById("globalSearchResults");
+        const input = document.getElementById("globalSearch");
+        globalSearchActiveIndex = -1;
         if (box) box.classList.add("hidden");
+        if (input) {
+          input.setAttribute("aria-expanded", "false");
+          input.removeAttribute("aria-activedescendant");
+        }
       }
 
       function clearGlobalSearch() {
@@ -14401,6 +14438,8 @@ const seed = {
       let globalSearchTimer;
       document.getElementById("globalSearch").addEventListener("input", function() {
         clearTimeout(globalSearchTimer);
+        globalSearchActiveIndex = -1;
+        this.removeAttribute("aria-activedescendant");
         if (!this.value.trim()) return renderGlobalSearchResults();
         globalSearchTimer = setTimeout(renderGlobalSearchResults,120);
       });
@@ -14409,13 +14448,37 @@ const seed = {
         if (event.key === "Escape") {
           event.preventDefault();
           clearGlobalSearch();
+          return;
+        }
+        if (event.key === "ArrowDown" || event.key === "ArrowUp") {
+          const options = globalSearchOptionButtons();
+          if (!options.length) return;
+          event.preventDefault();
+          const direction = event.key === "ArrowDown" ? 1 : -1;
+          const start = globalSearchActiveIndex < 0 ? (direction > 0 ? 0 : options.length - 1) : globalSearchActiveIndex + direction;
+          setGlobalSearchActiveIndex(start);
+          return;
         }
         if (event.key === "Enter") {
-          const first = document.querySelector("[data-global-result]");
-          if (first) {
+          const options = globalSearchOptionButtons();
+          const selected = globalSearchActiveIndex >= 0 ? options[globalSearchActiveIndex] : options[0];
+          if (selected) {
             event.preventDefault();
-            const parts = first.dataset.globalResult.split("|");
+            const parts = selected.dataset.globalResult.split("|");
             openGlobalSearchResult(parts[0], parts.slice(1).join("|"));
+          }
+        }
+      });
+
+      document.addEventListener("keydown", function(event) {
+        if (event.key !== "Escape") return;
+        const menu = document.getElementById("userMenuDropdown");
+        const button = document.getElementById("userMenuButton");
+        if (menu && !menu.classList.contains("hidden")) {
+          menu.classList.add("hidden");
+          if (button) {
+            button.setAttribute("aria-expanded", "false");
+            button.focus();
           }
         }
       });

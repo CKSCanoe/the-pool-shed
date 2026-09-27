@@ -122,7 +122,7 @@ html,body,.app,.main{max-width:100%;min-width:0}
    5. Laptop reflow
    -------------------------------------------------------------------------- */
 @media (max-width:1200px){
-  .topbar{flex-wrap:wrap!important;align-items:flex-start!important}
+  .main > .topbar{flex-wrap:wrap!important;align-items:flex-start!important}
   .top-actions{width:100%!important;max-width:none!important;min-width:0!important}
 
   .settings-command-head,.analytics-head,.automation-head,.inventory-head,
@@ -167,7 +167,7 @@ html,body,.app,.main{max-width:100%;min-width:0}
   .ps-mobile-menu{display:inline-flex!important;align-items:center;justify-content:center}
 
   .main{padding:18px!important;width:100%!important;max-width:100%!important}
-  .topbar{flex-direction:column!important;gap:12px!important}
+  .main > .topbar{flex-direction:column!important;gap:12px!important}
   .topbar .title{width:100%!important;min-width:0!important}
   .top-actions{width:100%!important;min-width:0!important}
   .top-utility-row{justify-content:flex-start!important;flex-wrap:wrap!important}

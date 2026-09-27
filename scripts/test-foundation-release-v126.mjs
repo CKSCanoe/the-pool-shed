@@ -7,7 +7,7 @@ const index=fs.readFileSync('public/index.html','utf8');
 const sw=fs.readFileSync('public/service-worker.js','utf8');
 const legacy=fs.readFileSync('public/assets/js/01-legacy-01.js','utf8');
 const readiness=fs.readFileSync('public/production-readiness-engine.js','utf8');
-const buildCss=fs.readFileSync('scripts/build-css.mjs','utf8');
+const buildCss=fs.readFileSync('scripts/css-modules.mjs','utf8');
 assert(major>1||(major===1&&minor>=26),'Foundation Authority requires v1.26.0 or newer');
 assert.match(sw,new RegExp(`pool-shed-v${release.replace(/\\./g,'\\\\.')}-`));
 assert.match(readiness,new RegExp(`VERSION='${release.replace(/\\./g,'\\\\.')}'`));

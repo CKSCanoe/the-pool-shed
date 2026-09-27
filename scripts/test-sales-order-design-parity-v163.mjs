@@ -9,7 +9,7 @@ const css=fs.readFileSync('public/assets/css/system/41-sales-order-command.css',
 const checks=[
   ['release version',pkg.version==='1.7.5'],
   ['single app stylesheet remains authoritative',index.includes('assets/css/app.css?v=1.7.5') && !index.includes('sales-order-command.css')],
-  ['final sales-order module is last in css build order',fs.readFileSync('scripts/build-css.mjs','utf8').indexOf('41-sales-order-command.css')>fs.readFileSync('scripts/build-css.mjs','utf8').indexOf('40-design-system.css')],
+  ['final sales-order module is last in css build order',fs.readFileSync('scripts/css-modules.mjs','utf8').indexOf('41-sales-order-command.css')>fs.readFileSync('scripts/css-modules.mjs','utf8').indexOf('40-design-system.css')],
   ['sales workspace versioned',index.includes('sales-workspace.js?v=1.7.5')],
   ['service worker cache advanced',sw.includes('pool-shed-v1.7.5-ui-ownership')],
   ['service worker precaches versioned app css',sw.includes('assets/css/app.css?v=1.7.5')],

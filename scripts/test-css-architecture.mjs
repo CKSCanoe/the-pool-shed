@@ -1,33 +1,11 @@
 import fs from "node:fs";
 import path from "node:path";
+import { CSS_MODULES } from "./css-modules.mjs";
 
 const root = process.cwd();
 const html = fs.readFileSync(path.join(root, "public", "index.html"), "utf8");
 const cssRoot = path.join(root, "public", "assets", "css");
-const modules = [
-  "system/00-color-tokens.css",
-  "system/10-legacy-compat.css",
-  "system/20-sales-product.css",
-  "system/21-catalogue.css",
-  "system/22-bundles.css",
-  "system/23-platform-feature-overrides.css",
-  "system/24-product-hub.css",
-  "system/30-workspace-core.css",
-  "system/31-project-workspace.css",
-  "system/32-sales-workspace.css",
-  "system/33-workspace-polish.css",
-  "system/34-customer-workspace.css",
-  "system/35-warehouse-workspace.css",
-  "system/40-design-system.css",
-  "system/41-sales-order-command.css",
-  "system/42-sales-order-parity.css",
-  "system/43-sales-order-finder-polish.css",
-  "system/44-purchase-order-command.css",
-  "system/45-project-360-command.css",
-  "system/46-product-hub-command.css",
-  "system/47-inventory-location-control.css",
-  "system/48-fulfilment-command.css",
-];
+const modules = CSS_MODULES;
 const failures = [];
 
 const stylesheetLinks = [...html.matchAll(/<link[^>]+rel=["']stylesheet["'][^>]*>/gi)];

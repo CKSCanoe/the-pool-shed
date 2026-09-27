@@ -5,7 +5,7 @@ const pkg=JSON.parse(fs.readFileSync('package.json','utf8'));
 
 const legacy=fs.readFileSync('public/assets/js/01-legacy-01.js','utf8');
 const css=fs.existsSync('public/assets/css/system/55-login-command.css')?fs.readFileSync('public/assets/css/system/55-login-command.css','utf8'):'';
-const build=fs.readFileSync('scripts/build-css.mjs','utf8');
+const build=fs.readFileSync('scripts/css-modules.mjs','utf8');
 
 assert(legacy.includes('One secure place to <span>run the operation.</span>'),'premium staff login hero missing');
 assert(legacy.includes('Pool Bros staff access'),'staff access copy missing');

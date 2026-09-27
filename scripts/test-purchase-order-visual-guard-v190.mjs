@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';
 const cssPath='public/assets/css/system/44-purchase-order-command.css';
 assert(fs.existsSync(cssPath),'Purchase Order command stylesheet must exist');
 const css=fs.readFileSync(cssPath,'utf8');
-const build=fs.readFileSync('scripts/build-css.mjs','utf8');
+const build=fs.readFileSync('scripts/css-modules.mjs','utf8');
 for(const token of ['.purchase-command-page','.po-command-summary','.po-command-tabs','.po-table-wrap','.po-command-table','.po-returns-layout','.po-return-form','.wh-easy-booking']) assert(css.includes(token),`Missing scoped PO/booking style ${token}`);
 assert(css.includes('overflow-x:auto'),'PO tables must guard horizontal overflow');
 assert(/@media\s*\(max-width:\s*900px\)/.test(css),'PO command must have compressed desktop/tablet guard');

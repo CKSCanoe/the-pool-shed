@@ -38,6 +38,7 @@ node "$ROOT/scripts/test-azzy-panel-v1273.mjs"
 node "$ROOT/scripts/test-azzy-live-integration-v1451.mjs"
 node "$ROOT/scripts/test-release-v1273.mjs"
 node "$ROOT/scripts/test-responsive-release-v128.mjs"
+node "$ROOT/scripts/test-accessibility-shell-v1451.mjs"
 
 node "$ROOT/scripts/build-css.mjs"
 test -f "$ROOT/public/production-readiness-engine.js"

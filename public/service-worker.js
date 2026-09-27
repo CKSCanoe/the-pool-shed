@@ -1,4 +1,4 @@
-const CACHE = 'pool-shed-v1.45.1-quote-studio-command';
+const CACHE = 'pool-shed-v1.45.1-css-authority';
 const CORE = ["./","./index.html","./assets/img/pb-logo.png","./assets/css/app.css?v=1.45.1","./config.js?v=1.45.1","./identity-authority.js?v=1.45.1","./audit-authority.js?v=1.45.1","./assets/js/01-legacy-01.js?v=1.45.1","./assets/js/02-legacy-02.js?v=1.45.1","./assets/js/03-pb-import-governance-v192.js?v=1.45.1","./assets/js/04-pb-product-profile-v196-fix.js?v=1.45.1","./assets/js/05-pb-v1100-inventory-product-hub.js?v=1.45.1","./business-media.js?v=1.45.1","./product-images.js?v=1.45.1","./sales-order-search.js?v=1.45.1","./catalogue-intelligence.js?v=1.45.1","./partial-fulfilment.js?v=1.45.1","./assets/js/06-pb-product-title-persistence-v115-fix.js?v=1.45.1","./bundle-engine.js?v=1.45.1","./bundle-system.js?v=1.45.1","./bundle-studio.js?v=1.45.1","./bundle-sales-intelligence.js?v=1.45.1","./pool-shed-overhaul.js?v=1.45.1","./sales-order-customer-picker.js?v=1.45.1","./professional-workspace.js?v=1.45.1","./accounting-workspace.js?v=1.45.1","./finance-command-engine.js?v=1.45.1","./finance-command-workspace.js?v=1.45.1","./analytics-command-engine.js?v=1.45.1","./analytics-command-workspace.js?v=1.45.1","./settings-permissions-engine.js?v=1.45.1","./record-router.js?v=1.45.1","./notifications-command-engine.js?v=1.45.1","./action-authority.js?v=1.45.1","./approval-authority.js?v=1.45.1","./action-approval-integrations.js?v=1.45.1","./action-source-adapters.js?v=1.45.1","./my-work-workspace.js?v=1.45.1","./notifications-command-workspace.js?v=1.45.1","./assistant-engine.js?v=1.45.1","./automation-command-engine.js?v=1.45.1","./automation-command-workspace.js?v=1.45.1","./azzy-live.css?v=1.45.1","./azzy-live.js?v=1.45.1","./assets/img/azzy-live.png","./assets/img/azzy-live-64.png","./production-readiness-engine.js?v=1.45.1","./settings-command-workspace.js?v=1.45.1","./project-engine.js?v=1.45.1","./project-documents.js?v=1.45.1","./project-billing.js?v=1.45.1","./project-workspace.js?v=1.45.1","./project-design-parity.js?v=1.45.1","./project-setup-tools.js?v=1.45.1","./sales-workspace.js?v=1.45.1","./warehouse-workspace.js?v=1.45.1","./purchase-workspace.js?v=1.45.1","./supplier-command-engine.js?v=1.45.1","./supplier-command-workspace.js?v=1.45.1","./product-hub-engine.js?v=1.45.1","./product-hub-workspace.js?v=1.45.1","./inventory-control-engine.js?v=1.45.1","./inventory-workspace.js?v=1.45.1","./fulfilment-control-engine.js?v=1.45.1","./fulfilment-workspace.js?v=1.45.1","./dashboard-review-engine.js?v=1.45.1","./business-review.js?v=1.45.1","./quarterly-review.js?v=1.45.1","./quote-studio.css?v=1.45.1","./quote-studio-engine.js?v=1.45.1","./quote-studio-workspace.js?v=1.45.1","./proposal.html","./quote-customer-portal.css?v=1.45.1","./quote-customer-portal.js?v=1.45.1"];
 const SUPABASE_CDN = 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2';
 
@@ -6,7 +6,7 @@ self.addEventListener('install', event => {
   event.waitUntil(
     caches.open(CACHE)
       .then(async cache => {
-        await cache.addAll(CORE);
+        await cache.addAll(CORE.map(url => new Request(url, { cache: 'reload' })));
         try { await cache.add(SUPABASE_CDN); } catch (_) {}
       })
       .then(() => self.skipWaiting())
@@ -28,6 +28,9 @@ self.addEventListener('fetch', event => {
   // Financial and authenticated responses must never enter the offline cache.
   if (url.pathname.startsWith('/api/') || request.headers.has('Authorization')) return;
   const isNavigation = request.mode === 'navigate' || request.destination === 'document';
+  const isVersionedRuntimeAsset = url.origin === location.origin &&
+    url.searchParams.has('v') &&
+    (request.destination === 'style' || request.destination === 'script' || /\.(?:css|js)$/.test(url.pathname));
 
   if (isNavigation) {
     const isCustomerProposal = url.pathname.endsWith('/proposal.html') || url.pathname.endsWith('/proposal');
@@ -43,6 +46,24 @@ self.addEventListener('fetch', event => {
         .catch(() => isCustomerProposal
           ? caches.match(request).then(match => match || Response.error())
           : caches.match('./index.html').then(match => match || caches.match('./')))
+    );
+    return;
+  }
+
+  // Versioned runtime CSS/JS is network-first. This prevents an installed client
+  // from pinning an older stylesheet when a deployment changes an asset without
+  // changing the public release query string. Cached copies remain the offline fallback.
+  if (isVersionedRuntimeAsset) {
+    event.respondWith(
+      fetch(request, { cache: 'no-store' })
+        .then(response => {
+          if (response.ok) {
+            const copy = response.clone();
+            event.waitUntil(caches.open(CACHE).then(cache => cache.put(request, copy)));
+          }
+          return response;
+        })
+        .catch(() => caches.match(request).then(match => match || Response.error()))
     );
     return;
   }

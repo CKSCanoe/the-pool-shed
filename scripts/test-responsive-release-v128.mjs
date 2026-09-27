@@ -2,7 +2,7 @@ import fs from 'node:fs';
 import assert from 'node:assert/strict';
 const pkg=JSON.parse(fs.readFileSync('package.json','utf8'));
 const release=pkg.version;
-const cssBuild=fs.readFileSync('scripts/build-css.mjs','utf8');
+const cssBuild=fs.readFileSync('scripts/css-modules.mjs','utf8');
 const css=fs.readFileSync('public/assets/css/system/60-responsive-layout.css','utf8');
 const workspace=fs.readFileSync('public/professional-workspace.js','utf8');
 const index=fs.readFileSync('public/index.html','utf8');

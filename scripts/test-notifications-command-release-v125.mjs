@@ -6,7 +6,7 @@ const release=pkg.version;
 const tuple=v=>String(v).split('.').map(Number);const [a,b,c]=tuple(release),[ma,mb,mc]=tuple(minimum);assert.ok(a>ma||(a===ma&&(b>mb||(b===mb&&c>=mc))),'package must retain Notifications Command at v1.25.0 or newer');
 const html=fs.readFileSync('public/index.html','utf8');
 const sw=fs.readFileSync('public/service-worker.js','utf8');
-const build=fs.readFileSync('scripts/build-css.mjs','utf8');
+const build=fs.readFileSync('scripts/css-modules.mjs','utf8');
 const legacy=fs.readFileSync('public/assets/js/01-legacy-01.js','utf8');
 const current=fs.readFileSync('CURRENT-RELEASE.txt','utf8');
 const readiness=fs.readFileSync('public/production-readiness-engine.js','utf8');

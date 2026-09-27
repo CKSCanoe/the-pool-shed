@@ -30,10 +30,11 @@
     
 </head>
   <body>
+    <a class="ps-skip-link" href="#mainContent">Skip to main content</a>
     <div id="psBootScreen" role="status" aria-live="polite"><div class="ps-boot-card"><div class="ps-boot-brand"><div class="ps-boot-logo"><img src="./assets/img/pb-logo.png" alt="Pool Bros logo"></div><div><strong>The Pool Shed</strong><span>Loading your workspace securely</span></div></div><div class="ps-boot-line"><i></i></div></div></div>
     <section class="login-screen hidden" id="loginScreen"></section>
     <div class="app auth-hidden" id="appShell">
-      <aside class="sidebar">
+      <aside class="sidebar" aria-label="Application navigation">
         <div class="brand">
           <div class="brand-mark" id="brandMark"><img src="./assets/img/pb-logo.png" alt="The Pool Shed logo"></div>
           <div>
@@ -41,31 +42,31 @@
             <span id="brandSubtitle">Sales, stock, vans and POs</span>
           </div>
         </div>
-        <nav class="nav" id="nav"></nav>
+        <nav class="nav" id="nav" aria-label="Primary"></nav>
         <div class="side-card">
           <strong>Stock rule</strong>
           <p>Every item must have a location, value, status and movement history.</p>
         </div>
       </aside>
 
-      <main class="main">
+      <main class="main" id="mainContent" tabindex="-1" aria-labelledby="pageTitle">
         <div class="topbar">
           <div class="title">
-            <div class="breadcrumb"><span>⌂</span><span>Dashboard</span><span>›</span><span id="breadcrumbCurrent">Dashboard</span></div>
+            <nav class="breadcrumb" aria-label="Breadcrumb"><span aria-hidden="true">⌂</span><span>Dashboard</span><span aria-hidden="true">›</span><span id="breadcrumbCurrent">Dashboard</span></nav>
             <h1 id="pageTitle">Dashboard</h1>
             <p id="pageIntro">A clear live view of sales, stock, vans, purchasing, fulfilment and anything that needs action today.</p>
             <div id="pageBackRow" class="page-back-row"></div>
           </div>
           <div class="top-actions">
             <div class="search">
-              <input id="globalSearch" type="search" placeholder="Search sales orders, POs, products, customers, suppliers or barcodes">
+              <input id="globalSearch" type="search" placeholder="Search sales orders, POs, products, customers, suppliers or barcodes" aria-label="Search records" role="combobox" aria-autocomplete="list" aria-expanded="false" aria-controls="globalSearchResults" aria-haspopup="listbox" autocomplete="off" spellcheck="false">
               
-              <div id="globalSearchResults" class="global-results hidden"></div>
+              <div id="globalSearchResults" class="global-results hidden" role="listbox" aria-label="Search results"></div>
             </div>
             <div class="top-utility-row">
               <button class="notification-button" id="notificationButton" type="button" title="Notifications" aria-label="Notifications" aria-haspopup="dialog" aria-expanded="false" aria-controls="notificationsCommandRoot"><span class="notification-icon" aria-hidden="true"><svg viewBox="0 0 24 24" focusable="false"><path d="M18 8a6 6 0 0 0-12 0c0 7-3 7-3 9h18c0-2-3-2-3-9"></path><path d="M10 21h4"></path></svg></span><span class="notification-badge" id="notificationBadge" hidden>0</span></button>
               <button class="theme-toggle" id="themeToggle" type="button" aria-label="Toggle dark mode" title="Toggle dark mode">☾</button>
-              <button class="icon-button" type="button" data-workspace-refresh="Dashboard" title="Refresh">↻</button>
+              <button class="icon-button" type="button" data-workspace-refresh="Dashboard" title="Refresh" aria-label="Refresh workspace">↻</button>
               <div class="account-menu">
                 <button class="user-chip user-chip-button" id="userMenuButton" type="button" aria-haspopup="true" aria-expanded="false">
                   <span class="user-avatar" id="topUserAvatar">AB</span>
@@ -98,7 +99,7 @@
       </main>
     </div>
     <div id="notificationsCommandRoot" class="notifications-command-root" hidden></div>
-    <div class="toast" id="toast"></div>
+    <div class="toast" id="toast" role="status" aria-live="polite" aria-atomic="true"></div>
     <div class="modal-backdrop" id="shippingModal"></div>
     <div class="modal-backdrop" id="invoiceModal"></div>
     <div class="modal-backdrop" id="paymentModal"></div>

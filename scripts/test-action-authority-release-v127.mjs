@@ -7,7 +7,7 @@ const sw=fs.readFileSync('public/service-worker.js','utf8');
 const legacy=fs.readFileSync('public/assets/js/01-legacy-01.js','utf8');
 const current=fs.readFileSync('CURRENT-RELEASE.txt','utf8');
 const readiness=fs.readFileSync('public/production-readiness-engine.js','utf8');
-const buildCss=fs.readFileSync('scripts/build-css.mjs','utf8');
+const buildCss=fs.readFileSync('scripts/css-modules.mjs','utf8');
 const [major,minor]=release.split('.').map(Number);
 assert(major>1||(major===1&&minor>=27),'v1.27 Action Authority requires v1.27.0 or newer');
 assert.match(current,new RegExp('Pool Shed v'+release.replaceAll('.','\\.')+' - '));

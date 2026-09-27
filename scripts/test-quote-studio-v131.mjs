@@ -13,7 +13,7 @@ const sw=fs.readFileSync('public/service-worker.js','utf8');
 const vercel=fs.readFileSync('vercel.json','utf8');
 assert.match(index,/id="screen-quotes"/);
 assert.doesNotMatch(index,/quote-studio\.css/,'Quote Studio CSS must be part of the single app.css runtime bundle');
-assert.match(fs.readFileSync('scripts/build-css.mjs','utf8'),/59-quote-studio\.css/);
+assert.match(fs.readFileSync('scripts/css-modules.mjs','utf8'),/59-quote-studio\.css/);
 assert.match(index,/quote-studio-engine\.js\?v=1\.45\.1/);
 assert.match(index,/quote-studio-workspace\.js\?v=1\.45\.1/);
 assert.match(legacy,/quotes:\s*\[\]/);
@@ -25,7 +25,7 @@ assert.match(workspace,/Options & Packages/);
 assert.match(workspace,/Pool Layout/);
 assert.match(workspace,/Engagement/);
 assert.match(workspace,/Handover/);
-assert.match(sw,/pool-shed-v1\.45\.1-quote-studio-command/);
+assert(sw.includes(`pool-shed-v${pkg.version}-css-authority`));
 assert.match(sw,/isCustomerProposal/);
 assert.match(vercel,/"api\/quote\.js"/);
 

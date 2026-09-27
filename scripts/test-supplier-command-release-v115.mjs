@@ -6,7 +6,7 @@ const release=pkg.version;
 const html=fs.readFileSync('public/index.html','utf8');
 const sw=fs.readFileSync('public/service-worker.js','utf8');
 const legacy=fs.readFileSync('public/assets/js/01-legacy-01.js','utf8');
-const buildCss=fs.readFileSync('scripts/build-css.mjs','utf8');
+const buildCss=fs.readFileSync('scripts/css-modules.mjs','utf8');
 const appCss=fs.readFileSync('public/assets/css/app.css','utf8');
 
 const [major,minor]=release.split('.').map(Number);
