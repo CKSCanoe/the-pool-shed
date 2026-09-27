@@ -108,3 +108,7 @@ The inherited v1.38.0 quote redesign introduced no migration, but this completio
 ## Azzy Jarvis exact replacement
 
 This build uses the uploaded `azzy-poolshed-ready` assistant as the sole front-facing Azzy implementation. The retired assistant runtime and preview shell are removed. Azzy is isolated in Shadow DOM to preserve its supplied CSS exactly while Pool Shed remains authoritative for authentication, permissions, business data and controlled actions. See `AZZY-EXACT-TRANSPLANT-AUDIT.md`.
+
+## Azzy memory migration hardening
+
+`database/012-azzy-memory.sql` is server-only and no longer depends on `ps_workspace_can_read()`. It requires `SUPABASE_SERVICE_ROLE_KEY` when `AZZY_MEMORY_MODE=external`; authenticated browser users have no direct access to `ps_azzy_memory`.

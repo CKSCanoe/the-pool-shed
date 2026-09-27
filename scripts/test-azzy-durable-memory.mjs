@@ -28,7 +28,13 @@ assert.equal(memory.auditFor(user).length,1);
 
 const migration=fs.readFileSync(path.join(root,'database/012-azzy-memory.sql'),'utf8');
 assert.match(migration,/create table if not exists public\.ps_azzy_memory/i);
-assert.match(migration,/user_id=auth\.uid\(\)/i);
+assert.match(migration,/revoke all on public\.ps_azzy_memory from public, anon, authenticated/i);
+assert.match(migration,/grant all on public\.ps_azzy_memory to service_role/i);
+assert.doesNotMatch(migration,/ps_workspace_can_read/i);
+const memoryServer=fs.readFileSync(path.join(root,'server/azzy-memory.js'),'utf8');
+assert.match(memoryServer,/SUPABASE_SERVICE_ROLE_KEY/);
+assert.match(memoryServer,/authenticated Pool Shed request/);
+assert.doesNotMatch(memoryServer,/SUPABASE_PUBLISHABLE_KEY|SUPABASE_ANON_KEY/);
 const api=fs.readFileSync(path.join(root,'api/azzy.js'),'utf8');
 assert.match(api,/hydrateAzzyMemory/);
 assert.match(api,/persistAzzyMemory/);

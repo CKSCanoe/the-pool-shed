@@ -1,5 +1,12 @@
 -- Pool Shed Azzy durable per-user memory
 -- Additive. Does not change canonical operational business data.
+--
+-- SECURITY MODEL
+-- Azzy memory is server-only. The browser never reads or writes this table directly.
+-- Pool Shed authenticates the user and derives workspace permissions first, then the
+-- server accesses this table with SUPABASE_SERVICE_ROLE_KEY. This deliberately avoids
+-- depending on optional browser/RLS helper functions from earlier workspace migrations.
+
 begin;
 
 create table if not exists public.ps_azzy_memory (
@@ -12,39 +19,19 @@ create table if not exists public.ps_azzy_memory (
 
 alter table public.ps_azzy_memory enable row level security;
 
-revoke all on public.ps_azzy_memory from anon;
-grant select,insert,update on public.ps_azzy_memory to authenticated;
-grant all on public.ps_azzy_memory to service_role;
-
+-- Remove any policies from an earlier draft of this migration.
 drop policy if exists ps_azzy_memory_read_own on public.ps_azzy_memory;
-create policy ps_azzy_memory_read_own
-on public.ps_azzy_memory for select to authenticated
-using (
-  user_id=auth.uid()
-  and public.ps_workspace_can_read(workspace_id)
-);
-
 drop policy if exists ps_azzy_memory_insert_own on public.ps_azzy_memory;
-create policy ps_azzy_memory_insert_own
-on public.ps_azzy_memory for insert to authenticated
-with check (
-  user_id=auth.uid()
-  and public.ps_workspace_can_read(workspace_id)
-);
-
 drop policy if exists ps_azzy_memory_update_own on public.ps_azzy_memory;
-create policy ps_azzy_memory_update_own
-on public.ps_azzy_memory for update to authenticated
-using (
-  user_id=auth.uid()
-  and public.ps_workspace_can_read(workspace_id)
-)
-with check (
-  user_id=auth.uid()
-  and public.ps_workspace_can_read(workspace_id)
-);
+
+-- Memory is never a browser data surface.
+revoke all on public.ps_azzy_memory from public, anon, authenticated;
+grant all on public.ps_azzy_memory to service_role;
 
 create index if not exists ps_azzy_memory_updated
   on public.ps_azzy_memory(workspace_id,updated_at desc);
+
+comment on table public.ps_azzy_memory is
+  'Server-only per-user Azzy conversation and working memory. Pool Shed auth/permissions remain authoritative.';
 
 commit;

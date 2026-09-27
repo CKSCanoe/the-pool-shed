@@ -46,3 +46,7 @@ Run `database/012-azzy-memory.sql` against the existing Pool Shed Supabase proje
 ## Fail-safe behaviour
 
 If the Qwen/Ollama gateway is offline, Azzy's deterministic Pool Shed intelligence remains available. Pool Shed itself is not dependent on Ollama being online.
+
+## Azzy memory migration hardening
+
+`database/012-azzy-memory.sql` is server-only and no longer depends on `ps_workspace_can_read()`. It requires `SUPABASE_SERVICE_ROLE_KEY` when `AZZY_MEMORY_MODE=external`; authenticated browser users have no direct access to `ps_azzy_memory`.

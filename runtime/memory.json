@@ -1,0 +1,57 @@
+{
+  "sessions": {},
+  "actions": {
+    "ACT-LIVE-1790543693841": {
+      "id": "ACT-LIVE-1790543693841",
+      "type": "sales_order_allocation",
+      "salesOrderId": "SO-1",
+      "status": "executed",
+      "requiresApproval": true,
+      "requestedBy": "user-1",
+      "approvedBy": "user-1",
+      "approvedAt": "2026-09-27T21:14:53.841Z",
+      "executedAt": "2026-09-27T21:14:53.842Z",
+      "executionResult": {
+        "allocationId": "ALLOC-1"
+      }
+    },
+    "ACT-LIVE-1790543695614": {
+      "id": "ACT-LIVE-1790543695614",
+      "type": "sales_order_allocation",
+      "salesOrderId": "SO-1",
+      "status": "executed",
+      "requiresApproval": true,
+      "requestedBy": "user-1",
+      "approvedBy": "user-1",
+      "approvedAt": "2026-09-27T21:14:55.615Z",
+      "executedAt": "2026-09-27T21:14:55.615Z",
+      "executionResult": {
+        "allocationId": "ALLOC-1"
+      }
+    }
+  },
+  "audit": [
+    {
+      "id": "AUD-1790543695615-hrwx",
+      "userId": "user-1",
+      "type": "execution",
+      "title": "Executed Sales order allocation",
+      "detail": "Confirmed by Pool Shed action authority.",
+      "meta": {
+        "actionId": "ACT-LIVE-1790543695614"
+      },
+      "at": "2026-09-27T21:14:55.615Z"
+    },
+    {
+      "id": "AUD-1790543693842-l0pf",
+      "userId": "user-1",
+      "type": "execution",
+      "title": "Executed Sales order allocation",
+      "detail": "Confirmed by Pool Shed action authority.",
+      "meta": {
+        "actionId": "ACT-LIVE-1790543693841"
+      },
+      "at": "2026-09-27T21:14:53.842Z"
+    }
+  ]
+}
