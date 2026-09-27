@@ -9,6 +9,7 @@ import {
 } from '../server/azzy/integration/pool-shed-server-runtime.js';
 import {recordView} from '../server/azzy/src/core/record-links.js';
 import {snapshot as runtimeSnapshot,currentUser} from '../server/azzy/src/data/runtime-data.js';
+import {hydrateAzzyMemory,persistAzzyMemory,azzyMemoryMode} from '../server/azzy-memory.js';
 
 export const config={maxDuration:60};
 const send=(res,status,value)=>{res.setHeader('Cache-Control','private, no-store, max-age=0');res.setHeader('X-Content-Type-Options','nosniff');res.setHeader('Referrer-Policy','no-referrer');return res.status(status).json(value);};
@@ -21,11 +22,13 @@ export default async function handler(req,res){
     if(req.method==='OPTIONS'){res.setHeader('Allow','GET, POST, OPTIONS');return res.status(204).end();}
     if(req.method==='POST'&&!azzyOriginAllowed(req))return send(res,403,{ok:false,error:'Invalid origin.'});
     const ctx=await loadAzzyPoolShedContext(req),opts=runtimeOpts(ctx);
+    if(action!=='record')await hydrateAzzyMemory(req,ctx);
 
     if(action==='bootstrap'){
       if(req.method!=='GET')return send(res,405,{ok:false,error:'GET required.'});
       const out=await bootstrapAzzyForPoolShed(opts);
-      return send(res,200,{ok:true,...out,workspaceId:ctx.workspaceId,memoryMode:'per-user-session'});
+      await persistAzzyMemory(req,ctx);
+      return send(res,200,{ok:true,...out,workspaceId:ctx.workspaceId,memoryMode:azzyMemoryMode()});
     }
 
     if(action==='chat'){
@@ -33,6 +36,7 @@ export default async function handler(req,res){
       const p=bodyOf(req),message=String(p.message||'').trim();
       if(!message)return send(res,400,{ok:false,error:'Message is required.'});
       const out=await askAzzyFromPoolShed({...opts,message:message.slice(0,4000),context:p.context||null,contexts:Array.isArray(p.contexts)?p.contexts.slice(0,5):null});
+      await persistAzzyMemory(req,ctx);
       return send(res,200,{ok:true,...out});
     }
 
@@ -41,6 +45,7 @@ export default async function handler(req,res){
       const p=bodyOf(req),operation=String(p.action||'add');
       if(!['add','remove','primary','only'].includes(operation))return send(res,400,{ok:false,error:'Invalid context operation.'});
       const out=updateAzzyContextForPoolShed(opts,{action:operation,context:p.context||null,contexts:Array.isArray(p.contexts)?p.contexts.slice(0,5):undefined});
+      await persistAzzyMemory(req,ctx);
       return send(res,200,{ok:true,...out});
     }
 
@@ -55,7 +60,9 @@ export default async function handler(req,res){
     if(action==='attention-seen'){
       if(req.method!=='POST')return send(res,405,{ok:false,error:'POST required.'});
       const ids=Array.isArray(bodyOf(req).ids)?bodyOf(req).ids.slice(0,100):[];
-      return send(res,200,markAzzyAttentionSeenForPoolShed(opts,ids));
+      const out=markAzzyAttentionSeenForPoolShed(opts,ids);
+      await persistAzzyMemory(req,ctx);
+      return send(res,200,out);
     }
 
     if(action==='approve-action'){
@@ -63,6 +70,7 @@ export default async function handler(req,res){
       const actionId=String(bodyOf(req).actionId||'').trim();
       if(!actionId)return send(res,400,{ok:false,error:'Action ID is required.'});
       const out=await approveAzzyActionFromPoolShed(opts,actionId);
+      await persistAzzyMemory(req,ctx);
       return send(res,out.ok?200:403,{...out,ok:Boolean(out.ok)});
     }
 

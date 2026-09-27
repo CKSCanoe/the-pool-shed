@@ -35,6 +35,8 @@ node "$ROOT/scripts/test-quote-workflows-v131.mjs"
 node "$ROOT/scripts/test-deployment-lock-v1271.mjs"
 node "$ROOT/scripts/test-azzy-jarvis-final.mjs"
 node "$ROOT/scripts/test-azzy-poolshed-ready-final.mjs"
+node "$ROOT/scripts/test-azzy-brain-gateway.mjs"
+node "$ROOT/scripts/test-azzy-durable-memory.mjs"
 node "$ROOT/scripts/test-responsive-release-v128.mjs"
 node "$ROOT/scripts/test-accessibility-shell-v1451.mjs"
 

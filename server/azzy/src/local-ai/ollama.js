@@ -1,12 +1,15 @@
 const endpoint=process.env.AZZY_OLLAMA_URL||'http://127.0.0.1:11434';
 const preferred=process.env.AZZY_OLLAMA_MODEL||'';
+const gatewayToken=process.env.AZZY_OLLAMA_TOKEN||'';
 let healthCache={at:0,value:null};
 
 async function jsonFetch(url,options={},timeout=3500){
   const c=new AbortController();
   const t=setTimeout(()=>c.abort(),timeout);
   try{
-    const r=await fetch(url,{...options,signal:c.signal});
+    const headers={...(options.headers||{})};
+    if(gatewayToken)headers.Authorization=`Bearer ${gatewayToken}`;
+    const r=await fetch(url,{...options,headers,signal:c.signal});
     if(!r.ok)throw new Error(`HTTP ${r.status}`);
     return await r.json();
   } finally { clearTimeout(t); }
@@ -140,7 +143,9 @@ export async function* streamNarrationWithLocalModel(args){
   const c=new AbortController();
   const t=setTimeout(()=>c.abort(),35000);
   try{
-    const r=await fetch(`${endpoint}/api/chat`,{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify(body),signal:c.signal});
+    const headers={'content-type':'application/json'};
+    if(gatewayToken)headers.Authorization=`Bearer ${gatewayToken}`;
+    const r=await fetch(`${endpoint}/api/chat`,{method:'POST',headers,body:JSON.stringify(body),signal:c.signal});
     if(!r.ok)throw new Error(`HTTP ${r.status}`);
     const reader=r.body.getReader();
     const decoder=new TextDecoder();

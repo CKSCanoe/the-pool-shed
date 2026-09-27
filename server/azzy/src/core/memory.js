@@ -2,6 +2,7 @@ import fs from 'node:fs';
 import path from 'node:path';
 import { hash } from './utils.js';
 
+const externalMemory=process.env.AZZY_MEMORY_MODE==='external';
 const file=process.env.AZZY_MEMORY_FILE||path.resolve('runtime/memory.json');
 const keyOf=c=>c?.type&&c?.id?`${c.type}:${c.id}`:null;
 const cleanContexts=items=>{
@@ -9,8 +10,9 @@ const cleanContexts=items=>{
   for(const c of items||[]){const key=keyOf(c);if(!key||seen.has(key))continue;seen.add(key);out.push({type:String(c.type),id:String(c.id)});if(out.length>=5)break;}
   return out;
 };
-function load(){try{return JSON.parse(fs.readFileSync(file,'utf8'));}catch{return {sessions:{},actions:{},audit:[]};}}
-function save(data){fs.mkdirSync(path.dirname(file),{recursive:true});fs.writeFileSync(file,JSON.stringify(data,null,2));}
+function empty(){return {sessions:{},actions:{},audit:[]};}
+function load(){if(externalMemory)return empty();try{return JSON.parse(fs.readFileSync(file,'utf8'));}catch{return empty();}}
+function save(data){if(externalMemory)return;fs.mkdirSync(path.dirname(file),{recursive:true});fs.writeFileSync(file,JSON.stringify(data,null,2));}
 
 class MemoryStore{
   constructor(){this.data=load();this.data.sessions??={};this.data.actions??={};this.data.audit??=[];}
@@ -68,6 +70,30 @@ class MemoryStore{
   getAction(id){return this.data.actions[id]||null;}
   audit(userId,type,title,detail,meta={}){const item={id:`AUD-${Date.now()}-${Math.random().toString(36).slice(2,6)}`,userId,type,title,detail,meta,at:new Date().toISOString()};this.data.audit.unshift(item);if(this.data.audit.length>600)this.data.audit.length=600;this.persist();return item;}
   auditFor(userId,limit=80){return this.data.audit.filter(x=>x.userId===userId).slice(0,limit);}
+  exportUserState(userId){
+    const session=structuredClone(this.session(userId));
+    const actions=Object.fromEntries(Object.entries(this.data.actions).filter(([,a])=>String(a?.requestedBy||'')===String(userId)).map(([id,a])=>[id,structuredClone(a)]));
+    const audit=structuredClone(this.data.audit.filter(x=>String(x.userId)===String(userId)).slice(0,600));
+    return {version:1,session,actions,audit};
+  }
+  replaceUserState(userId,state={}){
+    const id=String(userId);
+    const incoming=state&&typeof state==='object'?state:{};
+    if(incoming.session&&typeof incoming.session==='object')this.data.sessions[id]={...structuredClone(incoming.session),userId:id};
+    else delete this.data.sessions[id];
+    for(const [actionId,action] of Object.entries(this.data.actions))if(String(action?.requestedBy||'')===id)delete this.data.actions[actionId];
+    if(incoming.actions&&typeof incoming.actions==='object')for(const [actionId,action] of Object.entries(incoming.actions))if(String(action?.requestedBy||id)===id)this.data.actions[actionId]=structuredClone(action);
+    this.data.audit=this.data.audit.filter(x=>String(x.userId)!==id);
+    if(Array.isArray(incoming.audit))this.data.audit.push(...structuredClone(incoming.audit).filter(x=>String(x.userId||id)===id).map(x=>({...x,userId:id})));
+    this.data.audit.sort((a,b)=>String(b.at||'').localeCompare(String(a.at||'')));
+    if(this.data.audit.length>600)this.data.audit.length=600;
+    return this.session(id);
+  }
+  clearUserState(userId){
+    const id=String(userId);delete this.data.sessions[id];
+    for(const [actionId,action] of Object.entries(this.data.actions))if(String(action?.requestedBy||'')===id)delete this.data.actions[actionId];
+    this.data.audit=this.data.audit.filter(x=>String(x.userId)!==id);
+  }
   persist(){save(this.data);}
 }
 export const memory=new MemoryStore();
