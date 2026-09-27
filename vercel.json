@@ -119,6 +119,9 @@
     },
     "api/project-email.js": {
       "maxDuration": 60
+    },
+    "api/azzy.js": {
+      "maxDuration": 60
     }
   }
 }
