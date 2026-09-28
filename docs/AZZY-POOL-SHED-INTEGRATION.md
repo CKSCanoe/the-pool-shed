@@ -30,7 +30,8 @@ The engine still supports `AZZY_OLLAMA_MODEL` (including `qwen3:8b`) and default
 Existing Pool Shed variables remain required. Azzy additionally understands:
 
 - `POOL_SHED_WORKSPACE_ID` — canonical workspace ID; defaults to `pool-bros-main` to match this release.
-- `APP_ORIGIN` — optional exact origin check for Azzy POST requests.
+- `APP_ORIGIN` — the Pool Shed web app origin, for example `https://your-pool-shed.vercel.app`. This is **not** the Azzy/Ollama gateway URL. Azzy also accepts the actual same-origin Vercel host so Preview/alias deployments do not fail purely because the hostname differs.
+- `APP_ORIGINS` — optional comma-separated additional trusted Pool Shed origins when you intentionally serve the app from multiple hostnames.
 - `AZZY_OLLAMA_MODEL` — optional local model name.
 - `AZZY_OLLAMA_URL` — optional reachable Ollama service URL.
 

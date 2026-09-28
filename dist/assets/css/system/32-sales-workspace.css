@@ -1256,6 +1256,36 @@ body.so-batch-open{overflow:hidden}
   height:34px;
 }
 
+#screen-salesorders .so-list-bulk-status select{
+  min-height:34px;
+  height:34px;
+  min-width:160px;
+  padding:0 32px 0 10px;
+  border:1px solid var(--color-border-strong);
+  border-radius:8px;
+  background:var(--color-surface-default);
+  color:var(--color-text-primary);
+  font:inherit;
+  font-weight:800;
+}
+
+#screen-salesorders .so-list-bulk-divider{
+  width:1px;
+  height:26px;
+  margin:0 2px;
+  background:var(--color-border-default);
+}
+
+#screen-salesorders .so-list-bulk .so-list-delete{
+  border-color:var(--color-status-danger-line, #b42318);
+  color:var(--color-status-danger-text, #9f1d14);
+  background:var(--color-status-danger-soft, #fff1f0);
+}
+
+#screen-salesorders .so-list-bulk .so-list-delete:hover{
+  filter:brightness(.98);
+}
+
 /* Approved light workspace palette: ordinary form fields should never acquire
    command-surface navy merely because older Sales Order rules still exist. */
 body:not([data-theme="dark"]) #screen-salesorders .so-list-page :is(input,select){

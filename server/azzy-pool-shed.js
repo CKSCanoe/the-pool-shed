@@ -131,4 +131,37 @@ export async function loadAzzyPoolShedContext(req){
   if(permissions.includes('finance.read'))workspace=await enrichFinance(workspace,workspaceId,authorization);
   return {workspaceId,workspace,user,permissions,revision,updatedAt:snapshot.updated_at,membershipRole:member.role};
 }
-export function azzyOriginAllowed(req){const expected=process.env.APP_ORIGIN;return !req.headers.origin||!expected||req.headers.origin===expected;}
+function normalizedOrigin(value){
+  const raw=String(value||'').trim();
+  if(!raw)return '';
+  try{return new URL(raw).origin;}catch(_){return raw.replace(/\/+$/,'');}
+}
+function firstHeader(value){return String(Array.isArray(value)?value[0]:(value||'')).split(',')[0].trim();}
+export function azzyOriginAllowed(req){
+  const supplied=firstHeader(req?.headers?.origin);
+  if(!supplied)return true;
+  const incoming=normalizedOrigin(supplied);
+  if(!incoming)return false;
+
+  // Azzy is called by the Pool Shed browser on the same host as /api/azzy.
+  // Accept that same-origin request even when Vercel is serving an alias or
+  // Preview hostname that does not exactly match APP_ORIGIN.
+  const requestHost=firstHeader(req?.headers?.['x-forwarded-host']||req?.headers?.host).toLowerCase();
+  try{
+    if(requestHost&&new URL(incoming).host.toLowerCase()===requestHost)return true;
+  }catch(_){}
+
+  const allowed=new Set();
+  const add=value=>{
+    String(value||'').split(',').map(v=>normalizedOrigin(v)).filter(Boolean).forEach(v=>allowed.add(v));
+  };
+  add(process.env.APP_ORIGIN);
+  add(process.env.APP_ORIGINS);
+  if(process.env.VERCEL_PROJECT_PRODUCTION_URL)add('https://'+String(process.env.VERCEL_PROJECT_PRODUCTION_URL).replace(/^https?:\/\//,'').replace(/\/+$/,''));
+  if(process.env.VERCEL_URL)add('https://'+String(process.env.VERCEL_URL).replace(/^https?:\/\//,'').replace(/\/+$/,''));
+
+  // Preserve the previous local-development behaviour when no origin policy is
+  // configured. Production Vercel requests are still covered by the host check.
+  if(!allowed.size)return true;
+  return allowed.has(incoming);
+}

@@ -20,7 +20,7 @@ export default async function handler(req,res){
   const origin=process.env.APP_ORIGIN||'http://localhost',url=new URL(req.url,origin),action=url.searchParams.get('action')||'bootstrap';
   try{
     if(req.method==='OPTIONS'){res.setHeader('Allow','GET, POST, OPTIONS');return res.status(204).end();}
-    if(req.method==='POST'&&!azzyOriginAllowed(req))return send(res,403,{ok:false,error:'Invalid origin.'});
+    if(req.method==='POST'&&!azzyOriginAllowed(req))return send(res,403,{ok:false,error:'Invalid origin. APP_ORIGIN must be the Pool Shed app origin, not the Azzy/Ollama gateway.'});
     const ctx=await loadAzzyPoolShedContext(req),opts=runtimeOpts(ctx);
     if(action!=='record')await hydrateAzzyMemory(req,ctx);
 

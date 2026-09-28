@@ -146,7 +146,7 @@
       const family = nonStock ? (line.lineType === 'shipping' ? 'Delivery charge' : 'Custom sales line') : salesOrderProductFamily(p);
       const locked = Number(line.allocated||0) > 0 || Number(line.picked||0) > 0 || Number(line.packed||0) > 0 || Number(line.shipped||0) > 0 ||
         goodsNotesForOrder(order.id).some(function(note){ return note.lines.some(function(nl){ return nl.productId === line.productId; }); });
-      const removable = canRemoveSalesOrderLine(line);
+      const removable = canRemoveSalesOrderLine(line, order);
       const menuId = 'so2-menu-' + String(order.id + '-' + line.productId).replace(/[^a-z0-9_-]/gi,'-');
       return '<tr class="so2-line-row ' + health.className + '">' +
         '<td class="so2-check"><input type="checkbox" data-sales-line-select="' + order.id + '|' + line.productId + '" aria-label="Select ' + escapeHtml(p.sku || p.name) + '"></td>' +
@@ -161,7 +161,7 @@
         '<td class="so2-actions-cell"><button type="button" class="secondary so2-menu-button" data-so2-line-menu="' + menuId + '" aria-haspopup="menu" aria-expanded="false">•••</button>' +
           '<div id="' + menuId + '" class="so2-line-menu" data-so2-menu role="menu" hidden>' +
             (!nonStock ? '<button type="button" role="menuitem" data-allocate-line="' + order.id + '|' + line.productId + '">Allocate</button><button type="button" role="menuitem" data-unallocate-line="' + order.id + '|' + line.productId + '">Unallocate</button><button type="button" role="menuitem" data-open-product="' + escapeHtml(p.id) + '">View product</button><button type="button" role="menuitem" data-so-tab="fulfilment">Fulfilment details</button><div class="so2-menu-separator"></div>' : '') +
-            '<button type="button" role="menuitem" class="danger" data-remove-sales-line="' + order.id + '|' + line.productId + '"' + (removable ? '' : ' aria-disabled="true" title="' + escapeHtml(salesOrderLineRemovalReason(line)) + '"') + '>Remove line</button>' +
+            '<button type="button" role="menuitem" class="danger" data-remove-sales-line="' + order.id + '|' + line.productId + '"' + (removable ? '' : ' aria-disabled="true" title="' + escapeHtml(salesOrderLineRemovalReason(line, order)) + '"') + '>Remove line</button>' +
           '</div></td>' +
       '</tr>';
     }).join('') || '<tr><td colspan="10"><div class="so2-empty-lines"><strong>No order lines yet</strong><span>Search the connected catalogue below to add the first exact SKU.</span></div></td></tr>';
