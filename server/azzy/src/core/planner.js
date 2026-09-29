@@ -136,7 +136,7 @@ export function deterministicPlan({message,contexts=[],primaryContext=null,histo
     plan.intent='sales_order';plan.confidence=.995;add('get_sales_order',{salesOrderId:firstSalesOrder});return plan;
   }
 
-  if(looksLikeProductQuery(q)&&!/best price|cheapest|compare.*price|price.*supplier|supplier.*price|invoice|bill|cashflow/.test(q)){
+  if(looksLikeProductQuery(q)&&!/best price|cheapest|compare.*price|price.*supplier|supplier.*price|invoice|bill|cashflow/.test(q)&&!/tell me.*(?:product|item)|everything.*(?:product|item)|product.*details?|full.*record|commercial.*details?|\brrp\b|\btrade\b|\bwholesale\b|what.*cost|what.*price/.test(q)){
     plan.intent='product_search';plan.confidence=.96;add('find_products',{query:message,limit:6});return plan;
   }
 
