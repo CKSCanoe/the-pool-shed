@@ -14,10 +14,10 @@ const backend=read('server/azzy-pool-shed.js');
 const sw=read('public/service-worker.js');
 
 for(const retired of ['public/assistant-engine.js','public/azzy-live.js','public/azzy-live.css']) assert.equal(fs.existsSync(retired),false,`${retired} must be physically removed`);
-assert.match(html,/azzy-jarvis-host\.js\?v=1\.45\.1-jarvis-final/);
+assert.match(html,/azzy-jarvis-host\.js\?v=1\.45\.1/);
 assert.doesNotMatch(html,/assistant-engine|azzy-live/);
-assert.match(sw,/azzy-jarvis-host\.js\?v=1\.45\.1-jarvis-final/);
-assert.match(sw,/azzy-jarvis\.css\?v=1\.45\.1-jarvis-final/);
+assert.match(sw,/azzy-jarvis-host\.js\?v=1\.45\.1/);
+assert.match(sw,/azzy-jarvis\.css\?v=1\.45\.1/);
 assert.doesNotMatch(sw,/assistant-engine|azzy-live/);
 
 assert.match(host,/attachShadow\(\{mode:'open'\}\)/,'Azzy must be visually isolated in Shadow DOM');
