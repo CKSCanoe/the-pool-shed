@@ -5,28 +5,13 @@
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <title>The Pool Shed</title>
     <meta name="application-name" content="The Pool Shed">
+    <meta name="description" content="Pool Bros operations workspace for customers, quotes, projects, sales, stock, purchasing, fulfilment and finance.">
+    <meta name="color-scheme" content="light dark">
+    <meta name="theme-color" content="#0F1B24">
+    <link rel="icon" type="image/png" href="./assets/img/pb-logo.png">
     <link rel="stylesheet" href="./assets/css/app.css?v=1.45.1">
-  
-
-
-
-
-  
-  
-  
-  
-    
-  
-  
-  
-  
-  
-
     <link rel="preconnect" href="https://cdn.jsdelivr.net" crossorigin>
     <link rel="dns-prefetch" href="https://cdn.jsdelivr.net">
-    <meta name="theme-color" content="#0F1B24">
-      
-    
 </head>
   <body>
     <a class="ps-skip-link" href="#mainContent">Skip to main content</a>
@@ -67,12 +52,12 @@
               <button class="theme-toggle" id="themeToggle" type="button" aria-label="Toggle dark mode" title="Toggle dark mode">☾</button>
               <button class="icon-button" type="button" data-workspace-refresh="Dashboard" title="Refresh" aria-label="Refresh workspace">↻</button>
               <div class="account-menu">
-                <button class="user-chip user-chip-button" id="userMenuButton" type="button" aria-haspopup="true" aria-expanded="false">
+                <button class="user-chip user-chip-button" id="userMenuButton" type="button" aria-haspopup="menu" aria-expanded="false" aria-controls="userMenuDropdown">
                   <span class="user-avatar" id="topUserAvatar">AB</span>
                   <span id="topUserName">Aaron Boyer</span>
                   <span class="account-chevron">▾</span>
                 </button>
-                <div class="account-dropdown hidden" id="userMenuDropdown"></div>
+                <div class="account-dropdown hidden" id="userMenuDropdown" role="menu"></div>
               </div>
             </div>
           </div>
