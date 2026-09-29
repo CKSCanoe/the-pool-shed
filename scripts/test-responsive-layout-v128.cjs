@@ -1,15 +1,17 @@
-const fs=require('fs'),path=require('path');
+const fs=require('fs'),http=require('http'),path=require('path');
 const {chromium}=require(process.env.PLAYWRIGHT_MODULE||'playwright-core');
 const ROOT=process.cwd(),PUBLIC=path.join(ROOT,'public');
-function inlineAppHtml(){let html=fs.readFileSync(path.join(PUBLIC,'index.html'),'utf8');const styles=[];html=html.replace(/<link\b[^>]*href=["']([^"']+\.css(?:\?[^"']*)?)["'][^>]*>/gi,(tag,href)=>{const rel=href.split('?')[0].replace(/^\.\//,'');const p=path.join(PUBLIC,rel);if(fs.existsSync(p))styles.push(fs.readFileSync(p,'utf8'));return '';});const scripts=[];html=html.replace(/<script\b([^>]*)src=["']([^"']+)["'][^>]*><\/script>/gi,(tag,attrs,src)=>{if(/^https?:/i.test(src))return '';const rel=src.split('?')[0].replace(/^\.\//,'');const p=path.join(PUBLIC,rel);if(fs.existsSync(p))scripts.push(`\n/* ${rel} */\n${fs.readFileSync(p,'utf8')}\n`);return '';});const harness=`<script>(function(){const mem=new Map();const ls={getItem:k=>mem.has(String(k))?mem.get(String(k)):null,setItem:(k,v)=>mem.set(String(k),String(v)),removeItem:k=>mem.delete(String(k)),clear:()=>mem.clear(),key:i=>Array.from(mem.keys())[i]||null,get length(){return mem.size}};try{Object.defineProperty(window,'localStorage',{value:ls,configurable:true});}catch(e){}window.POOL_SHED_CONFIG={};if(!window.crypto)window.crypto={};if(typeof window.crypto.randomUUID!=='function')window.crypto.randomUUID=()=>('00000000-0000-4000-8000-'+Math.random().toString(16).slice(2,14).padEnd(12,'0'));})();</script>`;html=html.replace('</head>',`<style>${styles.join('\n')}</style>${harness}</head>`);html=html.replace('</body>',`<script>${scripts.join('\n')}</script></body>`);return html;}
+function mime(p){if(p.endsWith('.js'))return'text/javascript';if(p.endsWith('.css'))return'text/css';if(p.endsWith('.svg'))return'image/svg+xml';if(p.endsWith('.png'))return'image/png';return'text/html';}
+function serve(){const server=http.createServer((req,res)=>{const raw=decodeURIComponent(req.url.split('?')[0]);const rel=raw==='/'?'index.html':(raw.startsWith('/')?raw.slice(1):raw);const p=path.resolve(PUBLIC,rel);if(!p.startsWith(PUBLIC)){res.statusCode=403;return res.end();}try{res.setHeader('Content-Type',mime(p));res.end(fs.readFileSync(p));}catch{res.statusCode=404;res.end();}});return new Promise(resolve=>server.listen(0,'127.0.0.1',()=>resolve(server)));}
 const widths=[1920,1440,1280,1100,768,390];
 const compactWidths=[1440,768,390];
 const selfManaged=new Set(['settings','automation','locations','products','fulfilment','warehouse']);
-function label(el){return `${el.tagName.toLowerCase()}${el.id?'#'+el.id:''}${el.classList.length?'.'+[...el.classList].slice(0,3).join('.'):''}`;}
-(async()=>{let browser;try{
+(async()=>{let browser,server;try{
+ server=await serve();
  browser=await chromium.launch({headless:true,executablePath:process.env.CHROME_EXECUTABLE||'/usr/bin/chromium',args:['--no-sandbox','--disable-dev-shm-usage']});
  const page=await browser.newPage({viewport:{width:1440,height:1000}});const errors=[];page.on('pageerror',e=>errors.push('pageerror: '+e.message));page.on('console',m=>{if(m.type()==='error'&&!/favicon|resource/i.test(m.text()))errors.push('console: '+m.text());});
- await page.setContent(inlineAppHtml(),{waitUntil:'load',timeout:30000});await page.waitForTimeout(100);
+ await page.goto('http://127.0.0.1:'+server.address().port,{waitUntil:'load',timeout:30000});
+ await page.waitForFunction(()=>typeof normalizeAppData==='function'&&typeof seed!=='undefined'&&typeof showApp==='function'&&typeof render==='function',{timeout:15000});
  await page.evaluate(()=>{data=normalizeAppData(JSON.parse(JSON.stringify(seed)));isAuthenticated=true;showApp();render();});
  const modules=await page.evaluate(()=>tabs.map(t=>({id:t.id,label:t.label})));
  const subgroups={};for(const m of modules)subgroups[m.id]=await page.evaluate(id=>sidebarSubGroups(id),m.id);
@@ -38,4 +40,4 @@ function label(el){return `${el.tagName.toLowerCase()}${el.id?'#'+el.id:''}${el.
  if(errors.length)failures.push({runtime:errors});
  if(failures.length){console.error(JSON.stringify({checks,failures:failures.slice(0,80)},null,2));process.exitCode=1;return;}
  console.log(JSON.stringify({release:'1.28.0',modules:modules.length,checks,widths,densities:['compact','comfortable'],themes:['light','dark'],hardOverflow:0,duplicateNav:0,blockingConflictBanner:0,runtimeErrors:0},null,2));
- }finally{if(browser)await browser.close();}})().catch(e=>{console.error(e.stack||e);process.exit(1)});
+ }finally{if(browser)await browser.close();if(server)server.close();}})().catch(e=>{console.error(e.stack||e);process.exit(1)});

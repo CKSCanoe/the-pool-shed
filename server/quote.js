@@ -1,6 +1,7 @@
 import {randomUUID,createHash} from 'node:crypto';
 import {db,eq,xeroIntegrationReadiness} from './accounting.js';
 import {resolveBusinessMedia} from './business-media.js';
+import {elevatedSupabaseHeaders} from './supabase-keys.js';
 const iso=()=>new Date().toISOString(),date=()=>iso().slice(0,10),money=n=>Number(Number(n||0).toFixed(2));
 const clone=v=>JSON.parse(JSON.stringify(v));
 export const tokenHash=t=>createHash('sha256').update(String(t||'')).digest('hex');
@@ -8,7 +9,7 @@ export const safeHash=t=>createHash('sha256').update(String(t||'')).digest('hex'
 const QUOTE_MEDIA_BUCKET='quote-media';
 const MEDIA_REF_PREFIX='quote-media:';
 function storageObjectPath(path=''){return String(path).split('/').filter(Boolean).map(encodeURIComponent).join('/')}
-function storageHeaders(extra={}){return {apikey:process.env.SUPABASE_SERVICE_ROLE_KEY,Authorization:'Bearer '+process.env.SUPABASE_SERVICE_ROLE_KEY,...extra}}
+function storageHeaders(extra={}){return elevatedSupabaseHeaders(process.env,extra)}
 function normaliseSignedUrl(value){const raw=String(value||'');if(!raw)return '';return /^https?:\/\//i.test(raw)?raw:String(process.env.SUPABASE_URL||'').replace(/\/$/,'')+(raw.startsWith('/')?'':'/')+raw}
 export function quoteMediaRef(id){return MEDIA_REF_PREFIX+String(id||'')}
 export function quoteMediaIds(value){const found=new Set();(function walk(v){if(typeof v==='string'&&v.startsWith(MEDIA_REF_PREFIX)){const id=v.slice(MEDIA_REF_PREFIX.length);if(/^[0-9a-f-]{36}$/i.test(id))found.add(id);return}if(Array.isArray(v))return v.forEach(walk);if(v&&typeof v==='object')Object.values(v).forEach(walk)})(value);return [...found]}

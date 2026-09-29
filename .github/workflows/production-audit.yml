@@ -1,0 +1,48 @@
+name: Production audit
+
+on:
+  push:
+    branches:
+      - audit/production-polish-2026-09-29
+  workflow_dispatch:
+
+concurrency:
+  group: production-audit-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  build-and-verify:
+    runs-on: ubuntu-latest
+    timeout-minutes: 35
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+      - name: Use Node 24
+        uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+      - name: Install dependencies
+        run: npm install --no-audit --no-fund
+      - name: Build
+        run: npm run build
+      - name: Full validation
+        run: npm run validate
+      - name: Rendered browser QA
+        shell: bash
+        run: |
+          CHROME_EXECUTABLE="$(command -v chromium || command -v chromium-browser || command -v google-chrome || command -v google-chrome-stable || true)"
+          if [ -z "$CHROME_EXECUTABLE" ]; then
+            echo "No Chromium-compatible browser is available on the runner."
+            exit 1
+          fi
+          echo "Using browser: $CHROME_EXECUTABLE"
+          export CHROME_EXECUTABLE
+          npm run test:browser
+      - name: Upload rendered QA screenshots
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: pool-shed-rendered-qa
+          path: qa-v126/
+          if-no-files-found: ignore
+          retention-days: 14

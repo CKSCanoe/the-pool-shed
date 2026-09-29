@@ -1,13 +1,16 @@
 import {randomUUID,randomBytes} from 'node:crypto';
 import {hash,seal,unseal,validSignature,validateInvoice,db,eq,audit,tokenRequest,xero,applyRemote,XERO_SCOPES,xeroIntegrationReadiness,requireXeroLive} from '../server/accounting.js';
+import {supabaseServerKey} from '../server/supabase-keys.js';
+import {appOriginAllowed} from '../server/origin-policy.js';
 export const config={api:{bodyParser:false},maxDuration:60};
 const scopes=XERO_SCOPES.join(' ');
-const coreConfigured=()=>['SUPABASE_URL','SUPABASE_SERVICE_ROLE_KEY','APP_ORIGIN'].every(k=>process.env[k]);
+const coreConfigured=()=>Boolean(process.env.SUPABASE_URL&&supabaseServerKey(process.env)&&process.env.APP_ORIGIN);
 const send=(res,status,value)=>res.status(status).json(value);
 async function rawBody(req){let chunks=[],n=0;for await(const b of req){n+=b.length;if(n>256000)throw Error('Request too large');chunks.push(b);}return Buffer.concat(chunks);}
 async function identity(req,w,write=false){
  const authorization=req.headers.authorization||'';if(!authorization.startsWith('Bearer '))throw Error('Sign in to continue');
- const r=await fetch(process.env.SUPABASE_URL+'/auth/v1/user',{headers:{apikey:process.env.SUPABASE_SERVICE_ROLE_KEY,Authorization:authorization},signal:AbortSignal.timeout(10000)});
+ const key=supabaseServerKey(process.env);if(!key)throw Error('Accounting platform is not configured');
+ const r=await fetch(process.env.SUPABASE_URL+'/auth/v1/user',{headers:{apikey:key,Authorization:authorization},signal:AbortSignal.timeout(10000)});
  if(!r.ok)throw Error('Sign in to continue');const u=await r.json();
  const members=await db('ps_finance_members?workspace_id=eq.'+eq(w)+'&user_id=eq.'+eq(u.id));
  if(!members.length||(write&&!['accountant','admin'].includes(members[0].role)))throw Error('Finance access has not been granted');return {...u,financeRole:members[0].role};
@@ -87,7 +90,7 @@ export default async function handler(req,res){
    try{return send(res,200,await worker(w));}catch(e){await db('ps_finance_connections?workspace_id=eq.'+eq(w),{method:'PATCH',body:{last_error:e.message}});throw e;}
   }
   const write=req.method==='POST';if(!['GET','POST'].includes(req.method))return send(res,405,{error:'Unsupported method'});
-  if(write&&req.headers.origin!==process.env.APP_ORIGIN)return send(res,403,{error:'Invalid origin'});
+  if(write&&!appOriginAllowed(req,process.env))return send(res,403,{error:'Invalid origin'});
   const w=url.searchParams.get('workspace')||'pool-bros-main',u=await identity(req,w,write);
   const body=write?JSON.parse((await rawBody(req)).toString()||'{}'):{};
   if(action==='status'&&!write){

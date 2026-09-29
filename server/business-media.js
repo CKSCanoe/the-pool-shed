@@ -1,5 +1,6 @@
 import {randomUUID} from 'node:crypto';
 import {db,eq} from './accounting.js';
+import {elevatedSupabaseHeaders} from './supabase-keys.js';
 
 const MAX_BYTES=26214400;
 const ALLOWED=new Set(['image/jpeg','image/png','image/webp','application/pdf']);
@@ -11,7 +12,7 @@ const PRODUCT_KINDS=new Set(['main_image','gallery','brochure','datasheet','inst
 const CUSTOMER_KINDS=new Set(['site_photo','drawing','survey','document','access','warranty','certificate','other']);
 const cleanPart=v=>String(v||'').replace(/[^a-zA-Z0-9._-]/g,'_').slice(0,160)||'item';
 const objectPath=p=>String(p||'').split('/').filter(Boolean).map(encodeURIComponent).join('/');
-const headers=extra=>({apikey:process.env.SUPABASE_SERVICE_ROLE_KEY,Authorization:'Bearer '+process.env.SUPABASE_SERVICE_ROLE_KEY,...(extra||{})});
+const headers=extra=>elevatedSupabaseHeaders(process.env,extra||{});
 const absoluteSigned=value=>{const raw=String(value||'');if(!raw)return '';return /^https?:\/\//i.test(raw)?raw:String(process.env.SUPABASE_URL||'').replace(/\/$/,'')+(raw.startsWith('/')?'':'/')+raw};
 const ext=m=>m==='image/png'?'png':m==='image/webp'?'webp':m==='application/pdf'?'pdf':'jpg';
 export const isBusinessMediaRef=v=>/^(?:product|customer)-media:[0-9a-f-]{36}$/i.test(String(v||''));

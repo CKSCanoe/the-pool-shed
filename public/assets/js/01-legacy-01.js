@@ -2236,13 +2236,13 @@ const seed = {
         if (dropdown) {
           const otherUsers = "";
           dropdown.innerHTML =
-            '<div class="account-dropdown-head"><span class="user-avatar">' + userAvatarHtml(user) + '</span><div><strong>' + escapeHtml(user.name) + '</strong><span class="muted">' + escapeHtml(user.email) + '</span><br><span class="pill blue">' + escapeHtml(user.role) + '</span></div></div>' +
-            '<div class="account-dropdown-actions">' +
-              '<button type="button" data-account-page="My Profile"><span class="account-action-icon">👤</span><span>Profile</span></button>' +
-              '<button type="button" data-account-page="My Settings"><span class="account-action-icon">⚙</span><span>My Settings</span></button>' +
-              (isAdminUser() ? '<button type="button" data-account-page="Users"><span class="account-action-icon">🔐</span><span>Users and logins</span></button>' : '') +
+            '<div class="account-dropdown-head" role="presentation"><span class="user-avatar">' + userAvatarHtml(user) + '</span><div><strong>' + escapeHtml(user.name) + '</strong><span class="muted">' + escapeHtml(user.email) + '</span><br><span class="pill blue">' + escapeHtml(user.role) + '</span></div></div>' +
+            '<div class="account-dropdown-actions" role="none">' +
+              '<button type="button" role="menuitem" tabindex="-1" data-account-page="My Profile"><span class="account-action-icon">👤</span><span>Profile</span></button>' +
+              '<button type="button" role="menuitem" tabindex="-1" data-account-page="My Settings"><span class="account-action-icon">⚙</span><span>My Settings</span></button>' +
+              (isAdminUser() ? '<button type="button" role="menuitem" tabindex="-1" data-account-page="Users"><span class="account-action-icon">🔐</span><span>Users and logins</span></button>' : '') +
               otherUsers +
-              '<button type="button" data-user-logout="true"><span class="account-action-icon">↪</span><span>Log out</span></button>' +
+              '<button type="button" role="menuitem" tabindex="-1" data-user-logout="true"><span class="account-action-icon">↪</span><span>Log out</span></button>' +
             '</div>';
         }
       }
@@ -14554,14 +14554,66 @@ const seed = {
         window.toastTimer = setTimeout(function() { el.classList.remove("show"); }, 2200);
       }
 
+      function accountMenuItems() {
+        const menu = document.getElementById("userMenuDropdown");
+        return menu ? Array.from(menu.querySelectorAll('[role="menuitem"]')) : [];
+      }
+
+      function closeAccountMenu(restoreFocus) {
+        const menu = document.getElementById("userMenuDropdown");
+        const button = document.getElementById("userMenuButton");
+        if (menu) menu.classList.add("hidden");
+        if (button) {
+          button.setAttribute("aria-expanded", "false");
+          if (restoreFocus) button.focus();
+        }
+      }
+
+      function openAccountMenu(focusIndex) {
+        const menu = document.getElementById("userMenuDropdown");
+        const button = document.getElementById("userMenuButton");
+        if (!menu || !button) return;
+        menu.classList.remove("hidden");
+        button.setAttribute("aria-expanded", "true");
+        const items = accountMenuItems();
+        if (items.length) {
+          const index = focusIndex === -1 ? items.length - 1 : Math.max(0, Math.min(Number(focusIndex || 0), items.length - 1));
+          items[index].focus();
+        }
+      }
+
       applyTheme();
       document.getElementById("themeToggle").addEventListener("click", toggleTheme);
       document.getElementById("userMenuButton").addEventListener("click", function(event) {
         event.stopPropagation();
         const menu = document.getElementById("userMenuDropdown");
-        const button = document.getElementById("userMenuButton");
-        const open = menu.classList.toggle("hidden");
-        button.setAttribute("aria-expanded", String(!open));
+        if (menu && !menu.classList.contains("hidden")) closeAccountMenu(false);
+        else openAccountMenu(0);
+      });
+      document.getElementById("userMenuButton").addEventListener("keydown", function(event) {
+        if (event.key !== "ArrowDown" && event.key !== "ArrowUp") return;
+        event.preventDefault();
+        openAccountMenu(event.key === "ArrowUp" ? -1 : 0);
+      });
+      document.getElementById("userMenuDropdown").addEventListener("keydown", function(event) {
+        const items = accountMenuItems();
+        if (!items.length) return;
+        const current = Math.max(0, items.indexOf(document.activeElement));
+        let next = current;
+        if (event.key === "ArrowDown") next = (current + 1) % items.length;
+        else if (event.key === "ArrowUp") next = (current - 1 + items.length) % items.length;
+        else if (event.key === "Home") next = 0;
+        else if (event.key === "End") next = items.length - 1;
+        else if (event.key === "Escape") {
+          event.preventDefault();
+          closeAccountMenu(true);
+          return;
+        } else if (event.key === "Tab") {
+          closeAccountMenu(false);
+          return;
+        } else return;
+        event.preventDefault();
+        items[next].focus();
       });
       document.getElementById("notificationButton").addEventListener("click", function(event) {
         event.preventDefault();
@@ -14609,23 +14661,13 @@ const seed = {
       document.addEventListener("keydown", function(event) {
         if (event.key !== "Escape") return;
         const menu = document.getElementById("userMenuDropdown");
-        const button = document.getElementById("userMenuButton");
-        if (menu && !menu.classList.contains("hidden")) {
-          menu.classList.add("hidden");
-          if (button) {
-            button.setAttribute("aria-expanded", "false");
-            button.focus();
-          }
-        }
+        if (menu && !menu.classList.contains("hidden")) closeAccountMenu(true);
       });
 
       document.addEventListener("click", function(event) {
         if (!event.target.closest(".search")) closeGlobalSearchResults();
         if (!event.target.closest(".account-menu")) {
-          const menu = document.getElementById("userMenuDropdown");
-          const menuButton = document.getElementById("userMenuButton");
-          if (menu) menu.classList.add("hidden");
-          if (menuButton) menuButton.setAttribute("aria-expanded", "false");
+          closeAccountMenu(false);
         }
         const button = event.target.closest("button");
         if (!button) return;

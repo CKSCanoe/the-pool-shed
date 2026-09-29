@@ -1,15 +1,17 @@
 import '../public/project-engine.js';
 import '../public/dashboard-review-engine.js';
 import {db,eq,audit} from '../server/accounting.js';
+import {supabaseServerKey} from '../server/supabase-keys.js';
+import {appOriginAllowed} from '../server/origin-policy.js';
 export const config={api:{bodyParser:false}};
 export default async function handler(req,res){
  res.setHeader('Cache-Control','no-store');
  if(req.method!=='POST')return res.status(405).json({error:'POST required'});
  if(!process.env.OPENAI_API_KEY||!process.env.PROJECT_AI_MODEL)return res.status(503).json({error:'Optional AI review is not configured. The built-in margin and billing checks remain available.'});
- if(!process.env.APP_ORIGIN||req.headers.origin!==process.env.APP_ORIGIN)return res.status(403).json({error:'Invalid origin'});
+ if(!process.env.APP_ORIGIN||!appOriginAllowed(req,process.env))return res.status(403).json({error:'Invalid origin'});
  try{
   const auth=req.headers.authorization||'';if(!auth.startsWith('Bearer '))throw Error('Sign in first');
-  const r=await fetch(process.env.SUPABASE_URL+'/auth/v1/user',{headers:{apikey:process.env.SUPABASE_SERVICE_ROLE_KEY,Authorization:auth},signal:AbortSignal.timeout(10000)});if(!r.ok)throw Error('Sign in first');const user=await r.json();
+  const key=supabaseServerKey(process.env);if(!key)return res.status(503).json({error:'Project review backend is not configured'});const r=await fetch(process.env.SUPABASE_URL+'/auth/v1/user',{headers:{apikey:key,Authorization:auth},signal:AbortSignal.timeout(10000)});if(!r.ok)throw Error('Sign in first');const user=await r.json();
   let bytes=[],length=0;for await(const chunk of req){length+=chunk.length;if(length>4000)throw Error('Request too large');bytes.push(chunk);}const input=JSON.parse(Buffer.concat(bytes)),w=String(input.workspace||'pool-bros-main');
   const members=await db('ps_workspace_members?workspace_id=eq.'+eq(w)+'&user_id=eq.'+eq(user.id));if(!members.some(m=>['admin','operator'].includes(m.role)))throw Error('Project manager access required');
   const [row]=await db('workspace_snapshots?workspace_id=eq.'+eq(w));const dashboard=input.scope==='dashboard';if(dashboard&&!members.some(m=>m.role==='admin'))throw Error('Administrator access required for the whole-workspace review');const j=row?.data?.jobs?.find(j=>j.id===input.jobId);if(!row?.data||(!dashboard&&!j?.project))throw Error('Sync the workspace before requesting an AI review');

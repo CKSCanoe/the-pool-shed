@@ -1,3 +1,5 @@
+import {supabaseApiKey,supabaseServerKey,elevatedSupabaseHeaders} from './supabase-keys.js';
+import {appOriginAllowed} from './origin-policy.js';
 const WORKSPACE_ID=process.env.POOL_SHED_WORKSPACE_ID||'pool-bros-main';
 const ROLE_IDS=['Admin','Management','Accounts','Sales','Purchasing','Warehouse','Engineer','Office'];
 const VIEW_DEFAULTS={
@@ -25,16 +27,18 @@ const enc=v=>encodeURIComponent(String(v??''));
 const arr=v=>Array.isArray(v)?v:[];
 const text=v=>String(v??'').trim();
 function httpError(message,statusCode){const e=Error(message);e.statusCode=statusCode;return e;}
-function apiKey(){return process.env.SUPABASE_SERVICE_ROLE_KEY||process.env.SUPABASE_PUBLISHABLE_KEY||process.env.SUPABASE_ANON_KEY||'';}
+function apiKey(){return supabaseApiKey(process.env);}
 function requireBackend(){if(!process.env.SUPABASE_URL||!apiKey())throw httpError('Azzy secure backend is not configured.',503);}
 function requestAuthorization(req){const authorization=req?.headers?.authorization||'';return authorization.startsWith('Bearer ')?authorization:'';}
 async function rest(path,{timeout=12000,authorization='',optional=false}={}){
   requireBackend();
-  const service=process.env.SUPABASE_SERVICE_ROLE_KEY||'';
-  const auth=service?`Bearer ${service}`:authorization;
-  if(!auth)throw httpError('Sign in first.',401);
+  const service=supabaseServerKey(process.env);
+  if(!service&&!authorization)throw httpError('Sign in first.',401);
   try{
-    const r=await fetch(`${process.env.SUPABASE_URL}/rest/v1/${path}`,{headers:{apikey:apiKey(),Authorization:auth,Accept:'application/json'},signal:AbortSignal.timeout(timeout)});
+    const headers=service
+      ? elevatedSupabaseHeaders(process.env,{Accept:'application/json'})
+      : {apikey:apiKey(),Authorization:authorization,Accept:'application/json'};
+    const r=await fetch(`${process.env.SUPABASE_URL}/rest/v1/${path}`,{headers,signal:AbortSignal.timeout(timeout)});
     if(!r.ok){if(optional)return null;throw httpError(`Pool Shed data service failed (${r.status}).`,r.status===401||r.status===403?r.status:502);}
     return r.status===204?null:await r.json();
   }catch(e){if(optional)return null;throw e;}
@@ -131,37 +135,4 @@ export async function loadAzzyPoolShedContext(req){
   if(permissions.includes('finance.read'))workspace=await enrichFinance(workspace,workspaceId,authorization);
   return {workspaceId,workspace,user,permissions,revision,updatedAt:snapshot.updated_at,membershipRole:member.role};
 }
-function normalizedOrigin(value){
-  const raw=String(value||'').trim();
-  if(!raw)return '';
-  try{return new URL(raw).origin;}catch(_){return raw.replace(/\/+$/,'');}
-}
-function firstHeader(value){return String(Array.isArray(value)?value[0]:(value||'')).split(',')[0].trim();}
-export function azzyOriginAllowed(req){
-  const supplied=firstHeader(req?.headers?.origin);
-  if(!supplied)return true;
-  const incoming=normalizedOrigin(supplied);
-  if(!incoming)return false;
-
-  // Azzy is called by the Pool Shed browser on the same host as /api/azzy.
-  // Accept that same-origin request even when Vercel is serving an alias or
-  // Preview hostname that does not exactly match APP_ORIGIN.
-  const requestHost=firstHeader(req?.headers?.['x-forwarded-host']||req?.headers?.host).toLowerCase();
-  try{
-    if(requestHost&&new URL(incoming).host.toLowerCase()===requestHost)return true;
-  }catch(_){}
-
-  const allowed=new Set();
-  const add=value=>{
-    String(value||'').split(',').map(v=>normalizedOrigin(v)).filter(Boolean).forEach(v=>allowed.add(v));
-  };
-  add(process.env.APP_ORIGIN);
-  add(process.env.APP_ORIGINS);
-  if(process.env.VERCEL_PROJECT_PRODUCTION_URL)add('https://'+String(process.env.VERCEL_PROJECT_PRODUCTION_URL).replace(/^https?:\/\//,'').replace(/\/+$/,''));
-  if(process.env.VERCEL_URL)add('https://'+String(process.env.VERCEL_URL).replace(/^https?:\/\//,'').replace(/\/+$/,''));
-
-  // Preserve the previous local-development behaviour when no origin policy is
-  // configured. Production Vercel requests are still covered by the host check.
-  if(!allowed.size)return true;
-  return allowed.has(incoming);
-}
+export function azzyOriginAllowed(req){return appOriginAllowed(req,process.env);}

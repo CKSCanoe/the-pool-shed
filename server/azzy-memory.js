@@ -1,8 +1,9 @@
+import {supabaseServerKey,elevatedSupabaseHeaders} from './supabase-keys.js';
 import { memory } from './azzy/src/core/memory.js';
 
 const mode=()=>String(process.env.AZZY_MEMORY_MODE||'file').toLowerCase();
 const enc=v=>encodeURIComponent(String(v??''));
-function serviceKey(){return process.env.SUPABASE_SERVICE_ROLE_KEY||'';}
+function serviceKey(){return supabaseServerKey(process.env);}
 function incomingUserAuth(req){
   const value=String(req?.headers?.authorization||'');
   return value.startsWith('Bearer ')?value:'';
@@ -14,8 +15,8 @@ async function request(req,path,options={}){
   // unauthenticated service-role data path if it is ever called incorrectly.
   if(!incomingUserAuth(req))throw Object.assign(new Error('Azzy memory requires an authenticated Pool Shed request.'),{statusCode:401});
   const service=serviceKey();
-  if(!service)throw Object.assign(new Error('Azzy external memory requires SUPABASE_SERVICE_ROLE_KEY on the server.'),{statusCode:503});
-  const headers={apikey:service,Authorization:`Bearer ${service}`,Accept:'application/json',...(options.headers||{})};
+  if(!service)throw Object.assign(new Error('Azzy external memory requires SUPABASE_SECRET_KEY or legacy SUPABASE_SERVICE_ROLE_KEY on the server.'),{statusCode:503});
+  const headers=elevatedSupabaseHeaders(process.env,{Accept:'application/json',...(options.headers||{})});
   const r=await fetch(`${process.env.SUPABASE_URL}/rest/v1/${path}`,{...options,headers,signal:AbortSignal.timeout(10000)});
   if(!r.ok){const detail=(await r.text().catch(()=>'' )).slice(0,500);throw Object.assign(new Error(`Azzy memory service failed (${r.status}). ${detail}`.trim()),{statusCode:r.status===401||r.status===403?r.status:502});}
   return r.status===204?null:await r.json();
