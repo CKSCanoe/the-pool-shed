@@ -1267,8 +1267,36 @@ const seed = {
       }
 
       function vatRateForLine(line) {
-        const code = String((line && line.taxCode) || "20% VAT").toLowerCase();
-        return code.includes("zero") || code.includes("not rated") || code.includes("0%") ? 0 : 0.2;
+        const code = String((line && line.taxCode) || "20% VAT").trim().toLowerCase();
+
+        if (
+          code === "0%" ||
+          code === "t0" ||
+          code === "zero rated" ||
+          code === "zero-rated" ||
+          code === "not rated" ||
+          code === "not-rated" ||
+          code.includes("zero rated") ||
+          code.includes("not rated")
+        ) {
+          return 0;
+        }
+
+        if (
+          code === "20%" ||
+          code === "20% vat" ||
+          code === "t20" ||
+          code.includes("20%")
+        ) {
+          return 0.2;
+        }
+
+        const percentage = code.match(/(\d+(?:\.\d+)?)\s*%/);
+        if (percentage) {
+          return Math.max(0, Number(percentage[1]) / 100);
+        }
+
+        return 0.2;
       }
 
       function vatAmount(net, line) {
