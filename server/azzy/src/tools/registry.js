@@ -62,6 +62,7 @@ function rankedSystemRecords(db,user,query,{limit=10}={}){
   const rows=[];
   const add=(type,id,label,obj,extra='')=>{const r=relevance(query,`${id} ${label} ${extra}`);if(r.score>=28)rows.push({type,id,label,obj,score:r.score,exactMatch:r.exact,matchedTerms:r.matched});};
   if(can(user,'projects.read'))for(const x of Object.values(db.projects||{}))add('project',x.id,x.name,{id:x.id,name:x.name,status:x.status,stage:x.stage,progress:x.progress,dueDate:x.dueDate,owner:x.owner},`${x.status} ${x.stage} ${x.owner||''}`);
+  if(can(user,'projects.read'))for(const x of Object.values(db.salesOrders||{}))add('sales_order',x.id,x.id,x,`${x.status} ${x.customerId||''} ${x.projectId||''} ${x.quoteRef||''} ${(x.lines||[]).map(l=>`${l.sku} ${l.name}`).join(' ')}`);
   if(can(user,'purchasing.read'))for(const x of Object.values(db.purchaseOrders||{}))add('po',x.id,`${x.id} · ${x.supplier}`,x,`${x.status} ${(x.lines||[]).map(l=>`${l.sku} ${l.name}`).join(' ')}`);
   if(can(user,'stock.read'))for(const x of Object.values(db.products||{}))add('stock',x.sku,x.name,{...x,available:Math.max(0,Number(x.onHand||0)-Number(x.allocated||0))},`${x.supplierSku||''} ${x.bin||''}`);
   if(can(user,'customers.read'))for(const x of Object.values(db.customers||{}))add('customer',x.id,x.name,x,`${(x.waitingOnUs||[]).join(' ')} ${(x.waitingOnCustomer||[]).join(' ')}`);
@@ -100,6 +101,42 @@ function supplierPriceComparison(db,args={}){
   return {query:args.query||'',qty,best:selectedResult?.best||null,offers:selectedResult?.offers||[],groups:comparableGroups,matched:candidates.length,selectedGroup:selectedResult?.key||null};
 }
 
+function freshness(db){return {dataRevision:db.meta?.revision||0,workspaceUpdatedAt:db.meta?.updatedAt||null};}
+function supplierOffersForSku(db,sku){
+  return Object.values(db.supplierOffers||{}).filter(o=>o.poolSku===sku&&o.approved!==false).sort((a,b)=>Number(a.unitNet||0)-Number(b.unitNet||0));
+}
+function salesOrderDetail(db,so,user){
+  const linkedPurchaseOrders=can(user,'purchasing.read')?Object.values(db.purchaseOrders||{}).filter(po=>po.originalSalesOrderId===so.id||(po.lines||[]).some(l=>l.salesOrderId===so.id)):[];
+  const goodsNotes=Object.values(db.goodsNotes||{}).filter(g=>g.salesOrderId===so.id);
+  const salesCredits=Object.values(db.salesCredits||{}).filter(cr=>cr.originalSalesOrderId===so.id);
+  const lines=(so.lines||[]).map(line=>{
+    const p=db.products?.[line.sku]||null,available=p?Math.max(0,Number(p.onHand||0)-Number(p.allocated||0)):null;
+    const offers=can(user,'purchasing.read')?supplierOffersForSku(db,line.sku):[];
+    return {...line,product:p?{id:p.id,sku:p.sku,name:p.name,bin:p.bin,onHand:p.onHand,allocated:p.allocated,onOrder:p.onOrder,available,unitCost:p.unitCost,rrp:p.rrp,trade:p.trade,wholesale:p.wholesale,supplier:p.supplier,supplierSku:p.supplierSku}:null,bestSupplier:offers[0]||null,supplierOfferCount:offers.length};
+  });
+  const calculatedNet=Number(lines.reduce((s,l)=>s+Number(l.qty||0)*Number(l.unitPrice||0),0).toFixed(2));
+  return {...so,calculatedNet,customer:can(user,'customers.read')?db.customers?.[so.customerId]||null:null,project:db.projects?.[so.projectId]||null,linkedPurchaseOrders,goodsNotes,salesCredits,lines,...freshness(db)};
+}
+function purchaseOrderDetail(db,po,user){
+  const receipts=Object.values(db.goodsReceipts||{}).filter(r=>r.poId===po.id);
+  const salesOrderIds=[...new Set([po.originalSalesOrderId,...(po.lines||[]).map(l=>l.salesOrderId)].filter(Boolean))];
+  const linkedSalesOrders=can(user,'projects.read')?salesOrderIds.map(id=>db.salesOrders?.[id]).filter(Boolean):[];
+  const lines=(po.lines||[]).map(line=>{
+    const p=db.products?.[line.sku]||null,offers=supplierOffersForSku(db,line.sku),outstandingQty=Math.max(0,Number(line.qty||0)-Number(line.received||0));
+    const sameSupplier=offers.filter(o=>(po.supplierId&&o.supplierId===po.supplierId)||(!po.supplierId&&po.supplier&&o.supplier===po.supplier));
+    const currentOffer=sameSupplier[0]||offers[0]||null;
+    return {...line,outstanding:outstandingQty,product:p?{id:p.id,sku:p.sku,name:p.name,onHand:p.onHand,allocated:p.allocated,onOrder:p.onOrder,unitCost:p.unitCost,supplier:p.supplier,supplierSku:p.supplierSku}:null,currentRecordedOffer:currentOffer,priceVarianceVsRecorded:currentOffer&&Number(line.unitCost||0)?Number((Number(line.unitCost)-Number(currentOffer.unitNet||0)).toFixed(2)):null};
+  });
+  return {...po,daysLate:daysLate(po.expectedDate,db.meta.today),outstanding:lines.filter(l=>l.outstanding>0),supplierRecord:db.suppliers?.[po.supplierId]||Object.values(db.suppliers||{}).find(s=>s.name===po.supplier)||null,project:db.projects?.[po.projectId]||null,linkedSalesOrders,receipts,lines,...freshness(db)};
+}
+function productDetail(db,p,user){
+  const available=Math.max(0,Number(p.onHand||0)-Number(p.allocated||0));
+  const offers=can(user,'purchasing.read')?supplierOffersForSku(db,p.sku):[];
+  const demand=can(user,'projects.read')?Object.values(db.salesOrders||{}).flatMap(so=>(so.lines||[]).filter(l=>l.sku===p.sku&&Number(l.qty||0)>Number(l.allocatedQty||0)).map(l=>({salesOrderId:so.id,projectId:so.projectId,customerId:so.customerId,status:so.status,required:Number(l.qty||0),allocated:Number(l.allocatedQty||0),shortfall:Math.max(0,Number(l.qty||0)-Number(l.allocatedQty||0))}))):[];
+  const inbound=can(user,'purchasing.read')?Object.values(db.purchaseOrders||{}).flatMap(po=>(po.lines||[]).filter(l=>l.sku===p.sku&&Number(l.qty||0)>Number(l.received||0)).map(l=>({purchaseOrderId:po.id,supplier:po.supplier,status:po.status,expectedDate:po.expectedDate,outstanding:Math.max(0,Number(l.qty||0)-Number(l.received||0)),unitCost:l.unitCost}))):[];
+  return {...p,available,supplierOffers:offers,bestSupplier:offers[0]||null,openSalesDemand:demand,inboundPurchaseOrders:inbound,...freshness(db)};
+}
+
 const registry={
   get_operational_briefing:{
     permission:'projects.read',description:'Summarise the business with permission-safe risks, wins and meaningful changes.',
@@ -117,9 +154,17 @@ const registry={
     permission:'purchasing.read',description:'Purchase orders and blockers related to a project.',
     run:({db,args})=>{const g=projectGraph(db,args.projectId);if(!g)return err('Project not found');const rows=g.purchaseOrders.map(po=>({id:po.id,projectId:po.projectId,supplier:po.supplier,status:po.status,expectedDate:po.expectedDate,daysLate:daysLate(po.expectedDate,db.meta.today),outstanding:outstanding(po)})),blocked=rows.filter(x=>x.outstanding.length&&(x.daysLate>0||!x.expectedDate));return result({projectId:args.projectId,purchaseOrders:rows,blocked},rows.flatMap(po=>[evidence('po',po.id,'PO status','status',po.status),evidence('po',po.id,'Expected date','expectedDate',po.expectedDate||'No ETA'),...po.outstanding.map(l=>evidence('po',po.id,l.name,`line:${l.sku}`,`${l.outstanding} outstanding`))]));}
   },
+  get_sales_order:{
+    permission:'projects.read',description:'Complete live Sales Order detail from the current Pool Shed workspace, including lines, fulfilment, linked POs, stock and supplier context the user is allowed to see.',
+    run:({db,args,user})=>{const so=db.salesOrders[args.salesOrderId];if(!so)return err('Sales order not found');const data=salesOrderDetail(db,so,user);const ev=[evidence('sales_order',so.id,'Status','status',so.status),...data.lines.flatMap(l=>[evidence('sales_order',so.id,l.name,`line:${l.sku}`,`${l.qty} ordered · ${l.allocatedQty||0} allocated · ${l.pickedQty||0} picked · ${l.packedQty||0} packed`),...(l.product?[evidence('product',l.sku,l.product.name,'available',l.product.available)]:[])])];return result(data,ev);}
+  },
   get_purchase_order:{
-    permission:'purchasing.read',description:'Detailed purchase order status.',
-    run:({db,args})=>{const po=db.purchaseOrders[args.poId];if(!po)return err('Purchase order not found');const out=outstanding(po);return result({...po,daysLate:daysLate(po.expectedDate,db.meta.today),outstanding:out},[evidence('po',po.id,'Status','status',po.status),evidence('po',po.id,'Expected date','expectedDate',po.expectedDate||'No ETA'),...out.map(l=>evidence('po',po.id,l.name,`line:${l.sku}`,`${l.outstanding} outstanding`))]);}
+    permission:'purchasing.read',description:'Complete live Purchase Order detail from the current Pool Shed workspace, including receipts, outstanding lines, linked Sales Orders and current recorded supplier-price context.',
+    run:({db,args,user})=>{const po=db.purchaseOrders[args.poId];if(!po)return err('Purchase order not found');const data=purchaseOrderDetail(db,po,user);return result(data,[evidence('po',po.id,'Status','status',po.status),evidence('po',po.id,'Expected date','expectedDate',po.expectedDate||'No ETA'),...data.outstanding.map(l=>evidence('po',po.id,l.name,`line:${l.sku}`,`${l.outstanding} outstanding`))]);}
+  },
+  get_product_record:{
+    permission:'stock.read',description:'Complete live product record including stock, Pool Shed price lists, supplier offers, open Sales Order demand and inbound POs where permissions allow.',
+    run:({db,args,user})=>{const p=db.products[args.sku];if(!p)return err('Product not found');const data=productDetail(db,p,user);const ev=[evidence('product',p.sku,p.name,'available',data.available),evidence('product',p.sku,'On hand','onHand',p.onHand),evidence('product',p.sku,'Allocated','allocated',p.allocated),...data.supplierOffers.slice(0,6).map(o=>evidence('supplier_price',o.id,`${o.supplier} · ${o.productName}`,'unitNet',gbp(o.unitNet)))];return result(data,ev);}
   },
   get_stock_position:{
     permission:'stock.read',description:'On-hand, allocated, available and on-order stock for a known Pool Shed SKU.',
