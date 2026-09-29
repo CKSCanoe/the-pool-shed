@@ -26,12 +26,26 @@ assert.equal(memory.session(user).history[1].text,'Hi Aaron');
 assert.equal(memory.getAction('ACT-1').requestedBy,user);
 assert.equal(memory.auditFor(user).length,1);
 
+const previousMode=process.env.AZZY_MEMORY_MODE,previousVercel=process.env.VERCEL,previousFile=process.env.AZZY_MEMORY_FILE;
+const serverlessFile=path.join(root,'runtime','memory-serverless-test.json');
+try{fs.rmSync(serverlessFile,{force:true});}catch{}
+process.env.AZZY_MEMORY_MODE='file';process.env.VERCEL='1';process.env.AZZY_MEMORY_FILE=serverlessFile;
+const serverlessUrl=pathToFileURL(path.join(root,'server/azzy/src/core/memory.js')).href+`?serverless=${Date.now()}`;
+const {memory:serverlessMemory}=await import(serverlessUrl);
+serverlessMemory.addMessage(user,'user','Serverless write guard');
+assert.equal(fs.existsSync(serverlessFile),false);
+if(previousMode===undefined)delete process.env.AZZY_MEMORY_MODE;else process.env.AZZY_MEMORY_MODE=previousMode;
+if(previousVercel===undefined)delete process.env.VERCEL;else process.env.VERCEL=previousVercel;
+if(previousFile===undefined)delete process.env.AZZY_MEMORY_FILE;else process.env.AZZY_MEMORY_FILE=previousFile;
+
 const migration=fs.readFileSync(path.join(root,'database/012-azzy-memory.sql'),'utf8');
 assert.match(migration,/create table if not exists public\.ps_azzy_memory/i);
 assert.match(migration,/revoke all on public\.ps_azzy_memory from public, anon, authenticated/i);
 assert.match(migration,/grant all on public\.ps_azzy_memory to service_role/i);
 assert.doesNotMatch(migration,/ps_workspace_can_read/i);
 const memoryServer=fs.readFileSync(path.join(root,'server/azzy-memory.js'),'utf8');
+assert.match(memoryServer,/raw=await r\.text\(\)/);
+assert.match(memoryServer,/if\(!raw\.trim\(\)\)return null/);
 assert.match(memoryServer,/SUPABASE_SERVICE_ROLE_KEY/);
 assert.match(memoryServer,/authenticated Pool Shed request/);
 assert.doesNotMatch(memoryServer,/SUPABASE_PUBLISHABLE_KEY|SUPABASE_ANON_KEY/);
