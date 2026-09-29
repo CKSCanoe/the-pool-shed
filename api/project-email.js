@@ -1,9 +1,10 @@
 import '../public/project-engine.js';
 import {db,eq,audit,hash} from '../server/accounting.js';
+import {appOriginAllowed} from '../server/origin-policy.js';
 export const config={api:{bodyParser:false}};
 export default async function handler(req,res){
  res.setHeader('Cache-Control','no-store');if(req.method!=='POST')return res.status(405).json({error:'POST required'});
- if(!process.env.APP_ORIGIN||req.headers.origin!==process.env.APP_ORIGIN)return res.status(403).json({error:'Invalid origin'});
+ if(!process.env.APP_ORIGIN||!appOriginAllowed(req,process.env))return res.status(403).json({error:'Invalid origin'});
  try{
   const auth=req.headers.authorization||'';if(!auth.startsWith('Bearer '))throw Error('Sign in first');
   const ur=await fetch(process.env.SUPABASE_URL+'/auth/v1/user',{headers:{apikey:process.env.SUPABASE_SERVICE_ROLE_KEY,Authorization:auth},signal:AbortSignal.timeout(10000)});if(!ur.ok)return res.status(401).json({error:'Sign in first'});const user=await ur.json();
