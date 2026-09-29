@@ -128,8 +128,31 @@ function compose({intent,executions,session,user,contexts,primaryContext,deltas=
     case 'project_materials':{
       const m=get('get_project_materials')?.data;if(!m){answer='I can’t find purchasing data for that project.';break;}if(!m.blocked.length)answer=`I can’t see a current purchasing blocker on ${projectName(db,m.projectId||primaryContext?.id)}.`;else{const rows=m.blocked.flatMap(po=>po.outstanding.map(l=>`${l.outstanding} × ${l.name} on ${po.id}${po.daysLate?` (${po.daysLate} days late)`:' with no ETA'}`));answer=`The job is currently waiting on ${rows.join('; ')}.`;}followups=['Why does that matter?','What would you do next?','Create a draft PO for overdue items'];break;
     }
+    case 'sales_order':{
+      const so=get('get_sales_order')?.data;if(!so){answer='I can’t find that sales order.';break;}
+      const qty=(so.lines||[]).reduce((s,l)=>s+Number(l.qty||0),0),allocated=(so.lines||[]).reduce((s,l)=>s+Number(l.allocatedQty||0),0),picked=(so.lines||[]).reduce((s,l)=>s+Number(l.pickedQty||0),0),packed=(so.lines||[]).reduce((s,l)=>s+Number(l.packedQty||0),0);
+      answer=`${so.id} is ${so.status}. It has ${so.lines.length} line${so.lines.length===1?'':'s'} and ${qty} unit${qty===1?'':'s'} recorded; ${allocated} allocated, ${picked} picked and ${packed} packed.`;
+      if(so.customer?.name)answer+=` Customer: ${so.customer.name}.`;
+      if(so.project?.name)answer+=` Project: ${so.project.name}.`;
+      if(so.dueDate)answer+=` Due ${so.dueDate}.`;
+      if(so.totalNet||so.calculatedNet)answer+=` Recorded/calculated net value is ${gbp(so.totalNet||so.calculatedNet)}.`;
+      if(so.linkedPurchaseOrders?.length)answer+=` It is linked to ${so.linkedPurchaseOrders.length} purchase order${so.linkedPurchaseOrders.length===1?'':'s'}: ${so.linkedPurchaseOrders.map(x=>x.id).join(', ')}.`;
+      const shortages=(so.lines||[]).filter(l=>l.product&&Number(l.qty||0)>Number(l.allocatedQty||0)&&Number(l.product.available||0)<Math.max(0,Number(l.qty||0)-Number(l.allocatedQty||0)));
+      if(shortages.length)answer+=` Current stock still leaves ${shortages.length} line${shortages.length===1?'':'s'} exposed.`;
+      followups=['Show me every line on this order','What is still short?','Show linked purchase orders'];break;
+    }
     case 'po':{
-      const po=get('get_purchase_order')?.data;if(!po){answer='I can’t find that purchase order.';break;}const missing=po.outstanding.map(x=>`${x.outstanding} × ${x.name}`).join(', ');if(!po.outstanding.length)answer=`${po.id} is complete. Everything recorded on it has been received.`;else answer=`${po.id} from ${po.supplier} still has ${missing}. ${po.expectedDate?(po.daysLate?`It is ${po.daysLate} days late against the ${po.expectedDate} ETA.`:`Its recorded ETA is ${po.expectedDate}.`):`There isn't a confirmed ETA recorded.`}`;followups=['Why does that matter?','Can we cover it from stock?','Ask Charlotte to chase this'];break;
+      const po=get('get_purchase_order')?.data;if(!po){answer='I can’t find that purchase order.';break;}const missing=po.outstanding.map(x=>`${x.outstanding} × ${x.name}`).join(', ');if(!po.outstanding.length)answer=`${po.id} is complete. Everything recorded on it has been received.`;else answer=`${po.id} from ${po.supplier} still has ${missing}. ${po.expectedDate?(po.daysLate?`It is ${po.daysLate} days late against the ${po.expectedDate} ETA.`:`Its recorded ETA is ${po.expectedDate}.`):`There isn't a confirmed ETA recorded.`}`;if(po.linkedSalesOrders?.length)answer+=` It is linked to ${po.linkedSalesOrders.map(x=>x.id).join(', ')}.`;if(po.receipts?.length)answer+=` ${po.receipts.length} goods-receipt record${po.receipts.length===1?' is':'s are'} attached.`;followups=['Show every PO line','Compare its prices with current supplier prices','Show linked sales orders'];break;
+    }
+    case 'product_detail':{
+      const p=get('get_product_record')?.data;if(!p){answer='I can’t find that product record.';break;}
+      answer=`${p.name} (${p.sku}) has ${p.onHand} on hand, ${p.allocated} allocated and ${p.available} free, with ${p.onOrder} on order.`;
+      if(p.unitCost)answer+=` Current product cost is ${gbp(p.unitCost)}.`;
+      const sell=[];if(p.rrp)sell.push(`RRP ${gbp(p.rrp)}`);if(p.trade)sell.push(`trade ${gbp(p.trade)}`);if(p.wholesale)sell.push(`wholesale ${gbp(p.wholesale)}`);if(sell.length)answer+=` Pool Shed selling prices: ${sell.join(', ')}.`;
+      if(p.bestSupplier)answer+=` Best currently recorded approved supplier offer is ${p.bestSupplier.supplier} at ${gbp(p.bestSupplier.unitNet)} net${p.bestSupplier.lastUpdated?`, updated ${p.bestSupplier.lastUpdated}`:''}.`;
+      if(p.openSalesDemand?.length)answer+=` It appears on ${p.openSalesDemand.length} open Sales Order demand line${p.openSalesDemand.length===1?'':'s'}.`;
+      if(p.inboundPurchaseOrders?.length)answer+=` There ${p.inboundPurchaseOrders.length===1?'is':'are'} ${p.inboundPurchaseOrders.length} inbound PO line${p.inboundPurchaseOrders.length===1?'':'s'}.`;
+      followups=['Compare every supplier price','Show open sales demand','Show inbound purchase orders'];break;
     }
     case 'product_search':{
       const p=get('find_products')?.data,rows=p?.matches||[],query=plan?.working?.query||p?.query||message;
@@ -212,9 +235,10 @@ function validateLocalPlan(candidate,user,db){
   if(!candidate||!Array.isArray(candidate.tools))return false;
   const validNames=new Set(toolDefinitions(user).map(x=>x.name));
   const known=(name,args={})=>{
-    if(name==='get_stock_position'||name==='prepare_stock_allocation'||name==='get_chemical_safety')return Boolean(db.products?.[args.sku]);
+    if(name==='get_stock_position'||name==='get_product_record'||name==='prepare_stock_allocation'||name==='get_chemical_safety')return Boolean(db.products?.[args.sku]);
     if(['get_project_overview','get_project_financials','get_project_materials','get_hire_costs','run_project_scenario','prepare_purchase_order'].includes(name))return Boolean(db.projects?.[args.projectId]);
     if(name==='get_purchase_order')return Boolean(db.purchaseOrders?.[args.poId]);
+    if(name==='get_sales_order')return Boolean(db.salesOrders?.[args.salesOrderId]);
     if(name==='get_three_way_match')return Boolean(db.supplierBills?.[args.billId]);
     if(name==='get_pick_list'||name==='prepare_sales_order_allocation')return !args.salesOrderId||Boolean(db.salesOrders?.[args.salesOrderId]);
     if(name==='prepare_project_extra')return Boolean(db.extras?.[args.extraId]);
