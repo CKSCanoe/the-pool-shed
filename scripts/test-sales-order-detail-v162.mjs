@@ -22,6 +22,7 @@ const checks = [
   ['allocation engine preserved', legacy.includes('function allocateSalesOrder') && legacy.includes('function allocateSalesOrderLine')],
   ['goods note engine preserved', legacy.includes('function salesOrderGoodsNotesDirectory') && legacy.includes('goodsNotesForOrder')],
   ['custom and shipping engines preserved', legacy.includes('function addCustomSalesLine') && legacy.includes('function addShippingSalesLine')],
+  ['single catalogue heading', (workspace.match(/Connected product catalogue/g) || []).length === 1],
   ['responsive layout', css.includes('@media (max-width:860px)') && css.includes('@media (max-width:600px)')]
 ];
 
