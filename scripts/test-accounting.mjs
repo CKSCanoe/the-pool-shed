@@ -10,8 +10,13 @@ assert(validSignature(raw,signature,'webhook-secret'));assert(!validSignature(Bu
 const v={Type:'ACCREC',Contact:{ContactID:'12345678-1234-1234-1234-123456789012'},Date:'2026-09-08',DueDate:'2026-10-08',CurrencyCode:'GBP',Status:'AUTHORISED',LineItems:[{Description:'Valve',Quantity:2,UnitAmount:12.5,AccountCode:'200',TaxType:'OUTPUT2'}]};
 assert.equal(validateInvoice(v).Status,'DRAFT');assert.equal(validateInvoice(v).LineAmountTypes,'Exclusive');
 for(const patch of [{DueDate:'2026-01-01'},{Date:'2026-02-30'},{CurrencyCode:'gbp'},{Contact:{}},{LineItems:[]},{LineItems:[{...v.LineItems[0],Quantity:-1}]},{LineItems:[{...v.LineItems[0],UnitAmount:NaN}]}])assert.throws(()=>validateInvoice({...v,...patch}));
+const originalSupabaseUrl=process.env.SUPABASE_URL,originalSupabaseSecret=process.env.SUPABASE_SECRET_KEY;
+process.env.SUPABASE_URL='https://example.supabase.co';
+process.env.SUPABASE_SECRET_KEY='sb_secret_test_only';
 const calls=[];global.fetch=async(url,options)=>{calls.push({url,body:JSON.parse(options.body)});return {ok:true,status:200,json:async()=>[]};};
 await applyRemote('workspace',{InvoiceID:'id',Status:'PAID',AmountPaid:30,AmountDue:0,AmountCredited:0,CurrencyCode:'GBP'});
 await applyRemote('workspace',{InvoiceID:'id',Status:'AUTHORISED',AmountPaid:0,AmountDue:30,AmountCredited:0,CurrencyCode:'GBP'});
 assert.equal(calls[1].body.amount_due,30);assert(calls.every(c=>!('stock' in c.body)&&c.url.includes('ps_finance_documents')));
+if(originalSupabaseUrl===undefined)delete process.env.SUPABASE_URL;else process.env.SUPABASE_URL=originalSupabaseUrl;
+if(originalSupabaseSecret===undefined)delete process.env.SUPABASE_SECRET_KEY;else process.env.SUPABASE_SECRET_KEY=originalSupabaseSecret;
 console.log('Accounting: encryption/tamper checks, webhook signatures, invoice validation, forced drafts, payment reversal and stock isolation passed.');
