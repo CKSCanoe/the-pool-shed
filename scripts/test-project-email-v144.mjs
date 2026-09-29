@@ -1,4 +1,5 @@
 import assert from 'node:assert/strict';
+delete process.env.SUPABASE_SECRET_KEY;
 process.env.APP_ORIGIN='https://pool.example';process.env.SUPABASE_URL='https://db.example';process.env.SUPABASE_SERVICE_ROLE_KEY='test';
 const {default:handler}=await import('../api/project-email.js');
 const job={id:'J',name:'Pool',customerId:'C',project:{quoteNet:10000,quoteRef:'Q1',quoteAccepted:true,minimumMargin:20,targetMargin:30,remainingNet:1000,variations:[{id:'V',title:'Extra',description:'Lights',sellNet:1000,costNet:300,status:'Proposed',version:1,vatRate:20}],costs:[]}};
