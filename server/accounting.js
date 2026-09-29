@@ -1,14 +1,16 @@
 import {createCipheriv,createDecipheriv,randomBytes,createHash,createHmac,timingSafeEqual} from 'node:crypto';
+import {supabaseServerKey,elevatedSupabaseHeaders} from './supabase-keys.js';
 export const XERO_SCOPES=['offline_access','accounting.invoices','accounting.contacts.read','accounting.settings.read','accounting.payments.read'];
 export function xeroIntegrationReadiness(env=process.env){
- const required=['SUPABASE_URL','SUPABASE_SERVICE_ROLE_KEY','APP_ORIGIN','XERO_CLIENT_ID','XERO_CLIENT_SECRET','XERO_TOKEN_KEY','CRON_SECRET','XERO_WEBHOOK_KEY'];
+ const required=['SUPABASE_URL','APP_ORIGIN','XERO_CLIENT_ID','XERO_CLIENT_SECRET','XERO_TOKEN_KEY','CRON_SECRET','XERO_WEBHOOK_KEY'];
  const missing=required.filter(k=>!String(env[k]||'').trim());
+ if(!supabaseServerKey(env))missing.push('SUPABASE_SECRET_KEY_OR_SERVICE_ROLE_KEY');
  const mode=String(env.XERO_INTEGRATION_MODE||'ready').trim().toLowerCase()==='live'?'live':'ready';
  const origin=String(env.APP_ORIGIN||'').replace(/\/$/,'');
  const tokenKeyOk=(()=>{try{return Buffer.from(env.XERO_TOKEN_KEY||'','base64').length===32}catch{return false}})();
  const appConfigured=!missing.includes('XERO_CLIENT_ID')&&!missing.includes('XERO_CLIENT_SECRET')&&!missing.includes('APP_ORIGIN')&&tokenKeyOk;
  const securityConfigured=tokenKeyOk&&!missing.includes('XERO_WEBHOOK_KEY')&&!missing.includes('CRON_SECRET');
- const platformConfigured=!missing.includes('SUPABASE_URL')&&!missing.includes('SUPABASE_SERVICE_ROLE_KEY');
+ const platformConfigured=!missing.includes('SUPABASE_URL')&&Boolean(supabaseServerKey(env));
  const readyToConnect=missing.length===0&&tokenKeyOk;
  return {mode,liveEnabled:mode==='live'&&readyToConnect,readyToConnect,appConfigured,securityConfigured,platformConfigured,missing:tokenKeyOk?missing:[...new Set([...missing,'XERO_TOKEN_KEY'])],scopes:[...XERO_SCOPES],redirectUri:origin?origin+'/api/finance?action=callback':'',secretsExposed:false};
 }
@@ -47,7 +49,8 @@ export function validateInvoice(v){
  return {Type:v.Type,Contact:{ContactID:v.Contact.ContactID},Date:v.Date,DueDate:v.DueDate,CurrencyCode:v.CurrencyCode,LineAmountTypes:'Exclusive',Status:'DRAFT',LineItems:lines};
 }
 export async function db(path,{method='GET',body,prefer,timeout=12000}={}){
- const r=await fetch(process.env.SUPABASE_URL+'/rest/v1/'+path,{method,signal:AbortSignal.timeout(timeout),headers:{apikey:process.env.SUPABASE_SERVICE_ROLE_KEY,Authorization:'Bearer '+process.env.SUPABASE_SERVICE_ROLE_KEY,'Content-Type':'application/json',Prefer:prefer||'return=representation'},body:body===undefined?undefined:JSON.stringify(body)});
+ const headers=elevatedSupabaseHeaders(process.env,{'Content-Type':'application/json',Prefer:prefer||'return=representation'});
+ const r=await fetch(process.env.SUPABASE_URL+'/rest/v1/'+path,{method,signal:AbortSignal.timeout(timeout),headers,body:body===undefined?undefined:JSON.stringify(body)});
  if(!r.ok)throw Error('Database operation failed ('+r.status+')');return r.status===204?null:await r.json();
 }
 export const eq=v=>encodeURIComponent(v);
