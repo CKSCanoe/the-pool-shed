@@ -132,12 +132,19 @@ export function deterministicPlan({message,contexts=[],primaryContext=null,histo
     plan.intent='chemical_safety';plan.confidence=.99;add('get_chemical_safety',{sku:firstSku});return plan;
   }
 
+  if(firstSalesOrder&&(/sales order|\bso-?\d+\b|what.*(?:is|on).*order|tell me.*order|everything.*order|order.*status|where.*order|what.*happen.*order/.test(q))){
+    plan.intent='sales_order';plan.confidence=.995;add('get_sales_order',{salesOrderId:firstSalesOrder});return plan;
+  }
+
   if(looksLikeProductQuery(q)&&!/best price|cheapest|compare.*price|price.*supplier|supplier.*price|invoice|bill|cashflow/.test(q)){
     plan.intent='product_search';plan.confidence=.96;add('find_products',{query:message,limit:6});return plan;
   }
 
   if(/best price|cheapest|compare.*price|price.*supplier|supplier.*price|who.*cheapest|what.*pay.*supplier|last paid|price gone up|price increase|price.*chlorine|chlorine.*price|price.*chemical|chemical.*price|cheaper.*same product|same product.*supplier|compare.*pipework/.test(q)){
     plan.intent='supplier_price';plan.confidence=.99;const qty=Number(q.match(/\b(\d+)\s*(?:drums?|packs?|units?|bottles?|tubs?|containers?)\b/)?.[1]||q.match(/\bfor\s+(\d+)\b/)?.[1]||1);add('get_supplier_price_comparison',{query:message,qty});return plan;
+  }
+  if(firstSku&&(/tell me.*(?:product|item)|everything.*(?:product|item)|product.*details?|full.*record|commercial.*details?|\brrp\b|\btrade\b|\bwholesale\b|what.*cost|what.*price/.test(q))){
+    plan.intent='product_detail';plan.confidence=.99;add('get_product_record',{sku:firstSku});return plan;
   }
   if(/create.*po|draft.*po|order missing|prepare.*po/.test(q)&&firstProject){plan.intent='prepare_po';plan.confidence=.99;add('prepare_purchase_order',{projectId:firstProject,supplier:'Certikin',reason:'User requested a draft for overdue missing items'});return plan;}
   if(/allocate/.test(q)&&firstProject&&firstSku){const qty=Number(q.match(/\b(\d+)\b/)?.[1]||1);plan.intent='prepare_allocation';plan.confidence=.99;add('prepare_stock_allocation',{projectId:firstProject,sku:firstSku,qty});return plan;}
