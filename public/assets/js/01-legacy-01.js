@@ -1240,17 +1240,58 @@ const seed = {
         return !!(line && (line.lineType === "custom" || line.lineType === "shipping")) || !!(p && p.stockTracked === false);
       }
 
-      function canRemoveSalesOrderLine(line) {
-        if (!line) return false;
-        if (isNonStockSalesLine(line)) return true;
-        return Number(line.allocated || 0) === 0 && Number(line.picked || 0) === 0 && Number(line.packed || 0) === 0;
+      function completedSalesCreditQtyForLine(order, line) {
+        if (!order || !line) return 0;
+        return (data.salesCredits || []).reduce(function(total, credit) {
+          if (!credit || credit.originalSalesOrderId !== order.id || credit.status !== "Completed") return total;
+          return total + (credit.lines || []).reduce(function(sum, creditLine) {
+            return sum + (creditLine.productId === line.productId ? Number(creditLine.qty || 0) : 0);
+          }, 0);
+        }, 0);
       }
 
-      function salesOrderLineRemovalReason(line) {
+      function salesOrderLineHasFulfilmentHistory(order, line) {
+        if (!order || !line) return false;
+        return goodsNotesForOrder(order.id).some(function(note) {
+          return (note.lines || []).some(function(noteLine) {
+            return noteLine.productId === line.productId &&
+              (Number(noteLine.qty || 0) > 0 || Number(noteLine.picked || 0) > 0 || Number(noteLine.packed || 0) > 0 || Number(noteLine.shipped || 0) > 0);
+          });
+        });
+      }
+
+      function salesOrderLineHasLinkedPurchaseOrder(order, line) {
+        if (!order || !line) return false;
+        return linkedPurchaseOrders(order.id).some(function(po) {
+          return (po.linkedLines || []).some(function(poLine) {
+            return poLine.productId === line.productId;
+          });
+        });
+      }
+
+      function canRemoveSalesOrderLine(line, order) {
+        if (!line) return false;
+        if (isNonStockSalesLine(line)) return true;
+
+        const qty = Math.max(0, Number(line.qty || 0));
+        if (qty > 0 && completedSalesCreditQtyForLine(order, line) >= qty) return true;
+
+        if (Number(line.allocated || 0) > 0 || Number(line.picked || 0) > 0 || Number(line.packed || 0) > 0) return false;
+        if (salesOrderLineHasFulfilmentHistory(order, line)) return false;
+        if (salesOrderLineHasLinkedPurchaseOrder(order, line)) return false;
+        if (order && ((order.payments || []).length > 0 || (order.xeroRef && order.xeroRef !== "Draft") || ["Invoice Ready", "Invoiced", "Completed"].includes(order.status))) return false;
+        return true;
+      }
+
+      function salesOrderLineRemovalReason(line, order) {
         if (!line) return "Line unavailable";
         if (isNonStockSalesLine(line)) return "This non-stock line can be removed.";
-        if (Number(line.packed || 0) > 0) return "Packed stock must be unpacked before this item can be removed.";
-        if (Number(line.picked || 0) > 0) return "Picked stock must be returned before this item can be removed.";
+
+        const qty = Math.max(0, Number(line.qty || 0));
+        if (qty > 0 && completedSalesCreditQtyForLine(order, line) >= qty) return "This line is fully covered by a completed Sales Credit and can be removed.";
+        if (salesOrderLineHasLinkedPurchaseOrder(order, line)) return "This line cannot be removed while linked Purchase Orders exist. Resolve the linked PO first.";
+        if (salesOrderLineHasFulfilmentHistory(order, line) || Number(line.picked || 0) > 0 || Number(line.packed || 0) > 0) return "Create and complete a Sales Credit before removing it because fulfilment history exists.";
+        if (order && ((order.payments || []).length > 0 || (order.xeroRef && order.xeroRef !== "Draft") || ["Invoice Ready", "Invoiced", "Completed"].includes(order.status))) return "Create and complete a Sales Credit before removing it because accounting history exists.";
         if (Number(line.allocated || 0) > 0) return "Unallocate the stock before removing this item.";
         return "This item is not allocated and can be safely removed.";
       }
@@ -5855,6 +5896,9 @@ const seed = {
         const statusOptions = ['<option value="">All statuses</option>'].concat(statusNames.map(function(name) {
           return '<option value="' + escapeHtml(name) + '"' + (selectedStatus === name ? ' selected' : '') + '>' + escapeHtml(name) + '</option>';
         })).join("");
+        const bulkStatusOptions = ['<option value="">Choose status</option>'].concat(statusNames.map(function(name) {
+          return '<option value="' + escapeHtml(name) + '">' + escapeHtml(name) + '</option>';
+        })).join("");
         const sourceNames = Array.from(new Set(data.salesOrders.map(function(order) { return String(order.source || ""); }).filter(Boolean))).sort();
         const channelNames = Array.from(new Set(data.salesOrders.map(function(order) { return String(order.channel || ""); }).filter(Boolean))).sort();
         const sourceOptions = ['<option value="">Any source</option>'].concat(sourceNames.map(function(name) {
@@ -5940,7 +5984,7 @@ const seed = {
               '<th class="so-list-check"><input type="checkbox" data-so-list-select-all aria-label="Select all visible sales orders"></th>' +
               '<th>Order / Customer</th><th>Status</th><th>Stock</th><th>Fulfilment</th><th>Due</th><th class="right">Value</th><th class="right">Action</th>' +
             '</tr></thead><tbody>' + rows + '</tbody></table></div>' +
-            '<div class="so-list-bulk" data-so-list-bulk hidden><strong><span data-so-list-selected-count>0</span> orders selected</strong><div><button type="button" class="secondary" data-sales-list-action="status">Update status</button><button type="button" class="secondary" data-sales-list-action="allocate">Allocate</button><button type="button" class="secondary" data-sales-list-action="fulfil">Fulfil</button><button type="button" class="secondary" data-sales-list-action="invoice">Invoice</button></div></div>' +
+            '<div class="so-list-bulk" data-so-list-bulk hidden><strong><span data-so-list-selected-count>0</span> orders selected</strong><div><select data-so-list-bulk-status aria-label="Bulk sales order status">' + bulkStatusOptions + '</select><button type="button" class="secondary" data-sales-list-action="status">Apply status</button><button type="button" class="secondary" data-sales-list-action="allocate">Allocate</button><button type="button" class="secondary" data-sales-list-action="fulfil">Fulfil</button><button type="button" class="secondary" data-sales-list-action="invoice">Invoice</button><button type="button" class="danger so-list-delete" data-sales-list-action="delete">Delete</button></div></div>' +
           '</div>' +
         '</section>';
       }
@@ -6646,15 +6690,19 @@ const seed = {
           const line=order&&order.lines.find(function(item){return item.productId===parts[1];});
           if(!order||!line)return;
           const p=product(parts[1]);
-          if(!canRemoveSalesOrderLine(line)){
-            toast(salesOrderLineRemovalReason(line));
+          if(!canRemoveSalesOrderLine(line, order)){
+            toast(salesOrderLineRemovalReason(line, order));
             return;
           }
           const label=line.description||(p&&p.name)||parts[1];
+          const fullyCredited=!isNonStockSalesLine(line) && Number(line.qty||0)>0 && completedSalesCreditQtyForLine(order,line)>=Number(line.qty||0);
           const promptText=isNonStockSalesLine(line)
             ? "Remove “"+label+"” from "+order.id+"?"
-            : "Remove the unallocated stock item “"+label+"” from "+order.id+"? This will remove the line and recalculate the order total.";
+            : fullyCredited
+              ? "Remove the fully credited stock item “"+label+"” from "+order.id+"? Completed credit history will be preserved."
+              : "Remove the unallocated stock item “"+label+"” from "+order.id+"? This will remove the line and recalculate the order total.";
           if(!confirm(promptText))return;
+          if(fullyCredited && Number(line.allocated||0)>0) releaseAllocatedStockForLine(order,line,Number(line.allocated||0),"Sales credit line removal");
           order.lines=order.lines.filter(function(item){return item.productId!==parts[1];});
           if(p&&p.hiddenFromCatalogue)data.products=data.products.filter(function(item){return item.id!==parts[1];});
           addSalesOrderNotification(order,"Sales order item removed",label+" removed before stock allocation","Internal note");
@@ -7696,11 +7744,11 @@ const seed = {
           const coverageText = allocationSourceLabel(order.id) + ": " + coverage.free + " free, " + coverage.onPo + " on PO" + (coverage.toRaise ? ", " + coverage.toRaise + " to raise" : "");
           const priceFlag = nonStock ? '<br><span class="line-type-badge ' + (line.lineType === "shipping" ? "shipping" : "") + '">' + (line.lineType === "shipping" ? "Delivery charge" : "Custom line") + '</span>' : (line.specialPrice ? '<br><span class="pill warn">Special price</span>' : '<br><span class="muted">' + activePriceList.toUpperCase() + ' price list</span>');
           const allocationCell = nonStock ? '<span class="muted">Not required</span>' : '<input class="qty-input" data-line-field="' + order.id + '|' + line.productId + '|allocated" type="number" min="0" max="' + line.qty + '" value="' + line.allocated + '"><br><span class="muted">' + coverageText + '</span>';
-          const removable = canRemoveSalesOrderLine(line);
-          const removeButton = '<button class="' + (removable ? 'danger' : 'secondary') + '" data-remove-sales-line="' + order.id + '|' + line.productId + '" title="' + escapeHtml(salesOrderLineRemovalReason(line)) + '"' + (removable ? '' : ' aria-disabled="true"') + '>' + (nonStock ? 'Remove line' : 'Remove item') + '</button>';
+          const removable = canRemoveSalesOrderLine(line, order);
+          const removeButton = '<button class="' + (removable ? 'danger' : 'secondary') + '" data-remove-sales-line="' + order.id + '|' + line.productId + '" title="' + escapeHtml(salesOrderLineRemovalReason(line, order)) + '"' + (removable ? '' : ' aria-disabled="true"') + '>' + (nonStock ? 'Remove line' : 'Remove item') + '</button>';
           const actionCell = nonStock
             ? '<div class="line-actions">' + removeButton + '</div>'
-            : '<div class="line-actions"><button class="secondary" data-allocate-line="' + order.id + '|' + line.productId + '">Allocate</button><button class="secondary" data-unallocate-line="' + order.id + '|' + line.productId + '">Unallocate</button>' + removeButton + '</div><small class="muted">' + escapeHtml(salesOrderLineRemovalReason(line)) + '</small>';
+            : '<div class="line-actions"><button class="secondary" data-allocate-line="' + order.id + '|' + line.productId + '">Allocate</button><button class="secondary" data-unallocate-line="' + order.id + '|' + line.productId + '">Unallocate</button>' + removeButton + '</div><small class="muted">' + escapeHtml(salesOrderLineRemovalReason(line, order)) + '</small>';
           const variantMeta = salesOrderVariantMeta(p);
           const familyMeta = p.parentName && p.parentName !== p.name ? p.parentName : p.category;
           const noteCount = goodsNotesForOrder(order.id).filter(function(note){ return note.lines.some(function(noteLine){ return noteLine.productId === line.productId; }); }).length;
@@ -14343,6 +14391,43 @@ const seed = {
         toast("Sales order list exported.");
       }
 
+      function salesOrderDeleteBlockers(order) {
+        const blockers = [];
+        if (!order) return ["Sales order could not be found"];
+        if ((order.lines || []).some(function(line) { return Number(line.allocated || 0) > 0 || Number(line.picked || 0) > 0 || Number(line.packed || 0) > 0; })) blockers.push("allocated or fulfilment quantities exist");
+        if (goodsNotesForOrder(order.id).length) blockers.push("Goods Notes / fulfilment history exists");
+        if ((data.salesCredits || []).some(function(credit) { return credit.originalSalesOrderId === order.id; })) blockers.push("Sales Credits exist");
+        if ((order.payments || []).length) blockers.push("payments exist");
+        if ((order.xeroRef && order.xeroRef !== "Draft") || ["Invoice Ready", "Invoiced", "Completed"].includes(order.status)) blockers.push("invoice or accounting history exists");
+        if (linkedPurchaseOrders(order.id).length) blockers.push("linked Purchase Orders exist");
+        if ((data.jobs || []).some(function(job) {
+          return job && (job.id === order.jobId || job.salesOrderId === order.id || (Array.isArray(job.salesOrderIds) && job.salesOrderIds.includes(order.id)));
+        })) blockers.push("a linked Project exists");
+        return blockers;
+      }
+
+      function deleteSelectedSalesOrders(ids) {
+        const orders = ids.map(salesOrder).filter(Boolean);
+        const blocked = orders.map(function(order) {
+          return { order: order, blockers: salesOrderDeleteBlockers(order) };
+        }).filter(function(entry) { return entry.blockers.length > 0; });
+
+        if (blocked.length) {
+          const first = blocked[0];
+          toast(first.order.id + " cannot be deleted because " + first.blockers.join(", ") + ".");
+          return false;
+        }
+
+        if (!confirm("Are you sure you want to permanently delete " + orders.length + " selected sales order" + (orders.length === 1 ? "" : "s") + "? This cannot be undone.")) return false;
+        const deleteIds = new Set(orders.map(function(order) { return order.id; }));
+        data.salesOrders = data.salesOrders.filter(function(order) { return !deleteIds.has(order.id); });
+        if (deleteIds.has(selectedSalesOrderId)) selectedSalesOrderId = "";
+        saveAppData();
+        toast(orders.length + " sales order" + (orders.length === 1 ? "" : "s") + " deleted.");
+        render();
+        return true;
+      }
+
       function runSalesListAction(action) {
         if (action === "filter") {
           const search = document.querySelector("[data-so-list-search]") || document.getElementById("globalSearch");
@@ -14354,8 +14439,9 @@ const seed = {
         const ids = selectedSalesOrderIdsFromList();
         if (!ids.length) return toast("Tick one or more sales orders first.");
         if (action === "status") {
-          const nextStatus = prompt("Set selected orders to which status?", "Ready To Pick");
-          if (!nextStatus) return;
+          const bulkStatus = document.querySelector("[data-so-list-bulk-status]");
+          const nextStatus = bulkStatus ? bulkStatus.value : "";
+          if (!nextStatus) return toast("Choose a status for the selected sales orders.");
           ids.forEach(function(id) {
             const order = salesOrder(id);
             if (!order) return;
@@ -14366,6 +14452,9 @@ const seed = {
           saveAppData();
           toast(ids.length + " order status update(s) saved.");
           return render();
+        }
+        if (action === "delete") {
+          return deleteSelectedSalesOrders(ids);
         }
         if (action === "allocate") {
           ids.forEach(function(id) { allocateSalesOrder(id); });
