@@ -1,7 +1,7 @@
 import {supabaseServerKey,elevatedSupabaseHeaders} from './supabase-keys.js';
 import { memory } from './azzy/src/core/memory.js';
 
-const mode=()=>String(process.env.AZZY_MEMORY_MODE||'file').toLowerCase();
+const mode=()=>String(process.env.AZZY_MEMORY_MODE||'file').trim().replace(/^['\"]|['\"]$/g,'').toLowerCase();
 const enc=v=>encodeURIComponent(String(v??''));
 function serviceKey(){return supabaseServerKey(process.env);}
 function incomingUserAuth(req){
@@ -19,7 +19,10 @@ async function request(req,path,options={}){
   const headers=elevatedSupabaseHeaders(process.env,{Accept:'application/json',...(options.headers||{})});
   const r=await fetch(`${process.env.SUPABASE_URL}/rest/v1/${path}`,{...options,headers,signal:AbortSignal.timeout(10000)});
   if(!r.ok){const detail=(await r.text().catch(()=>'' )).slice(0,500);throw Object.assign(new Error(`Azzy memory service failed (${r.status}). ${detail}`.trim()),{statusCode:r.status===401||r.status===403?r.status:502});}
-  return r.status===204?null:await r.json();
+  if(r.status===204)return null;
+  const raw=await r.text();
+  if(!raw.trim())return null;
+  try{return JSON.parse(raw);}catch{throw Object.assign(new Error(`Azzy memory service returned invalid JSON (${r.status}).`),{statusCode:502});}
 }
 
 export function azzyMemoryMode(){return configured()?'supabase':'file';}

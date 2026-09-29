@@ -2,7 +2,9 @@ import fs from 'node:fs';
 import path from 'node:path';
 import { hash } from './utils.js';
 
-const externalMemory=process.env.AZZY_MEMORY_MODE==='external';
+const normaliseMode=value=>String(value||'file').trim().replace(/^['\"]|['\"]$/g,'').toLowerCase();
+const externalMemory=normaliseMode(process.env.AZZY_MEMORY_MODE)==='external';
+const readOnlyRuntime=Boolean(process.env.VERCEL);
 const file=process.env.AZZY_MEMORY_FILE||path.resolve('runtime/memory.json');
 const keyOf=c=>c?.type&&c?.id?`${c.type}:${c.id}`:null;
 const cleanContexts=items=>{
@@ -11,8 +13,8 @@ const cleanContexts=items=>{
   return out;
 };
 function empty(){return {sessions:{},actions:{},audit:[]};}
-function load(){if(externalMemory)return empty();try{return JSON.parse(fs.readFileSync(file,'utf8'));}catch{return empty();}}
-function save(data){if(externalMemory)return;fs.mkdirSync(path.dirname(file),{recursive:true});fs.writeFileSync(file,JSON.stringify(data,null,2));}
+function load(){if(externalMemory||readOnlyRuntime)return empty();try{return JSON.parse(fs.readFileSync(file,'utf8'));}catch{return empty();}}
+function save(data){if(externalMemory||readOnlyRuntime)return;fs.mkdirSync(path.dirname(file),{recursive:true});fs.writeFileSync(file,JSON.stringify(data,null,2));}
 
 class MemoryStore{
   constructor(){this.data=load();this.data.sessions??={};this.data.actions??={};this.data.audit??=[];}
