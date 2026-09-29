@@ -1,12 +1,13 @@
 import '../public/project-engine.js';
 import {db,eq,audit,hash} from '../server/accounting.js';
+import {supabaseServerKey} from '../server/supabase-keys.js';
 export const config={api:{bodyParser:false}};
 export default async function handler(req,res){
  res.setHeader('Cache-Control','no-store');if(req.method!=='POST')return res.status(405).json({error:'POST required'});
  if(!process.env.APP_ORIGIN||req.headers.origin!==process.env.APP_ORIGIN)return res.status(403).json({error:'Invalid origin'});
  try{
   const auth=req.headers.authorization||'';if(!auth.startsWith('Bearer '))throw Error('Sign in first');
-  const ur=await fetch(process.env.SUPABASE_URL+'/auth/v1/user',{headers:{apikey:process.env.SUPABASE_SERVICE_ROLE_KEY,Authorization:auth},signal:AbortSignal.timeout(10000)});if(!ur.ok)return res.status(401).json({error:'Sign in first'});const user=await ur.json();
+  const key=supabaseServerKey(process.env);if(!key)return res.status(503).json({error:'Project email backend is not configured'});const ur=await fetch(process.env.SUPABASE_URL+'/auth/v1/user',{headers:{apikey:key,Authorization:auth},signal:AbortSignal.timeout(10000)});if(!ur.ok)return res.status(401).json({error:'Sign in first'});const user=await ur.json();
   let chunks=[],size=0;for await(const chunk of req){size+=chunk.length;if(size>24000)return res.status(413).json({error:'Request too large'});chunks.push(chunk)}const body=JSON.parse(Buffer.concat(chunks).toString()||'{}'),w=String(body.workspace||'pool-bros-main');
   const members=await db('ps_workspace_members?workspace_id=eq.'+eq(w)+'&user_id=eq.'+eq(user.id));if(!members.some(m=>m.role==='admin'))return res.status(403).json({error:'Project administrator access required'});
   const [snapshot]=await db('workspace_snapshots?workspace_id=eq.'+eq(w)),source=snapshot?.data,job=source?.jobs?.find(j=>j.id===body.jobId),extra=job?.project?.variations?.find(v=>v.id===body.extraId);if(!extra||extra.status!=='Proposed')throw Error('Sync the current proposed extra before sending.');
