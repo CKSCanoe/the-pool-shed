@@ -2,7 +2,7 @@ const fs=require('fs'),http=require('http'),path=require('path');
 const {chromium}=require(process.env.PLAYWRIGHT_MODULE||'playwright-core');
 const ROOT=process.cwd(),PUBLIC=path.join(ROOT,'public');
 function mime(p){if(p.endsWith('.js'))return'text/javascript';if(p.endsWith('.css'))return'text/css';if(p.endsWith('.svg'))return'image/svg+xml';if(p.endsWith('.png'))return'image/png';return'text/html';}
-function serve(){const server=http.createServer((req,res)=>{const raw=decodeURIComponent(req.url.split('?')[0]);const rel=raw==='/'?'index.html':raw.replace(/^\\//,'');const p=path.resolve(PUBLIC,rel);if(!p.startsWith(PUBLIC)){res.statusCode=403;return res.end();}try{res.setHeader('Content-Type',mime(p));res.end(fs.readFileSync(p));}catch{res.statusCode=404;res.end();}});return new Promise(resolve=>server.listen(0,'127.0.0.1',()=>resolve(server)));}
+function serve(){const server=http.createServer((req,res)=>{const raw=decodeURIComponent(req.url.split('?')[0]);const rel=raw==='/'?'index.html':(raw.startsWith('/')?raw.slice(1):raw);const p=path.resolve(PUBLIC,rel);if(!p.startsWith(PUBLIC)){res.statusCode=403;return res.end();}try{res.setHeader('Content-Type',mime(p));res.end(fs.readFileSync(p));}catch{res.statusCode=404;res.end();}});return new Promise(resolve=>server.listen(0,'127.0.0.1',()=>resolve(server)));}
 const widths=[1920,1440,1280,1100,768,390];
 const compactWidths=[1440,768,390];
 const selfManaged=new Set(['settings','automation','locations','products','fulfilment','warehouse']);
