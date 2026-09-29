@@ -111,10 +111,21 @@ const seed = {
       window.__POOL_SHED_WORKSPACE_ID__ = function(){ return WORKSPACE_ID; };
       window.__POOL_SHED_AUTH_TOKEN__ = async function(){
         try{
-          if(supabaseSession && supabaseSession.access_token) return supabaseSession.access_token;
-          if(supabaseClient && supabaseClient.auth){ var sessionResult=await supabaseClient.auth.getSession(); return sessionResult && sessionResult.data && sessionResult.data.session ? sessionResult.data.session.access_token : ""; }
-        }catch(_){ }
-        return "";
+          if(!supabaseClient || !supabaseClient.auth) return "";
+          var sessionResult = await supabaseClient.auth.getSession();
+          if(sessionResult && sessionResult.error) throw sessionResult.error;
+          var sessionValue = sessionResult && sessionResult.data ? sessionResult.data.session : null;
+          if(!sessionValue || !sessionValue.access_token){
+            supabaseSession = null;
+            return "";
+          }
+          // Always use the current Supabase session rather than an older cached token.
+          // This keeps authenticated API calls working after Supabase rotates the JWT.
+          supabaseSession = sessionValue;
+          return sessionValue.access_token;
+        }catch(_){
+          return "";
+        }
       };
       window.__POOL_SHED_CAN_ACCESS__ = function(tabId){ return canAccessTab(tabId, currentUser()); };
       let active = "dashboard";
@@ -1229,54 +1240,19 @@ const seed = {
         return !!(line && (line.lineType === "custom" || line.lineType === "shipping")) || !!(p && p.stockTracked === false);
       }
 
-      function completedSalesCreditQtyForLine(orderId, productId) {
-        return (data.salesCredits || []).filter(function(credit) {
-          return credit.originalSalesOrderId === orderId && credit.status === "Completed";
-        }).reduce(function(total, credit) {
-          return total + (credit.lines || []).filter(function(item) { return item.productId === productId; }).reduce(function(sum, item) {
-            return sum + Math.max(0, Number(item.qty || 0));
-          }, 0);
-        }, 0);
-      }
-
-      function salesOrderLineIsFullyCredited(order, line) {
-        if (!order || !line) return false;
-        return completedSalesCreditQtyForLine(order.id, line.productId) >= Math.max(0, Number(line.qty || 0));
-      }
-
-      function salesOrderLineHasFulfilmentHistory(order, line) {
-        if (!order || !line) return false;
-        if (Number(line.picked || 0) > 0 || Number(line.packed || 0) > 0) return true;
-        return goodsNotesForOrder(order.id).some(function(note) {
-          return (note.lines || []).some(function(item) {
-            return item.productId === line.productId && (Number(item.qty || 0) > 0 || Number(item.shipped || 0) > 0 || Number(item.picked || 0) > 0 || Number(item.packed || 0) > 0);
-          });
-        });
-      }
-
-      function salesOrderLineHasAccountingHistory(order) {
-        if (!order) return false;
-        return invoiceStatusForOrder(order) === "Invoiced" || (order.payments || []).length > 0;
-      }
-
-      function canRemoveSalesOrderLine(line, order) {
+      function canRemoveSalesOrderLine(line) {
         if (!line) return false;
-        const fullyCredited = salesOrderLineIsFullyCredited(order, line);
-        if (fullyCredited) return true;
-        if (salesOrderLineHasFulfilmentHistory(order, line) || salesOrderLineHasAccountingHistory(order)) return false;
         if (isNonStockSalesLine(line)) return true;
         return Number(line.allocated || 0) === 0 && Number(line.picked || 0) === 0 && Number(line.packed || 0) === 0;
       }
 
-      function salesOrderLineRemovalReason(line, order) {
+      function salesOrderLineRemovalReason(line) {
         if (!line) return "Line unavailable";
-        if (salesOrderLineIsFullyCredited(order, line)) return "This line has been fully credited and can be removed. Credit and fulfilment history will be retained.";
-        if (salesOrderLineHasAccountingHistory(order) || salesOrderLineHasFulfilmentHistory(order, line)) return "This line has fulfilment or accounting history. Create and complete a Sales Credit before removing it.";
-        if (isNonStockSalesLine(line)) return "This non-stock line has no downstream activity and can be removed.";
-        if (Number(line.packed || 0) > 0) return "Packed stock must be returned and unallocated before this item can be removed.";
-        if (Number(line.picked || 0) > 0) return "Picked stock must be returned and unallocated before this item can be removed.";
+        if (isNonStockSalesLine(line)) return "This non-stock line can be removed.";
+        if (Number(line.packed || 0) > 0) return "Packed stock must be unpacked before this item can be removed.";
+        if (Number(line.picked || 0) > 0) return "Picked stock must be returned before this item can be removed.";
         if (Number(line.allocated || 0) > 0) return "Unallocate the stock before removing this item.";
-        return "This item is unallocated and can be safely removed.";
+        return "This item is not allocated and can be safely removed.";
       }
 
       function salesOrderLinePrice(order, line) {
@@ -1291,8 +1267,36 @@ const seed = {
       }
 
       function vatRateForLine(line) {
-        const code = String((line && line.taxCode) || "20% VAT").toLowerCase();
-        return code.includes("zero") || code.includes("not rated") || code.includes("0%") ? 0 : 0.2;
+        const code = String((line && line.taxCode) || "20% VAT").trim().toLowerCase();
+
+        if (
+          code === "0%" ||
+          code === "t0" ||
+          code === "zero rated" ||
+          code === "zero-rated" ||
+          code === "not rated" ||
+          code === "not-rated" ||
+          code.includes("zero rated") ||
+          code.includes("not rated")
+        ) {
+          return 0;
+        }
+
+        if (
+          code === "20%" ||
+          code === "20% vat" ||
+          code === "t20" ||
+          code.includes("20%")
+        ) {
+          return 0.2;
+        }
+
+        const percentage = code.match(/(\d+(?:\.\d+)?)\s*%/);
+        if (percentage) {
+          return Math.max(0, Number(percentage[1]) / 100);
+        }
+
+        return 0.2;
       }
 
       function vatAmount(net, line) {
@@ -2138,8 +2142,16 @@ const seed = {
           showLogin(hadPreviousSession ? "session" : "login");
         }
         supabaseClient.auth.onAuthStateChange(function(event, sessionValue) {
+          // Keep the shared session cache synchronized with Supabase token rotation.
+          // API clients such as Azzy, Quote Studio, Finance and secure media all use
+          // __POOL_SHED_AUTH_TOKEN__ and must never retain an expired access token.
+          if (sessionValue && sessionValue.access_token) supabaseSession = sessionValue;
+
+          if (event === "TOKEN_REFRESHED" || event === "USER_UPDATED") return;
           if (event === "PASSWORD_RECOVERY") return showLogin("update");
           if (event === "SIGNED_OUT") {
+            supabaseSession = null;
+            isAuthenticated = false;
             if (!document.getElementById("loginScreen")?.classList.contains("hidden")) return;
             return showLogin("session");
           }
@@ -5928,7 +5940,7 @@ const seed = {
               '<th class="so-list-check"><input type="checkbox" data-so-list-select-all aria-label="Select all visible sales orders"></th>' +
               '<th>Order / Customer</th><th>Status</th><th>Stock</th><th>Fulfilment</th><th>Due</th><th class="right">Value</th><th class="right">Action</th>' +
             '</tr></thead><tbody>' + rows + '</tbody></table></div>' +
-            '<div class="so-list-bulk" data-so-list-bulk hidden><strong><span data-so-list-selected-count>0</span> orders selected</strong><div><label class="so-list-bulk-status"><span class="sr-only">Update selected order status</span><select data-so-list-bulk-status><option value="">Update status…</option>' + statusNames.map(function(name){ return '<option value="' + escapeHtml(name) + '">' + escapeHtml(name) + '</option>'; }).join("") + '</select></label><button type="button" class="secondary" data-sales-list-action="allocate">Allocate</button><button type="button" class="secondary" data-sales-list-action="fulfil">Fulfil</button><button type="button" class="secondary" data-sales-list-action="invoice">Invoice</button><span class="so-list-bulk-divider" aria-hidden="true"></span><button type="button" class="danger so-list-delete" data-sales-list-action="delete">Delete</button></div></div>' +
+            '<div class="so-list-bulk" data-so-list-bulk hidden><strong><span data-so-list-selected-count>0</span> orders selected</strong><div><button type="button" class="secondary" data-sales-list-action="status">Update status</button><button type="button" class="secondary" data-sales-list-action="allocate">Allocate</button><button type="button" class="secondary" data-sales-list-action="fulfil">Fulfil</button><button type="button" class="secondary" data-sales-list-action="invoice">Invoice</button></div></div>' +
           '</div>' +
         '</section>';
       }
@@ -6267,13 +6279,6 @@ const seed = {
 
         document.querySelectorAll("[data-so-select]").forEach(function(input) {
           input.addEventListener("change", refreshSalesOrderBulkBar);
-        });
-        document.querySelectorAll("[data-so-list-bulk-status]").forEach(function(select) {
-          select.addEventListener("change", function() {
-            const nextStatus = select.value;
-            if (!nextStatus) return;
-            runSalesListAction("status", nextStatus);
-          });
         });
         refreshSalesOrderBulkBar();
 
@@ -6641,21 +6646,15 @@ const seed = {
           const line=order&&order.lines.find(function(item){return item.productId===parts[1];});
           if(!order||!line)return;
           const p=product(parts[1]);
-          if(!canRemoveSalesOrderLine(line, order)){
-            toast(salesOrderLineRemovalReason(line, order));
+          if(!canRemoveSalesOrderLine(line)){
+            toast(salesOrderLineRemovalReason(line));
             return;
           }
           const label=line.description||(p&&p.name)||parts[1];
-          const credited=salesOrderLineIsFullyCredited(order,line);
-          const promptText=credited
-            ? "Remove the fully credited line “"+label+"” from "+order.id+"?\n\nThe completed credit and fulfilment history will remain in Pool Shed. This cannot be undone."
-            : (isNonStockSalesLine(line)
-              ? "Remove “"+label+"” from "+order.id+"?\n\nThis cannot be undone."
-              : "Remove the unallocated stock item “"+label+"” from "+order.id+"?\n\nThis will remove the line and recalculate the order total. This cannot be undone.");
+          const promptText=isNonStockSalesLine(line)
+            ? "Remove “"+label+"” from "+order.id+"?"
+            : "Remove the unallocated stock item “"+label+"” from "+order.id+"? This will remove the line and recalculate the order total.";
           if(!confirm(promptText))return;
-          if(credited && !isNonStockSalesLine(line) && Number(line.allocated||0)>0){
-            releaseAllocatedStockForLine(order,line,Number(line.allocated||0),"Removal after completed sales credit");
-          }
           order.lines=order.lines.filter(function(item){return item.productId!==parts[1];});
           if(p&&p.hiddenFromCatalogue)data.products=data.products.filter(function(item){return item.id!==parts[1];});
           addSalesOrderNotification(order,"Sales order item removed",label+" removed before stock allocation","Internal note");
@@ -7697,11 +7696,11 @@ const seed = {
           const coverageText = allocationSourceLabel(order.id) + ": " + coverage.free + " free, " + coverage.onPo + " on PO" + (coverage.toRaise ? ", " + coverage.toRaise + " to raise" : "");
           const priceFlag = nonStock ? '<br><span class="line-type-badge ' + (line.lineType === "shipping" ? "shipping" : "") + '">' + (line.lineType === "shipping" ? "Delivery charge" : "Custom line") + '</span>' : (line.specialPrice ? '<br><span class="pill warn">Special price</span>' : '<br><span class="muted">' + activePriceList.toUpperCase() + ' price list</span>');
           const allocationCell = nonStock ? '<span class="muted">Not required</span>' : '<input class="qty-input" data-line-field="' + order.id + '|' + line.productId + '|allocated" type="number" min="0" max="' + line.qty + '" value="' + line.allocated + '"><br><span class="muted">' + coverageText + '</span>';
-          const removable = canRemoveSalesOrderLine(line, order);
-          const removeButton = '<button class="' + (removable ? 'danger' : 'secondary') + '" data-remove-sales-line="' + order.id + '|' + line.productId + '" title="' + escapeHtml(salesOrderLineRemovalReason(line, order)) + '"' + (removable ? '' : ' aria-disabled="true"') + '>' + (nonStock ? 'Remove line' : 'Remove item') + '</button>';
+          const removable = canRemoveSalesOrderLine(line);
+          const removeButton = '<button class="' + (removable ? 'danger' : 'secondary') + '" data-remove-sales-line="' + order.id + '|' + line.productId + '" title="' + escapeHtml(salesOrderLineRemovalReason(line)) + '"' + (removable ? '' : ' aria-disabled="true"') + '>' + (nonStock ? 'Remove line' : 'Remove item') + '</button>';
           const actionCell = nonStock
             ? '<div class="line-actions">' + removeButton + '</div>'
-            : '<div class="line-actions"><button class="secondary" data-allocate-line="' + order.id + '|' + line.productId + '">Allocate</button><button class="secondary" data-unallocate-line="' + order.id + '|' + line.productId + '">Unallocate</button>' + removeButton + '</div><small class="muted">' + escapeHtml(salesOrderLineRemovalReason(line, order)) + '</small>';
+            : '<div class="line-actions"><button class="secondary" data-allocate-line="' + order.id + '|' + line.productId + '">Allocate</button><button class="secondary" data-unallocate-line="' + order.id + '|' + line.productId + '">Unallocate</button>' + removeButton + '</div><small class="muted">' + escapeHtml(salesOrderLineRemovalReason(line)) + '</small>';
           const variantMeta = salesOrderVariantMeta(p);
           const familyMeta = p.parentName && p.parentName !== p.name ? p.parentName : p.category;
           const noteCount = goodsNotesForOrder(order.id).filter(function(note){ return note.lines.some(function(noteLine){ return noteLine.productId === line.productId; }); }).length;
@@ -14344,42 +14343,7 @@ const seed = {
         toast("Sales order list exported.");
       }
 
-      function salesOrderDeleteAssessment(order) {
-        if (!order) return { ok:false, reason:"Sales order not found." };
-        const blockers = [];
-        const allocated = (order.lines || []).reduce(function(total, line) { return total + Math.max(0, Number(line.allocated || 0)); }, 0);
-        if (allocated > 0) blockers.push(allocated + " allocated unit" + (allocated === 1 ? "" : "s") + " must be unallocated first");
-        if (goodsNotesForOrder(order.id).length) blockers.push("fulfilment / Goods Note history exists");
-        if ((data.salesCredits || []).some(function(credit) { return credit.originalSalesOrderId === order.id; })) blockers.push("Sales Credit history exists");
-        if ((order.payments || []).length) blockers.push("payment history exists");
-        if (invoiceStatusForOrder(order) === "Invoiced") blockers.push("the order has been invoiced and must be credited rather than deleted");
-        if (linkedPurchaseOrders(order.id).length) blockers.push("linked Purchase Orders exist");
-        if (order.jobId) blockers.push("the order is linked to a Project");
-        return { ok:blockers.length === 0, reason:blockers.join("; ") };
-      }
-
-      function deleteSelectedSalesOrders(ids) {
-        const orders = ids.map(salesOrder).filter(Boolean);
-        const blocked = orders.map(function(order) { return { order:order, assessment:salesOrderDeleteAssessment(order) }; }).filter(function(item) { return !item.assessment.ok; });
-        if (blocked.length) {
-          alert("Delete blocked. Resolve these items first:\n\n" + blocked.map(function(item) { return item.order.id + ": " + item.assessment.reason; }).join("\n"));
-          return;
-        }
-        const label = orders.length === 1 ? orders[0].id : (orders.length + " selected sales orders");
-        if (!confirm("Are you sure you want to permanently delete " + label + "?\n\nOnly clean orders with no allocation, fulfilment, credit, invoice, payment, linked PO or Project history can be deleted. This cannot be undone.")) return;
-        const idSet = new Set(orders.map(function(order) { return order.id; }));
-        if (Array.isArray(data.auditLog)) {
-          orders.forEach(function(order) {
-            data.auditLog.push({ id:"AUD-" + Date.now() + "-" + order.id, date:new Date().toISOString(), user:(currentUser && currentUser().name) || "Current user", action:"Sales order deleted", product:order.id, previousValue:{ customerId:order.customerId, status:order.status, lines:order.lines }, newValue:"Deleted", reason:"Confirmed from Sales Order bulk action" });
-          });
-        }
-        data.salesOrders = data.salesOrders.filter(function(order) { return !idSet.has(order.id); });
-        saveAppData();
-        toast(orders.length + " sales order" + (orders.length === 1 ? "" : "s") + " deleted.");
-        render();
-      }
-
-      function runSalesListAction(action, value) {
+      function runSalesListAction(action) {
         if (action === "filter") {
           const search = document.querySelector("[data-so-list-search]") || document.getElementById("globalSearch");
           if (search) search.focus();
@@ -14390,8 +14354,8 @@ const seed = {
         const ids = selectedSalesOrderIdsFromList();
         if (!ids.length) return toast("Tick one or more sales orders first.");
         if (action === "status") {
-          const nextStatus = String(value || "").trim();
-          if (!nextStatus) return toast("Choose a status from the dropdown first.");
+          const nextStatus = prompt("Set selected orders to which status?", "Ready To Pick");
+          if (!nextStatus) return;
           ids.forEach(function(id) {
             const order = salesOrder(id);
             if (!order) return;
@@ -14403,7 +14367,6 @@ const seed = {
           toast(ids.length + " order status update(s) saved.");
           return render();
         }
-        if (action === "delete") return deleteSelectedSalesOrders(ids);
         if (action === "allocate") {
           ids.forEach(function(id) { allocateSalesOrder(id); });
           return;
