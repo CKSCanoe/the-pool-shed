@@ -9,7 +9,8 @@ function label(el){return `${el.tagName.toLowerCase()}${el.id?'#'+el.id:''}${el.
 (async()=>{let browser;try{
  browser=await chromium.launch({headless:true,executablePath:process.env.CHROME_EXECUTABLE||'/usr/bin/chromium',args:['--no-sandbox','--disable-dev-shm-usage']});
  const page=await browser.newPage({viewport:{width:1440,height:1000}});const errors=[];page.on('pageerror',e=>errors.push('pageerror: '+e.message));page.on('console',m=>{if(m.type()==='error'&&!/favicon|resource/i.test(m.text()))errors.push('console: '+m.text());});
- await page.setContent(inlineAppHtml(),{waitUntil:'load',timeout:30000});await page.waitForTimeout(100);
+ await page.setContent(inlineAppHtml(),{waitUntil:'load',timeout:30000});
+ await page.waitForFunction(()=>typeof normalizeAppData==='function'&&typeof seed!=='undefined'&&typeof showApp==='function'&&typeof render==='function',{timeout:10000});
  await page.evaluate(()=>{data=normalizeAppData(JSON.parse(JSON.stringify(seed)));isAuthenticated=true;showApp();render();});
  const modules=await page.evaluate(()=>tabs.map(t=>({id:t.id,label:t.label})));
  const subgroups={};for(const m of modules)subgroups[m.id]=await page.evaluate(id=>sidebarSubGroups(id),m.id);
