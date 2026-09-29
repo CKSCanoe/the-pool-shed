@@ -1,9 +1,16 @@
 import fs from 'node:fs';
 import assert from 'node:assert/strict';
 const html=fs.readFileSync('public/index.html','utf8');
+const legacy=fs.readFileSync('public/assets/js/01-legacy-01.js','utf8');
 assert.match(html,/<meta name="description" content="[^"]+"/);
 assert.match(html,/<meta name="color-scheme" content="light dark">/);
 assert.match(html,/<link rel="icon" type="image\/png" href="\.\/assets\/img\/pb-logo\.png">/);
 assert.match(html,/id="userMenuButton"[^>]+aria-haspopup="menu"[^>]+aria-controls="userMenuDropdown"/);
 assert.match(html,/id="userMenuDropdown" role="menu"/);
-console.log('PASS production shell metadata, favicon and account-menu semantics');
+assert.match(legacy,/role="menuitem" tabindex="-1"/,'account menu items need menuitem semantics');
+assert.match(legacy,/userMenuButton"\)\.addEventListener\("keydown"/,'account trigger keyboard handler missing');
+assert.match(legacy,/event\.key === "ArrowDown"/,'account menu arrow navigation missing');
+assert.match(legacy,/event\.key === "Home"/,'account menu Home navigation missing');
+assert.match(legacy,/event\.key === "End"/,'account menu End navigation missing');
+assert.match(legacy,/closeAccountMenu\(true\)/,'account menu Escape must restore trigger focus');
+console.log('PASS production shell metadata, favicon and keyboard-complete account menu');
