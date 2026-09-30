@@ -102,4 +102,11 @@ function makeApi(data,behaviour={}){
   assert.equal(assessment.allowed,true,'a recorded payment alone must not prevent correcting a non-invoiced line');
 }
 
+
+assert.match(source,/data-delete-selected-sales-lines=/,'Items & Pricing toolbar must expose Delete selected');
+assert.match(source,/data-selected-sales-line-count=/,'selected line count must be visible in the toolbar');
+assert.match(source,/function so2UpdateSelectedLineToolbar/,'checkbox selection must update the toolbar');
+assert.match(source,/function so2RemoveSelectedSalesOrderLines/,'bulk selected-line undo handler must exist');
+assert.match(source,/Delete selected \('/,'selected delete button must show the selected count');
+
 console.log('PASS Sales Order line undo allows human-error corrections until invoice or physical stock movement and preserves audit history');
