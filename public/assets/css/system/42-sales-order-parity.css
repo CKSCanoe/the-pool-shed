@@ -225,3 +225,131 @@ body .so2-line-menu .danger{color:var(--color-status-danger-text)!important}
   body #salesOrderProductResults .so-finder-price,body #salesOrderProductResults .so-finder-reason{display:none!important}
   body #salesOrderProductResults .so-finder-mega-foot small{display:none!important}
 }
+
+/* Sales Order non-stock entry cards.
+   These cards sit inside a three-column tool rail, so the legacy six-column
+   .so-line-form layout is intentionally replaced with a card-sized grid. */
+#screen-salesorders .so4-tool-body.so-line-form[data-line-composer-panel="custom"],
+#screen-salesorders .so4-tool-body.so-line-form[data-line-composer-panel="shipping"]{
+  display:grid!important;
+  grid-template-columns:repeat(2,minmax(0,1fr))!important;
+  gap:12px!important;
+  align-items:start!important;
+  padding:14px!important;
+}
+#screen-salesorders .so4-tool-body.so-line-form[data-line-composer-panel="custom"]>label,
+#screen-salesorders .so4-tool-body.so-line-form[data-line-composer-panel="shipping"]>label{
+  display:flex!important;
+  flex-direction:column!important;
+  gap:6px!important;
+  min-width:0!important;
+  margin:0!important;
+  align-self:start!important;
+}
+#screen-salesorders .so4-tool-body.so-line-form[data-line-composer-panel="custom"]>label>span,
+#screen-salesorders .so4-tool-body.so-line-form[data-line-composer-panel="shipping"]>label>span{
+  display:block!important;
+  min-height:0!important;
+  margin:0!important;
+  color:var(--color-text-secondary)!important;
+  font-size:8px!important;
+  font-weight:900!important;
+  line-height:1.35!important;
+  letter-spacing:.05em!important;
+  text-transform:uppercase!important;
+  white-space:normal!important;
+}
+#screen-salesorders .so4-tool-body.so-line-form[data-line-composer-panel="custom"] input,
+#screen-salesorders .so4-tool-body.so-line-form[data-line-composer-panel="custom"] select,
+#screen-salesorders .so4-tool-body.so-line-form[data-line-composer-panel="custom"] textarea,
+#screen-salesorders .so4-tool-body.so-line-form[data-line-composer-panel="shipping"] input,
+#screen-salesorders .so4-tool-body.so-line-form[data-line-composer-panel="shipping"] select,
+#screen-salesorders .so4-tool-body.so-line-form[data-line-composer-panel="shipping"] textarea{
+  width:100%!important;
+  max-width:100%!important;
+  min-width:0!important;
+  box-sizing:border-box!important;
+  border:1px solid var(--color-border-default)!important;
+  border-radius:6px!important;
+  background:var(--color-surface-default)!important;
+  color:var(--color-text-primary)!important;
+  box-shadow:none!important;
+  font-size:10px!important;
+}
+#screen-salesorders .so4-tool-body.so-line-form[data-line-composer-panel="custom"] input,
+#screen-salesorders .so4-tool-body.so-line-form[data-line-composer-panel="custom"] select,
+#screen-salesorders .so4-tool-body.so-line-form[data-line-composer-panel="shipping"] input,
+#screen-salesorders .so4-tool-body.so-line-form[data-line-composer-panel="shipping"] select{
+  height:40px!important;
+  min-height:40px!important;
+  padding:0 10px!important;
+}
+#screen-salesorders .so4-tool-body.so-line-form[data-line-composer-panel="custom"] textarea{
+  min-height:78px!important;
+  padding:9px 10px!important;
+  resize:vertical!important;
+}
+#screen-salesorders .so4-tool-body.so-line-form[data-line-composer-panel="custom"] .so-line-description,
+#screen-salesorders .so4-tool-body.so-line-form[data-line-composer-panel="shipping"] .so-line-description{
+  grid-column:auto!important;
+}
+#screen-salesorders .so4-tool-body.so-line-form[data-line-composer-panel="custom"] .so-line-note{
+  grid-column:1/-1!important;
+}
+#screen-salesorders .so4-tool-body.so-line-form[data-line-composer-panel="custom"]>label:nth-of-type(7){
+  grid-column:1/-1!important;
+}
+#screen-salesorders .so4-tool-body.so-line-form[data-line-composer-panel="custom"]>.primary-action,
+#screen-salesorders .so4-tool-body.so-line-form[data-line-composer-panel="shipping"]>.primary-action{
+  grid-column:1/-1!important;
+  justify-self:start!important;
+  width:auto!important;
+  min-width:145px!important;
+  height:40px!important;
+  min-height:40px!important;
+  margin-top:2px!important;
+  padding:0 14px!important;
+  border-radius:6px!important;
+  white-space:nowrap!important;
+}
+#screen-salesorders .so4-tool-body.so-line-form[data-line-composer-panel="custom"] input:focus,
+#screen-salesorders .so4-tool-body.so-line-form[data-line-composer-panel="custom"] select:focus,
+#screen-salesorders .so4-tool-body.so-line-form[data-line-composer-panel="custom"] textarea:focus,
+#screen-salesorders .so4-tool-body.so-line-form[data-line-composer-panel="shipping"] input:focus,
+#screen-salesorders .so4-tool-body.so-line-form[data-line-composer-panel="shipping"] select:focus{
+  border-color:var(--color-action-ink)!important;
+  box-shadow:var(--focus-ring)!important;
+  outline:0!important;
+}
+
+@media(max-width:1180px){
+  #screen-salesorders .so4-secondary-tools{
+    grid-template-columns:repeat(2,minmax(0,1fr))!important;
+  }
+  #screen-salesorders .so4-commercial-check{
+    grid-column:1/-1!important;
+  }
+}
+@media(max-width:900px){
+  #screen-salesorders .so4-secondary-tools{
+    grid-template-columns:1fr!important;
+  }
+  #screen-salesorders .so4-commercial-check{
+    grid-column:auto!important;
+  }
+}
+@media(max-width:620px){
+  #screen-salesorders .so4-tool-body.so-line-form[data-line-composer-panel="custom"],
+  #screen-salesorders .so4-tool-body.so-line-form[data-line-composer-panel="shipping"]{
+    grid-template-columns:1fr!important;
+  }
+  #screen-salesorders .so4-tool-body.so-line-form[data-line-composer-panel="custom"]>*,
+  #screen-salesorders .so4-tool-body.so-line-form[data-line-composer-panel="shipping"]>*{
+    grid-column:1!important;
+  }
+  #screen-salesorders .so4-tool-body.so-line-form[data-line-composer-panel="custom"]>.primary-action,
+  #screen-salesorders .so4-tool-body.so-line-form[data-line-composer-panel="shipping"]>.primary-action{
+    width:100%!important;
+  }
+}
+
