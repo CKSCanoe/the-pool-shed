@@ -27,6 +27,7 @@ run_node_stage "workspace and sales safety" \
   test-sales-order-subscriptions-v146.mjs
 
 run_node_stage "purchasing" \
+  test-supplier-onboarding-v148.mjs \
   test-purchase-order-command-v190.mjs \
   test-purchase-order-visual-guard-v190.mjs \
   test-purchase-returns-v190.mjs \
@@ -39,6 +40,7 @@ run_node_stage "projects" \
   test-project-hire-v145.mjs \
   test-project-labour-v146.mjs \
   test-project-live-commercial-v147.mjs \
+  test-project-settings-clean-v148.mjs \
   test-project-control-v144.mjs \
   test-project-email-v144.mjs \
   test-project-workspace-v143.mjs \
