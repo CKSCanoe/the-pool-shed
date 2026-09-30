@@ -181,7 +181,7 @@ function normalisePurchaseOrders(data,products){
       return compact({
         productId:productIdOf(l)||p?.id||null,sku,name:txt(l.name,l.description,l.productName,p?.name,sku),
         qty:n(l.qty,l.quantity),received:n(l.received,l.receivedQty,l.qtyReceived),unitCost:n(l.unitCost,l.cost,l.buyPrice,p?.unitCost),
-        supplierSku:txt(l.supplierSku,p?.supplierSku),salesOrderId:txt(l.salesOrderId,o.originalSalesOrderId)||null,
+        supplierSku:txt(l.supplierSku,p?.supplierSku),projectId:txt(l.projectId,l.jobId)||null,salesOrderId:txt(l.salesOrderId,o.originalSalesOrderId)||null,
         orderedDate:dateOnly(txt(l.orderedDate,o.orderedDate,o.orderDate))||null,dueDate:dateOnly(txt(l.dueDate,o.due,o.expectedDate))||null,
         leadTimeDays:n(l.leadTimeDays),chaseStatus:txt(l.chaseStatus),nextChaseDate:dateOnly(txt(l.nextChaseDate))||null,
         salesOrderAllocations:arr(l.salesOrderAllocations).map(x=>({salesOrderId:txt(x.salesOrderId),qty:n(x.qty),date:dateOnly(txt(x.date,x.at))||null}))
@@ -195,9 +195,9 @@ function normaliseProjects(data,salesOrders,purchaseOrders){
   for(const j of jobs){
     const id=idOf(j);if(!id)continue;const project=j.project&&typeof j.project==='object'?j.project:{};
     const linkedSalesOrders=Object.values(salesOrders).filter(x=>x.projectId===id),activeSalesOrders=linkedSalesOrders.filter(x=>!['Cancelled','Canceled'].includes(x.status)),soIds=linkedSalesOrders.map(x=>x.id),soIdSet=new Set(soIds);
-    const linkedPurchaseOrders=Object.values(purchaseOrders).filter(po=>po.projectId===id||arr(po.lines).some(line=>soIdSet.has(txt(line.salesOrderId)))),poIds=linkedPurchaseOrders.map(x=>x.id),activePurchaseOrders=linkedPurchaseOrders.filter(po=>!['Cancelled','Canceled'].includes(po.status));
+    const linkedPurchaseOrders=Object.values(purchaseOrders).filter(po=>po.projectId===id||arr(po.lines).some(line=>line.projectId===id||soIdSet.has(txt(line.salesOrderId)))),poIds=linkedPurchaseOrders.map(x=>x.id),activePurchaseOrders=linkedPurchaseOrders.filter(po=>!['Cancelled','Canceled'].includes(po.status));
     const quotedNet=n(j.quotedNet,j.quoteNet,project.quoteNet,j.sellValue,j.value),salesOrderValue=activeSalesOrders.reduce((sum,order)=>sum+n(order.totalNet),0),agreedValue=salesOrderValue||quotedNet;
-    const purchaseOrderCommittedCost=activePurchaseOrders.reduce((sum,po)=>sum+arr(po.lines).filter(line=>po.projectId===id||soIdSet.has(txt(line.salesOrderId))).reduce((lineSum,line)=>lineSum+n(line.qty)*n(line.unitCost),0),0);
+    const purchaseOrderCommittedCost=activePurchaseOrders.reduce((sum,po)=>sum+arr(po.lines).filter(line=>po.projectId===id||line.projectId===id||soIdSet.has(txt(line.salesOrderId))).reduce((lineSum,line)=>lineSum+n(line.qty)*n(line.unitCost),0),0);
     const labour=arr(project.labour).map(l=>compact({id:txt(l.id),person:txt(l.supplier,l.employee,l.name),reference:txt(l.ref,l.reference),startDate:dateOnly(txt(l.startDate))||null,endDate:dateOnly(txt(l.endDate))||null,ongoing:!!l.ongoing,rateType:txt(l.rateType),rate:n(l.rate),notes:txt(l.notes),variationId:txt(l.variationId)}));
     out[id]={id,name:txt(j.name,j.title,j.projectName,j.reference,id),customerId:txt(j.customerId),status:txt(j.status,'Active'),stage:txt(j.stage,j.phase,'Active'),progress:n(j.progress,j.percentComplete,j.completionPct),dueDate:dateOnly(txt(j.dueDate,j.targetDate,j.nextKeyDate,project.targetCompletion))||null,targetMarginPct:n(j.targetMarginPct,j.targetMargin,project.targetMargin,j.marginTarget),quotedNet,agreedValue,salesOrderValue,commercialValueSource:salesOrderValue>0?'sales_orders':'quote_fallback',purchaseOrderCommittedCost,committedCost:n(j.committedCost,j.committed,purchaseOrderCommittedCost),actualCost:n(j.actualCost,j.actual),forecastCost:n(j.forecastCost,j.forecast),salesOrderIds:[...new Set([...arr(j.salesOrderIds).map(String),...soIds])],poIds:[...new Set([...arr(j.poIds||j.purchaseOrderIds).map(String),...poIds])],hireIds:arr(j.hireIds).map(String),extraIds:arr(j.extraIds).map(String),labour,notes:arr(j.notes).map(x=>typeof x==='string'?x:txt(x.text,x.body)).filter(Boolean),owner:txt(j.owner,j.ownerName,j.assignedTo)};
   }
