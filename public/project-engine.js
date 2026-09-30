@@ -259,6 +259,12 @@ function psProjectApply(action,v){
  }else if(action==='labour-stop'){
   const row=(p.labour||[]).find(x=>x.id===v.id);if(!row||!row.ongoing)throw Error('This labour period is not currently ongoing.');const endDate=String(v.endDate||psProjectUKDate()),today=psProjectUKDate();
   if(!psProjectDate(endDate)||endDate<row.startDate||endDate>today)throw Error('Choose a final working date from the labour start date up to today.');row.endDate=endDate;row.ongoing=false;row.endedAt=now;row.endedBy=currentUser().name;
+ }else if(action==='project-details'){
+  j.name=text(v.name,'the project name').slice(0,180);
+  if(v.owner!==undefined)j.owner=text(v.owner,'the project owner').slice(0,180);
+  p.targetCompletion=String(v.targetCompletion||'');
+  p.goal=String(v.goal||'').slice(0,1500);
+  p.updatedAt=now;
  }else if(action==='settings'){
   const quote=amount(v.quoteNet==null||v.quoteNet===''?(p.quoteNet||0):v.quoteNet),target=Number(v.targetMargin),minimum=v.minimumMargin==null||v.minimumMargin===''?Math.max(0,target-5):Number(v.minimumMargin),loss=Number(v.lossWarningMargin),exposurePct=v.invoiceExposureThresholdPct==null||v.invoiceExposureThresholdPct===''?40:Number(v.invoiceExposureThresholdPct),exposureNet=v.invoiceExposureThresholdNet==null||v.invoiceExposureThresholdNet===''?0:amount(v.invoiceExposureThresholdNet);
   if(target<0||target>=100||minimum<0||minimum>target||loss<0||loss>minimum||!Number.isFinite(target)||!Number.isFinite(minimum)||!Number.isFinite(loss))throw Error('Set target, minimum and near-loss margins in descending order below 100%.');
