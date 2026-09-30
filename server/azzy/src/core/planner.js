@@ -22,18 +22,24 @@ function resolveEntities(message,contexts=[],history=[],db){
   const skus=(messageText.match(/PB-[A-Z0-9-]+/ig)||[]).map(x=>x.toUpperCase());
   const bills=(messageText.match(/BILL-\d+/ig)||[]).map(x=>x.toUpperCase());
   const salesOrders=(messageText.match(/SO-\d+/ig)||[]).map(x=>x.toUpperCase());
+  const customerIds=[];
+  for(const customer of Object.values(db.customers||{})){
+    const aliases=[customer.name,customer.fullName,customer.companyName,...(customer.aliases||[])].map(x=>String(x||'').trim().toLowerCase()).filter(x=>x.length>=3);
+    if(aliases.some(alias=>lowerMessage.includes(alias)))customerIds.push(customer.id);
+  }
   for(const c of current){
     if(c.type==='project'&&!projectIds.length)projectIds.push(c.id);
     if(c.type==='po'&&!poIds.length)poIds.push(c.id);
     if((c.type==='stock'||c.type==='product')&&!skus.length)skus.push(c.id);
     if(c.type==='bill'&&!bills.length)bills.push(c.id);
     if(c.type==='sales_order'&&!salesOrders.length)salesOrders.push(c.id);
+    if(c.type==='customer'&&!customerIds.length)customerIds.push(c.id);
   }
   if(!projectIds.length){
     for(const poId of poIds){const po=db.purchaseOrders?.[poId];if(po?.projectId)projectIds.push(po.projectId);}
     for(const soId of salesOrders){const so=db.salesOrders?.[soId];if(so?.projectId)projectIds.push(so.projectId);}
   }
-  return {projectIds:[...new Set(projectIds)].filter(id=>db.projects?.[id]),poIds:[...new Set(poIds)],skus:[...new Set(skus)],bills:[...new Set(bills)],salesOrders:[...new Set(salesOrders)],combined};
+  return {projectIds:[...new Set(projectIds)].filter(id=>db.projects?.[id]),poIds:[...new Set(poIds)],skus:[...new Set(skus)],bills:[...new Set(bills)],salesOrders:[...new Set(salesOrders)],customerIds:[...new Set(customerIds)].filter(id=>db.customers?.[id]),combined};
 }
 
 function lastIntent(history=[]){return [...history].reverse().find(x=>x.role==='assistant'&&x.meta?.intent)?.meta?.intent||null;}
@@ -53,13 +59,14 @@ export function deterministicPlan({message,contexts=[],primaryContext=null,histo
   const explicitProjects=namedProjectRefs(message,db).map(c=>c.id);
   const selectedProjects=explicitProjects.length?explicitProjects:(entities.projectIds.length?entities.projectIds:activeProjects);
   const primary=primaryContext||contexts?.[0]||null;
-  const firstProject=selectedProjects[0]||entities.projectIds[0]||null,firstPo=entities.poIds[0]||null,firstSku=entities.skus[0]||null,firstBill=entities.bills[0]||null,firstSalesOrder=entities.salesOrders[0]||null;
+  const firstProject=selectedProjects[0]||entities.projectIds[0]||null,firstPo=entities.poIds[0]||null,firstSku=entities.skus[0]||null,firstBill=entities.bills[0]||null,firstSalesOrder=entities.salesOrders[0]||null,firstCustomer=entities.customerIds[0]||null;
   const explicitRefs=unique([
     ...explicitProjects.map(id=>({type:'project',id})),
     ...(message.match(/PO-\d+/ig)||[]).map(id=>({type:'po',id:id.toUpperCase()})),
     ...(message.match(/PB-[A-Z0-9-]+/ig)||[]).map(id=>({type:'stock',id:id.toUpperCase()})),
     ...(message.match(/BILL-\d+/ig)||[]).map(id=>({type:'bill',id:id.toUpperCase()})),
-    ...(message.match(/SO-\d+/ig)||[]).map(id=>({type:'sales_order',id:id.toUpperCase()}))
+    ...(message.match(/SO-\d+/ig)||[]).map(id=>({type:'sales_order',id:id.toUpperCase()})),
+    ...entities.customerIds.map(id=>({type:'customer',id}))
   ]);
   const plan={intent:'general',tools:[],working:{},style:'conversational',confidence:.2,contextRefs:explicitRefs};
   const add=(name,args={})=>plan.tools.push({name,args});
