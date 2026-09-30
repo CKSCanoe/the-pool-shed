@@ -21,7 +21,8 @@ run_node_stage() {
 run_node_stage "workspace and sales safety" \
   test-workspace-audit-v1451.mjs \
   test-sales-order-safety-hotfix.mjs \
-  test-sales-order-vat-regression-v146.mjs
+  test-sales-order-vat-regression-v146.mjs \
+  test-sales-order-subscriptions-v146.mjs
 
 run_node_stage "projects" \
   test-project-extra-quotes-v146.mjs \
