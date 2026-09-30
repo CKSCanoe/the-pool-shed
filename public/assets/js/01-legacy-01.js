@@ -541,6 +541,14 @@ const seed = {
           order.lines = Array.isArray(order.lines) ? order.lines : [];
           order.tags = Array.isArray(order.tags) ? order.tags : [];
           order.payments = Array.isArray(order.payments) ? order.payments : [];
+          order.payments.forEach(function(payment, paymentIndex) {
+            if (!payment || typeof payment !== "object") return;
+            payment.id = payment.id || ("PAY-" + String(order.id || "SO").replace(/[^A-Za-z0-9_-]/g, "") + "-" + String(paymentIndex + 1).padStart(3, "0"));
+            payment.date = String(payment.date || order.created || new Date().toISOString().slice(0, 10)).slice(0, 10);
+            payment.type = payment.type || "Other";
+            payment.reference = payment.reference || "";
+            payment.amount = Math.round((Number(payment.amount) || 0) * 100) / 100;
+          });
           order.notifications = Array.isArray(order.notifications) ? order.notifications : [];
         });
         source.salesOrderSubscriptions.forEach(function(subscription, index) {
@@ -6794,6 +6802,7 @@ const seed = {
             renderPaymentModal();
           });
         });
+        bindPaymentDeleteButtons(document);
 
         document.querySelectorAll("[data-customer-accounting]").forEach(function(button) {
           button.addEventListener("click", function() {
@@ -8079,9 +8088,9 @@ const seed = {
 
       function paymentHistoryTable(order) {
         const rows = (order.payments || []).map(function(payment) {
-          return '<tr><td>' + payment.date + '</td><td>' + payment.type + '</td><td>' + (payment.reference || "-") + '</td><td class="right">' + money(payment.amount) + '</td></tr>';
-        }).join("") || '<tr><td colspan="4" class="muted">No payments recorded yet.</td></tr>';
-        return '<table style="margin-bottom:1rem"><thead><tr><th>Date</th><th>Payment type</th><th>Reference</th><th class="right">Amount</th></tr></thead><tbody>' + rows + '</tbody></table>';
+          return '<tr><td>' + escapeHtml(payment.date || "-") + '</td><td>' + escapeHtml(payment.type || "Other") + '</td><td>' + escapeHtml(payment.reference || "-") + '</td><td class="right">' + money(payment.amount) + '</td><td class="right"><button type="button" class="danger-button" data-delete-payment="' + escapeHtml(order.id + "|" + payment.id) + '">Delete</button></td></tr>';
+        }).join("") || '<tr><td colspan="5" class="muted">No payments recorded yet.</td></tr>';
+        return '<table style="margin-bottom:1rem"><thead><tr><th>Date received</th><th>Payment type</th><th>Reference</th><th class="right">Amount</th><th class="right">Action</th></tr></thead><tbody>' + rows + '</tbody></table>';
       }
 
       function trafficLegend() {
@@ -11885,6 +11894,50 @@ const seed = {
         render();
       }
 
+      function bindPaymentDeleteButtons(root) {
+        (root || document).querySelectorAll("[data-delete-payment]").forEach(function(button) {
+          if (button.dataset.paymentDeleteBound === "true") return;
+          button.dataset.paymentDeleteBound = "true";
+          button.addEventListener("click", function() {
+            const parts = String(button.dataset.deletePayment || "").split("|");
+            deleteSalesOrderPayment(parts[0], parts[1]);
+          });
+        });
+      }
+
+      function deleteSalesOrderPayment(orderId, paymentId) {
+        const order = salesOrder(orderId);
+        if (!order) return toast("Sales order not found.");
+        if (typeof adminAllowed === "function" && !adminAllowed()) return toast("Admin access is required to delete a payment.");
+        const payments = order.payments || [];
+        const index = payments.findIndex(function(payment) { return String(payment.id) === String(paymentId); });
+        if (index < 0) return toast("Payment record not found.");
+        const payment = payments[index];
+        const reason = String(prompt("Reason for deleting this payment (required)") || "").trim();
+        if (!reason) return toast("A deletion reason is required.");
+        if (!confirm("Delete " + money(payment.amount) + " " + (payment.type || "payment") + " dated " + (payment.date || "unknown") + "? The correction will remain in the audit trail.")) return;
+        payments.splice(index, 1);
+        const updated = salesOrderTotals(order);
+        const balance = Math.max(0, updated.gross - updated.paid);
+        order.tags = Array.isArray(order.tags) ? order.tags : [];
+        if (balance > 0) order.tags = order.tags.filter(function(tag) { return tag !== "Paid"; });
+        if (!Array.isArray(data.auditLog)) data.auditLog = [];
+        data.auditLog.push({
+          id: "AUD-" + Date.now(),
+          date: new Date().toISOString(),
+          user: (currentUser && currentUser().name) || "Current user",
+          action: "Sales order payment deleted",
+          product: order.id,
+          previousValue: { paymentId: payment.id, amount: payment.amount, type: payment.type, reference: payment.reference, date: payment.date },
+          newValue: "Deleted",
+          reason: reason
+        });
+        addSalesOrderNotification(order, "Payment correction", "Deleted " + money(payment.amount) + " " + (payment.type || "payment") + " dated " + (payment.date || "unknown") + ". Reason: " + reason, "Internal note");
+        saveAppData();
+        toast("Payment deleted from " + order.id + ". You can now add the correct payment.");
+        render();
+      }
+
       function renderPaymentModal() {
         const modal = document.getElementById("paymentModal");
         if (!paymentOrderId) {
@@ -11902,45 +11955,59 @@ const seed = {
         const totals = salesOrderTotals(order);
         const balance = Math.max(0, totals.gross - totals.paid);
         const c = customer(order.customerId);
+        const today = new Date().toISOString().slice(0, 10);
         const rows = (order.payments || []).map(function(payment) {
-          return '<tr><td>' + payment.date + '</td><td>' + payment.type + '</td><td>' + (payment.reference || "-") + '</td><td class="right">' + money(payment.amount) + '</td></tr>';
-        }).join("") || '<tr><td colspan="4" class="muted">No payments recorded yet.</td></tr>';
+          return '<tr><td>' + escapeHtml(payment.date || "-") + '</td><td>' + escapeHtml(payment.type || "Other") + '</td><td>' + escapeHtml(payment.reference || "-") + '</td><td class="right">' + money(payment.amount) + '</td><td class="right"><button type="button" class="danger-button" data-delete-payment="' + escapeHtml(order.id + "|" + payment.id) + '">Delete</button></td></tr>';
+        }).join("") || '<tr><td colspan="5" class="muted">No payments recorded yet.</td></tr>';
         modal.classList.add("show");
         modal.innerHTML =
           '<div class="modal"><header><div><strong>Add payment</strong><p class="muted">' + order.id + ' for ' + c.name + '</p></div><button class="ghost" id="closePaymentModal">Close</button></header>' +
           '<form id="paymentForm"><div class="modal-body">' +
             '<div class="field-grid"><div class="field"><span>Total inc VAT</span><strong>' + money(totals.gross) + '</strong></div><div class="field"><span>Paid</span><strong>' + money(totals.paid) + '</strong></div><div class="field"><span>Balance due</span><strong>' + money(balance) + '</strong></div></div>' +
-            '<div class="form-grid" style="margin-top:1rem">' +
+            '<div class="form-grid three" style="margin-top:1rem">' +
               '<label>Payment amount<input name="amount" type="number" min="0" step="0.01" value="' + balance.toFixed(2) + '"></label>' +
               '<label>Payment type<select name="type">' + optionList(["Card", "Cash", "Bank transfer", "BACS", "Cheque", "Other"], "Card") + '</select></label>' +
+              '<label>Payment received date<input name="date" type="date" max="' + today + '" value="' + today + '" required></label>' +
             '</div>' +
             '<label style="margin-top:0.8rem">Reference / notes<input name="reference" placeholder="Card auth, cash receipt, bank ref or note"></label>' +
-            '<table style="margin-top:1rem"><thead><tr><th>Date</th><th>Type</th><th>Reference</th><th class="right">Amount</th></tr></thead><tbody>' + rows + '</tbody></table>' +
+            '<p class="muted" style="margin:.55rem 0 0">Use the actual date the money was received, including historic payments.</p>' +
+            '<table style="margin-top:1rem"><thead><tr><th>Date received</th><th>Type</th><th>Reference</th><th class="right">Amount</th><th class="right">Action</th></tr></thead><tbody>' + rows + '</tbody></table>' +
           '</div><footer><button class="secondary" type="button" id="cancelPaymentModal">Cancel</button><button type="submit">Save payment</button></footer></form></div>';
 
         document.getElementById("closePaymentModal").addEventListener("click", closePaymentModal);
         document.getElementById("cancelPaymentModal").addEventListener("click", closePaymentModal);
+        bindPaymentDeleteButtons(modal);
         document.getElementById("paymentForm").addEventListener("submit", function(event) {
           event.preventDefault();
           const values = Object.fromEntries(new FormData(event.currentTarget).entries());
           const amount = Math.round((Number(values.amount) || 0) * 100) / 100;
+          const paymentDate = String(values.date || today).slice(0, 10);
           if (amount <= 0) {
             toast("Enter a payment amount above zero.");
             return;
           }
+          if (!/^\d{4}-\d{2}-\d{2}$/.test(paymentDate)) {
+            toast("Choose a valid payment received date.");
+            return;
+          }
+          if (paymentDate > today) {
+            toast("Payment received date cannot be in the future.");
+            return;
+          }
           order.payments = order.payments || [];
           order.payments.push({
+            id: "PAY-" + String(order.id || "SO").replace(/[^A-Za-z0-9_-]/g, "") + "-" + Date.now(),
             amount: amount,
             type: values.type || "Other",
             reference: values.reference || "",
-            date: new Date().toISOString().slice(0, 10)
+            date: paymentDate
           });
           const updated = salesOrderTotals(order);
           const updatedBalance = Math.max(0, updated.gross - updated.paid);
           if (updatedBalance <= 0) {
             if (!order.tags.includes("Paid")) order.tags.push("Paid");
           }
-          addSalesOrderNotification(order, "Payment", money(amount) + " received by " + (values.type || "Other"), "Saved");
+          addSalesOrderNotification(order, "Payment", money(amount) + " received by " + (values.type || "Other") + " on " + paymentDate, "Saved");
           saveAppData();
           paymentOrderId = "";
           toast("Payment saved against " + order.id + ".");
