@@ -33,5 +33,7 @@ const runtimeRoots=['public','api','server'];
 const retiredTerms=['PoolShedAssistantEngine','assistant-engine.js','azzy-live.js','azzy-live.css','Read-only Preview','Secure workspace unavailable','Writes disabled in Preview'];
 function walk(dir){return fs.readdirSync(dir,{withFileTypes:true}).flatMap(e=>e.isDirectory()?walk(path.join(dir,e.name)):[path.join(dir,e.name)]);}
 for(const file of runtimeRoots.flatMap(walk).filter(f=>/\.(js|css|html|mjs)$/.test(f))){const src=read(file);for(const term of retiredTerms)assert.equal(src.includes(term),false,`retired Azzy term ${term} remains in ${file}`);}
+assert.doesNotMatch(host,/\.toLocalString\(/,'Azzy must use the valid Date.toLocaleString method');
+assert.match(host,/\.toLocaleString\('en-GB'/,'Azzy activity/history timestamps must use locale-safe formatting');
 assert.doesNotThrow(()=>new Function(host),'Azzy browser host must parse after chat-session changes');
 console.log('PASS Azzy Jarvis: Shadow DOM, live Pool Shed paths, fresh chats, history and resilient core-mode UI retained');
