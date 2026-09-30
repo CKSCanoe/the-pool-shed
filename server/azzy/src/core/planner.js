@@ -173,7 +173,7 @@ export function deterministicPlan({message,contexts=[],primaryContext=null,histo
   if(firstCustomer&&(/customer|client|account|what.*ordered|what.*bought|order history|everything.*(?:about|for)|tell me.*(?:about|customer)|what.*open/.test(q))){
     plan.intent='customer_record';plan.confidence=.995;add('get_customer_record',{customerId:firstCustomer});return plan;
   }
-  if(can('customers.read')&&(/find.*customer|customer.*named|client.*named|what.*has.*ordered|what.*did.*order|orders?.*(?:for|has)|who is|did you mean/.test(q))){
+  if(can('customers.read')&&!/cheapest|best price|supplier|price.*supplier|\bpb-[a-z0-9-]+\b|\bpo-?\d+\b|\bso-?\d+\b|stock|product/.test(q)&&(/find.*customer|customer.*named|client.*named|what.*has.*ordered|what.*did.*order|orders?.*(?:for|has)|who is|did you mean/.test(q))){
     plan.intent='customer_lookup';plan.confidence=.97;plan.working={query:message};add('find_customers',{query:message,limit:5});return plan;
   }
 
