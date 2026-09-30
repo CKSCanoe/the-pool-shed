@@ -70,6 +70,6 @@ data.purchaseOrders.find(po=>po.id==='PO-PROJECT-LINK').payments=[{id:'PAY1',amo
 assert.throws(()=>ctx.psProjectTransaction('unlink-po',{jobId:'J1',poId:'PO-PROJECT-LINK'}),/payment|history/i,'PO payment history must protect the project link');
 
 const workspace=fs.readFileSync('public/project-workspace.js','utf8'),quoteWorkspace=fs.readFileSync('public/quote-studio-workspace.js','utf8');
-for(const label of ['Original contract value','Approved extras','Total selling value','Actual costs','Committed costs','Remaining forecast costs','Projected profit','Projected margin','Project quotes & extras','Project commercial control','Link an existing quote','Allocate Purchase Order to project','Customer cash received','Supplier cash paid'])assert(workspace.includes(label),label+' dashboard/UI label missing');
+for(const label of ['Original live sell value','Approved extras / extra SOs','Live project value','Actual costs','Committed costs','Remaining forecast costs','Projected profit','Projected margin','Project quotes & extras','Project commercial control','Link an existing quote','Allocate Purchase Order to project','Customer cash received','Supplier cash paid'])assert(workspace.includes(label),label+' dashboard/UI label missing');
 assert(quoteWorkspace.includes('newExtraQuoteForProject'));assert(quoteWorkspace.includes('Sending an email does not approve it'));
 console.log('PASS linked project extras: pending/rejected isolation, immutable original contract, accepted revenue handover, approval evidence, SO pricing, idempotency and server parity');
