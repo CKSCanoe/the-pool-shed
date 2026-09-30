@@ -5,7 +5,7 @@ const MAX_CONTEXTS=5;
 const ROUTE_TO_AZZY={project:'project','purchase-order':'po',product:'stock','sales-order':'sales_order',customer:'customer',supplier:'supplier'};
 const AZZY_TO_ROUTE={project:'project',po:'purchase-order',stock:'product',product:'product',sales_order:'sales-order',customer:'customer',supplier:'supplier'};
 const ICONS={project:'▣',po:'▤',stock:'◇',product:'◇',sales_order:'▧',finance:'£',bill:'£',invoice:'£',customer:'◉',supplier:'◆',hire:'⌁',extra:'＋',supplier_price:'£'};
-const state={open:false,boot:null,activeContexts:[],primaryContext:null,tab:'chat',busy:false,dismissedNudgeKey:null,settings:{speech:false,alerts:true},messages:[],followups:[],booting:null,userId:''};
+const state={open:false,boot:null,activeContexts:[],primaryContext:null,tab:'chat',busy:false,dismissedNudgeKey:null,settings:{speech:false,alerts:true},messages:[],followups:[],booting:null,userId:'',conversationId:'',conversationStartedAt:null,conversations:[],loginSessionId:'',connection:{api:'unknown',brain:'unknown',memory:true}};
 let host=null,root=null;
 
 const text=v=>String(v??'').trim();
@@ -19,20 +19,50 @@ const recordTypeName=t=>({project:'Project',po:'Purchase order',product:'Product
 const $=s=>root?.querySelector(s)||null,$$=s=>root?[...root.querySelectorAll(s)]:[];
 
 function sessionKey(){return `pool-shed:azzy-jarvis:${state.userId||'signed-out'}`;}
-function loadLocalSession(){try{const row=JSON.parse(localStorage.getItem(sessionKey())||'null');if(!row)return;state.activeContexts=Array.isArray(row.activeContexts)?row.activeContexts.slice(0,MAX_CONTEXTS):[];state.primaryContext=row.primaryContext||state.activeContexts[0]||null;state.messages=Array.isArray(row.messages)?row.messages.slice(-60):[];state.settings={...state.settings,...(row.settings||{})};}catch{}}
-function saveLocalSession(){try{localStorage.setItem(sessionKey(),JSON.stringify({activeContexts:state.activeContexts,primaryContext:state.primaryContext,messages:state.messages.slice(-60),settings:state.settings}));}catch{}}
+function loadLocalSession(){try{const row=JSON.parse(localStorage.getItem(sessionKey())||'null');if(!row)return;state.settings={...state.settings,...(row.settings||{})};}catch{}}
+function saveLocalSession(){try{localStorage.setItem(sessionKey(),JSON.stringify({settings:state.settings}));}catch{}}
+function authSessionId(token){
+  try{
+    const raw=String(token||'').split('.')[1]||'',pad=raw.replace(/-/g,'+').replace(/_/g,'/')+'==='.slice((raw.length+3)%4),payload=JSON.parse(atob(pad));
+    const source=String(payload.session_id||`${payload.sub||'user'}:${payload.iat||0}`);let h=2166136261;
+    for(let i=0;i<source.length;i++){h^=source.charCodeAt(i);h=Math.imul(h,16777619);}
+    return 'LOGIN-'+(h>>>0).toString(36);
+  }catch{return 'LOGIN-browser';}
+}
+function serverMessage(m){return{role:m?.role==='user'?'user':'assistant',text:String(m?.text||''),at:m?.at,evidence:m?.meta?.evidenceObjects||m?.evidence||[],links:m?.meta?.links||m?.links||[],action:m?.meta?.action||m?.action||null,quickActions:m?.meta?.quickActions||m?.quickActions||[]};}
+function applyConversation(out){
+  state.conversationId=String(out?.conversationId||state.conversationId||'');state.conversationStartedAt=out?.conversationStartedAt||state.conversationStartedAt||null;
+  if(Array.isArray(out?.conversation))state.messages=out.conversation.map(serverMessage);
+  if(Array.isArray(out?.conversations))state.conversations=out.conversations;
+  if(Array.isArray(out?.activeContexts))state.activeContexts=out.activeContexts.map(normaliseContext).filter(Boolean).slice(0,MAX_CONTEXTS);
+  state.primaryContext=normaliseContext(out?.primaryContext)||state.activeContexts[0]||null;
+}
 
 async function authToken(){
   const provider=global.__POOL_SHED_AUTH_TOKEN__;if(typeof provider!=='function')throw new Error('Sign in to Pool Shed to use Azzy.');
   const token=await provider();if(!token)throw new Error('Sign in to Pool Shed to use Azzy.');return token;
 }
-async function api(action,{method='GET',body,params}={}){
-  const token=await authToken(),url=new URL('/api/azzy',global.location.origin);url.searchParams.set('action',action);
+async function api(action,{method='GET',body,params,token:providedToken}={}){
+  const token=providedToken||await authToken(),url=new URL('/api/azzy',global.location.origin);url.searchParams.set('action',action);
   for(const[k,v]of Object.entries(params||{}))if(v!==undefined&&v!==null)url.searchParams.set(k,String(v));
   const headers={Authorization:`Bearer ${token}`,Accept:'application/json'};if(body!==undefined)headers['Content-Type']='application/json';
-  const response=await fetch(url,{method,headers,credentials:'same-origin',cache:'no-store',body:body===undefined?undefined:JSON.stringify(body)});
-  let json={};try{json=await response.json();}catch{}
-  if(!response.ok||json.ok===false)throw new Error(json.error||`Azzy request failed (${response.status}).`);return json;
+  const attempts=method==='GET'?2:1;
+  let lastError=null;
+  for(let attempt=0;attempt<attempts;attempt++){
+    const controller=new AbortController(),timeout=setTimeout(()=>controller.abort(),action==='chat'?32000:14000);
+    try{
+      const response=await fetch(url,{method,headers,credentials:'same-origin',cache:'no-store',signal:controller.signal,body:body===undefined?undefined:JSON.stringify(body)});
+      let json={};try{json=await response.json();}catch{}
+      if(!response.ok||json.ok===false){const error=new Error(json.error||`Azzy request failed (${response.status}).`);error.status=response.status;throw error;}
+      state.connection.api='online';return json;
+    }catch(error){
+      lastError=error;state.connection.api='offline';
+      const retry=attempt+1<attempts&&(!error.status||[502,503,504].includes(error.status));
+      if(!retry)break;
+      await new Promise(resolve=>setTimeout(resolve,350));
+    }finally{clearTimeout(timeout);}
+  }
+  throw lastError||new Error('Azzy could not connect.');
 }
 
 function markup(){return `
@@ -42,7 +72,7 @@ function markup(){return `
 <section id="azzyPanel" class="azzy-panel" aria-label="Azzy assistant" hidden>
   <header class="azzy-header">
     <div class="azzy-title"><img src="./assets/img/azzy-jarvis.png" alt=""><div><div class="azzy-name">Azzy</div><div class="azzy-status"><i id="readyDot"></i><span id="azzySubtitle">Ready when you are</span></div></div></div>
-    <div class="header-actions"><button id="settingsBtn" type="button" aria-label="Azzy settings">⚙</button><button id="closeBtn" type="button" aria-label="Close Azzy">×</button></div>
+    <div class="header-actions"><button id="newChatBtn" class="new-chat-btn" type="button" aria-label="Start a new Azzy chat">＋ New</button><button id="settingsBtn" type="button" aria-label="Azzy settings">⚙</button><button id="closeBtn" type="button" aria-label="Close Azzy">×</button></div>
   </header>
   <section class="working-context" aria-label="Conversation context">
     <div class="context-heading"><div><small>Talking about</small><span id="contextCount"></span></div><button id="contextAddBtn" class="context-add" type="button" aria-expanded="false" aria-controls="contextMenu">＋ Add</button></div>
@@ -52,7 +82,7 @@ function markup(){return `
   <nav class="azzy-tabs"><button type="button" data-tab="chat" class="active">Chat</button><button type="button" data-tab="attention">Needs you <span id="attentionBadge">0</span></button><button type="button" data-tab="activity">History</button></nav>
   <div id="chatTab" class="tab-body chat-tab"><div id="messages" class="messages" role="log" aria-label="Conversation with Azzy"></div><div id="suggestions" class="suggestions"></div></div>
   <div id="attentionTab" class="tab-body" hidden><div class="section-heading"><div><small>NEEDS YOU</small><h3>Things worth acting on</h3></div></div><div id="attentionList"></div><div class="section-heading positive"><div><small>GOING WELL</small><h3>Good movement</h3></div></div><div id="winsList"></div></div>
-  <div id="activityTab" class="tab-body" hidden><div class="section-heading"><div><small>HISTORY</small><h3>Recent Azzy activity</h3></div></div><div id="activityList"></div></div>
+  <div id="activityTab" class="tab-body" hidden><div class="section-heading history-heading"><div><small>CHAT HISTORY</small><h3>Your Azzy conversations</h3></div><button id="historyNewChatBtn" class="history-new-chat" type="button">＋ New chat</button></div><div id="conversationList" class="conversation-list"></div><details class="azzy-audit-log"><summary>Operational activity</summary><div id="activityList"></div></details></div>
   <form id="composer" class="composer"><button type="button" id="micBtn" class="compose-icon" aria-label="Voice input">◉</button><textarea id="messageInput" rows="1" placeholder="Ask Azzy…" aria-label="Message Azzy"></textarea><button id="sendBtn" class="send-btn" type="submit" aria-label="Send">➤</button></form>
 </section>
 <div id="modal" class="modal-wrap" hidden><div class="modal" role="dialog" aria-modal="true" aria-label="Azzy details"><button id="modalClose" class="modal-close" type="button">×</button><div id="modalBody"></div></div></div>
@@ -65,7 +95,7 @@ function mount(){
   const shell=document.createElement('div');shell.innerHTML=markup();root.append(shell);document.body.append(host);
   bind();
 }
-function els(){return{launcher:$('#azzyLauncher'),launcherBadge:$('#launcherBadge'),nudge:$('#azzyNudge'),panel:$('#azzyPanel'),backdrop:$('#azzyBackdrop'),close:$('#closeBtn'),settings:$('#settingsBtn'),subtitle:$('#azzySubtitle'),readyDot:$('#readyDot'),contextAdd:$('#contextAddBtn'),contextMenu:$('#contextMenu'),contextSearch:$('#contextSearch'),contextOptions:$('#contextOptions'),contextChips:$('#contextChips'),contextCount:$('#contextCount'),messages:$('#messages'),suggestions:$('#suggestions'),attentionList:$('#attentionList'),winsList:$('#winsList'),attentionBadge:$('#attentionBadge'),activityList:$('#activityList'),composer:$('#composer'),input:$('#messageInput'),mic:$('#micBtn'),modal:$('#modal'),modalBody:$('#modalBody'),modalClose:$('#modalClose'),toast:$('#toast')};}
+function els(){return{launcher:$('#azzyLauncher'),launcherBadge:$('#launcherBadge'),nudge:$('#azzyNudge'),panel:$('#azzyPanel'),backdrop:$('#azzyBackdrop'),close:$('#closeBtn'),settings:$('#settingsBtn'),newChat:$('#newChatBtn'),historyNewChat:$('#historyNewChatBtn'),subtitle:$('#azzySubtitle'),readyDot:$('#readyDot'),contextAdd:$('#contextAddBtn'),contextMenu:$('#contextMenu'),contextSearch:$('#contextSearch'),contextOptions:$('#contextOptions'),contextChips:$('#contextChips'),contextCount:$('#contextCount'),messages:$('#messages'),suggestions:$('#suggestions'),attentionList:$('#attentionList'),winsList:$('#winsList'),attentionBadge:$('#attentionBadge'),conversationList:$('#conversationList'),activityList:$('#activityList'),composer:$('#composer'),input:$('#messageInput'),mic:$('#micBtn'),modal:$('#modal'),modalBody:$('#modalBody'),modalClose:$('#modalClose'),toast:$('#toast')};}
 function toast(message){const e=els().toast;if(!e)return;e.textContent=message;e.hidden=false;clearTimeout(toast.t);toast.t=setTimeout(()=>{e.hidden=true;},2400);}
 function autoResize(){const input=els().input;if(!input)return;input.style.height='auto';input.style.height=Math.min(input.scrollHeight,110)+'px';}
 function findAvailable(c){return state.boot?.contexts?.find(x=>same(x,c))||null;}
