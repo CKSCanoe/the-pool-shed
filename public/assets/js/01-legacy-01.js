@@ -14,6 +14,7 @@ const seed = {
         purchaseOrders: [],
         movements: [],
         salesOrders: [],
+        salesOrderSubscriptions: [],
         goodsNotes: [],
         salesCredits: [],
         notifications: [],
@@ -519,7 +520,7 @@ const seed = {
           if (Array.isArray(seed[key]) && !Array.isArray(source[key])) source[key] = [];
           else if (!Array.isArray(seed[key]) && (typeof source[key] === "undefined" || source[key] === null)) source[key] = clone(seed[key]);
         });
-        ["products","customers","jobs","stock","restockRules","allocations","purchaseOrders","movements","salesOrders","goodsNotes","salesCredits","notifications","suppliers"].forEach(function(key) {
+        ["products","customers","jobs","stock","restockRules","allocations","purchaseOrders","movements","salesOrders","salesOrderSubscriptions","goodsNotes","salesCredits","notifications","suppliers"].forEach(function(key) {
           if (!Array.isArray(source[key])) source[key] = [];
         });
         source.customers.forEach(function(c, index) {
@@ -541,6 +542,19 @@ const seed = {
           order.tags = Array.isArray(order.tags) ? order.tags : [];
           order.payments = Array.isArray(order.payments) ? order.payments : [];
           order.notifications = Array.isArray(order.notifications) ? order.notifications : [];
+        });
+        source.salesOrderSubscriptions.forEach(function(subscription, index) {
+          if (!subscription || typeof subscription !== "object") return;
+          subscription.id = subscription.id || ("SUB-" + String(index + 1).padStart(4, "0"));
+          subscription.name = subscription.name || "Recurring Sales Order";
+          subscription.status = subscription.status || "Active";
+          subscription.customerId = subscription.customerId || "";
+          subscription.cadenceDays = Math.max(7, Number(subscription.cadenceDays || subscription.intervalDays || 30));
+          subscription.priceList = subscription.priceList || "rrp";
+          subscription.nextOrderDate = String(subscription.nextOrderDate || subscription.nextDate || "").slice(0, 10);
+          subscription.lines = Array.isArray(subscription.lines) ? subscription.lines : [];
+          subscription.autoCreate = false;
+          subscription.approvalRequired = true;
         });
         source.purchaseOrders.forEach(function(po) {
           if (!po || typeof po !== "object") return;
@@ -2340,7 +2354,7 @@ const seed = {
 
       function sidebarSubGroups(tabId) {
         const groups = {
-          salesorders: ["Sales Orders", "Sales Credits", "Customer Orders", "Invoices"],
+          salesorders: ["Sales Orders", "Subscriptions", "Sales Credits", "Customer Orders", "Invoices"],
           quotes: ["Quotes", "Templates", "Engagement", "Approvals", "Settings"],
           products: ["Catalogue", "Create Product", "Import Catalogue", "Pricing", "Catalogue Health"],
           locations: ["Locations", "Transfers", "Van Top-Ups", "Location Thresholds", "Stock Take", "Missing Stock", "Audit Trail"],
@@ -2371,6 +2385,7 @@ const seed = {
           if (subgroup === "Catalogue Health") productView = "health";
         }
         if (tabId === "salesorders") {
+          if (subgroup === "Subscriptions") salesOrderView = "subscriptions";
           if (subgroup === "Sales Credits") salesOrderView = "credits";
           if (subgroup === "Sales Orders") salesOrderView = "list";
           if (subgroup === "Invoices") salesOrderFilter = "invoice";
@@ -5684,14 +5699,151 @@ const seed = {
       }
 
 
+      function salesOrderSubscriptionDate(value) {
+        const date = value ? new Date(String(value).slice(0, 10) + "T12:00:00") : new Date();
+        return Number.isNaN(date.getTime()) ? new Date() : date;
+      }
+
+      function salesOrderSubscriptionAddDays(value, days) {
+        const date = salesOrderSubscriptionDate(value);
+        date.setDate(date.getDate() + Math.max(7, Number(days || 30)));
+        return date.toISOString().slice(0, 10);
+      }
+
+      function nextSalesOrderSubscriptionId() {
+        let index = 1 + (data.salesOrderSubscriptions || []).length;
+        let id = "SUB-" + String(index).padStart(4, "0");
+        while ((data.salesOrderSubscriptions || []).some(function(item){ return item.id === id; })) {
+          index += 1;
+          id = "SUB-" + String(index).padStart(4, "0");
+        }
+        return id;
+      }
+
+      function salesOrderSubscriptionValue(subscription) {
+        const c = customer(subscription.customerId);
+        const list = subscription.priceList || (c && c.priceList) || "rrp";
+        return (subscription.lines || []).reduce(function(total, line) {
+          const p = product(line.productId);
+          const unit = Number(line.specialPrice != null ? line.specialPrice : line.unitPrice != null ? line.unitPrice : p ? p[list] || p.rrp || 0 : 0);
+          return total + unit * Number(line.qty || 0);
+        }, 0);
+      }
+
+      function recurringOrderHistoryCandidates() {
+        const groups = {};
+        (data.salesOrders || []).filter(function(order){ return order.customerId && order.created && !/cancel|void/i.test(order.status || ""); }).forEach(function(order) {
+          const g = groups[order.customerId] || (groups[order.customerId] = { customerId:order.customerId, orders:[], productCounts:{} });
+          g.orders.push(order);
+          (order.lines || []).forEach(function(line) {
+            if (!line.productId || isNonStockSalesLine(line)) return;
+            const row = g.productCounts[line.productId] || (g.productCounts[line.productId] = { productId:line.productId, count:0, qty:0 });
+            row.count += 1;
+            row.qty += Number(line.qty || 0);
+          });
+        });
+        return Object.values(groups).map(function(group) {
+          group.orders.sort(function(a,b){ return String(a.created).localeCompare(String(b.created)); });
+          const dates = group.orders.map(function(order){ return salesOrderSubscriptionDate(order.created); });
+          const gaps = [];
+          for (let i=1;i<dates.length;i++) gaps.push(Math.max(1, Math.round((dates[i]-dates[i-1])/86400000)));
+          const cadence = gaps.length ? Math.round(gaps.reduce(function(sum,x){return sum+x;},0)/gaps.length) : 30;
+          const repeating = Object.values(group.productCounts).filter(function(row){ return row.count >= 2; }).sort(function(a,b){ return b.count-a.count; });
+          return { customerId:group.customerId, orderCount:group.orders.length, cadenceDays:Math.max(7,cadence), repeating:repeating, latestOrder:group.orders[group.orders.length-1] || null };
+        }).filter(function(group){ return group.orderCount >= 2 && group.repeating.length; }).sort(function(a,b){ return b.orderCount-a.orderCount; }).slice(0,8);
+      }
+
+      function salesOrderSubscriptionsPage() {
+        const today = new Date().toISOString().slice(0, 10);
+        const subscriptions = (data.salesOrderSubscriptions || []).slice().sort(function(a,b){ return String(a.nextOrderDate || "9999").localeCompare(String(b.nextOrderDate || "9999")); });
+        const active = subscriptions.filter(function(s){ return s.status === "Active"; });
+        const due = active.filter(function(s){ return s.nextOrderDate && s.nextOrderDate <= today; });
+        const upcoming = active.filter(function(s){ return s.nextOrderDate && s.nextOrderDate > today; });
+        const orderOptions = (data.salesOrders || []).filter(function(o){ return o.customerId && (o.lines || []).some(function(line){ return line.productId && !isNonStockSalesLine(line); }); }).slice(0,80).map(function(order) {
+          const c = customer(order.customerId);
+          return '<option value="' + escapeHtml(order.id) + '">' + escapeHtml(order.id + " · " + customerDisplayName(c) + " · " + (order.lines || []).length + " lines") + '</option>';
+        }).join("");
+        const rows = subscriptions.map(function(sub) {
+          const c = customer(sub.customerId), value = salesOrderSubscriptionValue(sub), isDue = sub.status === "Active" && sub.nextOrderDate && sub.nextOrderDate <= today;
+          return '<tr><td><strong>' + escapeHtml(sub.name || sub.id) + '</strong><small>' + escapeHtml(sub.id) + '</small></td><td><strong>' + escapeHtml(customerDisplayName(c)) + '</strong><small>' + escapeHtml((sub.lines || []).map(function(line){ var p=product(line.productId); return (p ? p.name : line.productId) + " × " + Number(line.qty || 0); }).join(" · ")) + '</small></td><td>' + escapeHtml(String(sub.cadenceDays || 30)) + ' days</td><td><strong class="' + (isDue ? 'warn-text' : '') + '">' + escapeHtml(sub.nextOrderDate || "Not set") + '</strong></td><td>' + statusPill(sub.status || "Active") + '</td><td class="right"><strong>' + money(value) + '</strong><small>estimated net</small></td><td class="right"><button type="button" class="secondary" data-subscription-generate="' + escapeHtml(sub.id) + '"' + (sub.status !== "Active" ? ' disabled' : '') + '>Generate draft</button><button type="button" class="secondary" data-subscription-toggle="' + escapeHtml(sub.id) + '">' + (sub.status === "Active" ? "Pause" : "Resume") + '</button><button type="button" class="danger" data-subscription-end="' + escapeHtml(sub.id) + '">End</button></td></tr>';
+        }).join("") || '<tr><td colspan="7"><div class="so-list-empty"><strong>No Sales Order subscriptions yet.</strong><span>Create one from an existing customer order. Orders are never generated silently.</span></div></td></tr>';
+        const candidates = recurringOrderHistoryCandidates();
+        const candidateHtml = candidates.length ? candidates.map(function(row) {
+          const c = customer(row.customerId), latest = row.latestOrder;
+          return '<div class="notice-item"><strong>' + escapeHtml(customerDisplayName(c)) + '</strong><p class="muted">' + row.orderCount + ' recorded orders · repeat products: ' + escapeHtml(row.repeating.slice(0,3).map(function(x){ var p=product(x.productId); return (p ? p.name : x.productId) + " (" + x.count + " orders)"; }).join(", ")) + '</p>' + (latest ? '<button type="button" class="secondary" data-subscription-use-order="' + escapeHtml(latest.id) + '">Use latest order as template</button>' : '') + '</div>';
+        }).join("") : '<div class="notice-item"><strong>No strong repeat pattern yet</strong><p class="muted">Azzy will keep reviewing customer order history as more Sales Orders are recorded.</p></div>';
+        return '<section class="so-list-page" aria-label="Sales Order subscriptions">' +
+          '<div class="so-list-commandbar"><div class="so-list-command-copy"><span>RECURRING SALES</span><strong>Sales Order subscriptions</strong><small>Repeat customer demand with human review before every generated Sales Order.</small></div><div class="so-list-page-actions"><button type="button" class="secondary" data-sales-subview="list">Sales Orders</button></div></div>' +
+          '<div class="so-list-kpis"><div class="so-list-kpi"><span>ACTIVE</span><strong>' + active.length + '</strong><small>Recurring order templates</small></div><div class="so-list-kpi attention"><span>DUE NOW</span><strong>' + due.length + '</strong><small>Need a draft Sales Order</small></div><div class="so-list-kpi"><span>UPCOMING</span><strong>' + upcoming.length + '</strong><small>Future active subscriptions</small></div><div class="so-list-kpi"><span>CANDIDATES</span><strong>' + candidates.length + '</strong><small>Repeat-order patterns</small></div></div>' +
+          '<div class="panel"><div class="panel-head"><div><h2>Create from an existing Sales Order</h2><p>Use a real customer order as the template, choose a cadence and next order date. Automatic order creation stays off.</p></div></div><div class="panel-body"><div class="form-grid four"><label>Template Sales Order<select id="subscriptionTemplateOrder"><option value="">Select order</option>' + orderOptions + '</select></label><label>Name<input id="subscriptionName" placeholder="e.g. Monthly chlorine order"></label><label>Cadence<select id="subscriptionCadence"><option value="7">Weekly</option><option value="14">Fortnightly</option><option value="28">Every 4 weeks</option><option value="30" selected>Monthly</option><option value="61">Every 2 months</option><option value="91">Quarterly</option></select></label><label>Next order date<input id="subscriptionNextDate" type="date" value="' + escapeHtml(salesOrderSubscriptionAddDays(today,30)) + '"></label></div><div class="action-row"><button type="button" data-create-sales-subscription="true">Create subscription</button><span class="muted">Every generated order starts as New Order and must follow the normal stock, purchasing, fulfilment and invoicing controls.</span></div></div></div>' +
+          '<div class="so-list-card"><div class="so-list-table-wrap"><table class="so-list-table"><thead><tr><th>Subscription</th><th>Customer / Products</th><th>Cadence</th><th>Next order</th><th>Status</th><th class="right">Value</th><th class="right">Actions</th></tr></thead><tbody>' + rows + '</tbody></table></div></div>' +
+          '<div class="panel"><div class="panel-head"><div><h2>Repeat-order opportunities</h2><p>Advisory signals from actual customer order history. Review before offering a subscription.</p></div></div><div class="panel-body"><div class="notice-row">' + candidateHtml + '</div></div></div>' +
+        '</section>';
+      }
+
+      function createSalesOrderSubscriptionFromOrder(orderId) {
+        const template = salesOrder(orderId), c = template ? customer(template.customerId) : null;
+        if (!template || !c) return toast("Choose a valid Sales Order template.");
+        const stockLines = (template.lines || []).filter(function(line){ return line.productId && !isNonStockSalesLine(line); });
+        if (!stockLines.length) return toast("That Sales Order has no stock-controlled product lines to repeat.");
+        const cadenceField = document.getElementById("subscriptionCadence"), dateField = document.getElementById("subscriptionNextDate"), nameField = document.getElementById("subscriptionName");
+        const cadenceDays = Math.max(7, Number(cadenceField && cadenceField.value || 30)), nextOrderDate = String(dateField && dateField.value || "").slice(0,10);
+        if (!nextOrderDate) return toast("Choose the next order date.");
+        const id = nextSalesOrderSubscriptionId();
+        data.salesOrderSubscriptions.push({
+          id:id, customerId:c.id, name:String(nameField && nameField.value || "").trim() || (customerDisplayName(c) + " recurring order"),
+          status:"Active", cadenceDays:cadenceDays, nextOrderDate:nextOrderDate, priceList:orderPriceList(template), templateSalesOrderId:template.id,
+          autoCreate:false, approvalRequired:true, lastGeneratedAt:"", lastSalesOrderId:"", createdAt:new Date().toISOString(),
+          lines:stockLines.map(function(line){ return { productId:line.productId, qty:Math.max(1,Number(line.qty||1)), specialPrice:line.specialPrice != null ? Number(line.specialPrice) : null, taxCode:line.taxCode || "20% VAT", description:line.description || "" }; })
+        });
+        saveAppData();
+        toast(id + " created. Future Sales Orders require manual generation and review.");
+        render();
+      }
+
+      function generateSubscriptionSalesOrder(subscriptionId) {
+        const sub = (data.salesOrderSubscriptions || []).find(function(item){ return item.id === subscriptionId; }), c = sub ? customer(sub.customerId) : null;
+        if (!sub || !c) return toast("Subscription or customer was not found.");
+        if (sub.status !== "Active") return toast("Only active subscriptions can generate Sales Orders.");
+        if (!window.confirm("Generate the next draft Sales Order for " + customerDisplayName(c) + "? Nothing will be allocated, purchased or invoiced automatically.")) return;
+        const id = nextSalesOrderId("SO"), today = new Date().toISOString().slice(0,10), due = sub.nextOrderDate && sub.nextOrderDate > today ? sub.nextOrderDate : today;
+        const order = {
+          id:id, customerId:c.id, quoteRef:"Subscription " + sub.id, xeroRef:"Draft", source:"Subscription", status:"New Order",
+          tags:["Subscription",sub.id], channel:"Subscription", priceList:sub.priceList || c.priceList || "rrp",
+          priceOverrideReason:"Generated from reviewed Sales Order subscription " + sub.id, shipTo:addressText(c,"delivery"), created:today, due:due, carrier:"Main Warehouse A1",
+          subscriptionId:sub.id, lines:(sub.lines||[]).map(function(line){ return { productId:line.productId, qty:Math.max(1,Number(line.qty||1)), allocated:0, picked:0, packed:0, shipped:0, specialPrice:line.specialPrice != null ? Number(line.specialPrice) : undefined, taxCode:line.taxCode || "20% VAT", description:line.description || "" }; }), payments:[]
+        };
+        data.salesOrders.unshift(order);
+        sub.lastGeneratedAt = new Date().toISOString();
+        sub.lastSalesOrderId = id;
+        let next = salesOrderSubscriptionAddDays(sub.nextOrderDate || today, sub.cadenceDays || 30);
+        while (next <= today) next = salesOrderSubscriptionAddDays(next, sub.cadenceDays || 30);
+        sub.nextOrderDate = next;
+        addSalesOrderNotification(order,"Subscription Sales Order",id + " generated from " + sub.id + ". Review stock and pricing before progressing.","Internal note");
+        saveAppData();
+        selectedSalesOrderId=id;salesOrderView="detail";activeSubPage.salesorders="Sales Orders";salesOrderTab="products";
+        toast(id + " generated as a New Order. Review before allocation or purchasing.");
+        render();
+      }
+
+      function bindSalesOrderSubscriptions() {
+        const template = document.getElementById("subscriptionTemplateOrder");
+        document.querySelectorAll("[data-subscription-use-order]").forEach(function(button){ button.addEventListener("click",function(){ if(template){ template.value=button.dataset.subscriptionUseOrder; template.scrollIntoView({behavior:"smooth",block:"center"}); } }); });
+        document.querySelectorAll("[data-create-sales-subscription]").forEach(function(button){ button.addEventListener("click",function(){ const id=template&&template.value; if(!id)return toast("Choose a template Sales Order."); createSalesOrderSubscriptionFromOrder(id); }); });
+        document.querySelectorAll("[data-subscription-generate]").forEach(function(button){ button.addEventListener("click",function(){ generateSubscriptionSalesOrder(button.dataset.subscriptionGenerate); }); });
+        document.querySelectorAll("[data-subscription-toggle]").forEach(function(button){ button.addEventListener("click",function(){ const sub=(data.salesOrderSubscriptions||[]).find(function(item){return item.id===button.dataset.subscriptionToggle;});if(!sub)return;sub.status=sub.status==="Active"?"Paused":"Active";saveAppData();toast(sub.id+" is now "+sub.status+".");render(); }); });
+        document.querySelectorAll("[data-subscription-end]").forEach(function(button){ button.addEventListener("click",function(){ const sub=(data.salesOrderSubscriptions||[]).find(function(item){return item.id===button.dataset.subscriptionEnd;});if(!sub)return;if(!window.confirm("End "+sub.name+"? Existing Sales Orders remain unchanged."))return;sub.status="Ended";saveAppData();toast(sub.id+" ended.");render(); }); });
+      }
+
       function renderSalesOrders() {
         let salesSubPage = selectedSubPage("salesorders");
         if (salesSubPage === "Payments") {
           activeSubPage.salesorders = "Invoices";
           salesSubPage = "Invoices";
         }
-        const protectedSalesViews = ["detail", "goodsnote", "customerAccounting", "creditDetail"];
+        const protectedSalesViews = ["detail", "goodsnote", "customerAccounting", "creditDetail", "subscriptions"];
         if (salesSubPage === "Sales Orders" && !protectedSalesViews.includes(salesOrderView)) salesOrderView = "list";
+        if (salesSubPage === "Subscriptions") salesOrderView = "subscriptions";
         if (salesSubPage === "Sales Credits" && salesOrderView !== "creditDetail") salesOrderView = "credits";
         if (salesSubPage === "Customer Orders" && salesOrderView !== "detail") salesOrderView = "customerOrders";
         const selected = salesOrder(selectedSalesOrderId) || data.salesOrders[0];
@@ -5716,6 +5868,9 @@ const seed = {
         if (salesOrderView === "customerOrders") {
           content = selected ? salesOrdersSubMenu() + customerOrdersPage(selected) : salesOrdersSubMenu() + operationalEmptyState("No customer selected", "Create a customer and sales order to view linked order history.", "Open sales orders", "data-sales-subview=\"list\"");
         }
+        if (salesOrderView === "subscriptions") {
+          content = salesOrdersSubMenu() + salesOrderSubscriptionsPage();
+        }
         if (salesOrderView === "credits") {
           content = salesOrdersSubMenu() + salesCreditsPage();
         }
@@ -5730,6 +5885,7 @@ const seed = {
         document.getElementById("screen-salesorders").innerHTML = content;
 
         bindSalesOrderList();
+        if (salesOrderView === "subscriptions") bindSalesOrderSubscriptions();
         if (salesOrderView === "goodsnote") {
           bindFulfilment();
           renderShippingModal();

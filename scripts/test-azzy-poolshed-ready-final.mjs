@@ -135,4 +135,87 @@ await test('planner sends direct SO, PO, product detail and supplier price quest
   assert.equal(price.intent,'supplier_price');assert.equal(price.tools[0].name,'get_supplier_price_comparison');
 });
 
+
+const intelligenceRaw={
+  products:[
+    {id:'PROD-A',sku:'PB-CHEM-A',name:'Pool Chlorine 20L',category:'Chemicals',cost:20,rrp:39.95,reorder:8},
+    {id:'PROD-B',sku:'PB-PH-B',name:'pH Minus 5kg',category:'Chemicals',cost:8,rrp:17.5,reorder:5}
+  ],
+  stock:[
+    {productId:'PROD-A',qty:6,allocated:2,onOrder:4,bin:'CHEM-01'},
+    {productId:'PROD-B',qty:12,allocated:1,onOrder:0,bin:'CHEM-02'}
+  ],
+  customers:[
+    {id:'CUS-JOHN',firstName:'John',lastName:'Smith',name:'John Smith',companyName:'Smith Pools',email:'john@example.test'},
+    {id:'CUS-JANE',firstName:'Jane',lastName:'Smyth',name:'Jane Smyth',companyName:'Smyth Leisure'}
+  ],
+  suppliers:[{id:'SUP-CHEM',name:'Chemical Supplier'}],
+  jobs:[],
+  salesOrders:[
+    {id:'SO-701',customerId:'CUS-JOHN',status:'Shipped',created:'2026-07-20',lines:[{productId:'PROD-A',qty:2},{productId:'PROD-B',qty:1}]},
+    {id:'SO-702',customerId:'CUS-JOHN',status:'Shipped',created:'2026-08-20',lines:[{productId:'PROD-A',qty:2},{productId:'PROD-B',qty:1}]},
+    {id:'SO-703',customerId:'CUS-JOHN',status:'Shipped',created:'2026-09-20',lines:[{productId:'PROD-A',qty:6},{productId:'PROD-B',qty:1}]},
+    {id:'SO-704',customerId:'CUS-JANE',status:'Shipped',created:'2026-09-22',lines:[{productId:'PROD-A',qty:4}]}
+  ],
+  purchaseOrders:[
+    {id:'PO-701',supplierId:'SUP-CHEM',supplier:'Chemical Supplier',status:'Received',orderedDate:'2026-07-25',lines:[{productId:'PROD-A',qty:10,received:10,cost:20}]},
+    {id:'PO-702',supplierId:'SUP-CHEM',supplier:'Chemical Supplier',status:'Sent',orderedDate:'2026-09-18',lines:[{productId:'PROD-A',qty:12,received:4,cost:24}]}
+  ],
+  supplierProducts:[{id:'OFFER-A',productId:'PROD-A',supplierId:'SUP-CHEM',supplier:'Chemical Supplier',cost:23,lastUpdated:'2026-09-29'}],
+  movements:[
+    {id:'M-1',productId:'PROD-A',type:'Project Use',qty:2,date:'2026-07-25',from:'Main Warehouse',ref:'SO-701'},
+    {id:'M-2',productId:'PROD-A',type:'Goods Out',qty:2,date:'2026-08-20',from:'Main Warehouse',ref:'SO-702'},
+    {id:'M-3',productId:'PROD-A',type:'Goods Out',qty:5,date:'2026-09-10',from:'Main Warehouse',ref:'SO-703'},
+    {id:'M-4',productId:'PROD-A',type:'Goods In',qty:8,date:'2026-09-18',to:'Main Warehouse',ref:'PO-702'},
+    {id:'M-5',productId:'PROD-B',type:'Goods Out',qty:1,date:'2026-09-20',from:'Main Warehouse',ref:'SO-703'}
+  ],
+  salesOrderSubscriptions:[
+    {id:'SUB-001',customerId:'CUS-JANE',name:'Jane monthly chemicals',status:'Active',cadenceDays:30,nextOrderDate:'2026-09-29',lines:[{productId:'PROD-B',qty:1}]}
+  ],
+  goodsReceipts:[],goodsNotes:[],salesCredits:[],quotes:[],locations:[{id:'L-WH',name:'Main Warehouse'}]
+};
+
+await test('customer resolver understands surname/full-name misspellings and returns a did-you-mean candidate',async()=>{
+  const live=buildAzzyPoolShedSnapshot({workspace:intelligenceRaw,user:liveUser,permissions:liveUser.permissions,revision:70,today:'2026-09-30'});
+  const r=await withRuntimeData(live,()=>executeTool('find_customers',{query:'Jhon Smth',limit:5},liveUser));
+  assert.equal(r.ok,true);assert.ok(r.data.matches.length);assert.equal(r.data.matches[0].customer.id,'CUS-JOHN');
+  assert.equal(r.data.matches[0].customer.firstName,'John');assert.equal(r.data.matches[0].customer.lastName,'Smith');
+});
+await test('Azzy reads stock movements and calculates fast-moving usage and stock cover',async()=>{
+  const live=buildAzzyPoolShedSnapshot({workspace:intelligenceRaw,user:liveUser,permissions:liveUser.permissions,revision:71,today:'2026-09-30'});
+  const r=await withRuntimeData(live,()=>executeTool('get_stock_movement_insights',{days:90},liveUser));
+  assert.equal(r.ok,true);const chlorine=r.data.products.find(x=>x.sku==='PB-CHEM-A');assert.ok(chlorine);
+  assert.equal(chlorine.outboundQty,9);assert.equal(chlorine.inboundQty,8);assert.ok(chlorine.weeklyOutbound>0);assert.ok(chlorine.weeksCover!==null);
+});
+await test('Azzy detects Sales Order demand and Purchase Order cost trends from recorded history',async()=>{
+  const live=buildAzzyPoolShedSnapshot({workspace:intelligenceRaw,user:liveUser,permissions:liveUser.permissions,revision:72,today:'2026-09-30'});
+  const r=await withRuntimeData(live,()=>executeTool('get_order_trends',{days:90},liveUser));
+  assert.equal(r.ok,true);const sales=r.data.trendingSales.find(x=>x.sku==='PB-CHEM-A');assert.ok(sales);assert.ok(sales.currentUnits>sales.previousUnits);assert.ok(sales.growthPct>0);
+  const buying=r.data.purchaseTrends.find(x=>x.sku==='PB-CHEM-A');assert.ok(buying);assert.equal(buying.currentAvgUnitCost,24);assert.equal(buying.previousAvgUnitCost,20);assert.equal(buying.costTrendPct,20);
+});
+await test('Azzy product recommendations use co-order and customer repeat-order evidence',async()=>{
+  const live=buildAzzyPoolShedSnapshot({workspace:intelligenceRaw,user:liveUser,permissions:liveUser.permissions,revision:73,today:'2026-09-30'});
+  const related=await withRuntimeData(live,()=>executeTool('get_product_recommendations',{sku:'PB-CHEM-A'},liveUser));
+  assert.equal(related.ok,true);assert.equal(related.data.relatedProducts[0].sku,'PB-PH-B');assert.ok(related.data.relatedProducts[0].coOrderCount>=3);
+  const repeat=await withRuntimeData(live,()=>executeTool('get_product_recommendations',{customerId:'CUS-JOHN'},liveUser));
+  assert.equal(repeat.ok,true);const chlorine=repeat.data.customerRepeatProducts.find(x=>x.sku==='PB-CHEM-A');assert.ok(chlorine);assert.equal(chlorine.orderCount,3);assert.ok(chlorine.medianGapDays>=30&&chlorine.medianGapDays<=31);
+});
+await test('Azzy subscription review identifies due subscriptions and evidence-based recurring-order candidates',async()=>{
+  const live=buildAzzyPoolShedSnapshot({workspace:intelligenceRaw,user:liveUser,permissions:liveUser.permissions,revision:74,today:'2026-09-30'});
+  const r=await withRuntimeData(live,()=>executeTool('get_subscription_review',{},liveUser));
+  assert.equal(r.ok,true);assert.equal(r.data.due[0].id,'SUB-001');
+  const candidate=r.data.candidates.find(x=>x.customerId==='CUS-JOHN');assert.ok(candidate);assert.ok(candidate.lines.some(x=>x.sku==='PB-CHEM-A'));assert.ok(candidate.cadenceDays>=28&&candidate.cadenceDays<=30);
+  const proposal=await withRuntimeData(live,()=>executeTool('prepare_sales_order_subscription',{customerId:'CUS-JOHN',cadenceDays:30,lines:[{sku:'PB-CHEM-A',qty:2}]},liveUser));
+  assert.equal(proposal.ok,true);assert.equal(proposal.data.type,'sales_order_subscription');assert.equal(proposal.data.autoCreate,false);assert.equal(proposal.data.requiresApproval,true);
+});
+await test('planner routes customer misspellings, stock trends, recommendations and subscriptions to live tools',async()=>{
+  const live=buildAzzyPoolShedSnapshot({workspace:intelligenceRaw,user:liveUser,permissions:liveUser.permissions,revision:75,today:'2026-09-30'});
+  const customer=deterministicPlan({message:'What has Jhon Smth ordered?',contexts:[],history:[],db:live,user:liveUser});assert.equal(customer.intent,'customer_lookup');assert.equal(customer.tools[0].name,'find_customers');
+  const stock=deterministicPlan({message:'What stock is moving fastest?',contexts:[],history:[],db:live,user:liveUser});assert.equal(stock.intent,'stock_movement');assert.equal(stock.tools[0].name,'get_stock_movement_insights');
+  const trend=deterministicPlan({message:'What products are trending in orders?',contexts:[],history:[],db:live,user:liveUser});assert.equal(trend.intent,'order_trends');assert.equal(trend.tools[0].name,'get_order_trends');
+  const recommendation=deterministicPlan({message:'Recommend products customers also buy with PB-CHEM-A',contexts:[],history:[],db:live,user:liveUser});assert.equal(recommendation.intent,'product_recommendations');assert.equal(recommendation.tools[0].name,'get_product_recommendations');
+  const subscription=deterministicPlan({message:'Which customers look suitable for subscription sales orders?',contexts:[],history:[],db:live,user:liveUser});assert.equal(subscription.intent,'subscription_review');assert.equal(subscription.tools[0].name,'get_subscription_review');
+  const briefing=deterministicPlan({message:'What do I need to know today?',contexts:[],history:[],db:live,user:liveUser});assert.equal(briefing.intent,'briefing');assert.ok(briefing.tools.some(x=>x.name==='get_order_trends'));assert.ok(briefing.tools.some(x=>x.name==='get_subscription_review'));
+});
+
 console.log(`\nPool Shed ready: ${passed} passed, 0 failed`);

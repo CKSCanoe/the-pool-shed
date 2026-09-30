@@ -22,18 +22,24 @@ function resolveEntities(message,contexts=[],history=[],db){
   const skus=(messageText.match(/PB-[A-Z0-9-]+/ig)||[]).map(x=>x.toUpperCase());
   const bills=(messageText.match(/BILL-\d+/ig)||[]).map(x=>x.toUpperCase());
   const salesOrders=(messageText.match(/SO-\d+/ig)||[]).map(x=>x.toUpperCase());
+  const customerIds=[];
+  for(const customer of Object.values(db.customers||{})){
+    const aliases=[customer.name,customer.fullName,customer.companyName,...(customer.aliases||[])].map(x=>String(x||'').trim().toLowerCase()).filter(x=>x.length>=3);
+    if(aliases.some(alias=>lowerMessage.includes(alias)))customerIds.push(customer.id);
+  }
   for(const c of current){
     if(c.type==='project'&&!projectIds.length)projectIds.push(c.id);
     if(c.type==='po'&&!poIds.length)poIds.push(c.id);
     if((c.type==='stock'||c.type==='product')&&!skus.length)skus.push(c.id);
     if(c.type==='bill'&&!bills.length)bills.push(c.id);
     if(c.type==='sales_order'&&!salesOrders.length)salesOrders.push(c.id);
+    if(c.type==='customer'&&!customerIds.length)customerIds.push(c.id);
   }
   if(!projectIds.length){
     for(const poId of poIds){const po=db.purchaseOrders?.[poId];if(po?.projectId)projectIds.push(po.projectId);}
     for(const soId of salesOrders){const so=db.salesOrders?.[soId];if(so?.projectId)projectIds.push(so.projectId);}
   }
-  return {projectIds:[...new Set(projectIds)].filter(id=>db.projects?.[id]),poIds:[...new Set(poIds)],skus:[...new Set(skus)],bills:[...new Set(bills)],salesOrders:[...new Set(salesOrders)],combined};
+  return {projectIds:[...new Set(projectIds)].filter(id=>db.projects?.[id]),poIds:[...new Set(poIds)],skus:[...new Set(skus)],bills:[...new Set(bills)],salesOrders:[...new Set(salesOrders)],customerIds:[...new Set(customerIds)].filter(id=>db.customers?.[id]),combined};
 }
 
 function lastIntent(history=[]){return [...history].reverse().find(x=>x.role==='assistant'&&x.meta?.intent)?.meta?.intent||null;}
@@ -42,6 +48,17 @@ function lastAssistantText(history=[]){return [...history].reverse().find(x=>x.r
 function looksLikeProductQuery(q=''){return /\b(?:do we have|have we got|stock|product|pipework|pipe|valve|union|fitting|elbow|tee|pump|heater|liner|chemical|chlorine|inch|inches|mm|filter|laterals?|media|cover|skimmer|return|socket|nipple)\b/i.test(q)||/\b\d+(?:\.\d+)?\s*(?:inch|inches|mm|\")\b/i.test(q)||/\b\d+\s+1\s*\/\s*2\b/.test(q);}
 function isAssent(q=''){return /^(?:yes|yeah|yep|yup|please|yes please|yeah please|go ahead|do it|sure|okay|ok|carry on|continue)[.!\s]*$/i.test(String(q).trim());}
 function moneyValue(q){const m=q.match(/£\s?([\d,]+(?:\.\d+)?)/i)||q.match(/\b([\d,]+(?:\.\d+)?)\s*(?:pounds?|quid)\b/i);return m?Number(m[1].replace(/,/g,'')):null;}
+function cadenceFromText(q=''){
+  if(/fortnight|every two weeks|every 2 weeks/.test(q))return 14;
+  if(/weekly|every week/.test(q))return 7;
+  if(/every four weeks|every 4 weeks/.test(q))return 28;
+  if(/every two months|every 2 months|bi.?monthly/.test(q))return 61;
+  if(/quarter|every three months|every 3 months/.test(q))return 91;
+  if(/six months|6 months|half.?year/.test(q))return 182;
+  if(/annual|yearly|every year/.test(q))return 365;
+  if(/monthly|every month/.test(q))return 30;
+  return Number(q.match(/every\s+(\d+)\s+days?/)?.[1]||30);
+}
 function namedProjectRefs(message,db){
   const q=lower(message),out=[];for(const p of Object.values(db.projects||{}))if(projectAliases(p).some(a=>a&&q.includes(String(a).toLowerCase())))out.push({type:'project',id:p.id});return unique(out);
 }
@@ -53,13 +70,14 @@ export function deterministicPlan({message,contexts=[],primaryContext=null,histo
   const explicitProjects=namedProjectRefs(message,db).map(c=>c.id);
   const selectedProjects=explicitProjects.length?explicitProjects:(entities.projectIds.length?entities.projectIds:activeProjects);
   const primary=primaryContext||contexts?.[0]||null;
-  const firstProject=selectedProjects[0]||entities.projectIds[0]||null,firstPo=entities.poIds[0]||null,firstSku=entities.skus[0]||null,firstBill=entities.bills[0]||null,firstSalesOrder=entities.salesOrders[0]||null;
+  const firstProject=selectedProjects[0]||entities.projectIds[0]||null,firstPo=entities.poIds[0]||null,firstSku=entities.skus[0]||null,firstBill=entities.bills[0]||null,firstSalesOrder=entities.salesOrders[0]||null,firstCustomer=entities.customerIds[0]||null;
   const explicitRefs=unique([
     ...explicitProjects.map(id=>({type:'project',id})),
     ...(message.match(/PO-\d+/ig)||[]).map(id=>({type:'po',id:id.toUpperCase()})),
     ...(message.match(/PB-[A-Z0-9-]+/ig)||[]).map(id=>({type:'stock',id:id.toUpperCase()})),
     ...(message.match(/BILL-\d+/ig)||[]).map(id=>({type:'bill',id:id.toUpperCase()})),
-    ...(message.match(/SO-\d+/ig)||[]).map(id=>({type:'sales_order',id:id.toUpperCase()}))
+    ...(message.match(/SO-\d+/ig)||[]).map(id=>({type:'sales_order',id:id.toUpperCase()})),
+    ...entities.customerIds.map(id=>({type:'customer',id}))
   ]);
   const plan={intent:'general',tools:[],working:{},style:'conversational',confidence:.2,contextRefs:explicitRefs};
   const add=(name,args={})=>plan.tools.push({name,args});
@@ -132,6 +150,33 @@ export function deterministicPlan({message,contexts=[],primaryContext=null,histo
     plan.intent='chemical_safety';plan.confidence=.99;add('get_chemical_safety',{sku:firstSku});return plan;
   }
 
+  if(can('customers.read')&&/subscription|recurring|repeat order|standing order|regular order|monthly order|fortnightly order/.test(q)){
+    if(/create|prepare|set up|setup|start/.test(q)&&firstCustomer&&firstSku){
+      const qty=Math.max(1,Number(q.match(/\bqty\s*(\d+)\b/)?.[1]||q.match(/\b(\d+)\s*(?:units?|packs?|drums?|bottles?)\b/)?.[1]||1));
+      plan.intent='prepare_subscription';plan.confidence=.995;add('prepare_sales_order_subscription',{customerId:firstCustomer,cadenceDays:cadenceFromText(q),lines:[{sku:firstSku,qty}]});return plan;
+    }
+    plan.intent='subscription_review';plan.confidence=.99;add('get_subscription_review',{customerId:firstCustomer||null});return plan;
+  }
+
+  if(/stock movement|stock movements|fast mover|fast moving|slow mover|stock usage|usage trend|movement trend|what.*moving|most.*used stock|outbound stock|inbound stock/.test(q)){
+    plan.intent='stock_movement';plan.confidence=.99;add('get_stock_movement_insights',{sku:firstSku||null,days:/30 day|month/.test(q)?30:/60 day/.test(q)?60:/year|12 month/.test(q)?365:90});return plan;
+  }
+
+  if(can('projects.read')&&can('stock.read')&&/trending|trend.*orders?|sales trend|purchase trend|po trend|buying trend|what.*selling|most ordered|popular products?|demand trend|ordering more|buying more|reorder recommendation/.test(q)){
+    plan.intent='order_trends';plan.confidence=.99;add('get_order_trends',{days:/30 day|month/.test(q)?30:/6 month|180 day/.test(q)?180:/year|12 month/.test(q)?365:90});return plan;
+  }
+
+  if(/recommend.*product|product.*recommend|what else.*buy|bought together|often bought|customers also|cross.?sell|upsell|likely reorder|reorder.*customer/.test(q)){
+    plan.intent='product_recommendations';plan.confidence=.98;add('get_product_recommendations',{sku:firstSku||null,customerId:firstCustomer||null});return plan;
+  }
+
+  if(firstCustomer&&(/customer|client|account|what.*ordered|what.*bought|order history|everything.*(?:about|for)|tell me.*(?:about|customer)|what.*open/.test(q))){
+    plan.intent='customer_record';plan.confidence=.995;add('get_customer_record',{customerId:firstCustomer});return plan;
+  }
+  if(can('customers.read')&&!/cheapest|best price|supplier|price.*supplier|\bpb-[a-z0-9-]+\b|\bpo-?\d+\b|\bso-?\d+\b|stock|product/.test(q)&&(/find.*customer|customer.*named|client.*named|what.*has.*ordered|what.*did.*order|orders?.*(?:for|has)|who is|did you mean/.test(q))){
+    plan.intent='customer_lookup';plan.confidence=.97;plan.working={query:message};add('find_customers',{query:message,limit:5});return plan;
+  }
+
   if(firstSalesOrder&&(/sales order|\bso-?\d+\b|what.*(?:is|on).*order|tell me.*order|everything.*order|order.*status|where.*order|what.*happen.*order/.test(q))){
     plan.intent='sales_order';plan.confidence=.995;add('get_sales_order',{salesOrderId:firstSalesOrder});return plan;
   }
@@ -153,7 +198,7 @@ export function deterministicPlan({message,contexts=[],primaryContext=null,histo
   if(/where.*losing money|which projects?.*margin|margin.*across|most profitable|more profitable|profit.*expected|margin.*business/.test(q)){plan.intent='margin_watch';plan.confidence=.98;add('get_margin_watch');return plan;}
   if(/which hires?|hires?.*return|return.*hire|active hire|hire.*across|plant.*hire/.test(q)&&!firstProject){plan.intent='hire_review';plan.confidence=.97;add('get_active_hire_review');return plan;}
   if(/what.*(changed|new)|changed today|since (yesterday|last)|what's changed|whats changed/.test(q)){plan.intent='changes';plan.confidence=.98;const prior=[...history].reverse().find(x=>x.role==='assistant')?.at||'2026-09-27T00:00:00+01:00';add('get_changes_since',{since:prior,projectIds:activeProjects});return plan;}
-  if(/what do i need to know|need my attention|morning briefing|business.*today|operational briefing|anything important today|what should i know|decisions?.*today|what.*focus.*today|stop next week|block next week|next week.*risk/.test(q)){plan.intent='briefing';plan.confidence=.99;add('get_operational_briefing');add('get_hidden_risks',{projectIds:[]});return plan;}
+  if(/what do i need to know|need my attention|morning briefing|business.*today|operational briefing|anything important today|what should i know|decisions?.*today|what.*focus.*today|stop next week|block next week|next week.*risk/.test(q)){plan.intent='briefing';plan.confidence=.99;add('get_operational_briefing');add('get_hidden_risks',{projectIds:[]});if(can('projects.read')&&can('stock.read'))add('get_order_trends',{days:90});if(can('customers.read')&&can('projects.read'))add('get_subscription_review',{});return plan;}
 
   if(/what (would|should) you do|what next|next step|what should we do|how would you handle|sort this|how do we fix/.test(q)){
     plan.intent='next_step';plan.confidence=.92;if(activeProjects.length>=2){plan.intent='compare_projects';add('compare_projects',{projectIds:activeProjects});}else if(firstProject)projectBundle(firstProject);else if(firstPo)add('get_purchase_order',{poId:firstPo});else if(firstSku)add('get_stock_position',{sku:firstSku});else add('get_operational_briefing');return plan;
@@ -167,6 +212,10 @@ export function deterministicPlan({message,contexts=[],primaryContext=null,histo
   if(/attention|worry|problem|issue/.test(q)&&!firstProject){plan.intent='briefing';plan.confidence=.9;add('get_operational_briefing');return plan;}
   if(/customer.*waiting|waiting on (us|customer)|who needs chasing|who should i chase|who.*chase first/.test(q)){plan.intent='customer_waiting';plan.confidence=.98;add('get_customer_waiting',{});return plan;}
   if(/policy|normally|procedure|sop|how do we/.test(q)){plan.intent='knowledge';plan.confidence=.9;add('search_knowledge',{query:message});return plan;}
+
+  if(can('customers.read')&&!firstProject&&!firstPo&&!firstSku&&!firstSalesOrder&&q.split(/\s+/).length<=4&&/^[a-z][a-z' -]{2,}$/i.test(q)){
+    plan.intent='customer_lookup';plan.confidence=.72;plan.working={query:message};add('find_customers',{query:message,limit:5});return plan;
+  }
 
   if(/why (is|does|has|would)|why's|whys|explain (that|this)|tell me more|go on|why.*problem|why.*worry|why.*matter/.test(q)){
     plan.intent='explain_followup';plan.confidence=.9;if(previousIntent==='finance'){add('get_finance_briefing');if(firstProject&&can('finance.read'))add('get_project_financials',{projectId:firstProject});}else if(previousIntent==='compare_projects'&&activeProjects.length>=2){plan.intent='compare_projects';add('compare_projects',{projectIds:activeProjects});}else if(previousIntent==='po'&&firstPo)add('get_purchase_order',{poId:firstPo});else if(previousIntent==='stock'&&firstSku)add('get_stock_position',{sku:firstSku});else if(firstProject)projectBundle(firstProject);else add('get_operational_briefing');return plan;

@@ -10,7 +10,7 @@ import { normaliseRecordType, recordLinksForAnswer } from './record-links.js';
 
 const currentUser=userId=>runtimeUser(userId);
 const actionId=()=>`ACT-${Date.now()}-${Math.random().toString(36).slice(2,6).toUpperCase()}`;
-const actionTitle=a=>({draft_po:'Draft purchase order',draft_po_batch:'Draft purchase orders',stock_allocation:'Stock allocation',sales_order_allocation:'Sales order allocation',project_extra:'Project extra',bill_review_batch:'Bill review batch',internal_task:'Internal task'})[a.type]||'Proposed action';
+const actionTitle=a=>({draft_po:'Draft purchase order',draft_po_batch:'Draft purchase orders',stock_allocation:'Stock allocation',sales_order_allocation:'Sales order allocation',sales_order_subscription:'Sales Order subscription',project_extra:'Project extra',bill_review_batch:'Bill review batch',internal_task:'Internal task'})[a.type]||'Proposed action';
 const asFacts=executions=>executions.map(x=>({tool:x.name,ok:x.result.ok,data:x.result.data,error:x.result.error||null}));
 const allEvidence=executions=>dedupeEvidence(executions.flatMap(x=>x.result.evidence||[]));
 const projectName=(db,id)=>db.projects[id]?.name||id;
@@ -93,9 +93,13 @@ function compose({intent,executions,session,user,contexts,primaryContext,deltas=
     }
     case 'briefing':{
       const b=get('get_operational_briefing')?.data,hidden=get('get_hidden_risks')?.data||[],top=b?.attention?.slice(0,3)||[],wins=b?.wins?.slice(0,2)||[];
+      const trends=get('get_order_trends')?.data||null,subscriptions=get('get_subscription_review')?.data||null;
       if(!top.length)answer='Nothing urgent is standing out right now.';else{answer=`There are ${top.length} things I'd put at the top of the list: ${top.map((x,i)=>`${i+1}) ${x.title}`).join('; ')}.`;if(wins.length)answer+=` The good news is ${wins.map(x=>x.title.toLowerCase()).join(' and ')}.`;}
       const extra=hidden.find(x=>!top.some(t=>t.id===x.id));if(extra)answer+=` One less obvious thing I'd also keep in sight is ${extra.title.toLowerCase()}.`;
-      followups=['Start with the highest risk','What changed today?','What am I missing?'];break;
+      if(trends?.replenishmentRecommendations?.length){const row=trends.replenishmentRecommendations[0];answer+=` Commercially, I'd review ${row.name}: ${row.reason}`;}
+      if(subscriptions?.due?.length)answer+=` ${subscriptions.due.length} recurring Sales Order subscription${subscriptions.due.length===1?' is':'s are'} due for review now.`;
+      else if(subscriptions?.candidates?.length)answer+=` I can also see ${subscriptions.candidates.length} repeat-order pattern${subscriptions.candidates.length===1?'':'s'} worth reviewing as subscription opportunities.`;
+      followups=['Start with the highest risk','Show order trends','Show subscription opportunities'];break;
     }
     case 'changes':{
       const rows=get('get_changes_since')?.data||[],meaningful=deltas.flatMap(d=>(d?.changes||[]).map(c=>`${d.name}: ${c.text}`));
@@ -208,13 +212,67 @@ function compose({intent,executions,session,user,contexts,primaryContext,deltas=
     case 'explain_followup':{
       const o=get('get_project_overview')?.data,f=get('get_project_financials')?.data,m=get('get_project_materials')?.data,po=get('get_purchase_order')?.data,s=get('get_stock_position')?.data,fin=get('get_finance_briefing')?.data;if(o){const bits=[];if(f?.marginGap<0)bits.push(`margin is ${Math.abs(f.marginGap).toFixed(1)} points below target`);if(f?.unapprovedExtras?.length)bits.push(`${f.unapprovedExtras.length} extra${f.unapprovedExtras.length===1?' is':'s are'} still unapproved`);if(m?.blocked?.length)bits.push(`${m.blocked.length} purchasing blocker${m.blocked.length===1?' remains':'s remain'}`);answer=`On ${o.project.name}, ${bits.length?bits.join(', '):'the current records do not show a major exception'}.`;if(decisions.length)answer+=` I wouldn't override your active decision: “${decisions[0].text}”`;}else if(po)answer=`${po.id} still has ${po.outstanding.reduce((n,x)=>n+x.outstanding,0)} unit${po.outstanding.reduce((n,x)=>n+x.outstanding,0)===1?'':'s'} outstanding${po.daysLate?` and is ${po.daysLate} days late`:''}.`;else if(s)answer=`There are ${s.available} ${s.name} free to use from ${s.bin}, with ${s.onOrder} on order.`;else if(fin)answer=`There are ${fin.cashflowRisks.length} cashflow timing risk${fin.cashflowRisks.length===1?'':'s'} and ${fin.duplicates.length?'a possible duplicate supplier invoice':'no duplicate supplier invoice currently flagged'}.`;else answer=`I have the current context, but I don't have enough system facts to explain that confidently.`;followups=intent==='next_step'?['Show me the highest-impact action','What changed today?']:['What would you do next?'];break;
     }
+    case 'customer_lookup':{
+      const r=get('find_customers')?.data;if(!r?.matches?.length){answer='I can’t find a customer close enough to that name in Pool Shed.';break;}
+      const best=r.best,options=r.matches.slice(0,3);
+      if(r.confident&&best){
+        const customer=best.customer,detail=best.customer;
+        answer=best.exactMatch?`I found ${customer.name}.`:`I think you mean ${customer.name}.`;
+        if(detail.orderCount!==undefined)answer+=` They have ${detail.orderCount} recorded Sales Order${detail.orderCount===1?'':'s'}${detail.subscriptions?.length?` and ${detail.subscriptions.length} recurring subscription${detail.subscriptions.length===1?'':'s'}`:''}.`;
+        followups=[`Show everything for ${customer.name}`,`What has ${customer.name} ordered?`,`Check subscription opportunities for ${customer.name}`];
+      }else{
+        answer=`I found a few close customer matches. Did you mean ${options.map(x=>x.customer.name).join(', ')}?`;
+        followups=options.map(x=>`Open ${x.customer.name}`);
+      }
+      break;
+    }
+    case 'customer_record':{
+      const customer=get('get_customer_record')?.data;if(!customer){answer='I can’t find that customer record.';break;}
+      answer=`${customer.name} has ${customer.orderCount} recorded Sales Order${customer.orderCount===1?'':'s'}`;
+      if(customer.projects?.length)answer+=`, ${customer.projects.length} linked project${customer.projects.length===1?'':'s'}`;
+      if(customer.quotes?.length)answer+=`, ${customer.quotes.length} quote${customer.quotes.length===1?'':'s'}`;
+      if(customer.subscriptions?.length)answer+=` and ${customer.subscriptions.length} recurring Sales Order subscription${customer.subscriptions.length===1?'':'s'}`;
+      answer+='.';
+      const open=(customer.salesOrders||[]).filter(x=>!/shipped|completed|invoiced|cancel/i.test(x.status||''));if(open.length)answer+=` ${open.length} order${open.length===1?' is':'s are'} currently open: ${open.slice(0,4).map(x=>x.id+' ('+x.status+')').join(', ')}.`;
+      followups=['Show their recent orders','Recommend products for this customer','Check whether they suit a subscription'];break;
+    }
+    case 'stock_movement':{
+      const m=get('get_stock_movement_insights')?.data;if(!m){answer='I can’t read the stock movement history.';break;}
+      if(m.sku&&m.products?.length){const x=m.products[0];answer=`${x.name} has ${x.outboundQty} outbound and ${x.inboundQty} inbound units across the last ${m.days} days.`;if(x.weeksCover!==null)answer+=` Current free stock is about ${x.weeksCover} weeks of cover at that recorded movement rate.`;if(x.trendPct)answer+=` Outbound movement is ${x.trendPct>0?'up':'down'} ${Math.abs(x.trendPct)}% versus the previous half of that period.`;}
+      else if(m.fastMovers?.length){answer=`Across the last ${m.days} days, the fastest-moving recorded products are ${m.fastMovers.slice(0,5).map(x=>x.name+' ('+x.outboundQty+' outbound)').join('; ')}.`;}
+      else answer=`I can’t see qualifying stock movements in the last ${m.days} days.`;
+      followups=['Which fast movers are at risk of running out?','Show 30-day movement','Show reorder recommendations'];break;
+    }
+    case 'order_trends':{
+      const t=get('get_order_trends')?.data;if(!t){answer='I can’t calculate order trends from the current records.';break;}
+      if(t.trendingSales?.length)answer=`From the last ${t.days} days, the strongest current Sales Order demand is ${t.trendingSales.slice(0,5).map(x=>x.name+' ('+x.currentUnits+' recent units, '+(x.growthPct>=0?'+':'')+x.growthPct+'%)').join('; ')}.`;
+      else answer=`There is not enough recent Sales Order history in the last ${t.days} days to establish a reliable product trend.`;
+      if(t.purchaseTrends?.length){const rising=t.purchaseTrends.filter(x=>x.costTrendPct!==null&&x.costTrendPct>0).slice(0,3);if(rising.length)answer+=` Purchase cost is also rising on ${rising.map(x=>x.name+' ('+x.costTrendPct+'%)').join('; ')}.`;}
+      if(t.replenishmentRecommendations?.length)answer+=` I would review stock settings on ${t.replenishmentRecommendations.slice(0,3).map(x=>x.name).join(', ')} before the next buying run.`;
+      followups=['Show PO buying trends','Show stock movement behind this','Which reorder points should we review?'];break;
+    }
+    case 'product_recommendations':{
+      const r=get('get_product_recommendations')?.data;if(!r){answer='I can’t build product recommendations from the current order history.';break;}
+      const bits=[];if(r.relatedProducts?.length)bits.push('Products commonly ordered alongside it are '+r.relatedProducts.slice(0,5).map(x=>x.name+' ('+x.coOrderCount+' shared orders)').join(', '));
+      if(r.customerRepeatProducts?.length)bits.push('Likely customer reorders are '+r.customerRepeatProducts.slice(0,5).map(x=>x.name+' ('+x.orderCount+' orders'+(x.cadence?' · '+x.cadence:'')+')').join(', '));
+      answer=bits.length?bits.join('. ')+'.':'I do not have enough repeat/co-order history yet to make a useful recommendation.';
+      followups=['Check subscription opportunities','Show demand trends','Compare supplier prices for the top recommendation'];break;
+    }
+    case 'subscription_review':{
+      const s=get('get_subscription_review')?.data;if(!s){answer='I can’t review recurring Sales Orders right now.';break;}
+      answer=`There are ${s.active.length} active recurring Sales Order subscription${s.active.length===1?'':'s'}.`;
+      if(s.due.length)answer+=` ${s.due.length} ${s.due.length===1?'is':'are'} due now: ${s.due.slice(0,4).map(x=>x.name+' ('+x.nextOrderDate+')').join(', ')}.`;
+      if(s.candidates.length)answer+=` I also found ${s.candidates.length} evidence-based subscription opportunit${s.candidates.length===1?'y':'ies'}. The strongest ${s.candidates.length===1?'is':'are'} ${s.candidates.slice(0,4).map(x=>x.customerName+' · '+x.cadence+' · '+x.lines.map(l=>l.name).join(' + ')).join('; ')}.`;
+      else if(!s.due.length)answer+=' I do not see a strong new repeat-order pattern yet.';
+      followups=['Show the strongest subscription candidate','Which subscriptions are due next?','Open Sales Order subscriptions'];break;
+    }
     case 'customer_waiting':{
       const rows=get('get_customer_waiting')?.data||[],us=rows.flatMap(x=>x.waitingOnUs.map(v=>`${x.name}: ${v}`)),them=rows.flatMap(x=>x.waitingOnCustomer.map(v=>`${x.name}: ${v}`));answer=`Customers are waiting on us for ${us.length} item${us.length===1?'':'s'}${us.length?`: ${us.join('; ')}`:''}. We are waiting on customers for ${them.length} item${them.length===1?'':'s'}${them.length?`: ${them.join('; ')}`:''}.`;followups=['Who should we chase first?'];break;
     }
     case 'knowledge':{
       const rows=get('search_knowledge')?.data||[];answer=rows.length?rows[0].text:`I can’t find a matching internal policy or knowledge entry for that.`;followups=rows.length?['Show the source']:[];break;
     }
-    case 'prepare_po':case 'prepare_procurement_pos':case 'prepare_allocation':case 'prepare_sales_order_allocation':case 'prepare_extra':case 'prepare_task':{
+    case 'prepare_po':case 'prepare_procurement_pos':case 'prepare_allocation':case 'prepare_sales_order_allocation':case 'prepare_subscription':case 'prepare_extra':case 'prepare_task':{
       const r=executions[0]?.result;if(!r?.data){answer='I couldn’t prepare that action.';break;}const a={id:actionId(),...r.data,status:'prepared',requestedBy:user.id,createdAt:new Date().toISOString()};memory.saveAction(a);{const title=actionTitle(a).toLowerCase(),article=/^[aeiou]/i.test(title)?'an':'a';answer=`I've prepared ${article} ${title} for review. Nothing has been changed yet.`};followups=['Review proposed action'];return {answer,followups,quickActions,action:a,tone:'action'};
     }
     case 'search':{
@@ -239,6 +297,8 @@ function validateLocalPlan(candidate,user,db){
     if(['get_project_overview','get_project_financials','get_project_materials','get_hire_costs','run_project_scenario','prepare_purchase_order'].includes(name))return Boolean(db.projects?.[args.projectId]);
     if(name==='get_purchase_order')return Boolean(db.purchaseOrders?.[args.poId]);
     if(name==='get_sales_order')return Boolean(db.salesOrders?.[args.salesOrderId]);
+    if(name==='get_customer_record')return Boolean(db.customers?.[args.customerId]);
+    if(name==='prepare_sales_order_subscription')return Boolean(db.customers?.[args.customerId])&&Array.isArray(args.lines)&&args.lines.length>0;
     if(name==='get_three_way_match')return Boolean(db.supplierBills?.[args.billId]);
     if(name==='get_pick_list'||name==='prepare_sales_order_allocation')return !args.salesOrderId||Boolean(db.salesOrders?.[args.salesOrderId]);
     if(name==='prepare_project_extra')return Boolean(db.extras?.[args.extraId]);
