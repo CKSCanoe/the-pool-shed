@@ -23,11 +23,13 @@ run_node_stage "workspace and sales safety" \
   test-sales-order-safety-hotfix.mjs \
   test-sales-order-line-delete-v147.mjs \
   test-sales-order-entry-cards-v147.mjs \
+  test-sales-order-unification-v149.mjs \
   test-sales-order-vat-regression-v146.mjs \
   test-sales-order-subscriptions-v146.mjs
 
 run_node_stage "purchasing" \
   test-supplier-onboarding-v148.mjs \
+  test-supplier-funding-v149.mjs \
   test-purchase-order-command-v190.mjs \
   test-purchase-order-visual-guard-v190.mjs \
   test-purchase-returns-v190.mjs \
