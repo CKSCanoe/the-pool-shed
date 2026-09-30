@@ -65,7 +65,7 @@ function rankedSystemRecords(db,user,query,{limit=10}={}){
   if(can(user,'projects.read'))for(const x of Object.values(db.salesOrders||{}))add('sales_order',x.id,x.id,x,`${x.status} ${x.customerId||''} ${x.projectId||''} ${x.quoteRef||''} ${(x.lines||[]).map(l=>`${l.sku} ${l.name}`).join(' ')}`);
   if(can(user,'purchasing.read'))for(const x of Object.values(db.purchaseOrders||{}))add('po',x.id,`${x.id} · ${x.supplier}`,x,`${x.status} ${(x.lines||[]).map(l=>`${l.sku} ${l.name}`).join(' ')}`);
   if(can(user,'stock.read'))for(const x of Object.values(db.products||{}))add('stock',x.sku,x.name,{...x,available:Math.max(0,Number(x.onHand||0)-Number(x.allocated||0))},`${x.supplierSku||''} ${x.bin||''}`);
-  if(can(user,'customers.read'))for(const x of Object.values(db.customers||{}))add('customer',x.id,x.name,x,`${(x.waitingOnUs||[]).join(' ')} ${(x.waitingOnCustomer||[]).join(' ')}`);
+  if(can(user,'customers.read'))for(const x of Object.values(db.customers||{}))add('customer',x.id,x.name,x,`${x.firstName||''} ${x.lastName||''} ${x.companyName||''} ${(x.aliases||[]).join(' ')} ${(x.waitingOnUs||[]).join(' ')} ${(x.waitingOnCustomer||[]).join(' ')}`);
   if(can(user,'purchasing.read')){
     for(const x of Object.values(db.suppliers||{}))add('supplier',x.id,x.name,x);
     for(const x of Object.values(db.supplierOffers||{}))add('supplier_price',x.id,`${x.productName} · ${x.supplier}`,x,`${x.productFamily||''} ${x.searchText||''} ${x.supplierSku||''}`);
