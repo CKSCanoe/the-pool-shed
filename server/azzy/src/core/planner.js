@@ -150,7 +150,7 @@ export function deterministicPlan({message,contexts=[],primaryContext=null,histo
     plan.intent='chemical_safety';plan.confidence=.99;add('get_chemical_safety',{sku:firstSku});return plan;
   }
 
-  if(/subscription|recurring|repeat order|standing order|regular order|monthly order|fortnightly order/.test(q)){
+  if(can('customers.read')&&/subscription|recurring|repeat order|standing order|regular order|monthly order|fortnightly order/.test(q)){
     if(/create|prepare|set up|setup|start/.test(q)&&firstCustomer&&firstSku){
       const qty=Math.max(1,Number(q.match(/\bqty\s*(\d+)\b/)?.[1]||q.match(/\b(\d+)\s*(?:units?|packs?|drums?|bottles?)\b/)?.[1]||1));
       plan.intent='prepare_subscription';plan.confidence=.995;add('prepare_sales_order_subscription',{customerId:firstCustomer,cadenceDays:cadenceFromText(q),lines:[{sku:firstSku,qty}]});return plan;
@@ -198,7 +198,7 @@ export function deterministicPlan({message,contexts=[],primaryContext=null,histo
   if(/where.*losing money|which projects?.*margin|margin.*across|most profitable|more profitable|profit.*expected|margin.*business/.test(q)){plan.intent='margin_watch';plan.confidence=.98;add('get_margin_watch');return plan;}
   if(/which hires?|hires?.*return|return.*hire|active hire|hire.*across|plant.*hire/.test(q)&&!firstProject){plan.intent='hire_review';plan.confidence=.97;add('get_active_hire_review');return plan;}
   if(/what.*(changed|new)|changed today|since (yesterday|last)|what's changed|whats changed/.test(q)){plan.intent='changes';plan.confidence=.98;const prior=[...history].reverse().find(x=>x.role==='assistant')?.at||'2026-09-27T00:00:00+01:00';add('get_changes_since',{since:prior,projectIds:activeProjects});return plan;}
-  if(/what do i need to know|need my attention|morning briefing|business.*today|operational briefing|anything important today|what should i know|decisions?.*today|what.*focus.*today|stop next week|block next week|next week.*risk/.test(q)){plan.intent='briefing';plan.confidence=.99;add('get_operational_briefing');add('get_hidden_risks',{projectIds:[]});return plan;}
+  if(/what do i need to know|need my attention|morning briefing|business.*today|operational briefing|anything important today|what should i know|decisions?.*today|what.*focus.*today|stop next week|block next week|next week.*risk/.test(q)){plan.intent='briefing';plan.confidence=.99;add('get_operational_briefing');add('get_hidden_risks',{projectIds:[]});if(can('stock.read'))add('get_order_trends',{days:90});if(can('customers.read'))add('get_subscription_review',{});return plan;}
 
   if(/what (would|should) you do|what next|next step|what should we do|how would you handle|sort this|how do we fix/.test(q)){
     plan.intent='next_step';plan.confidence=.92;if(activeProjects.length>=2){plan.intent='compare_projects';add('compare_projects',{projectIds:activeProjects});}else if(firstProject)projectBundle(firstProject);else if(firstPo)add('get_purchase_order',{poId:firstPo});else if(firstSku)add('get_stock_position',{sku:firstSku});else add('get_operational_briefing');return plan;
