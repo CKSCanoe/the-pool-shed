@@ -163,4 +163,5 @@
   });
   document.addEventListener('input',function(event){if(event.target.id==='scSupplierSearch'){scState.queueSearch=event.target.value;renderNow();}});
   document.addEventListener('change',function(event){if(event.target.id==='scSupplierFilter'){scState.queueFilter=event.target.value;renderNow();return;}if(event.target.id==='scPriceFile'&&event.target.files&&event.target.files[0]){var reader=new FileReader();reader.onload=function(){var box=document.getElementById('scPriceCsv');if(box)box.value=String(reader.result||'');};reader.readAsText(event.target.files[0]);}});
+  globalThis.openSupplierCommand=function(name,tab){if(name)selectedSupplierName=name;scState.tab=tabs.includes(tab)?tab:'Overview';purchaseOrderView='suppliers';activeSubPage.purchase='Suppliers';active='purchase';renderNow();};
 })();
