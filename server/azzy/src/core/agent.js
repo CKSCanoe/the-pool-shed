@@ -93,9 +93,13 @@ function compose({intent,executions,session,user,contexts,primaryContext,deltas=
     }
     case 'briefing':{
       const b=get('get_operational_briefing')?.data,hidden=get('get_hidden_risks')?.data||[],top=b?.attention?.slice(0,3)||[],wins=b?.wins?.slice(0,2)||[];
+      const trends=get('get_order_trends')?.data||null,subscriptions=get('get_subscription_review')?.data||null;
       if(!top.length)answer='Nothing urgent is standing out right now.';else{answer=`There are ${top.length} things I'd put at the top of the list: ${top.map((x,i)=>`${i+1}) ${x.title}`).join('; ')}.`;if(wins.length)answer+=` The good news is ${wins.map(x=>x.title.toLowerCase()).join(' and ')}.`;}
       const extra=hidden.find(x=>!top.some(t=>t.id===x.id));if(extra)answer+=` One less obvious thing I'd also keep in sight is ${extra.title.toLowerCase()}.`;
-      followups=['Start with the highest risk','What changed today?','What am I missing?'];break;
+      if(trends?.replenishmentRecommendations?.length){const row=trends.replenishmentRecommendations[0];answer+=` Commercially, I'd review ${row.name}: ${row.reason}`;}
+      if(subscriptions?.due?.length)answer+=` ${subscriptions.due.length} recurring Sales Order subscription${subscriptions.due.length===1?' is':'s are'} due for review now.`;
+      else if(subscriptions?.candidates?.length)answer+=` I can also see ${subscriptions.candidates.length} repeat-order pattern${subscriptions.candidates.length===1?'':'s'} worth reviewing as subscription opportunities.`;
+      followups=['Start with the highest risk','Show order trends','Show subscription opportunities'];break;
     }
     case 'changes':{
       const rows=get('get_changes_since')?.data||[],meaningful=deltas.flatMap(d=>(d?.changes||[]).map(c=>`${d.name}: ${c.text}`));
