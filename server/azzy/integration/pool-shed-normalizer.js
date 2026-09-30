@@ -171,7 +171,7 @@ function normalisePurchaseOrders(data,products){
     originalSalesOrderId:txt(o.originalSalesOrderId,o.salesOrderId)||null,source:txt(o.source),
     status:txt(o.status,'Draft'),reviewStatus:txt(o.reviewStatus),supplierEmailStatus:txt(o.supplierEmailStatus),
     supplierReference:txt(o.supplierReference,o.supplierRef),parcelNote:txt(o.parcelNote),reviewNotes:txt(o.reviewNotes),
-    orderedDate:dateOnly(txt(o.orderedDate,o.orderDate,o.createdAt,lineRows(o)[0]?.orderedDate))||null,
+    orderedDate:dateOnly(txt(o.orderedDate,o.orderDate,o.sentAt,o.createdAt,o.created,lineRows(o)[0]?.orderedDate))||null,
     expectedDate:dateOnly(txt(o.expectedDate,o.eta,o.confirmedEta,o.due,o.dueDate))||null,
     paymentStatus:txt(o.paymentStatus,o.paymentState,o.paid===true?'Paid':''),
     totalNet:n(o.totalNet,o.netTotal,o.subtotal),
