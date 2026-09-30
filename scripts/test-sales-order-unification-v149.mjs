@@ -13,7 +13,7 @@ assert.match(sales,/so2SupplierFundingPanel/,'Sales Order connections must show 
 assert.match(sales,/data-so-open-po-funding/,'Sales Order must link back to Purchase Order');
 assert.match(sales,/data-so-open-supplier-funding/,'Sales Order must link back to supplier funding workspace');
 
-for(const token of ['data-po-open-sales-order','data-po-open-supplier-funding','poSupplierFundingState','Pro Forma funding shortfall','Open supplier funding']){
+for(const token of ['data-po-open-sales-order','data-po-open-supplier-funding','poSupplierFundingState','poProFormaFundingGap','poBlockUnfundedProFormaRelease','data-po-payment-form','Pro Forma funding shortfall','Open supplier funding']){
   assert(purchase.includes(token),`Purchase Order funding link missing ${token}`);
 }
 for(const token of ['SUPPLIER PROFILE','SUPPLIER OPERATIONS','CUSTOMER CASH COVER','BILLS & COMMITMENTS DUE','SUPPLIER PAYMENT TIMELINE','data-sc-open-sales-order','openSupplierCommand','scSupplierAccountType']){
