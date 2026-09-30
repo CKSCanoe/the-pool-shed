@@ -112,7 +112,28 @@ function normaliseSuppliers(data){
     rating:n(s.rating),preferred:bool(s.preferred),performance:s.performance||null
   })),x=>x.id);
 }
-function normaliseCustomers(data){return keyBy(arr(data.customers).map(c=>({id:idOf(c),name:txt(c.name,c.company,c.companyName,c.fullName,idOf(c)),projectIds:arr(c.projectIds||c.jobIds).map(String),waitingOnUs:arr(c.waitingOnUs||c.actionsForUs).map(String),waitingOnCustomer:arr(c.waitingOnCustomer||c.actionsForCustomer).map(String)})),x=>x.id);}
+function normaliseCustomers(data){
+  return keyBy(arr(data.customers).map(c=>{
+    const firstName=txt(c.firstName,c.firstname,c.givenName),lastName=txt(c.lastName,c.lastname,c.surname,c.familyName);
+    const fullName=txt(c.fullName,[firstName,lastName].filter(Boolean).join(' '),c.name,c.contactName);
+    const companyName=txt(c.companyName,c.company,c.organisation,c.organization);
+    const name=txt(c.name,fullName,companyName,idOf(c));
+    const aliases=[...new Set([
+      ...arr(c.aliases||c.alternateNames||c.aka).map(String),
+      fullName,companyName,name,
+      [lastName,firstName].filter(Boolean).join(' '),
+      firstName,lastName
+    ].map(x=>String(x||'').trim()).filter(Boolean))];
+    return compact({
+      id:idOf(c),code:txt(c.code,c.customerCode),name,firstName,lastName,surname:lastName,fullName:fullName||name,companyName,
+      email:txt(c.email),email2:txt(c.email2,c.accountsEmail),email3:txt(c.email3),
+      phone:txt(c.phone,c.telephone),mobile:txt(c.mobile),status:txt(c.status,'Active'),customerType:txt(c.customerType,c.type),
+      priceList:txt(c.priceList,'rrp'),discount:n(c.discount),aliases,
+      projectIds:arr(c.projectIds||c.jobIds).map(String),
+      waitingOnUs:arr(c.waitingOnUs||c.actionsForUs).map(String),waitingOnCustomer:arr(c.waitingOnCustomer||c.actionsForCustomer).map(String)
+    });
+  }),x=>x.id);
+}
 
 function normaliseSalesOrders(data,products){
   const resolveProduct=productResolver(data,products);
@@ -225,7 +246,42 @@ function normaliseQuotes(data){
 function normaliseLocations(data){return keyBy(arr(data.locations).map(l=>({id:idOf(l),name:txt(l.name,l.label,idOf(l)),type:txt(l.type,l.locationType),active:l.active!==false})),x=>x.id);}
 function normaliseStockMovements(data,products){
   const resolveProduct=productResolver(data,products);
-  return arr(data.movements||data.stockMovements||data.inventoryMovements).map((m,idx)=>{const p=resolveProduct(m),sku=p?.sku||explicitSkuOf(m)||productIdOf(m);return {id:idOf(m)||`MOVE-${idx+1}`,sku:sku||null,type:txt(m.type,m.movementType),qty:n(m.qty,m.quantity),from:txt(m.from,m.fromLocation),to:txt(m.to,m.toLocation),at:txt(m.at,m.createdAt,m.date),reference:txt(m.reference,m.reason,m.note)};});
+  return arr(data.movements||data.stockMovements||data.inventoryMovements).map((m,idx)=>{
+    const p=resolveProduct(m),sku=p?.sku||explicitSkuOf(m)||productIdOf(m);
+    return compact({
+      id:idOf(m)||`MOVE-${idx+1}`,productId:productIdOf(m)||p?.id||null,sku:sku||null,productName:txt(m.productName,m.name,p?.name,sku),
+      type:txt(m.type,m.movementType,'Movement'),qty:n(m.qty,m.quantity),date:dateOnly(txt(m.date,m.at,m.createdAt,m.timestamp))||null,
+      at:txt(m.at,m.createdAt,m.timestamp,m.date),from:txt(m.from,m.fromLocation,m.fromLocationId),to:txt(m.to,m.toLocation,m.toLocationId),
+      fromLocationId:txt(m.fromLocationId),toLocationId:txt(m.toLocationId),locationId:txt(m.locationId),
+      reference:txt(m.ref,m.reference),user:txt(m.user,m.createdBy,m.operator),note:txt(m.note,m.reason,m.description),jobId:txt(m.jobId,m.projectId),
+      salesOrderId:txt(m.salesOrderId),purchaseOrderId:txt(m.purchaseOrderId,m.poId)
+    });
+  });
+}
+function cadenceDays(value,days){
+  const direct=n(days);if(direct>0)return direct;
+  const v=String(value||'').toLowerCase().trim();
+  if(!v)return 30;
+  if(/week/.test(v)&&/fort|two|2/.test(v))return 14;
+  if(/week/.test(v))return 7;
+  if(/fortnight/.test(v))return 14;
+  if(/quarter/.test(v))return 91;
+  if(/annual|year/.test(v))return 365;
+  if(/bi.?month|two month|2 month/.test(v))return 61;
+  if(/month/.test(v))return 30;
+  const parsed=Number(v);return Number.isFinite(parsed)&&parsed>0?parsed:30;
+}
+function normaliseSalesOrderSubscriptions(data,products){
+  const resolveProduct=productResolver(data,products);
+  const rows=arr(data.salesOrderSubscriptions||data.recurringSalesOrders||data.subscriptions);
+  return keyBy(rows.map((s,idx)=>compact({
+    id:idOf(s)||`SUB-${String(idx+1).padStart(4,'0')}`,customerId:txt(s.customerId),name:txt(s.name,s.title,`Sales Order Subscription ${idx+1}`),
+    status:txt(s.status,s.active===false?'Paused':'Active'),cadenceDays:cadenceDays(s.frequency||s.cadence,s.cadenceDays||s.intervalDays),
+    frequency:txt(s.frequency,s.cadence),startDate:dateOnly(txt(s.startDate,s.createdAt))||null,nextOrderDate:dateOnly(txt(s.nextOrderDate,s.nextDate,s.nextRunDate))||null,
+    endDate:dateOnly(txt(s.endDate))||null,priceList:txt(s.priceList,'rrp'),autoCreate:s.autoCreate===true,approvalRequired:s.approvalRequired!==false,
+    lastGeneratedAt:txt(s.lastGeneratedAt,s.lastRunAt),lastSalesOrderId:txt(s.lastSalesOrderId),notes:txt(s.notes,s.note),
+    lines:lineRows(s).map(l=>{const p=resolveProduct(l),sku=p?.sku||explicitSkuOf(l)||productIdOf(l);return sku?compact({productId:productIdOf(l)||p?.id||null,sku,name:txt(l.name,l.description,p?.name,sku),qty:Math.max(1,n(l.qty,l.quantity)||1),unitPrice:n(l.unitPrice,l.price),taxCode:txt(l.taxCode,p?.taxCode,'20% VAT')}):null;}).filter(Boolean)
+  })),x=>x.id);
 }
 function normaliseSafety(data){return keyBy(arr(data.safetyDocuments||data.productSafetyDocuments).map(d=>({id:idOf(d),sku:skuOf(d),title:txt(d.title,d.name,idOf(d)),revisionDate:dateOnly(txt(d.revisionDate,d.updatedAt))||null,documentType:txt(d.documentType,d.type,'SDS'),status:txt(d.status,'Current'),controls:arr(d.controls).map(String),notes:txt(d.notes)})),x=>x.id);}
 function normaliseKnowledge(data){return arr(data.knowledge||data.knowledgeLibrary||data.approvedKnowledge).map((k,i)=>({id:idOf(k)||`KB-${i+1}`,title:txt(k.title,k.name,'Knowledge'),tags:arr(k.tags).map(String),text:txt(k.text,k.body,k.content)})).filter(k=>k.text);}
@@ -241,6 +297,7 @@ export function normalisePoolShedWorkspace(data={},options={}){
     supplierBills:normaliseBills(data,products),customerInvoices:normaliseInvoices(data),
     supplierOffers:normaliseSupplierOffers(data,products,suppliers),goodsReceipts:normaliseReceipts(data,products),
     goodsNotes:normaliseGoodsNotes(data,products),salesCredits:normaliseSalesCredits(data,products),quotes:normaliseQuotes(data),
+    salesOrderSubscriptions:normaliseSalesOrderSubscriptions(data,products),
     locations:normaliseLocations(data),stockMovements:normaliseStockMovements(data,products),
     safetyDocuments:normaliseSafety(data),stockCounts:arr(data.stockCounts||data.stockTakes),
     knowledge:normaliseKnowledge(data),events:normaliseEvents(data)
