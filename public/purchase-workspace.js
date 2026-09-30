@@ -113,6 +113,11 @@
     return (data.suppliers || []).find(function (item) { return item.name === name; }) || { name:name || 'Supplier to confirm' };
   }
 
+  function poSupplierAddressText(supplier) {
+    const a=(supplier&&supplier.address)||{};
+    return [a.line1||supplier.addressLine1,a.line2||supplier.addressLine2,a.city||supplier.city,a.county||supplier.county,a.postcode||supplier.postcode,a.country||supplier.country].filter(Boolean).join(', ');
+  }
+
   function poSupplierOptions(selected) {
     const current=String(selected||'').trim();
     const names=(data.suppliers||[]).map(function(item){return String(item.name||'').trim();}).filter(Boolean);
@@ -250,7 +255,7 @@
     const corrected=(po.supplierCorrections||[]).length>0;
     return '<section class="po-command-card po-supplier-card"><div class="po-command-card-head"><div><span>Supplier</span><h3>' + poEsc(supplier.name || po.supplier || 'Supplier to confirm') + '</h3></div>' + (known?'<button type="button" class="secondary" data-open-supplier-profile="' + poEsc(po.supplier || '') + '">Open supplier</button>':poPill('Custom / imported','warn')) + '</div>' +
       '<div class="po-supplier-correction"><label>Supplier account<select data-po-supplier-change="' + poEsc(po.id) + '">' + poSupplierOptions(po.supplier) + '</select></label><small>' + (poSummarySafe(po).received>0?'Supplier can still be corrected after receipt. Goods In and stock history will not be changed.':'Choose the supplier responsible for this PO.') + '</small>' + (corrected?'<span class="po-supplier-corrected">Corrected ' + (po.supplierCorrections||[]).length + ' time' + ((po.supplierCorrections||[]).length===1?'':'s') + '</span>':'') + '</div>' +
-      '<div class="po-supplier-identity"><div class="po-supplier-avatar">' + poEsc((po.supplier || 'S').slice(0,2).toUpperCase()) + '</div><div><strong>' + poEsc(supplier.contact || 'Purchasing') + '</strong><small>' + poEsc(supplier.ordersEmail || supplier.email || 'No ordering email') + '</small><small>' + poEsc(supplier.phone || 'No telephone') + '</small></div>' + poPill((supplier.preferred ? 'Preferred' : known ? 'Active' : 'Needs supplier'), supplier.preferred ? 'good' : known ? 'info' : 'warn') + '</div><div class="po-mini-grid"><div><span>Account</span><strong>' + poEsc(supplier.accountNumber || supplier.code || 'Not set') + '</strong></div><div><span>Terms</span><strong>' + poEsc(supplier.terms || 'Not set') + '</strong></div><div><span>Lead time</span><strong>' + Number(supplier.leadTimeDays || 0) + ' days</strong></div><div><span>Open POs</span><strong>' + openPos + '</strong></div></div></section>';
+      '<div class="po-supplier-identity"><div class="po-supplier-avatar">' + poEsc((po.supplier || 'S').slice(0,2).toUpperCase()) + '</div><div><strong>' + poEsc(supplier.contact || 'Purchasing') + '</strong><small>' + poEsc(supplier.ordersEmail || supplier.email || 'No ordering email') + '</small><small>' + poEsc(supplier.phone || 'No telephone') + '</small><small class="po-supplier-address">' + poEsc(poSupplierAddressText(supplier) || 'Supplier address not set') + '</small></div>' + poPill((supplier.preferred ? 'Preferred' : known ? 'Active' : 'Needs supplier'), supplier.preferred ? 'good' : known ? 'info' : 'warn') + '</div><div class="po-mini-grid"><div><span>Account</span><strong>' + poEsc(supplier.accountNumber || supplier.code || 'Not set') + '</strong></div><div><span>Terms</span><strong>' + poEsc(supplier.terms || 'Not set') + '</strong></div><div><span>Lead time</span><strong>' + Number(supplier.leadTimeDays || 0) + ' days</strong></div><div><span>Open POs</span><strong>' + openPos + '</strong></div></div></section>';
   }
 
   function poDetailsCard(po) {
