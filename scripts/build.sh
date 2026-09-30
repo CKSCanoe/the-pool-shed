@@ -115,3 +115,5 @@ if ! node "$ROOT/scripts/validate-runtime.mjs" "$DIST"; then
   exit 1
 fi
 printf '\n✓ Built and validated deployable application into %s\n' "$DIST"
+
+# Deployment retrigger 2026-09-30 for Supplier Option B production release
