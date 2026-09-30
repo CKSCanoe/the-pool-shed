@@ -629,6 +629,69 @@
     document.querySelectorAll('[data-po-line-credit]').forEach(function(button){button.addEventListener('click',function(){purchaseCommandTab='connections';if(typeof toast==='function')toast('Received PO lines stay in history. Use Supplier Returns & Credits to correct them.');if(typeof render==='function')render();});});
   }
 
+  function poProFormaFundingGap(po) {
+    const state=poSupplierFundingState(po),funding=state&&state.funding,row=state&&state.row;
+    if(!funding||!funding.proForma||!row||Number(row.linkedRequirement||0)<=0||Number(row.customerShortfall||0)<=0)return null;
+    return {funding:funding,row:row,shortfall:Number(row.customerShortfall||0)};
+  }
+
+  function poBlockUnfundedProFormaRelease(po,actionLabel) {
+    const gap=poProFormaFundingGap(po);
+    if(!gap)return false;
+    purchaseCommandTab='connections';
+    if(typeof toast==='function')toast('Pro Forma funding shortfall: '+poMoney(gap.shortfall)+' still needs customer funding before '+actionLabel+'.');
+    if(typeof render==='function')render();
+    return true;
+  }
+
+  document.addEventListener('click',function(event){
+    const button=event.target.closest('[data-po-save-action],[data-prepare-po-email],[data-send-po-email]');
+    if(!button)return;
+    let poId='',release=false,label='supplier release';
+    if(button.dataset.poSaveAction!==undefined){
+      const parts=String(button.dataset.poSaveAction||'').split('|');
+      poId=parts[1]||'';
+      release=parts[0]==='email';
+      label='supplier email preparation';
+    }else if(button.dataset.preparePoEmail!==undefined){
+      poId=button.dataset.preparePoEmail;release=true;label='supplier email preparation';
+    }else if(button.dataset.sendPoEmail!==undefined){
+      poId=button.dataset.sendPoEmail;release=true;label='marking the supplier PO sent';
+    }
+    if(!release)return;
+    const po=typeof purchaseOrderById==='function'?purchaseOrderById(poId):(data.purchaseOrders||[]).find(function(row){return String(row.id)===String(poId);});
+    if(po&&poBlockUnfundedProFormaRelease(po,label)){
+      event.preventDefault();
+      event.stopImmediatePropagation();
+    }
+  },true);
+
+  document.addEventListener('change',function(event){
+    const select=event.target.closest('[data-po-status]');
+    if(!select||!['Ready To Email','Sent','Ordered'].includes(String(select.value||'')))return;
+    const po=typeof purchaseOrderById==='function'?purchaseOrderById(select.dataset.poStatus):(data.purchaseOrders||[]).find(function(row){return String(row.id)===String(select.dataset.poStatus);});
+    if(po&&poBlockUnfundedProFormaRelease(po,'moving the PO to '+select.value)){
+      event.preventDefault();
+      event.stopImmediatePropagation();
+    }
+  },true);
+
+  document.addEventListener('submit',function(event){
+    const form=event.target.closest('[data-po-payment-form]');
+    if(!form)return;
+    const poId=form.dataset.poPaymentForm,po=typeof purchaseOrderById==='function'?purchaseOrderById(poId):(data.purchaseOrders||[]).find(function(row){return String(row.id)===String(poId);});
+    const gap=po&&poProFormaFundingGap(po);
+    if(!gap)return;
+    const ok=confirm('This is a Pro Forma supplier and linked customer cash is '+poMoney(gap.shortfall)+' short. Record this supplier payment using internal business funds anyway?');
+    if(!ok){
+      event.preventDefault();
+      event.stopImmediatePropagation();
+      purchaseCommandTab='connections';
+      if(typeof toast==='function')toast('Supplier payment not recorded. Review the linked Sales Order customer funding first.');
+      if(typeof render==='function')render();
+    }
+  },true);
+
   bindPurchase = function () {
     if (legacyBindPurchase) legacyBindPurchase();
     bindPurchaseCommand();
