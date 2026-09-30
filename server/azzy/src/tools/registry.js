@@ -137,6 +137,117 @@ function productDetail(db,p,user){
   return {...p,available,supplierOffers:offers,bestSupplier:offers[0]||null,openSalesDemand:demand,inboundPurchaseOrders:inbound,...freshness(db)};
 }
 
+const dateMs=value=>{const t=Date.parse(String(value||''));return Number.isFinite(t)?t:null;};
+const average=rows=>rows.length?rows.reduce((s,x)=>s+Number(x||0),0)/rows.length:0;
+const median=rows=>{const a=rows.map(Number).filter(Number.isFinite).sort((x,y)=>x-y);if(!a.length)return 0;const m=Math.floor(a.length/2);return a.length%2?a[m]:(a[m-1]+a[m])/2;};
+const dayDiff=(a,b)=>{const x=dateMs(a),y=dateMs(b);return x===null||y===null?null:Math.round((y-x)/86400000);};
+function cadenceName(days){
+  const d=Math.max(1,Math.round(Number(days||30)));
+  const known=[[7,'Weekly'],[14,'Fortnightly'],[28,'Every 4 weeks'],[30,'Monthly'],[61,'Every 2 months'],[91,'Quarterly'],[182,'Every 6 months'],[365,'Annually']];
+  return known.sort((a,b)=>Math.abs(a[0]-d)-Math.abs(b[0]-d))[0][1];
+}
+function customerSearchQuery(value=''){
+  const stop=new Set(['customer','customers','order','orders','ordered','buy','bought','purchase','purchased','sales','show','tell','about','has','have','had','got','open','find','lookup','look','history','what','whats','who','did','does','for']);
+  return searchTokens(value).filter(x=>!stop.has(x)).join(' ');
+}
+function rankedCustomers(db,query,{limit=6}={}){
+  const cleaned=customerSearchQuery(query)||normaliseSearchText(query);
+  return Object.values(db.customers||{}).map(customer=>{
+    const variants=[customer.name,customer.fullName,customer.companyName,customer.firstName,customer.lastName,...(customer.aliases||[]),customer.email,customer.email2,customer.phone,customer.mobile,customer.code].filter(Boolean);
+    let best={score:0,exact:false,matched:[]},matchedVariant='';
+    for(const variant of variants){const r=relevance(cleaned,variant);if(r.score>best.score){best=r;matchedVariant=variant;}}
+    return {customer,score:best.score,exactMatch:best.exact||variants.some(v=>normaliseSearchText(v)===normaliseSearchText(cleaned)),matchedTerms:best.matched,matchedVariant};
+  }).filter(x=>x.score>=24).sort((a,b)=>Number(b.exactMatch)-Number(a.exactMatch)||b.score-a.score||a.customer.name.localeCompare(b.customer.name)).slice(0,limit);
+}
+function customerDetail(db,customer,user){
+  const salesOrders=can(user,'projects.read')?Object.values(db.salesOrders||{}).filter(x=>x.customerId===customer.id).sort((a,b)=>String(b.createdDate||'').localeCompare(String(a.createdDate||''))):[];
+  const projects=can(user,'projects.read')?Object.values(db.projects||{}).filter(x=>x.customerId===customer.id):[];
+  const quotes=can(user,'projects.read')?Object.values(db.quotes||{}).filter(x=>x.customerId===customer.id):[];
+  const invoices=can(user,'finance.read')?Object.values(db.customerInvoices||{}).filter(x=>x.customerId===customer.id):[];
+  const subscriptions=Object.values(db.salesOrderSubscriptions||{}).filter(x=>x.customerId===customer.id);
+  const orderValue=salesOrders.reduce((sum,so)=>sum+Number(so.totalNet||so.calculatedNet||0),0);
+  return {...customer,salesOrders,projects,quotes,invoices,subscriptions,orderCount:salesOrders.length,recordedSalesNet:Number(orderValue.toFixed(2)),...freshness(db)};
+}
+function movementDirection(move){
+  const t=String(move?.type||'').toLowerCase();
+  if(/receive|goods in|receipt|credit restock|customer return|return to stock|purchase/.test(t))return 'inbound';
+  if(/sale|goods out|ship|dispatch|project use|issue|used|write.?off|damage|loss|consume/.test(t))return 'outbound';
+  if(/transfer|move|relocat/.test(t))return 'transfer';
+  if(/adjust|variance|count/.test(t))return 'adjustment';
+  if(/allocat|reserv|unallocat/.test(t))return 'reservation';
+  return 'other';
+}
+function stockMovementInsights(db,args={}){
+  const days=Math.min(365,Math.max(7,Number(args.days||90))),today=dateMs(db.meta?.today)||Date.now(),cutoff=today-days*86400000,half=cutoff+(days*86400000/2);
+  const all=(db.stockMovements||[]).filter(m=>!args.sku||m.sku===args.sku).filter(m=>{const t=dateMs(m.date||m.at);return t===null||t>=cutoff;});
+  const groups=new Map();
+  for(const m of all){
+    const sku=m.sku||'UNKNOWN',p=db.products?.[sku]||{},g=groups.get(sku)||{sku,name:p.name||m.productName||sku,inboundQty:0,outboundQty:0,transferQty:0,adjustmentQty:0,movementCount:0,currentOutbound:0,previousOutbound:0,lastMovementAt:null};
+    const dir=movementDirection(m),qty=Math.abs(Number(m.qty||0)),ts=dateMs(m.date||m.at);
+    g.movementCount++;if(dir==='inbound')g.inboundQty+=qty;if(dir==='outbound'){g.outboundQty+=qty;if(ts!==null&&ts>=half)g.currentOutbound+=qty;else if(ts!==null)g.previousOutbound+=qty;}if(dir==='transfer')g.transferQty+=qty;if(dir==='adjustment')g.adjustmentQty+=qty;
+    if(ts!==null&&(!g.lastMovementAt||ts>dateMs(g.lastMovementAt)))g.lastMovementAt=m.date||m.at;
+    groups.set(sku,g);
+  }
+  const products=[...groups.values()].map(g=>{
+    const p=db.products?.[g.sku]||{},available=Math.max(0,Number(p.onHand||0)-Number(p.allocated||0)),weeklyUsage=g.outboundQty/(days/7),weeksCover=weeklyUsage>0?Number((available/weeklyUsage).toFixed(1)):null;
+    const trendPct=g.previousOutbound>0?Number((((g.currentOutbound-g.previousOutbound)/g.previousOutbound)*100).toFixed(1)):(g.currentOutbound>0?100:0);
+    return {...g,inboundQty:Number(g.inboundQty.toFixed(2)),outboundQty:Number(g.outboundQty.toFixed(2)),netPhysical:Number((g.inboundQty-g.outboundQty).toFixed(2)),weeklyOutbound:Number(weeklyUsage.toFixed(2)),available,weeksCover,trendPct};
+  }).sort((a,b)=>b.outboundQty-a.outboundQty||b.movementCount-a.movementCount);
+  const history=all.slice().sort((a,b)=>String(b.date||b.at||'').localeCompare(String(a.date||a.at||''))).slice(0,Math.min(100,Number(args.limit||40)));
+  return {days,sku:args.sku||null,summary:{movements:all.length,inboundQty:Number(products.reduce((s,x)=>s+x.inboundQty,0).toFixed(2)),outboundQty:Number(products.reduce((s,x)=>s+x.outboundQty,0).toFixed(2))},fastMovers:products.slice(0,12),products,history,...freshness(db)};
+}
+function orderTrends(db,args={}){
+  const days=Math.min(365,Math.max(28,Number(args.days||90))),today=dateMs(db.meta?.today)||Date.now(),cutoff=today-days*86400000,mid=cutoff+(days*86400000/2);
+  const sales=Object.values(db.salesOrders||{}).filter(so=>!/cancel|void/i.test(so.status||'')).filter(so=>{const t=dateMs(so.createdDate);return t!==null&&t>=cutoff;});
+  const salesMap=new Map();
+  for(const so of sales){const ts=dateMs(so.createdDate);for(const l of so.lines||[]){const sku=l.sku;if(!sku)continue;const p=db.products?.[sku]||{},g=salesMap.get(sku)||{sku,name:p.name||l.name||sku,currentUnits:0,previousUnits:0,units:0,revenue:0,orders:new Set(),customers:new Set()};const qty=Number(l.qty||0);g.units+=qty;g.revenue+=qty*Number(l.unitPrice||0);g.orders.add(so.id);if(so.customerId)g.customers.add(so.customerId);if(ts>=mid)g.currentUnits+=qty;else g.previousUnits+=qty;salesMap.set(sku,g);}}
+  const purchaseMap=new Map();
+  for(const po of Object.values(db.purchaseOrders||{})){const ts=dateMs(po.orderedDate);if(ts===null||ts<cutoff)continue;for(const l of po.lines||[]){if(!l.sku)continue;const p=db.products?.[l.sku]||{},g=purchaseMap.get(l.sku)||{sku:l.sku,name:p.name||l.name||l.sku,units:0,spend:0,currentCosts:[],previousCosts:[],poCount:0,suppliers:new Set()};const qty=Number(l.qty||0),cost=Number(l.unitCost||0);g.units+=qty;g.spend+=qty*cost;g.poCount++;if(po.supplier)g.suppliers.add(po.supplier);if(ts>=mid)g.currentCosts.push(cost);else g.previousCosts.push(cost);purchaseMap.set(l.sku,g);}}
+  const movement=stockMovementInsights(db,{days});
+  const movementBySku=new Map(movement.products.map(x=>[x.sku,x]));
+  const salesRows=[...salesMap.values()].map(g=>{const p=db.products?.[g.sku]||{},m=movementBySku.get(g.sku),growthPct=g.previousUnits>0?Number((((g.currentUnits-g.previousUnits)/g.previousUnits)*100).toFixed(1)):(g.currentUnits>0?100:0),available=Math.max(0,Number(p.onHand||0)-Number(p.allocated||0));return {sku:g.sku,name:g.name,units:g.units,revenue:Number(g.revenue.toFixed(2)),orderCount:g.orders.size,customerCount:g.customers.size,currentUnits:g.currentUnits,previousUnits:g.previousUnits,growthPct,available,onOrder:Number(p.onOrder||0),weeksCover:m?.weeksCover??null,reorderLevel:Number(p.reorderLevel||0)};}).sort((a,b)=>b.currentUnits-a.currentUnits||b.growthPct-a.growthPct);
+  const purchaseRows=[...purchaseMap.values()].map(g=>{const currentAvg=average(g.currentCosts),previousAvg=average(g.previousCosts);return {sku:g.sku,name:g.name,units:g.units,spend:Number(g.spend.toFixed(2)),poCount:g.poCount,suppliers:[...g.suppliers],currentAvgUnitCost:Number(currentAvg.toFixed(2)),previousAvgUnitCost:Number(previousAvg.toFixed(2)),costTrendPct:previousAvg?Number((((currentAvg-previousAvg)/previousAvg)*100).toFixed(1)):null};}).sort((a,b)=>b.units-a.units);
+  const recommendations=salesRows.filter(x=>x.units>0&&(x.growthPct>=20||(x.weeksCover!==null&&x.weeksCover<4))).slice(0,12).map(x=>({sku:x.sku,name:x.name,reason:x.growthPct>=20?'Demand is up '+x.growthPct+'% versus the previous half of the period.':'Only '+x.weeksCover+' weeks of free-stock cover at the recent movement rate.',action:'Review reorder point / target stock',currentAvailable:x.available,onOrder:x.onOrder,reorderLevel:x.reorderLevel,growthPct:x.growthPct,weeksCover:x.weeksCover}));
+  return {days,salesOrders:sales.length,trendingSales:salesRows.slice(0,20),purchaseTrends:purchaseRows.slice(0,20),replenishmentRecommendations:recommendations,...freshness(db)};
+}
+function productRecommendations(db,args={}){
+  const orders=Object.values(db.salesOrders||{}).filter(so=>!/cancel|void/i.test(so.status||'')),targetSku=args.sku||null,targetCustomer=args.customerId||null;
+  const scores=new Map(),reorders=new Map();
+  if(targetSku){
+    for(const so of orders){if(!(so.lines||[]).some(l=>l.sku===targetSku))continue;for(const l of so.lines||[]){if(!l.sku||l.sku===targetSku)continue;const row=scores.get(l.sku)||{sku:l.sku,together:0,orders:new Set(),customers:new Set()};row.together+=Number(l.qty||0);row.orders.add(so.id);if(so.customerId)row.customers.add(so.customerId);scores.set(l.sku,row);}}
+  }
+  if(targetCustomer){
+    const customerOrders=orders.filter(so=>so.customerId===targetCustomer).sort((a,b)=>String(a.createdDate||'').localeCompare(String(b.createdDate||'')));
+    for(const so of customerOrders){for(const l of so.lines||[]){if(!l.sku)continue;const r=reorders.get(l.sku)||{sku:l.sku,orders:[],qty:[]};r.orders.push(so.createdDate);r.qty.push(Number(l.qty||0));reorders.set(l.sku,r);}}
+  }
+  const related=[...scores.values()].map(r=>({sku:r.sku,name:db.products?.[r.sku]?.name||r.sku,coOrderCount:r.orders.size,customerCount:r.customers.size,score:r.orders.size*10+r.customers.size*4})).sort((a,b)=>b.score-a.score).slice(0,10);
+  const repeat=[...reorders.values()].map(r=>{const dates=r.orders.filter(Boolean).sort(),gaps=[];for(let i=1;i<dates.length;i++){const g=dayDiff(dates[i-1],dates[i]);if(g!==null&&g>0)gaps.push(g);}const med=median(gaps);return {sku:r.sku,name:db.products?.[r.sku]?.name||r.sku,orderCount:dates.length,typicalQty:Number(average(r.qty).toFixed(1)),medianGapDays:med||null,cadence:med?cadenceName(med):null,lastOrdered:dates.at(-1)||null};}).filter(x=>x.orderCount>=2).sort((a,b)=>b.orderCount-a.orderCount).slice(0,12);
+  return {sku:targetSku,customerId:targetCustomer,relatedProducts:related,customerRepeatProducts:repeat,...freshness(db)};
+}
+function subscriptionCandidates(db,args={}){
+  const existing=Object.values(db.salesOrderSubscriptions||{}),existingKeys=new Set(existing.filter(x=>!/ended|cancel/i.test(x.status||'')).flatMap(s=>(s.lines||[]).map(l=>s.customerId+'|'+l.sku)));
+  const customerFilter=args.customerId||null,orders=Object.values(db.salesOrders||{}).filter(so=>!customerFilter||so.customerId===customerFilter).filter(so=>so.customerId&&so.createdDate&&!/cancel|void/i.test(so.status||''));
+  const byKey=new Map();
+  for(const so of orders){for(const l of so.lines||[]){if(!l.sku)continue;const key=so.customerId+'|'+l.sku,r=byKey.get(key)||{customerId:so.customerId,sku:l.sku,dates:[],qty:[]};r.dates.push(so.createdDate);r.qty.push(Number(l.qty||0));byKey.set(key,r);}}
+  const raw=[];
+  for(const r of byKey.values()){
+    if(r.dates.length<2||existingKeys.has(r.customerId+'|'+r.sku))continue;
+    const dates=[...new Set(r.dates)].sort(),gaps=[];for(let i=1;i<dates.length;i++){const g=dayDiff(dates[i-1],dates[i]);if(g!==null&&g>=3&&g<=400)gaps.push(g);}
+    if(!gaps.length)continue;const med=median(gaps),deviation=average(gaps.map(g=>Math.abs(g-med))),consistency=Math.max(0,1-(deviation/Math.max(1,med))),confidence=Math.min(.98,(r.dates.length>=3?.62:.42)+consistency*.34);
+    if(med<5||med>366||confidence<.5)continue;
+    const nextMs=(dateMs(dates.at(-1))||Date.now())+Math.round(med)*86400000;
+    raw.push({customerId:r.customerId,customerName:db.customers?.[r.customerId]?.name||r.customerId,sku:r.sku,productName:db.products?.[r.sku]?.name||r.sku,orderCount:r.dates.length,typicalQty:Math.max(1,Number(average(r.qty).toFixed(1))),medianGapDays:Math.round(med),cadence:cadenceName(med),confidence:Number(confidence.toFixed(2)),lastOrdered:dates.at(-1),suggestedNextOrderDate:new Date(nextMs).toISOString().slice(0,10)});
+  }
+  const grouped=new Map();
+  for(const x of raw.sort((a,b)=>b.confidence-a.confidence)){const cadenceDays=[7,14,28,30,61,91,182,365].sort((a,b)=>Math.abs(a-x.medianGapDays)-Math.abs(b-x.medianGapDays))[0],key=x.customerId+'|'+cadenceDays,g=grouped.get(key)||{customerId:x.customerId,customerName:x.customerName,cadenceDays,cadence:cadenceName(cadenceDays),confidence:0,nextOrderDate:x.suggestedNextOrderDate,lines:[],evidenceOrders:0};g.lines.push({sku:x.sku,name:x.productName,qty:x.typicalQty,orderCount:x.orderCount,medianGapDays:x.medianGapDays});g.confidence=Math.max(g.confidence,x.confidence);g.evidenceOrders=Math.max(g.evidenceOrders,x.orderCount);if(x.suggestedNextOrderDate<g.nextOrderDate)g.nextOrderDate=x.suggestedNextOrderDate;grouped.set(key,g);}
+  return [...grouped.values()].sort((a,b)=>b.confidence-a.confidence||b.evidenceOrders-a.evidenceOrders);
+}
+function subscriptionReview(db,args={}){
+  const today=db.meta?.today||new Date().toISOString().slice(0,10),subscriptions=Object.values(db.salesOrderSubscriptions||{}).filter(s=>!args.customerId||s.customerId===args.customerId);
+  const active=subscriptions.filter(s=>/^active$/i.test(s.status||'Active')),due=active.filter(s=>s.nextOrderDate&&s.nextOrderDate<=today),upcoming=active.filter(s=>s.nextOrderDate&&s.nextOrderDate>today).sort((a,b)=>String(a.nextOrderDate).localeCompare(String(b.nextOrderDate))).slice(0,20);
+  return {active,due,upcoming,candidates:subscriptionCandidates(db,args),...freshness(db)};
+}
+
 const registry={
   get_operational_briefing:{
     permission:'projects.read',description:'Summarise the business with permission-safe risks, wins and meaningful changes.',
