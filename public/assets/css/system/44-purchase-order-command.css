@@ -136,3 +136,48 @@
 .purchase-command-page .po-payment-history-card table{min-width:760px}
 @media(max-width:1050px){.purchase-command-page .po-items-lower-grid{grid-template-columns:1fr}.purchase-command-page .po-live-totals-card{max-width:none}}
 @media(max-width:700px){.purchase-command-page .po-items-commercial-card .po-financial-strip{grid-template-columns:1fr}}
+
+/* PO customer-funding visibility */
+#screen-purchase .po-funding-control{
+  display:flex;
+  align-items:center;
+  gap:10px;
+  margin-top:10px;
+  padding:9px 10px;
+  border:1px solid var(--color-status-success-line);
+  border-radius:7px;
+  background:var(--color-status-success-bg);
+}
+#screen-purchase .po-funding-control.warn{
+  border-color:var(--color-status-warning-line);
+  background:var(--color-status-warning-bg);
+}
+#screen-purchase .po-funding-control>div{min-width:0;flex:1}
+#screen-purchase .po-funding-control span,
+#screen-purchase .po-funding-control strong,
+#screen-purchase .po-funding-control small{display:block}
+#screen-purchase .po-funding-control span{font-size:8px;font-weight:900;color:var(--color-action-ink);letter-spacing:.06em}
+#screen-purchase .po-funding-control strong{margin-top:2px;color:var(--color-text-primary)}
+#screen-purchase .po-funding-control small{margin-top:2px;color:var(--color-text-secondary);font-size:8px}
+#screen-purchase .po-funding-banner{
+  display:flex;
+  align-items:center;
+  gap:10px;
+  margin:10px;
+  padding:10px;
+  border:1px solid var(--color-status-success-line);
+  border-radius:7px;
+  background:var(--color-status-success-bg);
+}
+#screen-purchase .po-funding-banner.warn{
+  border-color:var(--color-status-warning-line);
+  background:var(--color-status-warning-bg);
+}
+#screen-purchase .po-funding-banner>div{flex:1}
+#screen-purchase .po-funding-banner strong{color:var(--color-text-primary)}
+#screen-purchase .po-funding-banner p{margin:3px 0 0;color:var(--color-text-secondary);font-size:9px;line-height:1.45}
+@media(max-width:700px){
+  #screen-purchase .po-funding-control,
+  #screen-purchase .po-funding-banner{display:grid}
+}
+
