@@ -1,0 +1,24 @@
+name: Project feature diagnostics
+
+on:
+  push:
+    branches:
+      - feature/project-commercial-source-of-truth-20260930
+  workflow_dispatch:
+
+jobs:
+  project-test:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+      - run: npm install --no-audit --no-fund
+      - name: Project quote and allocation regression
+        run: node scripts/test-project-extra-quotes-v146.mjs
+      - name: Project engine regression
+        run: node scripts/test-project-profit-v142.mjs
+      - name: Full build
+        run: npm run build
