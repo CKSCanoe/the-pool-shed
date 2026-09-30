@@ -338,7 +338,7 @@ const registry={
     run:({db,args,user})=>{if(args.customerId&&!can(user,'customers.read'))return err('Permission denied: customers.read');const data=productRecommendations(db,args);return result(data,[...data.relatedProducts.slice(0,8).map(x=>evidence('product',x.sku,x.name,'coOrderCount',x.coOrderCount)),...data.customerRepeatProducts.slice(0,8).map(x=>evidence('product',x.sku,x.name,'repeatOrderCount',x.orderCount))]);}
   },
   get_subscription_review:{
-    permission:'projects.read',description:'Review active recurring Sales Order subscriptions, due and upcoming subscriptions, and evidence-based subscription candidates found from repeat customer order history. Advisory only.',
+    permission:'customers.read',requires:['projects.read'],description:'Review active recurring Sales Order subscriptions, due and upcoming subscriptions, and evidence-based subscription candidates found from repeat customer order history. Advisory only.',
     run:({db,args,user})=>{if(args.customerId&&!can(user,'customers.read'))return err('Permission denied: customers.read');const data=subscriptionReview(db,args);return result(data,[...data.due.map(x=>evidence('subscription',x.id,x.name,'nextOrderDate',x.nextOrderDate)),...data.candidates.slice(0,10).flatMap(x=>x.lines.map(l=>evidence('product',l.sku,l.name,'subscriptionPattern',l.orderCount+' orders · median '+l.medianGapDays+' days')))]);}
   },
   prepare_sales_order_subscription:{
