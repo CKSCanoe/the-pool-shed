@@ -1,0 +1,211 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1"/>
+<title>Pool Shed · Supplier Workspace Option B · Funding Control Lab v5</title>
+<style>
+:root{
+  --navy:#102b3a;--navy2:#173f52;--teal:#1d8294;--teal-dark:#126778;--teal-soft:#eaf6f8;
+  --ink:#1b2a33;--muted:#667985;--line:#d8e2e6;--line-strong:#b9c8ce;--bg:#f3f6f7;--white:#fff;
+  --ok:#24734d;--ok-bg:#e8f4ed;--warn:#9a6200;--warn-bg:#fff3df;--bad:#a53c3c;--bad-bg:#fceaea;
+  --info:#315f83;--info-bg:#eaf2f8;--shadow:0 14px 40px rgba(16,43,58,.10)
+}
+*{box-sizing:border-box}
+body{margin:0;font-family:Inter,ui-sans-serif,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;background:var(--bg);color:var(--ink);font-size:13px}
+button,input,select{font:inherit}button{cursor:pointer}
+.labbar{position:sticky;top:0;z-index:40;display:flex;align-items:center;gap:12px;padding:10px 16px;background:#071922;color:#fff;border-bottom:1px solid #244755}
+.labbar strong{font-size:13px}.labbar .hint{font-size:11px;color:#afc4cc}.labtag{margin-left:auto;border:1px solid #365968;border-radius:6px;padding:6px 9px;background:#0d2b38;font-size:10px;font-weight:800}
+.stage{max-width:1720px;margin:0 auto;padding:14px}
+.lab-intro{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:16px;align-items:center;padding:14px 16px;margin-bottom:12px;border:1px solid var(--line);border-radius:10px;background:#fff}
+.lab-intro h1{margin:0 0 4px;font-size:21px;color:var(--navy)}.lab-intro p{margin:0;color:var(--muted);line-height:1.5}
+.account-switch{display:flex;gap:6px}.account-switch button{height:35px;border:1px solid var(--line-strong);border-radius:6px;padding:0 12px;background:#fff;color:var(--navy);font-weight:850}
+.account-switch button.on{background:var(--navy);border-color:var(--navy);color:#fff}
+.prototype-note{margin-bottom:12px;padding:9px 11px;border-left:4px solid var(--teal);border-radius:6px;background:#eef8fa;color:#42616e;font-size:11px}
+.app{display:grid;grid-template-columns:210px minmax(0,1fr);min-height:1000px;border:1px solid var(--line);border-radius:11px;overflow:hidden;background:#fff;box-shadow:var(--shadow)}
+.sidebar{padding:13px;background:var(--navy);color:#cadbe1}.brand{display:flex;align-items:center;gap:9px;padding:2px 3px 15px;border-bottom:1px solid rgba(255,255,255,.09)}
+.brandmark{width:31px;height:31px;border-radius:7px;display:grid;place-items:center;background:#fff;color:var(--navy);font-weight:950}.brand b{display:block;color:#fff}.brand small{display:block;color:#9bb6c0;font-size:10px}
+.group{margin:14px 7px 5px;color:#7fa0ad;font-size:9px;font-weight:900;letter-spacing:.08em;text-transform:uppercase}.nav{padding:8px 9px;border-radius:5px;margin:2px 0}.nav.on{background:#1c4859;color:#fff;font-weight:850}
+.main{min-width:0}.topbar{height:50px;display:flex;align-items:center;gap:10px;padding:0 15px;border-bottom:1px solid var(--line);background:#fff}.crumb{font-weight:850;color:var(--navy)}.search{margin-left:auto;width:min(390px,48%);height:31px;border:1px solid var(--line);border-radius:5px;padding:0 9px}
+.page{padding:14px;background:#f8fafb;min-height:950px}
+.directory{border:1px solid var(--line);border-radius:8px;background:#fff;overflow:hidden;margin-bottom:16px}.directory-head{display:flex;gap:12px;align-items:center;padding:11px 12px;border-bottom:1px solid var(--line)}.eyebrow{font-size:9px;font-weight:900;letter-spacing:.08em;color:var(--teal-dark)}.directory-head h2{margin:2px 0 2px;font-size:17px;color:var(--navy)}.directory-head p{margin:0;color:var(--muted);font-size:11px}.directory-controls{margin-left:auto;display:flex;gap:7px}.directory-controls input,.directory-controls select{height:32px;border:1px solid var(--line-strong);border-radius:5px;padding:0 8px;background:#fff}.directory-controls input{width:280px}.drow{display:grid;grid-template-columns:minmax(210px,1.7fr) 100px 95px 100px 145px 110px;align-items:center;border-bottom:1px solid #e7ecef}.drow:last-child{border-bottom:0}.drow>div{padding:8px 10px}.drow.head{background:#f5f8f9;color:#5e717b;font-size:9px;font-weight:900;text-transform:uppercase}.drow.selected{box-shadow:inset 3px 0 0 var(--teal);background:#f7fbfc}.drow strong,.drow small{display:block}.drow small{margin-top:2px;color:var(--muted);font-size:9px}
+.pill{display:inline-flex;align-items:center;gap:4px;padding:4px 7px;border-radius:999px;font-size:9px;font-weight:900;white-space:nowrap}.pill.ok{background:var(--ok-bg);color:var(--ok)}.pill.warn{background:var(--warn-bg);color:var(--warn)}.pill.bad{background:var(--bad-bg);color:var(--bad)}.pill.info{background:var(--info-bg);color:var(--info)}.pill.dark{background:#e8eef1;color:var(--navy)}
+.btn{height:33px;padding:0 11px;border:1px solid var(--line-strong);border-radius:6px;background:#fff;color:var(--navy);font-weight:850}.btn.primary{background:var(--teal);border-color:var(--teal);color:#fff}.btn.warn{border-color:#d4ad67;background:#fff8ea;color:#805100}
+.workspace{border:1px solid var(--line);border-radius:10px;background:#edf2f4;padding:10px}.workspace-grid{display:grid;grid-template-columns:320px minmax(0,1fr);gap:10px}
+.profile{border:1px solid #bdcbd1;border-radius:9px;background:#fff;overflow:hidden}.profile-banner{height:70px;background:linear-gradient(135deg,#113140,#1b596a);position:relative}.avatar{position:absolute;left:14px;bottom:-25px;width:54px;height:54px;border:4px solid #fff;border-radius:12px;background:#eaf6f8;color:var(--teal-dark);display:grid;place-items:center;font-size:18px;font-weight:950;box-shadow:0 4px 12px rgba(0,0,0,.12)}.profile-body{padding:34px 14px 14px}.profile-body h2{margin:0;font-size:21px;color:var(--navy)}.profile-body>p{margin:4px 0 10px;color:var(--muted);font-size:10px}.statusline{display:flex;gap:5px;flex-wrap:wrap;margin-bottom:12px}
+.payment-account{margin-bottom:12px;padding:10px;border:1px solid var(--line);border-radius:8px;background:#f8fbfc}.payment-account-head{display:flex;align-items:center;gap:7px}.payment-account-head strong{color:var(--navy)}.payment-account p{margin:5px 0 0;color:var(--muted);font-size:10px;line-height:1.45}.account-facts{display:grid;grid-template-columns:1fr 1fr;gap:6px;margin-top:8px}.account-facts div{padding:7px;border:1px solid #e2e9ec;border-radius:6px;background:#fff}.account-facts span,.account-facts strong,.account-facts small{display:block}.account-facts span{font-size:8px;color:var(--muted);font-weight:850;text-transform:uppercase}.account-facts strong{margin-top:2px;color:var(--navy);font-size:13px}.account-facts small{margin-top:1px;color:var(--muted);font-size:8px}
+.profile-list{display:grid;gap:8px;border-top:1px solid var(--line);padding-top:10px}.profile-list div{display:grid;grid-template-columns:92px minmax(0,1fr);gap:8px}.profile-list span{color:var(--muted);font-size:9px}.profile-list strong{font-size:10px;color:var(--navy);overflow-wrap:anywhere}.profile-actions{display:grid;grid-template-columns:1fr 1fr;gap:6px;margin-top:12px}.profile-actions .primary{grid-column:1/-1}
+.command{display:grid;gap:10px;align-content:start}.command-head{border:1px solid var(--line);border-radius:9px;background:#fff;padding:13px}.command-title{display:flex;align-items:flex-start;gap:12px}.command-title h3{margin:0;font-size:17px;color:var(--navy)}.command-title p{margin:3px 0 0;color:var(--muted);font-size:10px}.actionrow{display:flex;gap:6px;flex-wrap:wrap}.command-title .actionrow{margin-left:auto}
+.health{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:7px;margin-top:12px}.kpi{border:1px solid var(--line);border-radius:7px;padding:9px;background:#fafcfc}.kpi span,.kpi strong,.kpi small{display:block}.kpi span{font-size:8px;color:var(--muted);text-transform:uppercase;font-weight:850}.kpi strong{margin-top:3px;color:var(--navy);font-size:17px}.kpi small{margin-top:2px;color:var(--muted);font-size:9px}.kpi.warn{border-color:#e4c48b;background:#fffaf0}.kpi.good{border-color:#bbd7c7;background:#f5fbf7}
+.tabs-shell{border:1px solid var(--line);border-radius:9px;background:#fff;overflow:hidden}.tabs{display:flex;overflow:auto;padding:0 7px;background:#f6f9fa;border-bottom:1px solid var(--line)}.tabs button{border:0;background:transparent;color:#526872;padding:10px 11px;font-weight:800;white-space:nowrap}.tabs button.on{color:var(--navy);background:#fff;box-shadow:inset 0 -3px 0 var(--teal)}
+.content{display:grid;grid-template-columns:1fr 1fr;gap:10px;padding:10px}.wide{grid-column:1/-1}.card{border:1px solid var(--line);border-radius:8px;background:#fff;overflow:hidden}.cardhead{display:flex;align-items:flex-start;gap:8px;padding:10px 11px;border-bottom:1px solid var(--line);background:#f8fafb}.cardhead h3{margin:0;font-size:13px;color:var(--navy)}.cardhead p{margin:3px 0 0;color:var(--muted);font-size:10px;line-height:1.45}.cardhead .right{margin-left:auto}.cardbody{padding:10px}
+.today{display:grid;grid-template-columns:minmax(0,1.25fr) minmax(300px,.75fr);gap:10px}.today-main{padding:11px;border:1px solid #d8e4e7;border-radius:8px;background:linear-gradient(135deg,#f8fbfc,#eef6f7)}.today-main h4{margin:3px 0 5px;font-size:14px;color:var(--navy)}.today-main p{margin:0;color:var(--muted);font-size:10px;line-height:1.5}.today-side{padding:11px;border:1px solid #ead0a2;border-radius:8px;background:#fff9ef}.today-side strong{display:block;color:var(--navy)}.today-side p{margin:4px 0 8px;color:var(--muted);font-size:10px;line-height:1.45}
+.cover-summary{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:7px;margin-bottom:9px}.cover-stat{padding:9px;border:1px solid #e2e9ec;border-radius:7px;background:#fbfcfd}.cover-stat span,.cover-stat strong,.cover-stat small{display:block}.cover-stat span{font-size:8px;color:var(--muted);text-transform:uppercase;font-weight:850}.cover-stat strong{margin-top:3px;color:var(--navy);font-size:16px}.cover-stat small{margin-top:2px;color:var(--muted);font-size:8px}.cover-stat.good{border-color:#bcd7c8;background:#f4fbf6}.cover-stat.warn{border-color:#e5c68c;background:#fffaf0}
+.cover-table{width:100%;border-collapse:collapse;min-width:850px}.cover-table th{text-align:left;padding:7px;background:#f5f8f9;border-bottom:1px solid var(--line);color:#647680;font-size:8px;text-transform:uppercase;letter-spacing:.04em}.cover-table td{padding:8px 7px;border-bottom:1px solid #edf1f3;vertical-align:top}.cover-table tr:last-child td{border-bottom:0}.cover-table strong,.cover-table small{display:block}.cover-table small{margin-top:2px;color:var(--muted);font-size:8px}.right{text-align:right}.tablewrap{overflow:auto}
+.coverbar{height:7px;border-radius:999px;background:#e7eef1;overflow:hidden;margin-top:5px}.coverbar span{display:block;height:100%;background:var(--ok)}.coverbar span.warn{background:#d08c1b}.coverbar span.bad{background:#b44343}
+.bill-list{display:grid}.bill{display:grid;grid-template-columns:minmax(0,1.3fr) 110px 110px 100px auto;gap:8px;align-items:center;padding:9px 0;border-bottom:1px solid #edf1f3}.bill:last-child{border-bottom:0}.bill strong,.bill small{display:block}.bill small{margin-top:2px;color:var(--muted);font-size:8px}.bill .date{font-weight:850;color:var(--navy)}.bill .amount{font-weight:900;color:var(--navy);text-align:right}.bill .status{text-align:right}
+.funding-rule{padding:9px 10px;border-left:4px solid var(--teal);border-radius:6px;background:#eef8fa;color:#42616e;font-size:10px;line-height:1.5;margin-top:9px}
+.funding-rule.warn{border-left-color:#d08c1b;background:#fff8e8}
+.funding-rule.bad{border-left-color:#b44343;background:#fff2f2}
+.timeline{display:grid}.timeline-row{display:grid;grid-template-columns:86px 9px minmax(0,1fr) auto;gap:8px;align-items:start;padding:8px 0;border-bottom:1px solid #edf1f3}.timeline-row:last-child{border-bottom:0}.timeline-row time{font-size:9px;font-weight:850;color:var(--navy)}.dot{width:9px;height:9px;border-radius:50%;background:var(--teal);margin-top:3px}.dot.warn{background:#d08c1b}.dot.bad{background:#b44343}.timeline-row strong,.timeline-row small{display:block}.timeline-row small{margin-top:2px;color:var(--muted);font-size:8px}.timeline-row em{font-style:normal;font-size:9px;font-weight:900;color:var(--navy)}
+.alert{display:grid;grid-template-columns:4px minmax(0,1fr) auto;gap:9px;align-items:center;padding:8px 0;border-bottom:1px solid #edf1f3}.alert:last-child{border-bottom:0}.alert .bar{height:100%;min-height:38px;border-radius:99px;background:#d08c1b}.alert.bad .bar{background:#b44343}.alert strong,.alert small{display:block}.alert small{margin-top:2px;color:var(--muted);font-size:8px}.alert em{font-style:normal;font-weight:900;color:var(--navy);font-size:9px}
+@media(max-width:1180px){.app{grid-template-columns:180px minmax(0,1fr)}.workspace-grid{grid-template-columns:270px minmax(0,1fr)}.health{grid-template-columns:repeat(3,1fr)}.content{grid-template-columns:1fr}.wide{grid-column:auto}.today{grid-template-columns:1fr}.cover-summary{grid-template-columns:repeat(2,1fr)}}
+@media(max-width:820px){.stage{padding:6px}.lab-intro{grid-template-columns:1fr}.account-switch{flex-wrap:wrap}.app{display:block}.sidebar,.topbar{display:none}.page{padding:8px}.directory-controls{display:none}.drow{grid-template-columns:minmax(0,1fr) 90px 110px}.drow>div:nth-child(3),.drow>div:nth-child(4),.drow>div:nth-child(5){display:none}.workspace-grid{grid-template-columns:1fr}.health{grid-template-columns:repeat(2,1fr)}.content{grid-template-columns:1fr}.cover-summary{grid-template-columns:1fr 1fr}.bill{grid-template-columns:1fr 90px}.bill>*:nth-child(3),.bill>*:nth-child(4){display:none}}
+</style>
+</head>
+<body>
+<div class="labbar"><strong>POOL SHED · SUPPLIER WORKSPACE DESIGN LAB</strong><span class="hint">Approved direction B · refined funding control concept</span><span class="labtag">v5 · prototype only</span></div>
+<div class="stage">
+  <div class="lab-intro">
+    <div><h1>Option B refinement · Supplier Funding Control</h1><p>Supplier identity stays persistent on the left. The operational side now connects supplier terms, due dates, Purchase Orders, Sales Orders and customer receipts into one funding view.</p></div>
+    <div class="account-switch"><button class="on" data-account="credit">Preview Credit Account</button><button data-account="proforma">Preview Pro Forma</button></div>
+  </div>
+  <div class="prototype-note"><b>Design Lab only.</b> The figures below are illustrative so you can approve the workflow and hierarchy before anything is applied to the live Supplier workspace.</div>
+  <div id="app"></div>
+</div>
+<script>
+const data={
+  credit:{
+    accountType:'Credit account',accountPill:'Credit · Net 30',creditLimit:20000,terms:'Net 30',dueRule:'Invoice due 30 days from invoice date',
+    currentBills:3250,openPo:4794.33,projected:8044.33,headroom:11955.67,
+    nextBill:{ref:'BILL-2148',po:'PO-1053',due:'07 Oct 2026',amount:2876.60,status:'Due in 7 days'},
+    fundingTitle:'Customer cash cover is sufficient for the next supplier bill.',
+    fundingText:'The linked Sales Orders have £3,500.00 of customer receipts available against £2,876.60 due to Carro Pools on 07 Oct. £2,876.60 can be reserved to this supplier commitment without double-counting the customer payment.',
+    coverTone:'good'
+  },
+  proforma:{
+    accountType:'Pro Forma account',accountPill:'Pro Forma · pay before release',creditLimit:0,terms:'Payment before dispatch',dueRule:'Supplier payment required before PO release',
+    currentBills:0,openPo:4794.33,projected:4794.33,headroom:0,
+    nextBill:{ref:'PROFORMA-1053',po:'PO-1053',due:'Before release',amount:4794.33,status:'Funding required'},
+    fundingTitle:'PO release should be gated by customer cash received.',
+    fundingText:'The supplier requires £4,794.33 before releasing PO-1053. Linked customer receipts currently provide £3,500.00, leaving a £1,294.33 funding shortfall. Pool Shed should warn before supplier payment or release.',
+    coverTone:'warn'
+  }
+};
+let mode='credit';
+const money=n=>'£'+Number(n||0).toLocaleString('en-GB',{minimumFractionDigits:2,maximumFractionDigits:2});
+const pill=(txt,kind='dark')=>'<span class="pill '+kind+'">'+txt+'</span>';
+
+const directory=`
+<section class="directory">
+  <div class="directory-head"><div><div class="eyebrow">SUPPLIER DIRECTORY</div><h2>Supplier work queue</h2><p>Delivery, account and purchasing health in one place.</p></div><div class="directory-controls"><input placeholder="Search supplier, code, account or contact"/><select><option>All suppliers</option><option>Needs attention</option><option>Preferred</option></select></div></div>
+  <div class="drow head"><div>Supplier</div><div>On time</div><div>Lead</div><div>Open POs</div><div>Credit</div><div>Attention</div></div>
+  <div class="drow selected"><div><strong>Carro Pools</strong><small>CARRO-POOLS · Preferred</small></div><div><strong>0%</strong><small>on time</small></div><div><strong>0d</strong><small>actual lead</small></div><div><strong>1</strong><small>open PO</small></div><div><strong id="dirCredit">£20,000</strong><small id="dirHeadroom">£11,955.67 headroom</small></div><div><span class="pill warn">5 flags</span></div></div>
+  <div class="drow"><div><strong>Not applicable</strong><small>NOT-APPLICABLE</small></div><div><strong>0%</strong><small>on time</small></div><div><strong>0d</strong><small>actual lead</small></div><div><strong>0</strong><small>open POs</small></div><div><strong>No limit</strong><small>£0 headroom</small></div><div><span class="pill ok">Healthy</span></div></div>
+  <div class="drow"><div><strong>Supplier to confirm</strong><small>SUPPLIER-TO-CONFIRM</small></div><div><strong>0%</strong><small>on time</small></div><div><strong>0d</strong><small>actual lead</small></div><div><strong>0</strong><small>open POs</small></div><div><strong>No limit</strong><small>£0 headroom</small></div><div><span class="pill ok">Healthy</span></div></div>
+</section>`;
+
+const tabs=`<div class="tabs"><button class="on">Overview</button><button>Contacts</button><button>Products & Price Lists</button><button>Purchase Orders</button><button>Late & Backorders</button><button>Returns & Credits</button><button>Bills & Credits</button><button>Spend & Performance</button><button>Notes & Activity</button></div>`;
+
+function profile(d){
+  const isCredit=mode==='credit';
+  return `
+  <aside class="profile">
+    <div class="profile-banner"><div class="avatar">CP</div></div>
+    <div class="profile-body">
+      <div class="eyebrow">SUPPLIER PROFILE</div><h2>Carro Pools</h2><p>CARRO-POOLS · supplier master record</p>
+      <div class="statusline">${pill('Active','ok')}${pill('Preferred','ok')}${pill('GBP')}${pill(d.accountPill,isCredit?'info':'warn')}</div>
+      <div class="payment-account">
+        <div class="payment-account-head"><strong>Payment account</strong>${pill(d.accountType,isCredit?'info':'warn')}</div>
+        <p>${d.dueRule}</p>
+        <div class="account-facts">
+          <div><span>Terms</span><strong>${d.terms}</strong><small>supplier master</small></div>
+          <div><span>Credit limit</span><strong>${isCredit?money(d.creditLimit):'Not applicable'}</strong><small>${isCredit?'trade limit':'prepayment supplier'}</small></div>
+          <div><span>Projected exposure</span><strong>${money(d.projected)}</strong><small>bills + open POs</small></div>
+          <div><span>${isCredit?'Headroom':'Funding shortfall'}</span><strong>${isCredit?money(d.headroom):money(Math.max(0,d.nextBill.amount-3500))}</strong><small>${isCredit?'after open commitments':'before PO release'}</small></div>
+        </div>
+      </div>
+      <div class="profile-list">
+        <div><span>Primary contact</span><strong>Not set</strong></div><div><span>Orders email</span><strong>Not set</strong></div><div><span>Telephone</span><strong>Not set</strong></div><div><span>Address</span><strong>Not set</strong></div><div><span>Account number</span><strong>Not set</strong></div><div><span>Standard lead</span><strong>3 days</strong></div>
+      </div>
+      <div class="profile-actions"><button class="btn primary">Edit Supplier Profile</button><button class="btn">Contacts</button><button class="btn">Notes</button></div>
+    </div>
+  </aside>`;
+}
+
+function fundingCard(d){
+  const isCredit=mode==='credit';
+  const cover=isCredit?100:73;
+  const tone=isCredit?'good':'warn';
+  return `
+  <section class="card wide">
+    <div class="cardhead"><div><h3>Customer Cash Cover</h3><p>Connect supplier commitments back to linked Sales Orders and actual customer receipts.</p></div><div class="right">${pill(isCredit?'Next bill funded':'Funding gap',''+(isCredit?'ok':'warn'))}</div></div>
+    <div class="cardbody">
+      <div class="cover-summary">
+        <div class="cover-stat"><span>Linked supplier commitments</span><strong>${money(4794.33)}</strong><small>PO-1053</small></div>
+        <div class="cover-stat"><span>Customer receipts received</span><strong>${money(3500)}</strong><small>linked Sales Orders only</small></div>
+        <div class="cover-stat ${tone}"><span>${isCredit?'Next bill reserved':'Available to fund'}</span><strong>${money(isCredit?2876.60:3500)}</strong><small>protected from double use</small></div>
+        <div class="cover-stat ${isCredit?'good':'warn'}"><span>${isCredit?'Funding surplus':'Funding shortfall'}</span><strong>${money(isCredit?623.40:1294.33)}</strong><small>${isCredit?'after next bill':'before supplier release'}</small></div>
+      </div>
+      <div class="tablewrap"><table class="cover-table"><thead><tr><th>Supplier commitment</th><th>Linked customer sale</th><th>Customer cash</th><th>Supplier due</th><th>Cover</th><th>Status</th></tr></thead><tbody>
+        <tr><td><strong>PO-1053 · Carro Pools</strong><small>One-piece pool equipment / custom lines</small></td><td><strong>SO-2741 · One-Piece Pool Package</strong><small>linked project customer order</small></td><td><strong>${money(3500)} received</strong><small>${money(isCredit?2876.60:3500)} reserved to supplier funding</small></td><td><strong>${money(d.nextBill.amount)}</strong><small>${d.nextBill.due}</small></td><td><strong>${cover}%</strong><div class="coverbar"><span class="${isCredit?'':'warn'}" style="width:${cover}%"></span></div></td><td>${pill(isCredit?'Funded':'£1,294.33 short',''+(isCredit?'ok':'warn'))}</td></tr>
+        <tr><td><strong>PO-1051 · Carro Pools</strong><small>custom item confirmation</small></td><td><strong>SO-2738 · Landscaping Extra</strong><small>customer order linked to project</small></td><td><strong>£0.00 received</strong><small>no cash reserved</small></td><td><strong>£1,120.00</strong><small>supplier date awaiting confirmation</small></td><td><strong>0%</strong><div class="coverbar"><span class="bad" style="width:0%"></span></div></td><td>${pill('Await customer cash','bad')}</td></tr>
+      </tbody></table></div>
+      <div class="funding-rule ${isCredit?'':'warn'}"><b>System behaviour:</b> Pool Shed should reserve customer receipts against linked supplier commitments so the same receipt cannot appear to fund multiple POs. ${isCredit?'For credit accounts, warn before a bill due date if reserved cash is insufficient.':'For pro forma accounts, block or strongly warn before PO release/payment when linked customer cash does not cover the supplier requirement.'}</div>
+    </div>
+  </section>`;
+}
+
+function billsCard(d){
+ const isCredit=mode==='credit';
+ return `
+ <section class="card">
+  <div class="cardhead"><div><h3>Bills & Commitments Due</h3><p>What is payable to this supplier, sorted by the date money is needed.</p></div><div class="right">${pill(isCredit?'£3,250 bills open':'Pro forma funding',''+(isCredit?'info':'warn'))}</div></div>
+  <div class="cardbody">
+   <div class="bill-list">
+    <div class="bill"><div><strong>${d.nextBill.ref}</strong><small>Linked to ${d.nextBill.po} · SO-2741</small></div><div class="date">${d.nextBill.due}</div><div class="amount">${money(d.nextBill.amount)}</div><div><small>Customer cover</small><strong>${isCredit?'100%':'73%'}</strong></div><div class="status">${pill(d.nextBill.status,isCredit?'warn':'bad')}</div></div>
+    <div class="bill"><div><strong>PO-1051 commitment</strong><small>Awaiting supplier confirmation · linked SO-2738</small></div><div class="date">TBC</div><div class="amount">£1,120.00</div><div><small>Customer cover</small><strong>0%</strong></div><div class="status">${pill('Cash not received','bad')}</div></div>
+    ${isCredit?'<div class="bill"><div><strong>BILL-2139</strong><small>Historic supplier bill · matched</small></div><div class="date">14 Oct 2026</div><div class="amount">£373.40</div><div><small>Customer cover</small><strong>Internal cash</strong></div><div class="status">'+pill('Due in 14 days','info')+'</div></div>':''}
+   </div>
+  </div>
+ </section>`;
+}
+
+function timelineCard(d){
+ return `
+ <section class="card">
+  <div class="cardhead"><div><h3>Supplier Payment Timeline</h3><p>Dates that affect cash, PO release and supplier continuity.</p></div></div>
+  <div class="cardbody"><div class="timeline">
+   <div class="timeline-row"><time>30 Sep</time><span class="dot"></span><div><strong>Customer receipt available</strong><small>£3,500 received on linked Sales Order SO-2741.</small></div><em>Received</em></div>
+   <div class="timeline-row"><time>${mode==='credit'?'07 Oct':'Before release'}</time><span class="dot ${mode==='credit'?'warn':'bad'}"></span><div><strong>${mode==='credit'?'Supplier bill BILL-2148 due':'PO-1053 supplier payment required'}</strong><small>${money(d.nextBill.amount)} required · linked to PO-1053.</small></div><em>${mode==='credit'?'Funded':'£1,294 short'}</em></div>
+   <div class="timeline-row"><time>07 Oct</time><span class="dot warn"></span><div><strong>PO-1053 expected completion</strong><small>8 units remain outstanding after short receipt.</small></div><em>Chase</em></div>
+   <div class="timeline-row"><time>14 Oct</time><span class="dot"></span><div><strong>Next account review</strong><small>Recheck supplier exposure, linked customer cash and overdue confirmations.</small></div><em>Review</em></div>
+  </div></div>
+ </section>`;
+}
+
+function actionsCard(){
+ return `
+ <section class="card"><div class="cardhead"><div><h3>Immediate Supplier Actions</h3><p>Finance and operations exceptions in one queue.</p></div><div class="right">${pill('5 open','warn')}</div></div><div class="cardbody">
+  <div class="alert bad"><span class="bar"></span><div><strong>PO-1053 received short</strong><small>18 of 26 received, 8 outstanding.</small></div><em>Review</em></div>
+  <div class="alert ${mode==='proforma'?'bad':''}"><span class="bar"></span><div><strong>${mode==='credit'?'Next supplier bill needs reserved cash':'PO-1053 is not fully funded'}</strong><small>${mode==='credit'?'Reserve £2,876.60 from linked customer receipts before 07 Oct.':'£1,294.33 customer funding gap before supplier payment.'}</small></div><em>${mode==='credit'?'Reserve':'Chase cash'}</em></div>
+  <div class="alert"><span class="bar"></span><div><strong>Supplier chase due for PO-1051</strong><small>Custom item needs confirmation and a supplier due date.</small></div><em>Chase</em></div>
+ </div></section>`;
+}
+
+function render(){
+ const d=data[mode],isCredit=mode==='credit';
+ document.querySelectorAll('[data-account]').forEach(b=>b.classList.toggle('on',b.dataset.account===mode));
+ document.getElementById('app').innerHTML=`
+ <div class="app"><aside class="sidebar"><div class="brand"><div class="brandmark">PB</div><div><b>The Pool Shed</b><small>Pool Bros operations</small></div></div><div class="group">Core</div><div class="nav">Dashboard</div><div class="nav">CRM</div><div class="nav">Sales Orders</div><div class="nav">Quotes</div><div class="nav">Projects</div><div class="group">Operations</div><div class="nav">Product Hub</div><div class="nav">Inventory</div><div class="nav on">Purchasing</div><div class="nav">Warehouse</div><div class="nav">Fulfilment</div></aside>
+ <main class="main"><div class="topbar"><span class="crumb">Purchasing / Suppliers / Carro Pools</span><input class="search" placeholder="Search Pool Shed…"/></div><div class="page">${directory}
+ <section class="workspace"><div class="workspace-grid">${profile(d)}<div class="command">
+  <header class="command-head"><div class="command-title"><div><div class="eyebrow">SUPPLIER OPERATIONS</div><h3>Carro Pools funding & account position</h3><p>Purchasing, receiving, supplier due dates and linked customer cash in one operational view.</p></div><div class="actionrow"><button class="btn primary">New PO</button><button class="btn">Products & Price Lists</button><button class="btn">Open Bills</button></div></div>
+   <div class="health"><div class="kpi"><span>Account type</span><strong style="font-size:14px">${d.accountType}</strong><small>${d.terms}</small></div><div class="kpi"><span>Open supplier exposure</span><strong>${money(d.projected)}</strong><small>bills + open POs</small></div><div class="kpi ${isCredit?'good':'warn'}"><span>${isCredit?'Credit headroom':'Funding available'}</span><strong>${isCredit?money(d.headroom):money(3500)}</strong><small>${isCredit?'after commitments':'customer receipts'}</small></div><div class="kpi ${isCredit?'good':'warn'}"><span>Next supplier need</span><strong>${money(d.nextBill.amount)}</strong><small>${d.nextBill.due}</small></div><div class="kpi warn"><span>Needs attention</span><strong style="color:#9a6200">5</strong><small>finance + operations</small></div></div>
+  </header>
+  <section class="tabs-shell">${tabs}<div class="content">
+   <div class="today wide"><div class="today-main"><div class="eyebrow">TODAY'S FUNDING POSITION</div><h4>${d.fundingTitle}</h4><p>${d.fundingText}</p><div class="actionrow" style="margin-top:9px"><button class="btn primary">${isCredit?'Reserve customer cash':'Open linked Sales Order'}</button><button class="btn">${isCredit?'Open next supplier bill':'Request / chase customer payment'}</button><button class="btn">Open PO-1053</button></div></div><div class="today-side">${pill(isCredit?'Covered':'Funding gap',isCredit?'ok':'warn')}<strong style="margin-top:7px">${isCredit?'Next bill can be funded from linked customer cash.':'Do not treat the PO as fully funded yet.'}</strong><p>${isCredit?'The system should reserve the amount so the same receipt cannot fund another supplier commitment.':'The system should surface the shortfall everywhere this PO is reviewed or prepared for payment.'}</p></div></div>
+   ${fundingCard(d)}${billsCard(d)}${timelineCard(d)}${actionsCard()}
+   <section class="card"><div class="cardhead"><div><h3>Commercial Linking Rules</h3><p>How Pool Shed should keep Sales Orders, customer receipts and supplier obligations aligned.</p></div></div><div class="cardbody"><div class="funding-rule"><b>1. PO ↔ Sales Order:</b> show every Sales Order or project demand that caused the supplier commitment.</div><div class="funding-rule"><b>2. Customer payment ↔ supplier cover:</b> only count actual customer receipts, not just the Sales Order value.</div><div class="funding-rule"><b>3. Reserve cash once:</b> when cash is earmarked for a supplier commitment, stop it being counted again elsewhere.</div><div class="funding-rule ${isCredit?'warn':'bad'}"><b>4. Payment control:</b> ${isCredit?'warn when a supplier bill is approaching its due date without enough reserved customer cash or approved internal funding.':'do not release/pay a pro forma PO without showing the funding source and any shortfall.'}</div></div></section>
+  </div></section>
+ </div></div></section>
+ </div></main></div>`;
+ document.getElementById('dirCredit').textContent=isCredit?'£20,000':'Pro Forma';
+ document.getElementById('dirHeadroom').textContent=isCredit?'£11,955.67 headroom':'pay before release';
+}
+
+document.querySelectorAll('[data-account]').forEach(b=>b.addEventListener('click',()=>{mode=b.dataset.account;render()}));
+render();
+</script>
+</body>
+</html>
