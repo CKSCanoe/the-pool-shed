@@ -330,7 +330,7 @@ const registry={
     run:({db,args})=>{const data=stockMovementInsights(db,args);return result(data,data.fastMovers.slice(0,10).flatMap(x=>[evidence('product',x.sku,x.name,'outboundQty',x.outboundQty),evidence('product',x.sku,'Weeks cover','weeksCover',x.weeksCover==null?'No outbound rate':x.weeksCover)]));}
   },
   get_order_trends:{
-    permission:'projects.read',description:'Analyse live Sales Order demand and Purchase Order buying trends, including growing products, purchase cost direction and advisory replenishment warnings.',
+    permission:'projects.read',requires:['stock.read'],description:'Analyse live Sales Order demand and Purchase Order buying trends, including growing products, purchase cost direction and advisory replenishment warnings.',
     run:({db,args,user})=>{const data=orderTrends(db,args);if(!can(user,'purchasing.read'))data.purchaseTrends=[];return result(data,data.trendingSales.slice(0,10).map(x=>evidence('product',x.sku,x.name,'demandTrend',x.currentUnits+' recent-half units vs '+x.previousUnits+' previous-half units')));}
   },
   get_product_recommendations:{
