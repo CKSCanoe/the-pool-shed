@@ -4920,14 +4920,152 @@ const seed = {
         return '<div class="po-overview-grid"><section class="po-card wide"><div class="po-card-head"><div><span>Supplier profile</span><h3>' + escapeHtml(supplier.name) + '</h3><p>Supplier information, lead time and terms used throughout purchasing and accounts.</p></div><button class="secondary" data-edit-supplier-profile="' + escapeHtml(supplier.name) + '">Edit supplier</button></div>' + supplierProfileCard(supplier, po) + '</section><section class="po-card"><div class="po-card-head"><div><span>Ordering terms</span><h3>Commercial controls</h3></div></div><div class="po-stat-list"><div><span>Lead time</span><strong>' + Number(supplier.leadTimeDays || 0) + ' days</strong></div><div><span>Payment terms</span><strong>' + escapeHtml(supplier.terms || 'Not set') + '</strong></div><div><span>Open POs</span><strong>' + data.purchaseOrders.filter(function(x){return x.supplier===supplier.name && !['Received','Cancelled'].includes(x.status);}).length + '</strong></div></div></section></div>';
       }
 
+      function historyEventMeta(type) {
+        const map = {
+          created: { label:"Created", icon:"+" },
+          payment: { label:"Payment", icon:"£" },
+          correction: { label:"Correction", icon:"!" },
+          product: { label:"Product", icon:"+" },
+          purchase: { label:"PO / Link", icon:"PO" },
+          stock: { label:"Stock / Goods In", icon:"GI" },
+          fulfilment: { label:"Fulfilment", icon:"✓" },
+          invoice: { label:"Invoice", icon:"INV" },
+          status: { label:"Status", icon:"↻" },
+          supplier: { label:"Supplier", icon:"@" },
+          note: { label:"Note", icon:"N" }
+        };
+        return map[type] || map.note;
+      }
+
+      function historyEventType(trigger, subject) {
+        const text = (String(trigger || "") + " " + String(subject || "")).toLowerCase();
+        if (/payment correction|refund|sales credit|credit completed|deleted/.test(text)) return "correction";
+        if (/payment/.test(text)) return "payment";
+        if (/invoice/.test(text)) return "invoice";
+        if (/purchase order|short stock po|supplier email|subscription sales order|\bpo\b/.test(text)) return "purchase";
+        if (/goods.?in|allocation|allocate|stock|receipt|putaway|received from/.test(text)) return "stock";
+        if (/pick|pack|ship|dispatch|fulfil|goods note/.test(text)) return "fulfilment";
+        if (/line|product|item|price|tax code|shipping charge/.test(text)) return "product";
+        if (/status|review/.test(text)) return "status";
+        if (/created/.test(text)) return "created";
+        if (/supplier/.test(text)) return "supplier";
+        return "note";
+      }
+
+      function historyDisplayDate(value) {
+        const raw = String(value || "").trim();
+        if (!raw) return "Date not recorded";
+        if (/^Historical/i.test(raw)) return raw;
+        let normalized = raw;
+        if (/^\d{4}-\d{2}-\d{2} \d{2}:\d{2}/.test(raw)) normalized = raw.replace(" ", "T");
+        if (/^\d{4}-\d{2}-\d{2}$/.test(raw)) normalized = raw + "T12:00:00";
+        const date = new Date(normalized);
+        if (Number.isNaN(date.getTime())) return raw;
+        const hasTime = /[T ]\d{2}:\d{2}/.test(raw);
+        return date.toLocaleString("en-GB", hasTime
+          ? { day:"2-digit", month:"short", year:"numeric", hour:"2-digit", minute:"2-digit" }
+          : { day:"2-digit", month:"short", year:"numeric" }
+        ).replace(",", "");
+      }
+
+      function historySortValue(value) {
+        const raw = String(value || "").trim();
+        if (!raw || /^Historical/i.test(raw)) return 0;
+        const normalized = /^\d{4}-\d{2}-\d{2} \d{2}:\d{2}/.test(raw) ? raw.replace(" ", "T") : (/^\d{4}-\d{2}-\d{2}$/.test(raw) ? raw + "T12:00:00" : raw);
+        const time = new Date(normalized).getTime();
+        return Number.isNaN(time) ? 0 : time;
+      }
+
+      function renderActivityHistory(events, emptyText) {
+        const rows = (events || []).map(function(event, index) {
+          return Object.assign({ _index:index }, event);
+        }).sort(function(a,b) {
+          return historySortValue(b.date) - historySortValue(a.date) || b._index - a._index;
+        });
+        if (!rows.length) return '<div class="ps-history-empty">' + escapeHtml(emptyText || "No activity recorded yet.") + '</div>';
+        return '<div class="ps-history-list">' + rows.map(function(event) {
+          const type = event.type || historyEventType(event.title, event.detail);
+          const meta = historyEventMeta(type);
+          const badge = event.badge || meta.label;
+          const extra = event.meta ? '<span class="ps-history-meta">' + escapeHtml(event.meta) + '</span>' : '';
+          return '<article class="ps-history-item" data-history-type="' + escapeHtml(type) + '">' +
+            '<div class="ps-history-marker"><span>' + escapeHtml(meta.icon) + '</span></div>' +
+            '<div class="ps-history-main"><div class="ps-history-top"><span class="ps-history-badge">' + escapeHtml(badge) + '</span><time>' + escapeHtml(historyDisplayDate(event.date)) + '</time></div>' +
+            '<strong>' + escapeHtml(event.title || meta.label) + '</strong>' +
+            (event.detail ? '<p>' + escapeHtml(event.detail) + '</p>' : '') +
+            extra + '</div>' +
+          '</article>';
+        }).join("") + '</div>';
+      }
+
       function purchaseOrderActivitySection(po) {
-        const events = [
-          { label: 'Created', value: po.createdAt || po.orderedDate || todayIso() },
-          { label: 'Status', value: po.status || 'Draft' },
-          { label: 'Reviewed', value: po.reviewedAt || 'Not reviewed' },
-          { label: 'Supplier email', value: po.supplierEmailSentAt || po.supplierEmailStatus || 'Not sent' }
-        ];
-        return '<section class="po-card"><div class="po-card-head"><div><span>Audit trail</span><h3>Purchase order activity</h3><p>Key purchasing milestones and linked actions.</p></div></div><div class="po-timeline">' + events.map(function(e){ return '<div><span></span><section><strong>' + escapeHtml(e.label) + '</strong><p>' + escapeHtml(String(e.value)) + '</p></section></div>'; }).join('') + '</div></section>';
+        const events = [];
+        const lineDates = (po.lines || []).map(function(line){ return line.orderedDate || line.createdAt || ""; }).filter(Boolean).sort();
+        const createdDate = po.createdAt || po.orderedDate || lineDates[0] || "";
+        events.push({
+          type:"created",
+          title:"Purchase order created",
+          detail:(po.source || "Purchase order") + " · " + (po.supplier || "Supplier to confirm"),
+          date:createdDate,
+          meta:"PO " + po.id
+        });
+        events.push({
+          type:"status",
+          title:"Current status: " + (po.status || "Draft"),
+          detail:po.reviewStatus ? "Review status: " + po.reviewStatus : "Current purchasing state",
+          date:po.supplierEmailSentAt || po.reviewedAt || createdDate,
+          meta:"Live status"
+        });
+        if (po.splitFromPoId) {
+          events.push({ type:"purchase", badge:"PO Split", title:"Split from " + po.splitFromPoId, detail:"Remaining supplier quantity moved into this purchase order.", date:createdDate, meta:"Linked purchasing" });
+        }
+        const linked = {};
+        (po.lines || []).forEach(function(line) {
+          const p = product(line.productId);
+          const lineDate = line.orderedDate || createdDate;
+          events.push({
+            type:"product",
+            badge:"Product",
+            title:(p ? p.sku : line.productId || "Product") + " × " + Number(line.qty || 0),
+            detail:(p ? p.name : "Product line") + (line.salesOrderId ? " · linked to " + line.salesOrderId : " · general stock"),
+            date:lineDate,
+            meta:line.supplierSku ? "Supplier SKU " + line.supplierSku : "Purchase order line"
+          });
+          if (line.salesOrderId) {
+            if (!linked[line.salesOrderId]) linked[line.salesOrderId] = { count:0, date:lineDate };
+            linked[line.salesOrderId].count += 1;
+            if (lineDate && (!linked[line.salesOrderId].date || lineDate < linked[line.salesOrderId].date)) linked[line.salesOrderId].date = lineDate;
+          }
+        });
+        Object.keys(linked).forEach(function(orderId) {
+          const row = linked[orderId];
+          events.push({
+            type:"purchase",
+            badge:"Linked SO",
+            title:"Linked to Sales Order " + orderId,
+            detail:row.count + " product line" + (row.count === 1 ? "" : "s") + " connected to this PO.",
+            date:row.date || createdDate,
+            meta:"Sales Order link"
+          });
+        });
+        if (po.reviewedAt) events.push({ type:"status", badge:"Reviewed", title:"Purchase order reviewed", detail:"Approved for supplier preparation" + (po.reviewedBy ? " by " + po.reviewedBy : ""), date:po.reviewedAt, meta:po.reviewStatus || "Reviewed" });
+        if (po.supplierEmailSentAt) events.push({ type:"supplier", badge:"Supplier", title:"Supplier order sent", detail:(po.supplierEmailSubject || po.id) + " · " + (po.supplier || "Supplier"), date:po.supplierEmailSentAt, meta:po.supplierEmailStatus || "Sent" });
+        else if (po.supplierEmailStatus && po.supplierEmailStatus !== "Blocked until reviewed") events.push({ type:"supplier", badge:"Supplier", title:"Supplier email: " + po.supplierEmailStatus, detail:"Supplier communication state for this PO.", date:po.reviewedAt || createdDate, meta:"Email workflow" });
+
+        (data.receiptEvents || []).filter(function(event){ return event.poId === po.id; }).forEach(function(event) {
+          const p = product(event.productId);
+          const location = locationById(event.locationId);
+          events.push({
+            type:"stock",
+            badge:"Goods In",
+            title:Number(event.qty || 0) + " × " + (p ? p.sku : event.productId || "product") + " received",
+            detail:(p ? p.name : "Product") + " · " + (location ? location.name : event.locationId || "Location not recorded") + (event.supplierReference ? " · Ref " + event.supplierReference : ""),
+            date:event.date || (event.legacy ? "Historical opening balance" : ""),
+            meta:(event.user || "Warehouse") + (event.note ? " · " + event.note : "")
+          });
+        });
+
+        return '<section class="po-card"><div class="po-card-head"><div><span>Audit trail</span><h3>Purchase order activity</h3><p>Latest activity first, colour coded by product, PO link, supplier and goods-in events.</p></div></div>' + renderActivityHistory(events, "No purchase order activity recorded yet.") + '</section>';
       }
 
       function supplierProfileCard(supplier, po) {
@@ -8064,7 +8202,7 @@ const seed = {
           return panel("Files", "Attachments for quotes, drawings, dispatch notes and supplier documents.", '<p class="muted">No files uploaded in the system yet.</p>');
         }
         if (salesOrderTab === "notes") {
-          return panel("Notes and Payment History", "Every print, pick, pack, ship, invoice, payment and manual note is recorded against this sales order.", '<div class="notes-form"><label>Free text order note<textarea id="manualOrderNote" placeholder="Type an internal note, payment update, customer call, delivery issue or sales order change"></textarea></label><button data-save-order-note="' + order.id + '">Save note</button></div>' + paymentHistoryTable(order) + '<div class="notice-row">' + orderHistoryForOrder(order.id) + '</div>');
+          return panel("Notes and Payment History", "Every print, pick, pack, ship, invoice, payment and manual note is recorded against this sales order.", '<div class="notes-form"><label>Free text order note<textarea id="manualOrderNote" placeholder="Type an internal note, payment update, customer call, delivery issue or sales order change"></textarea></label><button data-save-order-note="' + order.id + '">Save note</button></div>' + paymentHistoryTable(order) + '<div class="ps-history-section-head"><div><span>ORDER HISTORY</span><h3>Activity timeline</h3></div><p>Latest activity first. Colours separate payments, products, stock, POs, invoices and fulfilment.</p></div>' + orderHistoryForOrder(order.id));
         }
         return '<div class="action-row" data-ps-secondary-actions="true" style="margin-bottom:.55rem"><button class="secondary" data-selected-line-action="advancedFulfil" data-order-id="' + order.id + '">Print · Pick · Pack · Ship</button><button class="secondary" data-selected-line-action="salesCredit" data-order-id="' + order.id + '">Clone to Sales Credit</button><button class="secondary" data-selected-line-action="salesOrder" data-order-id="' + order.id + '">Clone to Sales Order</button><button class="secondary" data-selected-line-action="purchaseOrder" data-order-id="' + order.id + '">Clone to Purchase Order</button><button class="secondary" data-selected-line-action="backOrder" data-order-id="' + order.id + '">Split to Back Order</button><button class="secondary" data-selected-line-action="taxCode" data-order-id="' + order.id + '">Assign tax code</button></div><table class="order-lines-table"><thead><tr><th></th><th>Stock status</th><th>Item code</th><th>Details</th><th>Account</th><th>Tax code</th><th>Qty</th><th>Allocated</th><th>Picked</th><th>Packed</th><th class="right">Price</th><th class="right">Total</th><th>Action</th></tr></thead><tbody>' + lineRows + '</tbody></table>' + salesOrderAddRow(order) + salesOrderTotalsBox(order) + '<div class="grid two" style="margin-top:1rem">' +
           panel("Linked Purchase Orders", "PO lines allocated to this sales order/customer. Short-stock PO lines must be reviewed before supplier email is prepared.", '<table><thead><tr><th>PO</th><th>Status</th><th>Due</th><th>Lines</th><th>Actions</th></tr></thead><tbody>' + poRows + '</tbody></table>') +
@@ -8605,8 +8743,24 @@ const seed = {
 
       function orderHistoryForOrder(orderId) {
         const order = salesOrder(orderId);
-        const created = '<div class="notice-item"><strong>Created: Sales order imported from ' + order.source + '</strong><p class="muted">System · Saved · ' + order.created + '</p></div>';
-        return created + notificationLogForOrder(orderId);
+        if (!order) return renderActivityHistory([], "No sales order activity recorded yet.");
+        const events = [{
+          type:"created",
+          title:"Sales order created",
+          detail:"Sales order imported from " + (order.source || "Manual"),
+          date:order.created || "",
+          meta:"System · Saved"
+        }];
+        data.notifications.filter(function(item) { return item.salesOrderId === orderId; }).forEach(function(item) {
+          events.push({
+            type:historyEventType(item.trigger, item.subject),
+            title:item.trigger || "Order activity",
+            detail:item.subject || item.body || "",
+            date:item.date || "",
+            meta:(item.channel || "System") + " · " + (item.status || "Saved")
+          });
+        });
+        return renderActivityHistory(events, "No sales order activity recorded yet.");
       }
 
       function salesOrderBoard() {
