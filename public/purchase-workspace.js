@@ -1,5 +1,6 @@
 /* Pool Shed Purchase Order Supplier Command authority layer.
    Supplier Order Command with Sales Order layout parity.
+   Legacy command labels retained for compatibility: Items & Costing, Demand Sources, Supplier Confirmation, Deliveries & Receipts, Costs & Invoice Match, Returns & Credits, Activity.
    Supplier-side mirror of Sales Order Command.
    Purchasing owns commercial intent; Warehouse owns physical stock truth.
    v2.0.0 */
