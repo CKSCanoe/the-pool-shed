@@ -162,7 +162,8 @@
       const family = nonStock ? so2CustomProductName(line,p) : salesOrderProductFamily(p);
       const locked = Number(line.allocated||0) > 0 || Number(line.picked||0) > 0 || Number(line.packed||0) > 0 || Number(line.shipped||0) > 0 ||
         goodsNotesForOrder(order.id).some(function(note){ return note.lines.some(function(nl){ return nl.productId === line.productId; }); });
-      const removable = canRemoveSalesOrderLine(line, order);
+      const deleteCheck = so2SalesLineDeleteAssessment(order,line);
+      const removable = deleteCheck.allowed;
       const menuId = 'so2-menu-' + String(order.id + '-' + line.productId).replace(/[^a-z0-9_-]/gi,'-');
       return '<tr class="so2-line-row ' + health.className + '">' +
         '<td class="so2-check"><input type="checkbox" data-sales-line-select="' + order.id + '|' + line.productId + '" aria-label="Select ' + escapeHtml(p.sku || p.name) + '"></td>' +
@@ -177,10 +178,84 @@
         '<td class="so2-actions-cell"><button type="button" class="secondary so2-menu-button" data-so2-line-menu="' + menuId + '" aria-haspopup="menu" aria-expanded="false">•••</button>' +
           '<div id="' + menuId + '" class="so2-line-menu" data-so2-menu role="menu" hidden>' +
             (!nonStock ? '<button type="button" role="menuitem" data-allocate-line="' + order.id + '|' + line.productId + '">Allocate</button><button type="button" role="menuitem" data-unallocate-line="' + order.id + '|' + line.productId + '">Unallocate</button><button type="button" role="menuitem" data-open-product="' + escapeHtml(p.id) + '">View product</button><button type="button" role="menuitem" data-so-tab="fulfilment">Fulfilment details</button><div class="so2-menu-separator"></div>' : '') +
-            '<button type="button" role="menuitem" class="danger" data-remove-sales-line="' + order.id + '|' + line.productId + '"' + (removable ? '' : ' aria-disabled="true" title="' + escapeHtml(salesOrderLineRemovalReason(line, order)) + '"') + '>Remove line</button>' +
+            '<button type="button" role="menuitem" class="danger" data-remove-sales-line="' + order.id + '|' + line.productId + '"' + (removable ? ' title="' + escapeHtml(deleteCheck.reason) + '"' : ' aria-disabled="true" title="' + escapeHtml(deleteCheck.reason) + '"') + '>Remove line</button>' +
           '</div></td>' +
       '</tr>';
     }).join('') || '<tr><td colspan="10"><div class="so2-empty-lines"><strong>No order lines yet</strong><span>Search the connected catalogue below to add the first exact SKU.</span></div></td></tr>';
+  }
+
+  function so2SalesLineDeleteAssessment(order,line) {
+    if (!order || !line) return { allowed:false, reason:'Sales Order line unavailable.', linkedPoLines:[] };
+    const nonStock = isNonStockSalesLine(line);
+    const fulfilment = !nonStock && (Number(line.picked||0)>0 || Number(line.packed||0)>0 || Number(line.shipped||0)>0 || salesOrderLineHasFulfilmentHistory(order,line));
+    const accounting = (order.payments||[]).length>0 || (order.xeroRef && order.xeroRef !== 'Draft') || ['Invoice Ready','Invoiced','Completed'].includes(order.status);
+    const linkedPoLines = [];
+    (data.purchaseOrders||[]).forEach(function(po){
+      (po.lines||[]).forEach(function(poLine,index){
+        if (String(poLine.salesOrderId||'')===String(order.id) && String(poLine.productId||'')===String(line.productId||'')) linkedPoLines.push({po:po,line:poLine,index:index});
+      });
+    });
+    const receivedPo = linkedPoLines.some(function(row){
+      if (Number(row.line.received||row.line.receivedQty||0)>0) return true;
+      return (data.receiptEvents||[]).some(function(event){
+        if (String(event.poId||'')!==String(row.po.id||'')) return false;
+        if (String(event.productId||'')===String(line.productId||'')) return true;
+        return (event.lines||[]).some(function(receiptLine){return String(receiptLine.productId||'')===String(line.productId||'') && Number(receiptLine.qty||receiptLine.received||0)>0;});
+      });
+    });
+    if (receivedPo) return {allowed:false,reason:'This item has supplier receiving history. Use Supplier Returns & Credits before removing it from the Sales Order.',linkedPoLines:linkedPoLines};
+    if (fulfilment) return {allowed:false,reason:'This item has pick, pack or shipping history. Use a Sales Credit / return so the fulfilment audit remains intact.',linkedPoLines:linkedPoLines};
+    if (accounting) return {allowed:false,reason:'This Sales Order has payment or invoice history. Use a Sales Credit so the accounting record remains intact.',linkedPoLines:linkedPoLines};
+    return {allowed:true,reason:nonStock?'This custom line can be removed.':Number(line.allocated||0)>0?'Allocated stock will be released automatically before removal.':linkedPoLines.length?'Unreceived linked PO demand will be removed automatically and retained in PO history.':'This line can be safely removed.',linkedPoLines:linkedPoLines};
+  }
+
+  function so2RemoveLinkedPoDemand(rows,order,line,reason) {
+    const touched = new Set(),at=new Date().toISOString(),user=(typeof currentUser==='function'&&currentUser()&&(currentUser().name||currentUser().email))||'Sales';
+    rows.forEach(function(row){
+      const po=row.po;if(!po||touched.has(po.id))return;touched.add(po.id);
+      const removed=[];
+      po.lines=(po.lines||[]).filter(function(poLine){
+        const match=String(poLine.salesOrderId||'')===String(order.id) && String(poLine.productId||'')===String(line.productId||'');
+        if(match)removed.push(JSON.parse(JSON.stringify(poLine)));
+        return !match;
+      });
+      if(!removed.length)return;
+      po.lineCorrections=Array.isArray(po.lineCorrections)?po.lineCorrections:[];
+      removed.forEach(function(snapshot){
+        po.lineCorrections.push({id:'POLINE-'+Date.now()+'-'+Math.random().toString(36).slice(2,7),type:'Demand removed with Sales Order line',at:at,user:user,reason:reason,line:snapshot,sku:(product(snapshot.productId)||{}).sku||snapshot.productId,name:(product(snapshot.productId)||{}).name||''});
+      });
+      const supplierCommitted=!!(po.supplierEmailSentAt||po.supplierConfirmedAt||String(po.status||'').toLowerCase().includes('confirmed'));
+      if(supplierCommitted){
+        po.reviewStatus='Needs review';po.supplierEmailStatus='Changes pending';
+        if(!['Cancelled','Received'].includes(po.status))po.status='Draft - Review';
+      }
+      data.auditLog=Array.isArray(data.auditLog)?data.auditLog:[];
+      data.auditLog.push({id:'AUD-'+Date.now()+'-'+Math.random().toString(36).slice(2,7),date:at,user:user,action:'Purchase order demand removed from Sales Order correction',product:po.id,previousValue:removed,newValue:'Removed before receipt',reason:reason});
+    });
+    return Array.from(touched);
+  }
+
+  function so2RemoveSalesOrderLine(order,line,assessment) {
+    const p=product(line.productId)||{},label=line.description||line.customProductName||p.name||line.productId,reason=String(prompt('Reason for removing “'+label+'” from '+order.id+' (required)')||'').trim();
+    if(!reason){ if(typeof toast==='function')toast('A removal reason is required.'); return; }
+    let warning='Remove “'+label+'” from '+order.id+'?';
+    if(!isNonStockSalesLine(line)&&Number(line.allocated||0)>0)warning+=' Allocated stock will be released.';
+    if(assessment.linkedPoLines.length)warning+=' '+assessment.linkedPoLines.length+' unreceived linked PO line'+(assessment.linkedPoLines.length===1?'':'s')+' will also be removed and retained in PO history.';
+    warning+=' The correction will remain in the Sales Order audit history.';
+    if(!confirm(warning))return;
+    const snapshot=JSON.parse(JSON.stringify(line)),at=new Date().toISOString(),user=(typeof currentUser==='function'&&currentUser()&&(currentUser().name||currentUser().email))||'Sales';
+    if(!isNonStockSalesLine(line)&&Number(line.allocated||0)>0)releaseAllocatedStockForLine(order,line,Number(line.allocated||0),'Sales order line removed');
+    const poIds=so2RemoveLinkedPoDemand(assessment.linkedPoLines,order,line,reason);
+    const index=order.lines.indexOf(line);if(index>=0)order.lines.splice(index,1);
+    order.lineCorrections=Array.isArray(order.lineCorrections)?order.lineCorrections:[];
+    order.lineCorrections.push({id:'SOLINE-'+Date.now(),type:'Sales Order line removed before fulfilment',at:at,user:user,reason:reason,line:snapshot,linkedPurchaseOrders:poIds});
+    data.auditLog=Array.isArray(data.auditLog)?data.auditLog:[];
+    data.auditLog.push({id:'AUD-'+Date.now(),date:at,user:user,action:'Sales order line removed',product:order.id,previousValue:snapshot,newValue:'Removed',reason:reason});
+    addSalesOrderNotification(order,'Sales order item removed',label+' removed. Reason: '+reason+(poIds.length?' Linked PO demand removed from '+poIds.join(', ')+'.':''),'Internal note');
+    order.status='Needs Review';order.updatedAt=at;
+    if(typeof saveAppData==='function')saveAppData();
+    if(typeof toast==='function')toast(label+' removed from '+order.id+'. Project value and profit will recalculate automatically.');
+    if(typeof render==='function')render();
   }
 
   function so2ProductsContent(order) {
@@ -325,6 +400,17 @@
     menu.style.top = top + 'px';
     button.setAttribute('aria-expanded','true');
   }
+
+  document.addEventListener('click', function(event) {
+    const button=event.target.closest('[data-remove-sales-line]');
+    if(!button)return;
+    event.preventDefault();event.stopImmediatePropagation();
+    const parts=String(button.dataset.removeSalesLine||'').split('|'),order=salesOrder(parts[0]),line=order&&(order.lines||[]).find(function(item){return String(item.productId)===String(parts[1]);});
+    if(!order||!line){if(typeof toast==='function')toast('Sales Order line not found.');return;}
+    const assessment=so2SalesLineDeleteAssessment(order,line);
+    if(!assessment.allowed){if(typeof toast==='function')toast(assessment.reason);return;}
+    so2RemoveSalesOrderLine(order,line,assessment);
+  },true);
 
   document.addEventListener('click', function(event) {
     const menuButton = event.target.closest('[data-so2-line-menu]');
