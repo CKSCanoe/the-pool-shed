@@ -317,6 +317,14 @@ const registry={
     permission:'projects.read',description:'Permission-safe system events since a timestamp, optionally filtered to projects in the working set.',
     run:({db,args,user})=>{const since=args.since?new Date(args.since):new Date(0),rows=visibleEvents(db,user,args.projectIds||[]).filter(e=>new Date(e.at)>since);return result(rows,rows.map(x=>evidence(x.entityType,x.entityId,x.summary,'eventAt',x.at)));}
   },
+  find_customers:{
+    permission:'customers.read',description:'Resolve likely customer matches from first names, surnames, full names, company names and aliases, including misspellings.',
+    run:({db,args,user})=>{const matches=rankedCustomers(db,args.query||'',{limit:Math.min(8,Math.max(1,Number(args.limit||5)))});const best=matches[0]||null,second=matches[1]||null,confident=Boolean(best&&(best.exactMatch||(best.score>=85&&(!second||best.score-second.score>=12))));const data={query:String(args.query||''),confident,needsClarification:Boolean(best&&!confident),best:best?{...best,customer:customerDetail(db,best.customer,user)}:null,matches:matches.map(x=>({customer:x.customer,score:x.score,exactMatch:x.exactMatch,matchedVariant:x.matchedVariant}))};return result(data,matches.map(x=>evidence('customer',x.customer.id,x.customer.name,'matchScore',x.score)));}
+  },
+  get_customer_record:{
+    permission:'customers.read',description:'Complete live customer record with linked projects, quotes, Sales Orders, invoices and recurring Sales Order subscriptions allowed by the user permissions.',
+    run:({db,args,user})=>{const customer=db.customers?.[args.customerId];if(!customer)return err('Customer not found');const data=customerDetail(db,customer,user);return result(data,[evidence('customer',customer.id,customer.name,'orderCount',data.orderCount),...data.salesOrders.slice(0,10).map(so=>evidence('sales_order',so.id,so.id,'status',so.status))]);}
+  },
   get_customer_waiting:{
     permission:'customers.read',description:'What customers are waiting on us for and what we are waiting on from them.',
     run:({db,args})=>{const rows=args.customerId?[db.customers[args.customerId]].filter(Boolean):Object.values(db.customers);return result(rows.map(c=>({customerId:c.id,name:c.name,waitingOnUs:c.waitingOnUs,waitingOnCustomer:c.waitingOnCustomer})));}
