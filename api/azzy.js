@@ -10,11 +10,13 @@ import {
 import {recordView} from '../server/azzy/src/core/record-links.js';
 import {snapshot as runtimeSnapshot,currentUser} from '../server/azzy/src/data/runtime-data.js';
 import {hydrateAzzyMemory,persistAzzyMemory,azzyMemoryMode} from '../server/azzy-memory.js';
+import {memory} from '../server/azzy/src/core/memory.js';
 
 export const config={maxDuration:60};
 const send=(res,status,value)=>{res.setHeader('Cache-Control','private, no-store, max-age=0');res.setHeader('X-Content-Type-Options','nosniff');res.setHeader('Referrer-Policy','no-referrer');return res.status(status).json(value);};
 const bodyOf=req=>req.body&&typeof req.body==='object'?req.body:{};
 const runtimeOpts=ctx=>({workspace:ctx.workspace,user:ctx.user,permissions:ctx.permissions,revision:ctx.revision,updatedAt:ctx.updatedAt});
+const safeMemory=async(fn,label)=>{try{return {ok:true,...(await fn())};}catch(error){console.warn(`Azzy ${label} unavailable`,error?.message||error);return {ok:false,error:String(error?.message||error||'Memory unavailable')};}};
 
 export default async function handler(req,res){
   const origin=process.env.APP_ORIGIN||'http://localhost',url=new URL(req.url,origin),action=url.searchParams.get('action')||'bootstrap';
@@ -22,13 +24,15 @@ export default async function handler(req,res){
     if(req.method==='OPTIONS'){res.setHeader('Allow','GET, POST, OPTIONS');return res.status(204).end();}
     if(req.method==='POST'&&!azzyOriginAllowed(req))return send(res,403,{ok:false,error:'Invalid origin. APP_ORIGIN must be the Pool Shed app origin, not the Azzy/Ollama gateway.'});
     const ctx=await loadAzzyPoolShedContext(req),opts=runtimeOpts(ctx);
-    if(action!=='record')await hydrateAzzyMemory(req,ctx);
+    const memoryLoad=action==='record'?{ok:true,skipped:true}:await safeMemory(()=>hydrateAzzyMemory(req,ctx),'memory load');
 
     if(action==='bootstrap'){
       if(req.method!=='GET')return send(res,405,{ok:false,error:'GET required.'});
+      const loginSession=String(url.searchParams.get('loginSession')||'').trim().slice(0,160);
+      if(loginSession)memory.ensureLoginConversation(ctx.user.id,loginSession);
       const out=await bootstrapAzzyForPoolShed(opts);
-      await persistAzzyMemory(req,ctx);
-      return send(res,200,{ok:true,...out,workspaceId:ctx.workspaceId,memoryMode:azzyMemoryMode()});
+      const memorySave=await safeMemory(()=>persistAzzyMemory(req,ctx),'memory save');
+      return send(res,200,{ok:true,...out,workspaceId:ctx.workspaceId,memoryMode:azzyMemoryMode(),memoryHealthy:Boolean(memoryLoad.ok&&memorySave.ok)});
     }
 
     if(action==='chat'){
@@ -36,8 +40,8 @@ export default async function handler(req,res){
       const p=bodyOf(req),message=String(p.message||'').trim();
       if(!message)return send(res,400,{ok:false,error:'Message is required.'});
       const out=await askAzzyFromPoolShed({...opts,message:message.slice(0,4000),context:p.context||null,contexts:Array.isArray(p.contexts)?p.contexts.slice(0,5):null});
-      await persistAzzyMemory(req,ctx);
-      return send(res,200,{ok:true,...out});
+      const memorySave=await safeMemory(()=>persistAzzyMemory(req,ctx),'memory save');
+      return send(res,200,{ok:true,...out,memoryHealthy:Boolean(memoryLoad.ok&&memorySave.ok)});
     }
 
     if(action==='context'){
@@ -45,8 +49,25 @@ export default async function handler(req,res){
       const p=bodyOf(req),operation=String(p.action||'add');
       if(!['add','remove','primary','only'].includes(operation))return send(res,400,{ok:false,error:'Invalid context operation.'});
       const out=updateAzzyContextForPoolShed(opts,{action:operation,context:p.context||null,contexts:Array.isArray(p.contexts)?p.contexts.slice(0,5):undefined});
-      await persistAzzyMemory(req,ctx);
-      return send(res,200,{ok:true,...out});
+      const memorySave=await safeMemory(()=>persistAzzyMemory(req,ctx),'memory save');
+      return send(res,200,{ok:true,...out,memoryHealthy:Boolean(memoryLoad.ok&&memorySave.ok)});
+    }
+
+    if(action==='new-conversation'){
+      if(req.method!=='POST')return send(res,405,{ok:false,error:'POST required.'});
+      const p=bodyOf(req),session=memory.startConversation(ctx.user.id,{preserveContexts:Boolean(p.preserveContexts)});
+      const memorySave=await safeMemory(()=>persistAzzyMemory(req,ctx),'memory save');
+      return send(res,200,{ok:true,conversationId:session.conversationId,conversationStartedAt:session.conversationStartedAt,conversation:[],conversations:memory.conversationsFor(ctx.user.id),activeContexts:session.contexts,primaryContext:session.primaryContext,memoryHealthy:Boolean(memoryLoad.ok&&memorySave.ok)});
+    }
+
+    if(action==='open-conversation'){
+      if(req.method!=='POST')return send(res,405,{ok:false,error:'POST required.'});
+      const conversationId=String(bodyOf(req).conversationId||'').trim();
+      if(!conversationId)return send(res,400,{ok:false,error:'Conversation ID is required.'});
+      const session=memory.openConversation(ctx.user.id,conversationId);
+      if(!session)return send(res,404,{ok:false,error:'That Azzy conversation is no longer available.'});
+      const memorySave=await safeMemory(()=>persistAzzyMemory(req,ctx),'memory save');
+      return send(res,200,{ok:true,conversationId:session.conversationId,conversationStartedAt:session.conversationStartedAt,conversation:session.history.slice(-60),conversations:memory.conversationsFor(ctx.user.id),activeContexts:session.contexts,primaryContext:session.primaryContext,memoryHealthy:Boolean(memoryLoad.ok&&memorySave.ok)});
     }
 
     if(action==='record'){
@@ -61,7 +82,7 @@ export default async function handler(req,res){
       if(req.method!=='POST')return send(res,405,{ok:false,error:'POST required.'});
       const ids=Array.isArray(bodyOf(req).ids)?bodyOf(req).ids.slice(0,100):[];
       const out=markAzzyAttentionSeenForPoolShed(opts,ids);
-      await persistAzzyMemory(req,ctx);
+      await safeMemory(()=>persistAzzyMemory(req,ctx),'memory save');
       return send(res,200,out);
     }
 
@@ -70,7 +91,7 @@ export default async function handler(req,res){
       const actionId=String(bodyOf(req).actionId||'').trim();
       if(!actionId)return send(res,400,{ok:false,error:'Action ID is required.'});
       const out=await approveAzzyActionFromPoolShed(opts,actionId);
-      await persistAzzyMemory(req,ctx);
+      await safeMemory(()=>persistAzzyMemory(req,ctx),'memory save');
       return send(res,out.ok?200:403,{...out,ok:Boolean(out.ok)});
     }
 
