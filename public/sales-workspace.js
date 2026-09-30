@@ -86,7 +86,7 @@
     salesOrderBatchPicker(order) +
     '<div class="so4-secondary-tools">' +
       '<details class="so4-tool-card"><summary><span><small>Non-stock & custom</small><strong>Add a custom sales line</strong><em>Labour, call-out, discounts and other non-stock charges.</em></span><b>Open</b></summary>' +
-        '<div class="so4-tool-body so-line-form" data-line-composer-panel="custom"><label class="so-line-description"><span>Description</span><input id="customLineDescription" placeholder="Example: Additional installation labour"></label><label><span>Quantity</span><input id="customLineQty" type="number" min="1" step="1" value="1"></label><label><span>Unit price net</span><input id="customLinePrice" type="number" min="0" step="0.01" value="0.00"></label><label><span>Unit cost</span><input id="customLineCost" type="number" min="0" step="0.01" value="0.00"></label><label><span>Tax</span><select id="customLineTax">' + optionList(["20% VAT","Zero rated","Not rated"],"20% VAT") + '</select></label><label><span>Sales account</span><select id="customLineAccount">' + optionList(["4010 Service Upsell","4030 Labour Income","4050 Call-out Charges","4060 Miscellaneous Sales"],"4010 Service Upsell") + '</select></label><label class="so-line-note"><span>Internal note (optional)</span><textarea id="customLineNote" placeholder="Reason, engineer detail or approval note"></textarea></label><button type="button" class="primary-action" data-add-custom-line="' + escapeHtml(order.id) + '">Add custom line</button></div>' +
+        '<div class="so4-tool-body so-line-form" data-line-composer-panel="custom"><label class="so-line-description"><span>Product / service name</span><input id="customLineProductName" placeholder="Example: One-piece pool shell" required></label><label class="so-line-description"><span>Variant / specification</span><input id="customLineVariant" placeholder="Example: Light Grey · 10m × 3.7m × 1.5m"></label><label><span>Quantity</span><input id="customLineQty" type="number" min="1" step="1" value="1"></label><label><span>Unit price net</span><input id="customLinePrice" type="number" min="0" step="0.01" value="0.00"></label><label><span>Unit cost</span><input id="customLineCost" type="number" min="0" step="0.01" value="0.00"></label><label><span>Tax</span><select id="customLineTax">' + optionList(["20% VAT","Zero rated","Not rated"],"20% VAT") + '</select></label><label><span>Sales account</span><select id="customLineAccount">' + optionList(["4010 Service Upsell","4030 Labour Income","4050 Call-out Charges","4060 Miscellaneous Sales"],"4010 Service Upsell") + '</select></label><label class="so-line-note"><span>Internal note (optional)</span><textarea id="customLineNote" placeholder="Reason, engineer detail or approval note"></textarea></label><button type="button" class="primary-action" data-add-custom-line="' + escapeHtml(order.id) + '">Add custom line</button></div>' +
       '</details>' +
       '<details class="so4-tool-card"><summary><span><small>Delivery & billing</small><strong>Add a shipping charge</strong><em>Delivery charge, method and customer-facing description.</em></span><b>Open</b></summary>' +
         '<div class="so4-tool-body so-line-form" data-line-composer-panel="shipping"><label class="so-line-description"><span>Shipping method</span><select id="shippingLineMethod"><option>Standard delivery</option><option>Express delivery</option><option>Pallet delivery</option><option>Chemical delivery surcharge</option><option>Free delivery</option><option>Collection</option><option>Custom shipping</option></select></label><label class="so-line-description"><span>Customer description</span><input id="shippingLineDescription" value="Standard delivery" placeholder="Shown on the sales order and invoice"></label><label><span>Charge net</span><input id="shippingLinePrice" type="number" min="0" step="0.01" value="12.50"></label><label><span>Tax</span><select id="shippingLineTax">' + optionList(["20% VAT","Zero rated","Not rated"],"20% VAT") + '</select></label><button type="button" class="primary-action" data-add-shipping-line="' + escapeHtml(order.id) + '">Add shipping</button></div>' +
@@ -107,10 +107,26 @@
     });
   }
 
+  function so2CustomProductName(line,p) {
+    if (line && line.lineType === 'shipping') return 'Delivery charge';
+    return String((line && line.customProductName) || (p && p.name) || (line && line.description) || 'Custom line').trim();
+  }
+
+  function so2CustomVariant(line,p) {
+    if (line && line.lineType === 'shipping') return String(line.description || line.shippingMethod || 'Shipping charge').trim();
+    const explicit = String((line && (line.customVariant || line.variantDescription || line.variant)) || '').trim();
+    if (explicit) return explicit;
+    if (line && line.customProductName && line.description && String(line.description).trim() !== String(line.customProductName).trim()) return String(line.description).trim();
+    return 'Custom / non-stock';
+  }
+
   function so2VariantSelect(order, line, p, locked) {
     const variants = so2VariantProducts(p);
     const currentMeta = salesOrderVariantMeta(p) || p.name || p.sku || 'Exact SKU';
-    if (isNonStockSalesLine(line) || variants.length < 2) {
+    if (isNonStockSalesLine(line)) {
+      return '<div class="so2-variant-static"><strong>' + escapeHtml(so2CustomVariant(line,p)) + '</strong><small>' + escapeHtml(p.sku || p.id || '') + '</small></div>';
+    }
+    if (variants.length < 2) {
       return '<div class="so2-variant-static"><strong>' + escapeHtml(currentMeta) + '</strong><small>' + escapeHtml(p.sku || p.id || '') + '</small></div>';
     }
     return '<label class="so2-variant-control"><span>Exact variant / SKU</span><select data-so2-variant="' + escapeHtml(order.id) + '|' + escapeHtml(line.productId) + '"' + (locked ? ' disabled title="Variant cannot change after allocation or fulfilment starts."' : '') + '>' +
@@ -143,14 +159,14 @@
       const unitNet = salesOrderLinePrice(order, line);
       const vatRate = vatRateForLine(line);
       const lineGross = (unitNet * Number(line.qty || 0)) * (1 + vatRate);
-      const family = nonStock ? (line.lineType === 'shipping' ? 'Delivery charge' : 'Custom sales line') : salesOrderProductFamily(p);
+      const family = nonStock ? so2CustomProductName(line,p) : salesOrderProductFamily(p);
       const locked = Number(line.allocated||0) > 0 || Number(line.picked||0) > 0 || Number(line.packed||0) > 0 || Number(line.shipped||0) > 0 ||
         goodsNotesForOrder(order.id).some(function(note){ return note.lines.some(function(nl){ return nl.productId === line.productId; }); });
       const removable = canRemoveSalesOrderLine(line, order);
       const menuId = 'so2-menu-' + String(order.id + '-' + line.productId).replace(/[^a-z0-9_-]/gi,'-');
       return '<tr class="so2-line-row ' + health.className + '">' +
         '<td class="so2-check"><input type="checkbox" data-sales-line-select="' + order.id + '|' + line.productId + '" aria-label="Select ' + escapeHtml(p.sku || p.name) + '"></td>' +
-        '<td class="so2-product-cell"><div class="so5-line-product">' + so5ProductThumb(p) + '<div class="so5-line-product-copy"><strong>' + escapeHtml(family) + '</strong><small>' + escapeHtml(nonStock ? (line.description || p.name) : (p.name || p.brand || p.category || 'Catalogue product')) + '</small>' + (!nonStock ? '<button type="button" class="link-button" data-open-product="' + escapeHtml(p.id) + '">View product</button>' : '') + '</div></div></td>' +
+        '<td class="so2-product-cell"><div class="so5-line-product">' + so5ProductThumb(p) + '<div class="so5-line-product-copy"><strong>' + escapeHtml(family) + '</strong><small>' + escapeHtml(nonStock ? (line.lineType === 'shipping' ? 'Non-stock delivery charge' : 'Custom / non-stock') : (p.name || p.brand || p.category || 'Catalogue product')) + '</small>' + (!nonStock ? '<button type="button" class="link-button" data-open-product="' + escapeHtml(p.id) + '">View product</button>' : '') + '</div></div></td>' +
         '<td class="so2-variant-cell">' + so2VariantSelect(order,line,p,locked) + '</td>' +
         '<td class="so2-stock-cell">' + (nonStock ? '<span class="muted">Not stock controlled</span>' : '<strong class="' + (coverage.free > 0 ? 'so2-stock-good' : 'so2-stock-warn') + '">' + coverage.free + ' free</strong><small>' + escapeHtml(stockInfo ? stockInfo.location : allocationSourceLabel(order.id)) + ' · ' + (stockInfo ? stockInfo.onHand : 0) + ' physical' + (coverage.onPo ? ' · ' + coverage.onPo + ' on PO' : '') + '</small>') + '</td>' +
         '<td><input class="qty-input so2-qty" data-line-field="' + order.id + '|' + line.productId + '|qty" type="number" min="0" value="' + Number(line.qty||0) + '"></td>' +
