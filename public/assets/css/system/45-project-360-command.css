@@ -134,3 +134,29 @@
 .project-email-dialog{color:var(--color-text-primary);background:var(--color-surface-default);border:1px solid var(--color-border-default);border-radius:12px;padding:24px;max-width:640px;width:calc(100% - 24px);max-height:90vh;overflow:auto}.project-email-dialog::backdrop{background:var(--color-overlay-scrim)}.project-email-dialog section{border:1px solid var(--color-border-default);padding:20px;margin:16px 0;border-radius:8px}.project-email-dialog p{white-space:pre-wrap}
 @media(max-width:1050px){.project-144-layout{grid-template-columns:170px minmax(0,1fr);gap:16px}.project-144-layout .project-360-two-col,.project-144-layout .project-360-overview-grid{grid-template-columns:1fr}}
 @media(max-width:700px){.project-144-layout{grid-template-columns:1fr}.project-144-layout .project-360-tabs{position:static;display:grid;grid-template-columns:repeat(2,minmax(0,1fr))}.project-margin-band{flex-wrap:wrap}.project-144-layout .project-360-form-grid{grid-template-columns:1fr}}
+
+
+/* Project commercial source-of-truth dashboard */
+.project-commercial-hub,.project-accounting-snapshot{margin:0 0 20px;border:1px solid var(--color-border-default);border-radius:12px;background:var(--color-surface-default);overflow:hidden}
+.project-commercial-hub>header,.project-accounting-snapshot>header{display:flex;justify-content:space-between;align-items:flex-end;gap:18px;padding:20px 22px;border-bottom:1px solid var(--color-border-default);background:var(--color-surface-subtle)}
+.project-commercial-hub>header>div:first-child,.project-accounting-snapshot>header>div:first-child{min-width:0}
+.project-commercial-hub>header span,.project-accounting-snapshot>header span{display:block;margin-bottom:4px;color:var(--color-text-secondary);font-size:10px;font-weight:800;letter-spacing:.09em}
+.project-commercial-hub>header h2,.project-accounting-snapshot>header h3{margin:0;color:var(--color-text-primary)}
+.project-commercial-hub>header p,.project-accounting-snapshot>header p{max-width:900px;margin:6px 0 0;color:var(--color-text-secondary);font-size:12px;line-height:1.55}
+.project-commercial-kpis{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));border-bottom:1px solid var(--color-border-default)}
+.project-accounting-snapshot .project-commercial-kpis{grid-template-columns:repeat(4,minmax(0,1fr));border-bottom:0}
+.project-commercial-kpis>div{min-width:0;padding:16px 18px;border-right:1px solid var(--color-border-default);border-bottom:1px solid var(--color-border-default)}
+.project-commercial-kpis>div:nth-child(5n){border-right:0}
+.project-accounting-snapshot .project-commercial-kpis>div:nth-child(4n){border-right:0}
+.project-commercial-kpis span{display:block;color:var(--color-text-secondary);font-size:10px;font-weight:750;text-transform:uppercase;letter-spacing:.045em}
+.project-commercial-kpis strong{display:block;margin-top:5px;color:var(--color-text-primary);font-size:18px;line-height:1.2}
+.project-commercial-kpis small{display:block;margin-top:5px;color:var(--color-text-secondary);font-size:10px;line-height:1.35}
+.project-quote-portfolio{padding:20px 22px}
+.project-quote-portfolio-head{display:flex;align-items:flex-end;justify-content:space-between;gap:16px;margin-bottom:12px}
+.project-quote-portfolio-head h3{margin:0;color:var(--color-text-primary)}
+.project-quote-portfolio-head p{margin:4px 0 0;color:var(--color-text-secondary);font-size:12px}
+.project-link-existing{margin:18px 20px;padding:18px;border:1px solid var(--color-border-default);border-radius:10px;background:var(--color-surface-subtle)}
+.project-link-existing h4{margin:0 0 12px;color:var(--color-text-primary)}
+.project-commercial-hub .ps-table-region button,.project-360-card .ps-table-region button{margin:2px 4px 2px 0}
+@media(max-width:1250px){.project-commercial-kpis{grid-template-columns:repeat(3,minmax(0,1fr))}.project-commercial-kpis>div:nth-child(5n){border-right:1px solid var(--color-border-default)}.project-commercial-kpis>div:nth-child(3n){border-right:0}.project-accounting-snapshot .project-commercial-kpis{grid-template-columns:repeat(2,minmax(0,1fr))}.project-accounting-snapshot .project-commercial-kpis>div:nth-child(3n){border-right:1px solid var(--color-border-default)}.project-accounting-snapshot .project-commercial-kpis>div:nth-child(2n){border-right:0}}
+@media(max-width:700px){.project-commercial-hub>header,.project-accounting-snapshot>header,.project-quote-portfolio-head{align-items:flex-start;flex-direction:column}.project-commercial-kpis,.project-accounting-snapshot .project-commercial-kpis{grid-template-columns:1fr}.project-commercial-kpis>div,.project-commercial-kpis>div:nth-child(2n),.project-commercial-kpis>div:nth-child(3n),.project-commercial-kpis>div:nth-child(5n),.project-accounting-snapshot .project-commercial-kpis>div:nth-child(2n),.project-accounting-snapshot .project-commercial-kpis>div:nth-child(3n),.project-accounting-snapshot .project-commercial-kpis>div:nth-child(4n){border-right:0}}
