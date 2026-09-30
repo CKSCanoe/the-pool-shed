@@ -325,6 +325,18 @@ const registry={
     permission:'customers.read',description:'Complete live customer record with linked projects, quotes, Sales Orders, invoices and recurring Sales Order subscriptions allowed by the user permissions.',
     run:({db,args,user})=>{const customer=db.customers?.[args.customerId];if(!customer)return err('Customer not found');const data=customerDetail(db,customer,user);return result(data,[evidence('customer',customer.id,customer.name,'orderCount',data.orderCount),...data.salesOrders.slice(0,10).map(so=>evidence('sales_order',so.id,so.id,'status',so.status))]);}
   },
+  get_stock_movement_insights:{
+    permission:'stock.read',description:'Analyse live stock movements, fast movers, inbound and outbound volume, recent usage trend and weeks of free-stock cover. Can be filtered to one SKU.',
+    run:({db,args})=>{const data=stockMovementInsights(db,args);return result(data,data.fastMovers.slice(0,10).flatMap(x=>[evidence('product',x.sku,x.name,'outboundQty',x.outboundQty),evidence('product',x.sku,'Weeks cover','weeksCover',x.weeksCover==null?'No outbound rate':x.weeksCover)]));}
+  },
+  get_order_trends:{
+    permission:'projects.read',description:'Analyse live Sales Order demand and Purchase Order buying trends, including growing products, purchase cost direction and advisory replenishment warnings.',
+    run:({db,args,user})=>{const data=orderTrends(db,args);if(!can(user,'purchasing.read'))data.purchaseTrends=[];return result(data,data.trendingSales.slice(0,10).map(x=>evidence('product',x.sku,x.name,'demandTrend',x.currentUnits+' recent-half units vs '+x.previousUnits+' previous-half units')));}
+  },
+  get_product_recommendations:{
+    permission:'projects.read',description:'Recommend related products from real co-order history and likely customer reorders from recorded Sales Order history.',
+    run:({db,args,user})=>{if(args.customerId&&!can(user,'customers.read'))return err('Permission denied: customers.read');const data=productRecommendations(db,args);return result(data,[...data.relatedProducts.slice(0,8).map(x=>evidence('product',x.sku,x.name,'coOrderCount',x.coOrderCount)),...data.customerRepeatProducts.slice(0,8).map(x=>evidence('product',x.sku,x.name,'repeatOrderCount',x.orderCount))]);}
+  },
   get_customer_waiting:{
     permission:'customers.read',description:'What customers are waiting on us for and what we are waiting on from them.',
     run:({db,args})=>{const rows=args.customerId?[db.customers[args.customerId]].filter(Boolean):Object.values(db.customers);return result(rows.map(c=>({customerId:c.id,name:c.name,waitingOnUs:c.waitingOnUs,waitingOnCustomer:c.waitingOnCustomer})));}
