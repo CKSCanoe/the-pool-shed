@@ -57,7 +57,8 @@
 
   function poLineVat(line,p,net) {
     if(typeof vatAmount==='function') return Number(vatAmount(net,{taxCode:line.taxCode||p.taxCode||'20% VAT'})||0);
-    return /zero|0%|exempt/i.test(String(line.taxCode||p.taxCode||'')) ? 0 : net*.2;
+    const code=String(line.taxCode||p.taxCode||'20% VAT').toLowerCase();
+    return (/zero|exempt|not rated/.test(code)||/^\s*0(?:\.0+)?\s*%/.test(code)) ? 0 : net*.2;
   }
 
   function poLineDeleteAssessment(po,line) {
