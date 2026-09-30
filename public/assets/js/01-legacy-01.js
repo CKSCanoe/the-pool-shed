@@ -4814,7 +4814,7 @@ const seed = {
         const rows = data.purchaseOrders.map(function(po) {
           const supplier = supplierProfile(po.supplier);
           const summary = poSummary(po);
-          const totals = purchaseOrderTotals(po);
+          const totals = purchaseOrderFinancials(po);
           const paymentState = purchaseOrderPaymentStatus(po);
           const linkedOrders = Array.from(new Set(po.lines.map(function(line) { return line.salesOrderId; }).filter(Boolean))).join(", ") || "General stock";
           return '<tr><td><button class="ghost" data-open-po-detail="' + po.id + '"><strong>' + po.id + '</strong></button><br><span class="muted">' + escapeHtml(po.source || "Manual PO") + '</span></td><td><strong>' + escapeHtml(po.supplier) + '</strong><br><span class="muted">' + escapeHtml(supplier.email || "No supplier email") + '</span></td><td>' + purchaseOrderStatusPicker(po, "table") + '</td><td>' + summary.received + '/' + summary.ordered + '<br><span class="muted">' + summary.pending + ' pending</span></td><td>' + escapeHtml(linkedOrders) + '</td><td>' + escapeHtml(po.due || "—") + '</td><td><span class="pill ' + (paymentState === "Paid" ? "good" : paymentState === "Part Paid" ? "warn" : paymentState === "Overpaid" ? "blue" : "bad") + '">' + escapeHtml(paymentState) + '</span><br><span class="muted">' + money(Math.max(0, totals.balance)) + ' due</span></td><td class="right">' + money(summary.pendingCost) + '</td><td class="right"><div class="po-row-actions"><button class="secondary" data-open-po-detail="' + po.id + '">Open</button><button class="danger-button" data-delete-po="' + po.id + '">Delete</button></div></td></tr>';
@@ -4834,7 +4834,7 @@ const seed = {
         ensureSupplierProfiles();
         const supplier = supplierProfile(po.supplier);
         const summary = poSummary(po);
-        const totals = purchaseOrderTotals(po);
+        const totals = purchaseOrderFinancials(po);
         const paymentState = purchaseOrderPaymentStatus(po);
         const linkedOrderIds = Array.from(new Set((po.lines || []).map(function(line) { return line.salesOrderId; }).filter(Boolean)));
         const linkedOrders = linkedOrderIds.map(function(id) { return salesOrder(id); }).filter(Boolean);
