@@ -10,7 +10,7 @@ for (const id of [
   'scSupplierContact','scSupplierContactRole','scSupplierPhone','scSupplierMobile',
   'scSupplierOrdersEmail','scSupplierAccountsEmail','scSupplierReturnsEmail',
   'scSupplierAddress1','scSupplierAddress2','scSupplierCity','scSupplierCounty','scSupplierPostcode','scSupplierCountry',
-  'scSupplierAccountNumber','scSupplierTerms','scSupplierCredit','scSupplierLead',
+  'scSupplierAccountNumber','scSupplierAccountType','scSupplierTerms','scSupplierCredit','scSupplierLead',
   'scSupplierMinimumOrder','scSupplierFreeCarriage','scSupplierCurrency','scSupplierOrderMethod','scSupplierDeliveryTerms'
 ]) assert(source.includes('id="'+id+'"'),id+' missing from supplier onboarding');
 
@@ -19,6 +19,8 @@ assert.match(source,/function saveSupplierProfile\(originalName\)/,'Supplier mas
 assert.match(source,/function cascadeSupplierRename/,'Supplier rename must preserve linked records');
 assert.match(source,/address:\{?address|address:address/,'Supplier address must be persisted');
 assert.match(source,/supplierProfileSnapshot/,'New POs must snapshot supplier master details');
+assert.match(source,/supplierAccountType/,'New POs must snapshot Credit / Pro Forma account type');
+assert.match(source,/accountType:s\.accountType/,'Supplier PO snapshot must preserve account type');
 assert.match(source,/supplierAddress:Object\.assign/,'New POs must carry supplier address details');
 assert.match(source,/supplier-master-summary/,'Supplier Contacts tab must surface the master profile');
 assert.match(css,/Supplier master-record onboarding/,'Supplier profile design layer missing');
