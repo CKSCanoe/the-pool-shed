@@ -24,6 +24,12 @@ run_node_stage "workspace and sales safety" \
   test-sales-order-vat-regression-v146.mjs \
   test-sales-order-subscriptions-v146.mjs
 
+run_node_stage "purchasing" \
+  test-purchase-order-command-v190.mjs \
+  test-purchase-order-visual-guard-v190.mjs \
+  test-purchase-returns-v190.mjs \
+  test-purchase-order-parity-v200.mjs
+
 run_node_stage "projects" \
   test-project-extra-quotes-v146.mjs \
   test-project-performance-v146.mjs \
