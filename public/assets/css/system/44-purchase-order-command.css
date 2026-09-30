@@ -111,3 +111,28 @@
 .purchase-command-page .po-supplier-correction small{display:block;margin-top:6px;color:var(--color-text-secondary);font-size:9px;line-height:1.4}
 .purchase-command-page .po-supplier-corrected{display:inline-flex;margin-top:7px;padding:3px 7px;border:1px solid var(--color-status-info-line);border-radius:999px;background:var(--color-status-info-bg);color:var(--color-status-info-text);font-size:9px;font-weight:800}
 @media(max-width:640px){.purchase-command-page .po-supplier-correction label{grid-template-columns:1fr}}
+
+
+/* PO live totals and supplier-payment parity */
+.purchase-command-page .po-items-lower-grid{display:grid;grid-template-columns:minmax(0,1fr) 310px;gap:14px;padding:14px;background:var(--color-surface-subtle);border-top:1px solid var(--color-border-default)}
+.purchase-command-page .po-items-commercial-card,.purchase-command-page .po-live-totals-card{border:1px solid var(--color-border-default);border-radius:9px;background:var(--color-surface-default);overflow:hidden}
+.purchase-command-page .po-items-commercial-card>div:first-child{padding:16px}
+.purchase-command-page .po-items-commercial-card>div:first-child span,.purchase-command-page .po-live-totals-head span{display:block;color:var(--color-text-secondary);font-size:9px;font-weight:850;letter-spacing:.06em}
+.purchase-command-page .po-items-commercial-card>div:first-child strong,.purchase-command-page .po-live-totals-head strong{display:block;margin-top:3px;color:var(--color-text-primary);font-size:14px}
+.purchase-command-page .po-items-commercial-card>div:first-child p,.purchase-command-page .po-live-totals-head small{display:block;margin:5px 0 0;color:var(--color-text-secondary);font-size:10px;line-height:1.45}
+.purchase-command-page .po-items-commercial-card .po-financial-strip{grid-template-columns:repeat(3,minmax(0,1fr));border-top:1px solid var(--color-border-default);border-bottom:1px solid var(--color-border-default)}
+.purchase-command-page .po-live-totals-head{padding:16px 16px 10px}
+.purchase-command-page .po-live-totals-body{padding:8px 16px 14px}
+.purchase-command-page .po-live-total-row{display:flex;align-items:center;gap:10px;padding:10px 0;border-bottom:1px solid var(--color-border-default)}
+.purchase-command-page .po-live-total-row span{color:var(--color-text-secondary);font-size:10px;font-weight:750}
+.purchase-command-page .po-live-total-row strong{margin-left:auto;color:var(--color-text-primary);font-size:15px}
+.purchase-command-page .po-live-total-row.grand span{font-size:11px;color:var(--color-text-primary)}
+.purchase-command-page .po-live-total-row.grand strong{font-size:20px}
+.purchase-command-page .po-live-payment-state{padding:10px 0 2px}
+.purchase-command-page .po-live-payment-actions{display:grid;gap:8px;margin-top:8px}
+.purchase-command-page .po-live-payment-actions button{width:100%}
+.purchase-command-page .po-live-totals-body>p{margin:10px 0 0;color:var(--color-text-secondary);font-size:9px;line-height:1.45}
+.purchase-command-page .po-payment-history-card .po-table-wrap{border-top:1px solid var(--color-border-default)}
+.purchase-command-page .po-payment-history-card table{min-width:760px}
+@media(max-width:1050px){.purchase-command-page .po-items-lower-grid{grid-template-columns:1fr}.purchase-command-page .po-live-totals-card{max-width:none}}
+@media(max-width:700px){.purchase-command-page .po-items-commercial-card .po-financial-strip{grid-template-columns:1fr}}

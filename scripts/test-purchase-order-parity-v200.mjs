@@ -18,7 +18,12 @@ for(const token of [
   'Return / credit',
   'Clean-up rule',
   'data-po-supplier-change',
-  'Supplier can still be corrected after receipt'
+  'Supplier can still be corrected after receipt',
+  'Live totals',
+  'Paid to supplier',
+  'Record supplier payment',
+  'View payment history',
+  'Supplier payment history'
 ]) assert(source.includes(token),'PO Sales Order parity missing '+token);
 
 const data={
