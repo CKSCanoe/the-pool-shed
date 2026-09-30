@@ -295,6 +295,30 @@
     return {touched:touched,removed:removedNotes};
   }
 
+  function so2ApplySalesOrderLineRemoval(order,line,assessment,reason) {
+    const p=product(line.productId)||{},label=line.description||line.customProductName||p.name||line.productId;
+    const snapshot=JSON.parse(JSON.stringify(line)),at=new Date().toISOString(),user=(typeof currentUser==='function'&&currentUser()&&(currentUser().name||currentUser().email))||'Sales';
+    const fulfilment=so2RemoveOpenFulfilmentDemand(order,line,reason);
+    if(!isNonStockSalesLine(line)&&Number(line.allocated||0)>0)releaseAllocatedStockForLine(order,line,Number(line.allocated||0),'Sales order line undo');
+    const poIds=so2RemoveLinkedPoDemand(assessment.linkedPoLines,order,line,reason);
+    const index=order.lines.indexOf(line);if(index>=0)order.lines.splice(index,1);
+    order.lineCorrections=Array.isArray(order.lineCorrections)?order.lineCorrections:[];
+    order.lineCorrections.push({id:'SOLINE-'+Date.now()+'-'+Math.random().toString(36).slice(2,7),type:'Sales Order line undone before invoice / stock movement',at:at,user:user,reason:reason,line:snapshot,linkedPurchaseOrders:poIds,fulfilmentNotesRemoved:fulfilment.removed,fulfilmentNotesUpdated:fulfilment.touched});
+    data.auditLog=Array.isArray(data.auditLog)?data.auditLog:[];
+    data.auditLog.push({id:'AUD-'+Date.now()+'-'+Math.random().toString(36).slice(2,7),date:at,user:user,action:'Sales order line undone',product:order.id,previousValue:snapshot,newValue:'Removed before invoice / physical stock movement',reason:reason});
+    addSalesOrderNotification(order,'Sales order item undone',label+' removed. Reason: '+reason+(poIds.length?' Linked PO demand removed from '+poIds.join(', ')+'.':'')+((fulfilment.removed.length||fulfilment.touched.length)?' Open fulfilment was reset.':''),'Internal note');
+    return label;
+  }
+
+  function so2FinishSalesOrderLineRemoval(order,labels) {
+    if(typeof syncSalesOrderStatusFromGoodsNotes==='function')syncSalesOrderStatusFromGoodsNotes(order);
+    order.status=order.lines.length?(order.status==='New Order'?'New Order':'Needs Review'):'Needs Review';
+    order.updatedAt=new Date().toISOString();
+    if(typeof saveAppData==='function')saveAppData();
+    if(typeof toast==='function')toast((labels.length===1?labels[0]:labels.length+' lines')+' removed from '+order.id+'. Linked pre-shipment activity was unwound and project value/profit will recalculate automatically.');
+    if(typeof render==='function')render();
+  }
+
   function so2RemoveSalesOrderLine(order,line,assessment) {
     const p=product(line.productId)||{},label=line.description||line.customProductName||p.name||line.productId,reason=String(prompt('Reason for removing “'+label+'” from '+order.id+' (required)')||'').trim();
     if(!reason){ if(typeof toast==='function')toast('A removal reason is required.'); return; }
@@ -304,21 +328,55 @@
     if(assessment.linkedPoLines.length)warning+=' '+assessment.linkedPoLines.length+' unreceived linked PO line'+(assessment.linkedPoLines.length===1?'':'s')+' will also be removed and retained in PO history.';
     warning+=' The original entry and the reason for undoing it will remain in the audit history.';
     if(!confirm(warning))return;
-    const snapshot=JSON.parse(JSON.stringify(line)),at=new Date().toISOString(),user=(typeof currentUser==='function'&&currentUser()&&(currentUser().name||currentUser().email))||'Sales';
-    const fulfilment=so2RemoveOpenFulfilmentDemand(order,line,reason);
-    if(!isNonStockSalesLine(line)&&Number(line.allocated||0)>0)releaseAllocatedStockForLine(order,line,Number(line.allocated||0),'Sales order line undo');
-    const poIds=so2RemoveLinkedPoDemand(assessment.linkedPoLines,order,line,reason);
-    const index=order.lines.indexOf(line);if(index>=0)order.lines.splice(index,1);
-    if(typeof syncSalesOrderStatusFromGoodsNotes==='function')syncSalesOrderStatusFromGoodsNotes(order);
-    order.lineCorrections=Array.isArray(order.lineCorrections)?order.lineCorrections:[];
-    order.lineCorrections.push({id:'SOLINE-'+Date.now(),type:'Sales Order line undone before invoice / stock movement',at:at,user:user,reason:reason,line:snapshot,linkedPurchaseOrders:poIds,fulfilmentNotesRemoved:fulfilment.removed,fulfilmentNotesUpdated:fulfilment.touched});
-    data.auditLog=Array.isArray(data.auditLog)?data.auditLog:[];
-    data.auditLog.push({id:'AUD-'+Date.now(),date:at,user:user,action:'Sales order line undone',product:order.id,previousValue:snapshot,newValue:'Removed before invoice / physical stock movement',reason:reason});
-    addSalesOrderNotification(order,'Sales order item undone',label+' removed. Reason: '+reason+(poIds.length?' Linked PO demand removed from '+poIds.join(', ')+'.':'')+((fulfilment.removed.length||fulfilment.touched.length)?' Open fulfilment was reset.':''),'Internal note');
-    order.status=order.lines.length?(order.status==='New Order'?'New Order':'Needs Review'):'Needs Review';order.updatedAt=at;
-    if(typeof saveAppData==='function')saveAppData();
-    if(typeof toast==='function')toast(label+' removed from '+order.id+'. Linked pre-shipment activity was unwound and project value/profit will recalculate automatically.');
-    if(typeof render==='function')render();
+    const removed=so2ApplySalesOrderLineRemoval(order,line,assessment,reason);
+    so2FinishSalesOrderLineRemoval(order,[removed]);
+  }
+
+  function so2SelectedSalesOrderLines(orderId) {
+    const order=(data.salesOrders||[]).find(function(row){return String(row.id)===String(orderId);});
+    if(!order)return [];
+    return Array.from(document.querySelectorAll('[data-sales-line-select^="'+String(orderId)+'|"]:checked')).map(function(input){
+      const productId=String(input.dataset.salesLineSelect||'').split('|')[1];
+      return order.lines.find(function(line){return String(line.productId)===productId;});
+    }).filter(Boolean);
+  }
+
+  function so2UpdateSelectedLineToolbar(orderId) {
+    const selected=so2SelectedSalesOrderLines(orderId),button=document.querySelector('[data-delete-selected-sales-lines="'+String(orderId)+'"]'),count=document.querySelector('[data-selected-sales-line-count="'+String(orderId)+'"]');
+    if(count)count.textContent=selected.length?selected.length+' selected':'';
+    if(button){
+      button.disabled=!selected.length;
+      button.textContent=selected.length?'Delete selected ('+selected.length+')':'Delete selected';
+      button.setAttribute('aria-disabled',selected.length?'false':'true');
+    }
+    document.querySelectorAll('[data-sales-line-select^="'+String(orderId)+'|"]').forEach(function(input){
+      const row=input.closest('tr');if(row)row.classList.toggle('so2-line-selected',!!input.checked);
+    });
+  }
+
+  function so2RemoveSelectedSalesOrderLines(orderId) {
+    const order=(data.salesOrders||[]).find(function(row){return String(row.id)===String(orderId);}),selected=so2SelectedSalesOrderLines(orderId);
+    if(!order||!selected.length){if(typeof toast==='function')toast('Tick one or more order lines first.');return;}
+    const checks=selected.map(function(line){return {line:line,assessment:so2SalesLineDeleteAssessment(order,line)};});
+    const blocked=checks.filter(function(row){return !row.assessment.allowed;});
+    if(blocked.length){
+      const p=product(blocked[0].line.productId)||{},label=blocked[0].line.description||blocked[0].line.customProductName||p.name||blocked[0].line.productId;
+      if(typeof toast==='function')toast('Cannot delete selected lines: '+label+'. '+blocked[0].assessment.reason);
+      return;
+    }
+    const reason=String(prompt('Reason for deleting '+selected.length+' selected line'+(selected.length===1?'':'s')+' from '+order.id+' (required)')||'').trim();
+    if(!reason){if(typeof toast==='function')toast('A removal reason is required.');return;}
+    const allocationCount=selected.filter(function(line){return !isNonStockSalesLine(line)&&Number(line.allocated||0)>0;}).length;
+    const fulfilmentCount=checks.filter(function(row){return (row.assessment.linkedGoodsNotes||[]).length>0;}).length;
+    const poCount=checks.reduce(function(total,row){return total+row.assessment.linkedPoLines.length;},0);
+    let warning='Delete '+selected.length+' selected line'+(selected.length===1?'':'s')+' from '+order.id+'?';
+    if(allocationCount)warning+=' Allocated stock will be released.';
+    if(fulfilmentCount)warning+=' Open pick/pack activity will be reset.';
+    if(poCount)warning+=' '+poCount+' unreceived linked PO line'+(poCount===1?'':'s')+' will be removed.';
+    warning+=' The original entries and your reason will remain in the audit history.';
+    if(!confirm(warning))return;
+    const labels=checks.map(function(row){return so2ApplySalesOrderLineRemoval(order,row.line,row.assessment,reason);});
+    so2FinishSalesOrderLineRemoval(order,labels);
   }
 
   function so2ProductsContent(order) {
@@ -328,7 +386,7 @@
     const shortageCount = stockLines.filter(function(line){ return salesLineCoverage(line,order.id).toRaise > 0; }).length;
     return '<section class="so2-items-workspace">' +
       '<div class="so2-lines-toolbar"><div><span class="so2-kicker">Order lines</span><strong>' + order.lines.length + ' lines · ' + unitCount + ' units</strong><small>' + allocatedCount + ' allocated' + (shortageCount ? ' · ' + shortageCount + ' stock issue' + (shortageCount===1?'':'s') : '') + '</small></div>' +
-        '<div class="so2-toolbar-actions"><button class="secondary" data-allocate-order="' + order.id + '">Allocate all</button><button class="secondary" data-selected-line-action="purchaseOrder" data-order-id="' + order.id + '">Raise PO</button><button class="secondary" data-selected-line-action="backOrder" data-order-id="' + order.id + '">Back order</button></div></div>' +
+        '<div class="so2-toolbar-actions"><span class="so2-selected-count" data-selected-sales-line-count="' + order.id + '"></span><button type="button" class="danger-button so2-delete-selected" data-delete-selected-sales-lines="' + order.id + '" disabled aria-disabled="true">Delete selected</button><button class="secondary" data-allocate-order="' + order.id + '">Allocate all</button><button class="secondary" data-selected-line-action="purchaseOrder" data-order-id="' + order.id + '">Raise PO</button><button class="secondary" data-selected-line-action="backOrder" data-order-id="' + order.id + '">Back order</button></div></div>' +
       '<div class="sales-table-scroll so2-table-scroll"><table class="order-lines-table so2-lines-table"><thead><tr><th></th><th>Product</th><th class="so2-variant-head">Variant</th><th>Stock</th><th>Qty</th><th>Allocated</th><th class="right">Unit net</th><th>VAT</th><th class="right">Line total</th><th>Actions</th></tr></thead><tbody>' + so2LineRows(order) + '</tbody></table></div>' +
       '<div class="so2-entry-grid"><section class="so2-catalogue-card" aria-label="Add products"><div class="so2-catalogue-body">' + salesOrderAddRow(order) + '</div></section>' +
         '<aside class="so2-totals-card"><div class="so2-section-head"><div><span class="so2-kicker">Order value</span><strong>Live totals</strong><small>Net, VAT, payments and balance.</small></div></div>' + salesOrderTotalsBox(order) + '</aside></div>' +
@@ -463,6 +521,21 @@
     menu.style.top = top + 'px';
     button.setAttribute('aria-expanded','true');
   }
+
+  document.addEventListener('change',function(event){
+    const checkbox=event.target.closest('[data-sales-line-select]');
+    if(!checkbox)return;
+    const orderId=String(checkbox.dataset.salesLineSelect||'').split('|')[0];
+    so2UpdateSelectedLineToolbar(orderId);
+  },true);
+
+  document.addEventListener('click',function(event){
+    const button=event.target.closest('[data-delete-selected-sales-lines]');
+    if(!button)return;
+    event.preventDefault();event.stopImmediatePropagation();
+    if(button.disabled)return;
+    so2RemoveSelectedSalesOrderLines(button.dataset.deleteSelectedSalesLines);
+  },true);
 
   document.addEventListener('click', function(event) {
     const button=event.target.closest('[data-remove-sales-line]');
