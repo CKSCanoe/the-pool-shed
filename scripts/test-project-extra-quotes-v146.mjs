@@ -45,7 +45,31 @@ const serverAcceptance={id:'A-SERVER',accepted_at:'2026-09-26T15:00:00Z',signer:
 const server=convertSnapshot(serverBase,{publication,acceptance:serverAcceptance});assert.equal(server.snapshot.jobs.length,1);assert.equal(server.conversion.projectId,'J1');assert(server.conversion.variationId);assert.equal(server.conversion.deposit.mode,'none');assert.equal(server.snapshot.jobs[0].project.variations.filter(v=>v.quoteId==='Q-SERVER-EXTRA').length,1);assert.equal(server.snapshot.salesOrders[0].variationId,server.conversion.variationId);assert.equal(server.snapshot.salesOrders[0].unitPrice,undefined);assert(server.snapshot.jobs[0].project.correspondence.some(x=>x.kind==='Customer Acceptance'&&x.quoteId==='Q-SERVER-EXTRA'));
 const serverAgain=convertSnapshot(server.snapshot,{publication,acceptance:serverAcceptance});assert.equal(serverAgain.alreadyConverted,true);assert.equal(serverAgain.snapshot.salesOrders.length,1);assert.equal(serverAgain.snapshot.jobs[0].project.variations.filter(v=>v.quoteId==='Q-SERVER-EXTRA').length,1);
 
+
+const referenceQuote=qs.createQuote({customerId:'C1',projectName:'Existing site works quote',projectType:'Landscaping',workflow:'quick'});
+ctx.psProjectTransaction('link-quote',{jobId:'J1',quoteId:referenceQuote.id,linkType:'reference'});
+assert.equal(referenceQuote.projectLink.projectId,'J1');assert.equal(referenceQuote.projectLink.type,'reference');
+summary=pe.summary(job,data,Date.parse('2026-09-26T16:00:00Z'));
+assert.equal(summary.referenceQuoteCount,1);assert.equal(summary.totalSellingValue,1120000,'Reference quote must not inflate agreed customer value');
+
+const pendingLinked=qs.createQuote({customerId:'C1',projectName:'Existing paving extra',projectType:'Landscaping',workflow:'quick'});
+ctx.psProjectTransaction('link-quote',{jobId:'J1',quoteId:pendingLinked.id,linkType:'extra'});
+summary=pe.summary(job,data,Date.parse('2026-09-26T16:00:00Z'));
+assert(summary.quoteRows.some(r=>r.quoteId===pendingLinked.id&&r.role==='Extra'&&r.status==='Pending'));
+assert.equal(summary.totalSellingValue,1120000,'Linked pending quote must remain outside agreed revenue');
+
+data.purchaseOrders.push({id:'PO-PROJECT-LINK',supplier:'Landscapes Ltd',status:'Draft - Review',due:'2026-10-10',lines:[{productId:'P1',qty:2,received:0,unitCost:500}]});
+ctx.psProjectTransaction('link-po',{jobId:'J1',poId:'PO-PROJECT-LINK'});
+assert.equal(data.purchaseOrders.find(po=>po.id==='PO-PROJECT-LINK').jobId,'J1');
+summary=pe.summary(job,data,Date.parse('2026-09-26T16:00:00Z'));
+assert(summary.poRows.some(r=>r.po.id==='PO-PROJECT-LINK'),'Manually allocated PO must feed project costs');
+ctx.psProjectTransaction('unlink-po',{jobId:'J1',poId:'PO-PROJECT-LINK'});
+assert.equal(data.purchaseOrders.find(po=>po.id==='PO-PROJECT-LINK').jobId,'','Clean unreceived PO can be corrected/unlinked');
+ctx.psProjectTransaction('link-po',{jobId:'J1',poId:'PO-PROJECT-LINK'});
+data.purchaseOrders.find(po=>po.id==='PO-PROJECT-LINK').payments=[{id:'PAY1',amount:1200,date:'2026-09-26'}];
+assert.throws(()=>ctx.psProjectTransaction('unlink-po',{jobId:'J1',poId:'PO-PROJECT-LINK'}),/payment|history/i,'PO payment history must protect the project link');
+
 const workspace=fs.readFileSync('public/project-workspace.js','utf8'),quoteWorkspace=fs.readFileSync('public/quote-studio-workspace.js','utf8');
-for(const label of ['Original contract value','Approved extras','Total selling value','Actual costs','Committed costs','Remaining forecast costs','Projected profit','Projected margin','Project quotes & extras'])assert(workspace.includes(label),label+' dashboard/UI label missing');
+for(const label of ['Original contract value','Approved extras','Total selling value','Actual costs','Committed costs','Remaining forecast costs','Projected profit','Projected margin','Project quotes & extras','Project commercial control','Link an existing quote','Allocate Purchase Order to project','Customer cash received','Supplier cash paid'])assert(workspace.includes(label),label+' dashboard/UI label missing');
 assert(quoteWorkspace.includes('newExtraQuoteForProject'));assert(quoteWorkspace.includes('Sending an email does not approve it'));
 console.log('PASS linked project extras: pending/rejected isolation, immutable original contract, accepted revenue handover, approval evidence, SO pricing, idempotency and server parity');
