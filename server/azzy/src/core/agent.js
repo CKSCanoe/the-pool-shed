@@ -347,7 +347,7 @@ export async function prepareTurn({userId='aaron',message,context=null,contexts=
   const decisions=memory.decisionsFor(user.id,activeContexts);if(decisions.length)facts.push({tool:'active_decisions',ok:true,data:decisions,error:null});
   let response=compose({intent:plan.intent,executions,session,user,contexts:activeContexts,primaryContext,deltas,plan,message});const factHash=hash(facts),unchanged=session.lastIntent===plan.intent&&session.lastFactHash===factHash&&normalise(session.lastUserMessage)===normalise(message)&&!response.action;
   if(unchanged)response={...response,answer:`Nothing's changed since we last looked at that.`,followups:[...(response.followups||[]).slice(0,2),'What changed today?'],tone:'steady'};
-  response={...response,evidence,intent:plan.intent,contexts:activeContexts,primaryContext,dataRevision:db.meta.revision,deltas,decisions};
+  response={...response,evidence,intent:plan.intent,contexts:activeContexts,primaryContext,dataRevision:db.meta.revision,deltas,decisions,assistantMode:brain.connected&&brain.model?'enhanced':'core',brainConnected:Boolean(brain.connected)};
   return {userId:user.id,user,message,contexts:activeContexts,primaryContext,history:historyBefore,session,brain,plan,executions,facts,evidence,deltas,unchanged,shouldNarrate:Boolean(brain.connected&&brain.model&&!response.action&&!unchanged),response};
 }
 
@@ -389,7 +389,7 @@ function watchedSignals(db,user,session){
 export async function bootstrap(userId='aaron'){
   const db=runtimeSnapshot(),user=currentUser(userId),brain=await brainHealth(),available=availableContexts(db,user);let session=memory.session(user.id);const safe=sanitiseContexts(db,user,session.contexts);if(safe.length!==session.contexts.length)session=memory.syncContexts(user.id,safe,session.primaryContext);
   const {signals,wins}=filterIntelligenceForUser(buildSignals(db),user),attention=signals.map(x=>({...x,seen:session.seenSignals[x.id]===hash({title:x.title,summary:x.summary,severity:x.severity})})),watchSignals=watchedSignals(db,user,session);for(const w of watchSignals)if(!attention.some(a=>a.id===w.id))attention.unshift(w);
-  return {user,users:Object.values(db.users).map(x=>({id:x.id,name:x.name,role:x.role})),primaryContext:session.primaryContext,activeContexts:session.contexts,contexts:available,attention,wins,assistantReady:Boolean(brain.connected),dataMode:db.meta.mode,revision:db.meta.revision,audit:memory.auditFor(user.id),conversation:session.history.slice(-50),decisions:memory.decisionsFor(user.id,session.contexts),watches:memory.watchesFor(user.id)};
+  return {user,users:Object.values(db.users).map(x=>({id:x.id,name:x.name,role:x.role})),primaryContext:session.primaryContext,activeContexts:session.contexts,contexts:available,attention,wins,assistantReady:true,assistantMode:brain.connected&&brain.model?'enhanced':'core',brainConnected:Boolean(brain.connected),brainError:brain.connected?null:(brain.error||'Local brain unavailable'),dataMode:db.meta.mode,revision:db.meta.revision,audit:memory.auditFor(user.id),conversationId:session.conversationId,conversationStartedAt:session.conversationStartedAt,conversation:session.history.slice(-50),conversations:memory.conversationsFor(user.id),decisions:memory.decisionsFor(user.id,session.contexts),watches:memory.watchesFor(user.id)};
 }
 
 export function updateWorkingContexts(userId,{action='add',context=null,contexts=[]}={}){
