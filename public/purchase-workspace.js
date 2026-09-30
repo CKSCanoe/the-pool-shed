@@ -549,6 +549,8 @@
   globalThis.purchaseDemandSources = purchaseDemandSources;
   globalThis.purchaseCreateSupplierReturn = purchaseCreateSupplierReturn;
   globalThis.purchaseReturnStatusSummary = purchaseReturnStatusSummary;
+  globalThis.purchaseOrderLineDeleteAssessment = poLineDeleteAssessment;
+  globalThis.removePurchaseOrderLine = removePurchaseOrderLine;
   globalThis.bindPurchaseCommand = bindPurchaseCommand;
 })();
 
