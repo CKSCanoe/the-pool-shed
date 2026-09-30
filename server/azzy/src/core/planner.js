@@ -48,6 +48,17 @@ function lastAssistantText(history=[]){return [...history].reverse().find(x=>x.r
 function looksLikeProductQuery(q=''){return /\b(?:do we have|have we got|stock|product|pipework|pipe|valve|union|fitting|elbow|tee|pump|heater|liner|chemical|chlorine|inch|inches|mm|filter|laterals?|media|cover|skimmer|return|socket|nipple)\b/i.test(q)||/\b\d+(?:\.\d+)?\s*(?:inch|inches|mm|\")\b/i.test(q)||/\b\d+\s+1\s*\/\s*2\b/.test(q);}
 function isAssent(q=''){return /^(?:yes|yeah|yep|yup|please|yes please|yeah please|go ahead|do it|sure|okay|ok|carry on|continue)[.!\s]*$/i.test(String(q).trim());}
 function moneyValue(q){const m=q.match(/£\s?([\d,]+(?:\.\d+)?)/i)||q.match(/\b([\d,]+(?:\.\d+)?)\s*(?:pounds?|quid)\b/i);return m?Number(m[1].replace(/,/g,'')):null;}
+function cadenceFromText(q=''){
+  if(/fortnight|every two weeks|every 2 weeks/.test(q))return 14;
+  if(/weekly|every week/.test(q))return 7;
+  if(/every four weeks|every 4 weeks/.test(q))return 28;
+  if(/every two months|every 2 months|bi.?monthly/.test(q))return 61;
+  if(/quarter|every three months|every 3 months/.test(q))return 91;
+  if(/six months|6 months|half.?year/.test(q))return 182;
+  if(/annual|yearly|every year/.test(q))return 365;
+  if(/monthly|every month/.test(q))return 30;
+  return Number(q.match(/every\s+(\d+)\s+days?/)?.[1]||30);
+}
 function namedProjectRefs(message,db){
   const q=lower(message),out=[];for(const p of Object.values(db.projects||{}))if(projectAliases(p).some(a=>a&&q.includes(String(a).toLowerCase())))out.push({type:'project',id:p.id});return unique(out);
 }
@@ -139,6 +150,33 @@ export function deterministicPlan({message,contexts=[],primaryContext=null,histo
     plan.intent='chemical_safety';plan.confidence=.99;add('get_chemical_safety',{sku:firstSku});return plan;
   }
 
+  if(/subscription|recurring|repeat order|standing order|regular order|monthly order|fortnightly order/.test(q)){
+    if(/create|prepare|set up|setup|start/.test(q)&&firstCustomer&&firstSku){
+      const qty=Math.max(1,Number(q.match(/\bqty\s*(\d+)\b/)?.[1]||q.match(/\b(\d+)\s*(?:units?|packs?|drums?|bottles?)\b/)?.[1]||1));
+      plan.intent='prepare_subscription';plan.confidence=.995;add('prepare_sales_order_subscription',{customerId:firstCustomer,cadenceDays:cadenceFromText(q),lines:[{sku:firstSku,qty}]});return plan;
+    }
+    plan.intent='subscription_review';plan.confidence=.99;add('get_subscription_review',{customerId:firstCustomer||null});return plan;
+  }
+
+  if(/stock movement|stock movements|fast mover|fast moving|slow mover|stock usage|usage trend|movement trend|what.*moving|most.*used stock|outbound stock|inbound stock/.test(q)){
+    plan.intent='stock_movement';plan.confidence=.99;add('get_stock_movement_insights',{sku:firstSku||null,days:/30 day|month/.test(q)?30:/60 day/.test(q)?60:/year|12 month/.test(q)?365:90});return plan;
+  }
+
+  if(/trending|trend.*orders?|sales trend|purchase trend|po trend|buying trend|what.*selling|most ordered|popular products?|demand trend|ordering more|buying more|reorder recommendation/.test(q)){
+    plan.intent='order_trends';plan.confidence=.99;add('get_order_trends',{days:/30 day|month/.test(q)?30:/6 month|180 day/.test(q)?180:/year|12 month/.test(q)?365:90});return plan;
+  }
+
+  if(/recommend.*product|product.*recommend|what else.*buy|bought together|often bought|customers also|cross.?sell|upsell|likely reorder|reorder.*customer/.test(q)){
+    plan.intent='product_recommendations';plan.confidence=.98;add('get_product_recommendations',{sku:firstSku||null,customerId:firstCustomer||null});return plan;
+  }
+
+  if(firstCustomer&&(/customer|client|account|what.*ordered|what.*bought|order history|everything.*(?:about|for)|tell me.*(?:about|customer)|what.*open/.test(q))){
+    plan.intent='customer_record';plan.confidence=.995;add('get_customer_record',{customerId:firstCustomer});return plan;
+  }
+  if(can('customers.read')&&(/find.*customer|customer.*named|client.*named|what.*has.*ordered|what.*did.*order|orders?.*(?:for|has)|who is|did you mean/.test(q))){
+    plan.intent='customer_lookup';plan.confidence=.97;plan.working={query:message};add('find_customers',{query:message,limit:5});return plan;
+  }
+
   if(firstSalesOrder&&(/sales order|\bso-?\d+\b|what.*(?:is|on).*order|tell me.*order|everything.*order|order.*status|where.*order|what.*happen.*order/.test(q))){
     plan.intent='sales_order';plan.confidence=.995;add('get_sales_order',{salesOrderId:firstSalesOrder});return plan;
   }
@@ -174,6 +212,10 @@ export function deterministicPlan({message,contexts=[],primaryContext=null,histo
   if(/attention|worry|problem|issue/.test(q)&&!firstProject){plan.intent='briefing';plan.confidence=.9;add('get_operational_briefing');return plan;}
   if(/customer.*waiting|waiting on (us|customer)|who needs chasing|who should i chase|who.*chase first/.test(q)){plan.intent='customer_waiting';plan.confidence=.98;add('get_customer_waiting',{});return plan;}
   if(/policy|normally|procedure|sop|how do we/.test(q)){plan.intent='knowledge';plan.confidence=.9;add('search_knowledge',{query:message});return plan;}
+
+  if(can('customers.read')&&!firstProject&&!firstPo&&!firstSku&&!firstSalesOrder&&q.split(/\s+/).length<=4&&/^[a-z][a-z' -]{2,}$/i.test(q)){
+    plan.intent='customer_lookup';plan.confidence=.72;plan.working={query:message};add('find_customers',{query:message,limit:5});return plan;
+  }
 
   if(/why (is|does|has|would)|why's|whys|explain (that|this)|tell me more|go on|why.*problem|why.*worry|why.*matter/.test(q)){
     plan.intent='explain_followup';plan.confidence=.9;if(previousIntent==='finance'){add('get_finance_briefing');if(firstProject&&can('finance.read'))add('get_project_financials',{projectId:firstProject});}else if(previousIntent==='compare_projects'&&activeProjects.length>=2){plan.intent='compare_projects';add('compare_projects',{projectIds:activeProjects});}else if(previousIntent==='po'&&firstPo)add('get_purchase_order',{poId:firstPo});else if(previousIntent==='stock'&&firstSku)add('get_stock_position',{sku:firstSku});else if(firstProject)projectBundle(firstProject);else add('get_operational_briefing');return plan;
