@@ -353,3 +353,42 @@ body .so2-line-menu .danger{color:var(--color-status-danger-text)!important}
   }
 }
 
+/* Checkbox-driven line actions */
+#screen-salesorders .so2-toolbar-actions .so2-selected-count{
+  min-width:0!important;
+  color:var(--color-text-secondary)!important;
+  font-size:9px!important;
+  font-weight:850!important;
+  white-space:nowrap!important;
+}
+#screen-salesorders .so2-toolbar-actions .so2-delete-selected{
+  height:30px!important;
+  min-height:30px!important;
+  padding:0 10px!important;
+  border-radius:5px!important;
+  font-size:9px!important;
+  font-weight:900!important;
+  white-space:nowrap!important;
+}
+#screen-salesorders .so2-toolbar-actions .so2-delete-selected:disabled{
+  opacity:.45!important;
+  cursor:not-allowed!important;
+}
+#screen-salesorders .so2-line-row.so2-line-selected td{
+  background:var(--color-action-soft)!important;
+}
+#screen-salesorders .so2-line-row.so2-line-selected td:first-child{
+  box-shadow:inset 3px 0 0 var(--color-action-ink)!important;
+}
+@media(max-width:900px){
+  #screen-salesorders .so2-lines-toolbar{
+    align-items:flex-start!important;
+    flex-wrap:wrap!important;
+  }
+  #screen-salesorders .so2-toolbar-actions{
+    width:100%!important;
+    flex-wrap:wrap!important;
+    justify-content:flex-start!important;
+  }
+}
+
