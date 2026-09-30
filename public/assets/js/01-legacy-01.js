@@ -567,6 +567,17 @@ const seed = {
         source.purchaseOrders.forEach(function(po) {
           if (!po || typeof po !== "object") return;
           po.lines = Array.isArray(po.lines) ? po.lines : [];
+          po.payments = Array.isArray(po.payments) ? po.payments : [];
+          po.paymentCorrections = Array.isArray(po.paymentCorrections) ? po.paymentCorrections : [];
+          po.payments.forEach(function(payment, paymentIndex) {
+            if (!payment || typeof payment !== "object") return;
+            payment.id = payment.id || ("POPAY-" + String(po.id || "PO").replace(/[^A-Za-z0-9_-]/g, "") + "-" + String(paymentIndex + 1).padStart(3, "0"));
+            payment.date = String(payment.date || payment.paidDate || po.orderedDate || new Date().toISOString().slice(0, 10)).slice(0, 10);
+            payment.type = payment.type || "Bank transfer";
+            payment.reference = payment.reference || "";
+            payment.amount = Math.round((Number(payment.amount) || 0) * 100) / 100;
+            payment.recordedAt = payment.recordedAt || "";
+          });
           const retiredSource = ("engineer" + " request").toLowerCase();
           if (String(po.source || "").toLowerCase() === retiredSource) po.source = po.jobId ? "Project Purchasing" : "Purchasing";
           const retiredLink = "engineer" + "RequestId";
@@ -4803,16 +4814,18 @@ const seed = {
         const rows = data.purchaseOrders.map(function(po) {
           const supplier = supplierProfile(po.supplier);
           const summary = poSummary(po);
+          const totals = purchaseOrderTotals(po);
+          const paymentState = purchaseOrderPaymentStatus(po);
           const linkedOrders = Array.from(new Set(po.lines.map(function(line) { return line.salesOrderId; }).filter(Boolean))).join(", ") || "General stock";
-          return '<tr><td><button class="ghost" data-open-po-detail="' + po.id + '"><strong>' + po.id + '</strong></button><br><span class="muted">' + escapeHtml(po.source || "Manual PO") + '</span></td><td><strong>' + escapeHtml(po.supplier) + '</strong><br><span class="muted">' + escapeHtml(supplier.email || "No supplier email") + '</span></td><td>' + purchaseOrderStatusPicker(po, "table") + '</td><td>' + summary.received + '/' + summary.ordered + '<br><span class="muted">' + summary.pending + ' pending</span></td><td>' + escapeHtml(linkedOrders) + '</td><td>' + po.due + '</td><td class="right">' + money(summary.pendingCost) + '</td><td class="right"><div class="po-row-actions"><button class="secondary" data-open-po-detail="' + po.id + '">Open</button><button class="danger-button" data-delete-po="' + po.id + '">Delete</button></div></td></tr>';
-        }).join("") || '<tr><td colspan="8" class="muted">No purchase orders yet.</td></tr>';
+          return '<tr><td><button class="ghost" data-open-po-detail="' + po.id + '"><strong>' + po.id + '</strong></button><br><span class="muted">' + escapeHtml(po.source || "Manual PO") + '</span></td><td><strong>' + escapeHtml(po.supplier) + '</strong><br><span class="muted">' + escapeHtml(supplier.email || "No supplier email") + '</span></td><td>' + purchaseOrderStatusPicker(po, "table") + '</td><td>' + summary.received + '/' + summary.ordered + '<br><span class="muted">' + summary.pending + ' pending</span></td><td>' + escapeHtml(linkedOrders) + '</td><td>' + escapeHtml(po.due || "—") + '</td><td><span class="pill ' + (paymentState === "Paid" ? "good" : paymentState === "Part Paid" ? "warn" : paymentState === "Overpaid" ? "blue" : "bad") + '">' + escapeHtml(paymentState) + '</span><br><span class="muted">' + money(Math.max(0, totals.balance)) + ' due</span></td><td class="right">' + money(summary.pendingCost) + '</td><td class="right"><div class="po-row-actions"><button class="secondary" data-open-po-detail="' + po.id + '">Open</button><button class="danger-button" data-delete-po="' + po.id + '">Delete</button></div></td></tr>';
+        }).join("") || '<tr><td colspan="9" class="muted">No purchase orders yet.</td></tr>';
         return '<div class="grid kpis">' +
           kpi("Open POs", openPos, "Supplier orders not complete") +
           kpi("Pending units", pending, "Units still due") +
           kpi("Linked SO POs", linked, "Keeping sales orders connected") +
           kpi("Suppliers", supplierProfiles().length, "Profiles available") +
         '</div>' +
-        panel("Purchase Orders", "Main PO list. Open a PO to edit status, supplier profile, linked sales order lines, email review and goods-in.", '<table><thead><tr><th>PO</th><th>Supplier</th><th>Status</th><th>Received</th><th>Linked sales order</th><th>Due</th><th class="right">Pending cost</th><th class="right">Action</th></tr></thead><tbody>' + rows + '</tbody></table>', '<div class="action-row"><button data-create-po-draft="true">Create purchase order</button><button class="secondary" data-purchase-view="suppliers">Upload suppliers</button></div>') +
+        panel("Purchase Orders", "Main PO list. Open a PO to edit status, supplier profile, linked sales order lines, supplier payments, email review and goods-in.", '<table><thead><tr><th>PO</th><th>Supplier</th><th>Status</th><th>Received</th><th>Linked sales order</th><th>Due</th><th>Payment</th><th class="right">Pending cost</th><th class="right">Action</th></tr></thead><tbody>' + rows + '</tbody></table>', '<div class="action-row"><button data-create-po-draft="true">Create purchase order</button><button class="secondary" data-purchase-view="suppliers">Upload suppliers</button></div>') +
         shortStockPoReviewPanel();
       }
 
@@ -4821,12 +4834,15 @@ const seed = {
         ensureSupplierProfiles();
         const supplier = supplierProfile(po.supplier);
         const summary = poSummary(po);
+        const totals = purchaseOrderTotals(po);
+        const paymentState = purchaseOrderPaymentStatus(po);
         const linkedOrderIds = Array.from(new Set((po.lines || []).map(function(line) { return line.salesOrderId; }).filter(Boolean)));
         const linkedOrders = linkedOrderIds.map(function(id) { return salesOrder(id); }).filter(Boolean);
         const section = purchaseOrderSection || "lines";
         const content = section === "overview" ? purchaseOrderOverviewSection(po, supplier, summary, linkedOrders)
           : section === "linked" ? purchaseOrderLinkedOrdersSection(po, linkedOrders)
           : section === "supplier" ? purchaseOrderSupplierSection(po, supplier)
+          : section === "payments" ? purchaseOrderPaymentsSection(po, supplier)
           : section === "activity" ? purchaseOrderActivitySection(po)
           : purchaseOrderLinesSection(po);
         return '<div class="record-card purchase-order-workspace">' +
@@ -4834,12 +4850,12 @@ const seed = {
           '<div class="po-hero-actions">' + purchaseOrderActionButtons(po) + '<button type="button" class="danger-button" data-delete-po="' + po.id + '">Delete PO</button>' + purchaseOrderSaveControl(po) + '</div></div>' +
           '<div class="po-summary-grid">' +
             '<div class="po-summary-card blue"><span>Supplier</span><strong>' + escapeHtml(po.supplier || "Not selected") + '</strong><small>' + escapeHtml(supplier.email || "No supplier email") + '</small></div>' +
-            '<div class="po-summary-card yellow"><span>Order value</span><strong>' + money((po.lines || []).reduce(function(t,l){ const p=product(l.productId)||{}; return t + Number(l.qty||0)*Number(p.cost||0); },0)) + '</strong><small>' + summary.pending + ' units still due</small></div>' +
-            '<div class="po-summary-card green"><span>Received</span><strong>' + summary.received + ' / ' + summary.ordered + '</strong><small>' + escapeHtml(po.due || "No due date") + '</small></div>' +
-            '<div class="po-summary-card red"><span>Linked sales orders</span><strong>' + linkedOrderIds.length + '</strong><small>' + (linkedOrderIds.length ? escapeHtml(linkedOrderIds.join(", ")) : "General stock") + '</small></div>' +
+            '<div class="po-summary-card yellow"><span>Total inc VAT</span><strong>' + money(totals.gross) + '</strong><small>' + money(totals.net) + ' net · ' + money(totals.vat) + ' VAT</small></div>' +
+            '<div class="po-summary-card green"><span>Received</span><strong>' + summary.received + ' / ' + summary.ordered + '</strong><small>' + escapeHtml(po.due || "No due date") + (linkedOrderIds.length ? ' · ' + linkedOrderIds.length + ' linked SO' + (linkedOrderIds.length === 1 ? '' : 's') : '') + '</small></div>' +
+            '<div class="po-summary-card red"><span>Supplier payment</span><strong>' + escapeHtml(paymentState) + '</strong><small>' + money(totals.paid) + ' paid · ' + money(Math.max(0, totals.balance)) + ' due</small></div>' +
           '</div>' +
           '<nav class="po-tabs" aria-label="Purchase order sections">' +
-            poTabButton("overview", "Overview", section) + poTabButton("lines", "Items", section) + poTabButton("linked", "Linked sales orders", section) + poTabButton("supplier", "Supplier", section) + poTabButton("activity", "Activity", section) +
+            poTabButton("overview", "Overview", section) + poTabButton("lines", "Items", section) + poTabButton("linked", "Linked sales orders", section) + poTabButton("supplier", "Supplier", section) + poTabButton("payments", "Payments", section) + poTabButton("activity", "Activity", section) +
           '</nav>' +
           '<div class="record-card-body po-section-content">' + content + '</div>' +
         '</div>';
@@ -4876,7 +4892,7 @@ const seed = {
         }).join('') || '<tr><td colspan="8" class="muted">No items added yet. Search the supplier catalogue below.</td></tr>';
         return '<section class="po-card"><div class="po-card-head"><div><span>Items</span><h3>Purchase order lines</h3><p>Add products from the selected supplier, keep sales-order links and review quantities before sending.</p></div><button class="secondary" data-po-section="linked">View linked orders</button></div>' +
           '<div class="po-lines-wrap"><table class="po-lines-table"><thead><tr><th>Item</th><th>Supplier SKU</th><th>Ordered</th><th>Received</th><th>Pending</th><th>Linked SO</th><th class="right">Unit cost</th><th class="right">Line total</th></tr></thead><tbody>' + rows + '</tbody></table></div>' +
-          purchasingAssistantPanel() + purchaseOrderAddItemPanel(po) + '</section>';
+          purchaseOrderTotalsBox(po) + purchasingAssistantPanel() + purchaseOrderAddItemPanel(po) + '</section>';
       }
 
       function purchaseOrderAddItemPanel(po) {
@@ -4909,6 +4925,76 @@ const seed = {
             '<div class="offer-badges">' + (best ? '<span class="pill good">Best value</span>' : '') + (current ? '<span class="pill blue">Current PO</span>' : '<span class="pill warn">New supplier PO</span>') + '</div>' +
           '</button>';
         }).join('') : '<div class="empty-state"><strong>No supplier offers found</strong><p>Try a product name, SKU, category or brand. Alternative supplier prices can be added from Supplier Catalogues.</p></div>');
+      }
+
+      function purchaseOrderTotals(po) {
+        return (po.lines || []).reduce(function(summary, line) {
+          const p = product(line.productId) || {};
+          const qty = Number(line.qty || 0);
+          const unitCost = Number(line.unitCost != null ? line.unitCost : p.cost || 0);
+          const net = unitCost * qty;
+          const taxLine = { taxCode: line.taxCode || p.taxCode || "20% VAT" };
+          const vat = vatAmount(net, taxLine);
+          summary.net += net;
+          summary.vat += vat;
+          summary.gross += net + vat;
+          return summary;
+        }, { net:0, vat:0, gross:0, paid:(po.payments || []).reduce(function(total,payment){ return total + Number(payment.amount || 0); },0), balance:0 });
+      }
+
+      function purchaseOrderFinancials(po) {
+        const totals = purchaseOrderTotals(po);
+        totals.net = Math.round(totals.net * 100) / 100;
+        totals.vat = Math.round(totals.vat * 100) / 100;
+        totals.gross = Math.round(totals.gross * 100) / 100;
+        totals.paid = Math.round(totals.paid * 100) / 100;
+        totals.balance = Math.round((totals.gross - totals.paid) * 100) / 100;
+        return totals;
+      }
+
+      function purchaseOrderPaymentStatus(po) {
+        const totals = purchaseOrderFinancials(po);
+        if (totals.gross <= 0 && totals.paid <= 0) return "Unvalued";
+        if (totals.paid <= 0) return "Unpaid";
+        if (totals.paid > totals.gross + 0.005) return "Overpaid";
+        if (totals.paid + 0.005 < totals.gross) return "Part Paid";
+        return "Paid";
+      }
+
+      function purchaseOrderTotalsBox(po) {
+        const totals = purchaseOrderFinancials(po);
+        const balanceLabel = totals.balance < 0 ? "Overpaid" : "Balance due";
+        return '<div class="order-total-strip" style="margin:1rem 0"><div class="order-total-box">' +
+          '<div class="order-total-row"><span>Subtotal net</span><strong>' + money(totals.net) + '</strong></div>' +
+          '<div class="order-total-row"><span>VAT</span><strong>' + money(totals.vat) + '</strong></div>' +
+          '<div class="order-total-row grand"><span>Total inc VAT</span><strong>' + money(totals.gross) + '</strong></div>' +
+          '<div class="order-total-row"><span>Paid to supplier</span><strong>' + money(totals.paid) + '</strong></div>' +
+          '<div class="order-total-row"><span>' + balanceLabel + '</span><strong>' + money(Math.abs(totals.balance)) + '</strong></div>' +
+          '<button class="secondary" type="button" data-po-section="payments">Open payments</button>' +
+        '</div></div>';
+      }
+
+      function purchaseOrderPaymentHistoryTable(po) {
+        const rows = (po.payments || []).slice().sort(function(a,b){ return String(b.date || "").localeCompare(String(a.date || "")); }).map(function(payment) {
+          return '<tr><td>' + escapeHtml(payment.date || "—") + '</td><td>' + escapeHtml(payment.type || "Other") + '</td><td>' + escapeHtml(payment.reference || "—") + '</td><td>' + escapeHtml(payment.recordedBy || "Office") + '</td><td class="right">' + money(payment.amount) + '</td><td class="right"><button type="button" class="danger-button" data-delete-po-payment="' + escapeHtml(po.id + "|" + payment.id) + '">Delete</button></td></tr>';
+        }).join("") || '<tr><td colspan="6" class="muted">No supplier payments recorded yet.</td></tr>';
+        return '<div class="po-lines-wrap"><table><thead><tr><th>Date paid</th><th>Payment type</th><th>Reference</th><th>Recorded by</th><th class="right">Amount</th><th class="right">Action</th></tr></thead><tbody>' + rows + '</tbody></table></div>';
+      }
+
+      function purchaseOrderPaymentsSection(po, supplier) {
+        const totals = purchaseOrderFinancials(po);
+        const paymentState = purchaseOrderPaymentStatus(po);
+        const today = new Date().toISOString().slice(0,10);
+        const balance = Math.max(0, totals.balance);
+        return '<div class="po-overview-grid">' +
+          '<section class="po-card"><div class="po-card-head"><div><span>Supplier accounting</span><h3>Payment summary</h3><p>Track what Pool Bros has paid against this supplier purchase order.</p></div><span class="pill ' + (paymentState === "Paid" ? "good" : paymentState === "Part Paid" ? "warn" : paymentState === "Overpaid" ? "blue" : "bad") + '">' + escapeHtml(paymentState) + '</span></div>' +
+            '<div class="profile-stat-grid"><div class="profile-stat"><span>Subtotal net</span><strong>' + money(totals.net) + '</strong></div><div class="profile-stat"><span>VAT</span><strong>' + money(totals.vat) + '</strong></div><div class="profile-stat"><span>Total inc VAT</span><strong>' + money(totals.gross) + '</strong></div><div class="profile-stat"><span>Paid</span><strong>' + money(totals.paid) + '</strong></div><div class="profile-stat"><span>' + (totals.balance < 0 ? "Overpaid" : "Balance due") + '</span><strong>' + money(Math.abs(totals.balance)) + '</strong></div><div class="profile-stat"><span>Supplier terms</span><strong>' + escapeHtml((supplier && supplier.terms) || "Not set") + '</strong></div></div>' +
+          '</section>' +
+          '<section class="po-card"><div class="po-card-head"><div><span>Record payment</span><h3>Payment made to supplier</h3><p>Use the actual date the money left the business, including historic payments.</p></div></div>' +
+            '<form data-po-payment-form="' + escapeHtml(po.id) + '"><div class="form-grid two"><label>Amount paid<input name="amount" type="number" min="0" step="0.01" value="' + balance.toFixed(2) + '" required></label><label>Payment type<select name="type">' + optionList(["BACS","Bank transfer","Direct Debit","Card","Cheque","Cash","Other"], "BACS") + '</select></label><label>Date paid<input name="date" type="date" max="' + today + '" value="' + today + '" required></label><label>Reference / notes<input name="reference" placeholder="Bank ref, supplier invoice, card auth or note"></label></div><div class="action-row"><button type="submit">Save supplier payment</button></div></form>' +
+          '</section>' +
+          '<section class="po-card wide"><div class="po-card-head"><div><span>Payment history</span><h3>Payments made</h3><p>Historic supplier payments remain linked to this PO and feed the activity timeline.</p></div></div>' + purchaseOrderPaymentHistoryTable(po) + '</section>' +
+        '</div>';
       }
 
       function purchaseOrderLinkedOrdersSection(po, linkedOrders) {
@@ -5052,6 +5138,27 @@ const seed = {
         if (po.supplierEmailSentAt) events.push({ type:"supplier", badge:"Supplier", title:"Supplier order sent", detail:(po.supplierEmailSubject || po.id) + " · " + (po.supplier || "Supplier"), date:po.supplierEmailSentAt, meta:po.supplierEmailStatus || "Sent" });
         else if (po.supplierEmailStatus && po.supplierEmailStatus !== "Blocked until reviewed") events.push({ type:"supplier", badge:"Supplier", title:"Supplier email: " + po.supplierEmailStatus, detail:"Supplier communication state for this PO.", date:po.reviewedAt || createdDate, meta:"Email workflow" });
 
+        (po.payments || []).forEach(function(payment) {
+          events.push({
+            type:"payment",
+            badge:"Supplier payment",
+            title:money(payment.amount) + " paid to " + (po.supplier || "supplier"),
+            detail:(payment.type || "Other") + (payment.reference ? " · " + payment.reference : ""),
+            date:payment.date || payment.recordedAt || "",
+            meta:"Recorded " + (payment.recordedBy || "by Office")
+          });
+        });
+        (po.paymentCorrections || []).forEach(function(correction) {
+          events.push({
+            type:"correction",
+            badge:"Payment correction",
+            title:"Supplier payment removed",
+            detail:money(correction.amount || 0) + " " + (correction.type || "payment") + " dated " + (correction.paymentDate || "unknown") + " · " + (correction.reason || "Correction"),
+            date:correction.correctedAt || "",
+            meta:correction.correctedBy || "Office"
+          });
+        });
+
         (data.receiptEvents || []).filter(function(event){ return event.poId === po.id; }).forEach(function(event) {
           const p = product(event.productId);
           const location = locationById(event.locationId);
@@ -5074,14 +5181,15 @@ const seed = {
 
       function poSummary(po) {
         return po.lines.reduce(function(summary, line) {
-          const p = product(line.productId);
+          const p = product(line.productId) || {};
           const ordered = Number(line.qty || 0);
           const received = Number(line.received || 0);
           const pending = Math.max(0, ordered - received);
+          const unitCost = Number(line.unitCost != null ? line.unitCost : p.cost || 0);
           summary.ordered += ordered;
           summary.received += received;
           summary.pending += pending;
-          summary.pendingCost += pending * Number(p.cost || 0);
+          summary.pendingCost += pending * unitCost;
           return summary;
         }, { ordered: 0, received: 0, pending: 0, pendingCost: 0 });
       }
@@ -12829,6 +12937,19 @@ const seed = {
             render();
           });
         });
+        document.querySelectorAll("[data-po-payment-form]").forEach(function(form) {
+          form.addEventListener("submit", function(event) {
+            event.preventDefault();
+            recordPurchaseOrderPayment(form.dataset.poPaymentForm, new FormData(form));
+          });
+        });
+        document.querySelectorAll("[data-delete-po-payment]").forEach(function(button) {
+          button.addEventListener("click", function() {
+            const parts = String(button.dataset.deletePoPayment || "").split("|");
+            deletePurchaseOrderPayment(parts[0], parts[1]);
+          });
+        });
+
         document.querySelectorAll("[data-po-line-qty]").forEach(function(input) {
           input.addEventListener("change", function() {
             const parts = input.dataset.poLineQty.split("|");
@@ -12975,7 +13096,8 @@ const seed = {
         const lines = (po && po.lines) || [];
         const received = lines.reduce(function(total, line) { return total + Number(line.received || line.receivedQty || 0); }, 0);
         const goodsInLinked = (data.goodsIn || []).some(function(record) { return record.purchaseOrderId === po.id || record.poId === po.id; });
-        return { allowed: received === 0 && !goodsInLinked, received: received, goodsInLinked: goodsInLinked };
+        const payments = (po && po.payments) || [];
+        return { allowed: received === 0 && !goodsInLinked && payments.length === 0, received: received, goodsInLinked: goodsInLinked, payments: payments.length };
       }
 
       function deletePurchaseOrder(poId) {
@@ -12984,6 +13106,7 @@ const seed = {
         if (typeof adminAllowed === "function" && !adminAllowed()) return toast("Admin access is required to delete a purchase order.");
         const assessment = purchaseOrderDeleteAssessment(po);
         if (!assessment.allowed) {
+          if (assessment.payments > 0) return toast("This PO has supplier payment history. Correct or reverse the payment before deleting the PO.");
           return toast(assessment.received > 0 ? "This PO has received stock and must be cancelled or credited, not deleted." : "This PO has a linked goods-in record and cannot be deleted.");
         }
         const reason = String(prompt("Reason for deleting " + po.id + " (required)") || "").trim();
@@ -13001,6 +13124,73 @@ const seed = {
         purchaseOrderView = "list";
         saveAppData();
         toast(po.id + " deleted and recorded in the audit log.");
+        render();
+      }
+
+      function recordPurchaseOrderPayment(poId, formData) {
+        const po = purchaseOrderById(poId);
+        if (!po) return toast("Purchase order not found.");
+        const values = Object.fromEntries(formData.entries());
+        const amount = Math.round((Number(values.amount) || 0) * 100) / 100;
+        const today = new Date().toISOString().slice(0,10);
+        const paymentDate = String(values.date || today).slice(0,10);
+        if (amount <= 0) return toast("Enter a supplier payment above zero.");
+        if (!/^\d{4}-\d{2}-\d{2}$/.test(paymentDate)) return toast("Choose a valid payment date.");
+        if (paymentDate > today) return toast("Supplier payment date cannot be in the future.");
+        const before = purchaseOrderFinancials(po);
+        if (before.balance > 0 && amount > before.balance + 0.005 && !confirm("This payment is " + money(amount - before.balance) + " more than the current PO balance. Record it anyway?")) return;
+        po.payments = Array.isArray(po.payments) ? po.payments : [];
+        po.payments.push({
+          id:"POPAY-" + String(po.id || "PO").replace(/[^A-Za-z0-9_-]/g, "") + "-" + Date.now(),
+          amount:amount,
+          type:values.type || "BACS",
+          reference:String(values.reference || "").trim(),
+          date:paymentDate,
+          recordedAt:new Date().toISOString(),
+          recordedBy:(currentUser && currentUser().name) || "Current user"
+        });
+        saveAppData();
+        toast(money(amount) + " supplier payment saved against " + po.id + ".");
+        render();
+      }
+
+      function deletePurchaseOrderPayment(poId, paymentId) {
+        const po = purchaseOrderById(poId);
+        if (!po) return toast("Purchase order not found.");
+        if (typeof adminAllowed === "function" && !adminAllowed()) return toast("Admin access is required to delete a supplier payment.");
+        const payments = po.payments || [];
+        const index = payments.findIndex(function(payment){ return String(payment.id) === String(paymentId); });
+        if (index < 0) return toast("Supplier payment not found.");
+        const payment = payments[index];
+        const reason = String(prompt("Reason for deleting this supplier payment (required)") || "").trim();
+        if (!reason) return toast("A deletion reason is required.");
+        if (!confirm("Delete " + money(payment.amount) + " paid to " + (po.supplier || "supplier") + " on " + (payment.date || "unknown") + "? The correction will remain in the audit trail.")) return;
+        payments.splice(index,1);
+        po.paymentCorrections = Array.isArray(po.paymentCorrections) ? po.paymentCorrections : [];
+        po.paymentCorrections.push({
+          id:"POCORR-" + Date.now(),
+          paymentId:payment.id,
+          amount:payment.amount,
+          type:payment.type,
+          reference:payment.reference,
+          paymentDate:payment.date,
+          reason:reason,
+          correctedAt:new Date().toISOString(),
+          correctedBy:(currentUser && currentUser().name) || "Current user"
+        });
+        if (!Array.isArray(data.auditLog)) data.auditLog = [];
+        data.auditLog.push({
+          id:"AUD-" + Date.now(),
+          date:new Date().toISOString(),
+          user:(currentUser && currentUser().name) || "Current user",
+          action:"Purchase order supplier payment deleted",
+          product:po.id,
+          previousValue:{ paymentId:payment.id, amount:payment.amount, type:payment.type, reference:payment.reference, date:payment.date },
+          newValue:"Deleted",
+          reason:reason
+        });
+        saveAppData();
+        toast("Supplier payment deleted from " + po.id + ". The correction remains in the audit trail.");
         render();
       }
 
