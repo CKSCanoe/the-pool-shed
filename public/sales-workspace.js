@@ -185,28 +185,61 @@
   }
 
   function so2SalesLineDeleteAssessment(order,line) {
-    if (!order || !line) return { allowed:false, reason:'Sales Order line unavailable.', linkedPoLines:[] };
+    if (!order || !line) return { allowed:false, reason:'Sales Order line unavailable.', linkedPoLines:[], linkedGoodsNotes:[] };
     const nonStock = isNonStockSalesLine(line);
-    const fulfilment = !nonStock && (Number(line.picked||0)>0 || Number(line.packed||0)>0 || Number(line.shipped||0)>0 || salesOrderLineHasFulfilmentHistory(order,line));
-    const accounting = (order.payments||[]).length>0 || (order.xeroRef && order.xeroRef !== 'Draft') || ['Invoice Ready','Invoiced','Completed'].includes(order.status);
     const linkedPoLines = [];
     (data.purchaseOrders||[]).forEach(function(po){
       (po.lines||[]).forEach(function(poLine,index){
         if (String(poLine.salesOrderId||'')===String(order.id) && String(poLine.productId||'')===String(line.productId||'')) linkedPoLines.push({po:po,line:poLine,index:index});
       });
     });
+    const linkedGoodsNotes=(data.goodsNotes||[]).filter(function(note){
+      return String(note.salesOrderId||'')===String(order.id) && (note.lines||[]).some(function(noteLine){
+        return String(noteLine.productId||'')===String(line.productId||'');
+      });
+    });
     const receivedPo = linkedPoLines.some(function(row){
       if (Number(row.line.received||row.line.receivedQty||0)>0) return true;
       return (data.receiptEvents||[]).some(function(event){
         if (String(event.poId||'')!==String(row.po.id||'')) return false;
-        if (String(event.productId||'')===String(line.productId||'')) return true;
+        if (String(event.productId||'')===String(line.productId||'')) return Number(event.qty||event.received||1)>0;
         return (event.lines||[]).some(function(receiptLine){return String(receiptLine.productId||'')===String(line.productId||'') && Number(receiptLine.qty||receiptLine.received||0)>0;});
       });
     });
-    if (receivedPo) return {allowed:false,reason:'This item has supplier receiving history. Use Supplier Returns & Credits before removing it from the Sales Order.',linkedPoLines:linkedPoLines};
-    if (fulfilment) return {allowed:false,reason:'This item has pick, pack or shipping history. Use a Sales Credit / return so the fulfilment audit remains intact.',linkedPoLines:linkedPoLines};
-    if (accounting) return {allowed:false,reason:'This Sales Order has payment or invoice history. Use a Sales Credit so the accounting record remains intact.',linkedPoLines:linkedPoLines};
-    return {allowed:true,reason:nonStock?'This custom line can be removed.':Number(line.allocated||0)>0?'Allocated stock will be released automatically before removal.':linkedPoLines.length?'Unreceived linked PO demand will be removed automatically and retained in PO history.':'This line can be safely removed.',linkedPoLines:linkedPoLines};
+    const goodsOutMoved = !nonStock && (
+      Number(line.shipped||0)>0 ||
+      linkedGoodsNotes.some(function(note){
+        if(note.shipped||note.stockDeducted||note.shipmentLocked)return true;
+        return (note.lines||[]).some(function(noteLine){
+          return String(noteLine.productId||'')===String(line.productId||'') && Number(noteLine.shipped||0)>0;
+        });
+      }) ||
+      (data.movements||[]).some(function(move){
+        if(String(move.productId||'')!==String(line.productId||''))return false;
+        if(String(move.type||'').toLowerCase()!=='goods out')return false;
+        return String(move.ref||'')===String(order.id) || linkedGoodsNotes.some(function(note){return String(move.ref||'')===String(note.id||'');});
+      })
+    );
+    const invoiceRef=String(order.xeroRef||'').trim();
+    const invoiced=!!(
+      order.invoiceSource || order.invoiceDate || order.invoiceId || order.xeroInvoiceId || order.xeroInvoiceNumber ||
+      (invoiceRef && invoiceRef.toLowerCase()!=='draft') ||
+      ['Invoiced','Completed'].includes(String(order.status||'')) ||
+      (order.tags||[]).some(function(tag){return String(tag||'').toLowerCase()==='invoiced';})
+    );
+    if (receivedPo) return {allowed:false,reason:'This product has already been received from a supplier, so stock has physically moved. Use Supplier Returns & Credits before correcting the Sales Order.',linkedPoLines:linkedPoLines,linkedGoodsNotes:linkedGoodsNotes};
+    if (goodsOutMoved) return {allowed:false,reason:'This product has already been shipped or deducted from stock. Use a Sales Credit / return so the stock movement stays auditable.',linkedPoLines:linkedPoLines,linkedGoodsNotes:linkedGoodsNotes};
+    if (invoiced) return {allowed:false,reason:'This Sales Order has already been invoiced. Use a Sales Credit / corrective document rather than deleting the line.',linkedPoLines:linkedPoLines,linkedGoodsNotes:linkedGoodsNotes};
+    const workflow=[];
+    if(Number(line.allocated||0)>0)workflow.push('allocated stock');
+    if(linkedGoodsNotes.length)workflow.push('open fulfilment');
+    if(linkedPoLines.length)workflow.push('unreceived PO demand');
+    return {
+      allowed:true,
+      reason:nonStock?'This line can be removed and retained in correction history.':workflow.length?'This line can be removed. '+workflow.join(', ')+' will be unwound automatically.':'This line can be safely removed.',
+      linkedPoLines:linkedPoLines,
+      linkedGoodsNotes:linkedGoodsNotes
+    };
   }
 
   function so2RemoveLinkedPoDemand(rows,order,line,reason) {
@@ -235,26 +268,56 @@
     return Array.from(touched);
   }
 
+  function so2RemoveOpenFulfilmentDemand(order,line,reason) {
+    const touched=[],removedNotes=[],at=new Date().toISOString(),user=(typeof currentUser==='function'&&currentUser()&&(currentUser().name||currentUser().email))||'Sales';
+    const notes=Array.isArray(data.goodsNotes)?data.goodsNotes:[];
+    notes.forEach(function(note){
+      if(String(note.salesOrderId||'')!==String(order.id))return;
+      const removed=(note.lines||[]).filter(function(noteLine){return String(noteLine.productId||'')===String(line.productId||'');});
+      if(!removed.length)return;
+      if(note.shipped||note.stockDeducted||note.shipmentLocked||removed.some(function(noteLine){return Number(noteLine.shipped||0)>0;}))return;
+      note.lineCorrections=Array.isArray(note.lineCorrections)?note.lineCorrections:[];
+      removed.forEach(function(snapshot){
+        note.lineCorrections.push({id:'GNLINE-'+Date.now()+'-'+Math.random().toString(36).slice(2,7),type:'Fulfilment line removed with Sales Order correction',at:at,user:user,reason:reason,line:JSON.parse(JSON.stringify(snapshot))});
+      });
+      note.lines=(note.lines||[]).filter(function(noteLine){return String(noteLine.productId||'')!==String(line.productId||'');});
+      if(note.lines.length){
+        note.picked=note.lines.every(function(noteLine){return Number(noteLine.picked||0)>=Number(noteLine.qty||0);});
+        note.packed=note.lines.every(function(noteLine){return Number(noteLine.packed||0)>=Number(noteLine.qty||0);});
+        touched.push(note.id);
+      }else{
+        removedNotes.push(note.id);
+      }
+      data.auditLog=Array.isArray(data.auditLog)?data.auditLog:[];
+      data.auditLog.push({id:'AUD-'+Date.now()+'-'+Math.random().toString(36).slice(2,7),date:at,user:user,action:'Open fulfilment demand removed from Sales Order correction',product:note.id,previousValue:removed,newValue:note.lines.length?'Line removed':'Goods note removed',reason:reason});
+    });
+    if(removedNotes.length)data.goodsNotes=notes.filter(function(note){return !removedNotes.includes(note.id);});
+    return {touched:touched,removed:removedNotes};
+  }
+
   function so2RemoveSalesOrderLine(order,line,assessment) {
     const p=product(line.productId)||{},label=line.description||line.customProductName||p.name||line.productId,reason=String(prompt('Reason for removing “'+label+'” from '+order.id+' (required)')||'').trim();
     if(!reason){ if(typeof toast==='function')toast('A removal reason is required.'); return; }
-    let warning='Remove “'+label+'” from '+order.id+'?';
+    let warning='Undo “'+label+'” from '+order.id+'?';
     if(!isNonStockSalesLine(line)&&Number(line.allocated||0)>0)warning+=' Allocated stock will be released.';
+    if((assessment.linkedGoodsNotes||[]).length)warning+=' Open pick/pack activity will be removed.';
     if(assessment.linkedPoLines.length)warning+=' '+assessment.linkedPoLines.length+' unreceived linked PO line'+(assessment.linkedPoLines.length===1?'':'s')+' will also be removed and retained in PO history.';
-    warning+=' The correction will remain in the Sales Order audit history.';
+    warning+=' The original entry and the reason for undoing it will remain in the audit history.';
     if(!confirm(warning))return;
     const snapshot=JSON.parse(JSON.stringify(line)),at=new Date().toISOString(),user=(typeof currentUser==='function'&&currentUser()&&(currentUser().name||currentUser().email))||'Sales';
-    if(!isNonStockSalesLine(line)&&Number(line.allocated||0)>0)releaseAllocatedStockForLine(order,line,Number(line.allocated||0),'Sales order line removed');
+    const fulfilment=so2RemoveOpenFulfilmentDemand(order,line,reason);
+    if(!isNonStockSalesLine(line)&&Number(line.allocated||0)>0)releaseAllocatedStockForLine(order,line,Number(line.allocated||0),'Sales order line undo');
     const poIds=so2RemoveLinkedPoDemand(assessment.linkedPoLines,order,line,reason);
     const index=order.lines.indexOf(line);if(index>=0)order.lines.splice(index,1);
+    if(typeof syncSalesOrderStatusFromGoodsNotes==='function')syncSalesOrderStatusFromGoodsNotes(order);
     order.lineCorrections=Array.isArray(order.lineCorrections)?order.lineCorrections:[];
-    order.lineCorrections.push({id:'SOLINE-'+Date.now(),type:'Sales Order line removed before fulfilment',at:at,user:user,reason:reason,line:snapshot,linkedPurchaseOrders:poIds});
+    order.lineCorrections.push({id:'SOLINE-'+Date.now(),type:'Sales Order line undone before invoice / stock movement',at:at,user:user,reason:reason,line:snapshot,linkedPurchaseOrders:poIds,fulfilmentNotesRemoved:fulfilment.removed,fulfilmentNotesUpdated:fulfilment.touched});
     data.auditLog=Array.isArray(data.auditLog)?data.auditLog:[];
-    data.auditLog.push({id:'AUD-'+Date.now(),date:at,user:user,action:'Sales order line removed',product:order.id,previousValue:snapshot,newValue:'Removed',reason:reason});
-    addSalesOrderNotification(order,'Sales order item removed',label+' removed. Reason: '+reason+(poIds.length?' Linked PO demand removed from '+poIds.join(', ')+'.':''),'Internal note');
-    order.status='Needs Review';order.updatedAt=at;
+    data.auditLog.push({id:'AUD-'+Date.now(),date:at,user:user,action:'Sales order line undone',product:order.id,previousValue:snapshot,newValue:'Removed before invoice / physical stock movement',reason:reason});
+    addSalesOrderNotification(order,'Sales order item undone',label+' removed. Reason: '+reason+(poIds.length?' Linked PO demand removed from '+poIds.join(', ')+'.':'')+((fulfilment.removed.length||fulfilment.touched.length)?' Open fulfilment was reset.':''),'Internal note');
+    order.status=order.lines.length?(order.status==='New Order'?'New Order':'Needs Review'):'Needs Review';order.updatedAt=at;
     if(typeof saveAppData==='function')saveAppData();
-    if(typeof toast==='function')toast(label+' removed from '+order.id+'. Project value and profit will recalculate automatically.');
+    if(typeof toast==='function')toast(label+' removed from '+order.id+'. Linked pre-shipment activity was unwound and project value/profit will recalculate automatically.');
     if(typeof render==='function')render();
   }
 
