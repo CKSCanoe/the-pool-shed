@@ -215,6 +215,7 @@ await test('planner routes customer misspellings, stock trends, recommendations 
   const trend=deterministicPlan({message:'What products are trending in orders?',contexts:[],history:[],db:live,user:liveUser});assert.equal(trend.intent,'order_trends');assert.equal(trend.tools[0].name,'get_order_trends');
   const recommendation=deterministicPlan({message:'Recommend products customers also buy with PB-CHEM-A',contexts:[],history:[],db:live,user:liveUser});assert.equal(recommendation.intent,'product_recommendations');assert.equal(recommendation.tools[0].name,'get_product_recommendations');
   const subscription=deterministicPlan({message:'Which customers look suitable for subscription sales orders?',contexts:[],history:[],db:live,user:liveUser});assert.equal(subscription.intent,'subscription_review');assert.equal(subscription.tools[0].name,'get_subscription_review');
+  const briefing=deterministicPlan({message:'What do I need to know today?',contexts:[],history:[],db:live,user:liveUser});assert.equal(briefing.intent,'briefing');assert.ok(briefing.tools.some(x=>x.name==='get_order_trends'));assert.ok(briefing.tools.some(x=>x.name==='get_subscription_review'));
 });
 
 console.log(`\nPool Shed ready: ${passed} passed, 0 failed`);
