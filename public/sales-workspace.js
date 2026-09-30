@@ -393,6 +393,21 @@
     '</section>';
   }
 
+  function so2SupplierFundingForOrder(order) {
+    const engine=window.PoolShedSupplierCommand;
+    if(!engine||typeof engine.fundingControl!=='function')return [];
+    const linkedPos=(data.purchaseOrders||[]).filter(function(po){return (po.lines||[]).some(function(line){return String(line.salesOrderId||po.originalSalesOrderId||'')===String(order.id);});});
+    return linkedPos.map(function(po){const funding=engine.fundingControl(po.supplier,{today:new Date().toISOString().slice(0,10)}),row=(funding.rows||[]).find(function(item){return String(item.poId)===String(po.id);});return {po:po,funding:funding,row:row};});
+  }
+
+  function so2SupplierFundingPanel(order) {
+    const rows=so2SupplierFundingForOrder(order);
+    if(!rows.length)return '<section class="so-funding-panel"><div class="so-funding-head"><div><span>SUPPLIER FUNDING</span><strong>No supplier commitments linked yet</strong><small>When a Purchase Order line links to this Sales Order, its supplier funding and customer cash cover will appear here.</small></div></div></section>';
+    const html=rows.map(function(item){const r=item.row||{},f=item.funding||{},short=Number(r.customerShortfall||0),tone=short>0?'warn':'good';return '<article class="so-funding-row '+tone+'"><div><button type="button" class="link-button" data-so-open-po-funding="'+escapeHtml(item.po.id)+'"><strong>'+escapeHtml(item.po.id)+'</strong></button><small>'+escapeHtml(item.po.supplier||'Supplier')+' · '+escapeHtml(f.accountType||'Supplier account')+'</small></div><div><span>Supplier due / commitment</span><strong>'+money(Number(r.amountDue||r.linkedRequirement||0))+'</strong><small>'+escapeHtml(r.dueDate||item.po.due||'Date not set')+'</small></div><div><span>Customer cash cover</span><strong>'+money(Number(r.customerCover||0))+'</strong><small>'+Number(r.coverPercent||0)+'% of linked demand</small></div><div><span>Status</span><strong class="'+(short>0?'bad-text':'good-text')+'">'+(short>0?money(short)+' short':'Funded')+'</strong><small>'+(short>0?'Customer payment needs attention':'Receipt allocation available')+'</small></div><div><button type="button" class="secondary" data-so-open-supplier-funding="'+escapeHtml(item.po.supplier||'')+'">Open supplier</button></div></article>';}).join('');
+    const totalCover=rows.reduce(function(n,item){return n+Number(item.row&&item.row.customerCover||0);},0),totalShort=rows.reduce(function(n,item){return n+Number(item.row&&item.row.customerShortfall||0);},0),paid=(order.payments||[]).reduce(function(n,p){return n+Number(p.amount||0);},0);
+    return '<section class="so-funding-panel"><div class="so-funding-head"><div><span>SUPPLIER FUNDING</span><strong>Customer cash covering linked Purchase Orders</strong><small>Actual payments received on this Sales Order are allocated once across linked supplier commitments.</small></div><div class="so-funding-summary"><span>Customer paid <b>'+money(paid)+'</b></span><span>Allocated cover <b>'+money(totalCover)+'</b></span><span class="'+(totalShort>0?'bad-text':'good-text')+'">Shortfall <b>'+money(totalShort)+'</b></span></div></div><div class="so-funding-list">'+html+'</div></section>';
+  }
+
   salesOrderTabContent = function(order, lines, poRows, addressCards, costRows, costSummary) {
     if (salesOrderTab === 'products') return so2ProductsContent(order);
     if (salesOrderTab === 'fulfilment') {
@@ -401,7 +416,7 @@
     }
     if (salesOrderTab === 'connections') {
       const credits = (data.salesCredits || []).filter(function(c){ return c.originalSalesOrderId===order.id; });
-      return '<div class="so2-secondary-grid">' +
+      return so2SupplierFundingPanel(order) + '<div class="so2-secondary-grid">' +
         panel('Linked purchasing','Receive against the purchase order in Warehouse Goods In. Stock is received once, then allocated to this order.','<div class="sales-table-scroll"><table><thead><tr><th>Purchase order</th><th>Status</th><th>Due</th><th>Items</th><th>Actions</th></tr></thead><tbody>'+poRows+'</tbody></table></div>') +
         panel('Credit notes & returns','Credits retain their link to this sales order.',credits.length ? credits.map(function(c){return '<p><button class="secondary" data-open-sales-credit="'+escapeHtml(c.id)+'">'+escapeHtml(c.id)+'</button> <span>'+escapeHtml(c.status)+'</span></p>';}).join('') : '<p class="muted">No credit notes linked to this order.</p>') +
       '</div>';
@@ -619,6 +634,34 @@
     toast('Variant changed to ' + (target.sku || target.name) + '. Review price and allocation.');
     render();
   });
+
+  document.addEventListener('click',function(event){
+    const poButton=event.target.closest('[data-so-open-po-funding]');
+    if(poButton){event.preventDefault();selectedPurchaseOrderId=poButton.dataset.soOpenPoFunding;purchaseOrderView='detail';if(typeof purchaseCommandTab!=='undefined')purchaseCommandTab='connections';activeSubPage.purchase='Purchase Orders';active='purchase';render();return;}
+    const supplierButton=event.target.closest('[data-so-open-supplier-funding]');
+    if(supplierButton){event.preventDefault();if(typeof globalThis.openSupplierCommand==='function'){globalThis.openSupplierCommand(supplierButton.dataset.soOpenSupplierFunding,'Overview');return;}selectedSupplierName=supplierButton.dataset.soOpenSupplierFunding;purchaseOrderView='suppliers';activeSubPage.purchase='Suppliers';active='purchase';render();return;}
+  },true);
+
+  /* Customer Orders was a duplicate list over data.salesOrders. Keep old links safe,
+     but make Sales Orders the single customer-order authority. */
+  const soUnifiedSidebarGroups=typeof sidebarSubGroups==='function'?sidebarSubGroups:null;
+  if(soUnifiedSidebarGroups){
+    sidebarSubGroups=function(tabId){const list=soUnifiedSidebarGroups(tabId).slice();return tabId==='salesorders'?list.filter(function(label){return label!=='Customer Orders';}):list;};
+  }
+  const soUnifiedOpenSidebar=typeof openSidebarSubGroup==='function'?openSidebarSubGroup:null;
+  if(soUnifiedOpenSidebar){
+    openSidebarSubGroup=function(tabId,subgroup){if(tabId==='salesorders'&&subgroup==='Customer Orders')subgroup='Sales Orders';return soUnifiedOpenSidebar(tabId,subgroup);};
+  }
+  const soUnifiedRenderSales=typeof renderSalesOrders==='function'?renderSalesOrders:null;
+  if(soUnifiedRenderSales){
+    renderSalesOrders=function(){if(activeSubPage&&activeSubPage.salesorders==='Customer Orders')activeSubPage.salesorders='Sales Orders';if(typeof salesOrderView!=='undefined'&&salesOrderView==='customerOrders')salesOrderView='list';return soUnifiedRenderSales();};
+  }
+  document.addEventListener('click',function(event){
+    const legacy=event.target.closest('[data-sales-subview="customerOrders"],[data-sidebar-subgroup="salesorders|Customer Orders"]');
+    if(!legacy)return;
+    event.preventDefault();event.stopImmediatePropagation();
+    active='salesorders';activeSubPage.salesorders='Sales Orders';salesOrderView='list';render();
+  },true);
 
   window.addEventListener('resize', function(){ closeLineMenus(); });
   window.addEventListener('scroll', function(){ closeLineMenus(); }, true);
