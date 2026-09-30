@@ -151,12 +151,13 @@ function normaliseSalesOrders(data,products){
         supplier:txt(l.supplier,p?.supplier),supplierSku:txt(l.supplierSku,p?.supplierSku)
       });
     }).filter(Boolean);
+    const computedNet=lines.reduce((sum,line)=>sum+n(line.qty)*n(line.unitPrice),0),storedNet=n(o.totalNet,o.netTotal,o.subtotal);
     return compact({
       id:idOf(o),projectId:txt(o.projectId,o.jobId),customerId:txt(o.customerId),status:txt(o.status,'Open'),
       source:txt(o.source),channel:txt(o.channel),quoteRef:txt(o.quoteRef),xeroRef:txt(o.xeroRef),
       priceList,tags:arr(o.tags).map(String),shipTo:o.shipTo||o.addresses?.delivery||null,carrier:txt(o.carrier),
       createdDate:dateOnly(txt(o.created,o.createdAt,o.orderDate))||null,dueDate:dateOnly(txt(o.due,o.dueDate))||null,
-      totalNet:n(o.totalNet,o.netTotal,o.subtotal),totalVat:n(o.totalVat,o.vatTotal,o.vat),totalGross:n(o.totalGross,o.grossTotal,o.total),
+      totalNet:storedNet||computedNet,totalVat:n(o.totalVat,o.vatTotal,o.vat),totalGross:n(o.totalGross,o.grossTotal,o.total),
       payments:arr(o.payments),notes:arr(o.notes||o.notifications).map(x=>typeof x==='string'?x:txt(x.message,x.text,x.note)).filter(Boolean),
       lines
     });
@@ -193,9 +194,12 @@ function normaliseProjects(data,salesOrders,purchaseOrders){
   const jobs=arr(data.jobs||data.projects);const out={};
   for(const j of jobs){
     const id=idOf(j);if(!id)continue;const project=j.project&&typeof j.project==='object'?j.project:{};
-    const soIds=Object.values(salesOrders).filter(x=>x.projectId===id).map(x=>x.id),poIds=Object.values(purchaseOrders).filter(x=>x.projectId===id).map(x=>x.id);
+    const linkedSalesOrders=Object.values(salesOrders).filter(x=>x.projectId===id),activeSalesOrders=linkedSalesOrders.filter(x=>!['Cancelled','Canceled'].includes(x.status)),soIds=linkedSalesOrders.map(x=>x.id),soIdSet=new Set(soIds);
+    const linkedPurchaseOrders=Object.values(purchaseOrders).filter(po=>po.projectId===id||arr(po.lines).some(line=>soIdSet.has(txt(line.salesOrderId)))),poIds=linkedPurchaseOrders.map(x=>x.id),activePurchaseOrders=linkedPurchaseOrders.filter(po=>!['Cancelled','Canceled'].includes(po.status));
+    const quotedNet=n(j.quotedNet,j.quoteNet,project.quoteNet,j.sellValue,j.value),salesOrderValue=activeSalesOrders.reduce((sum,order)=>sum+n(order.totalNet),0),agreedValue=salesOrderValue||quotedNet;
+    const purchaseOrderCommittedCost=activePurchaseOrders.reduce((sum,po)=>sum+arr(po.lines).filter(line=>po.projectId===id||soIdSet.has(txt(line.salesOrderId))).reduce((lineSum,line)=>lineSum+n(line.qty)*n(line.unitCost),0),0);
     const labour=arr(project.labour).map(l=>compact({id:txt(l.id),person:txt(l.supplier,l.employee,l.name),reference:txt(l.ref,l.reference),startDate:dateOnly(txt(l.startDate))||null,endDate:dateOnly(txt(l.endDate))||null,ongoing:!!l.ongoing,rateType:txt(l.rateType),rate:n(l.rate),notes:txt(l.notes),variationId:txt(l.variationId)}));
-    out[id]={id,name:txt(j.name,j.title,j.projectName,j.reference,id),customerId:txt(j.customerId),status:txt(j.status,'Active'),stage:txt(j.stage,j.phase,'Active'),progress:n(j.progress,j.percentComplete,j.completionPct),dueDate:dateOnly(txt(j.dueDate,j.targetDate,j.nextKeyDate,project.targetCompletion))||null,targetMarginPct:n(j.targetMarginPct,j.targetMargin,project.targetMargin,j.marginTarget),quotedNet:n(j.quotedNet,j.quoteNet,project.quoteNet,j.sellValue,j.value),committedCost:n(j.committedCost,j.committed),actualCost:n(j.actualCost,j.actual),forecastCost:n(j.forecastCost,j.forecast),salesOrderIds:[...new Set([...arr(j.salesOrderIds).map(String),...soIds])],poIds:[...new Set([...arr(j.poIds||j.purchaseOrderIds).map(String),...poIds])],hireIds:arr(j.hireIds).map(String),extraIds:arr(j.extraIds).map(String),labour,notes:arr(j.notes).map(x=>typeof x==='string'?x:txt(x.text,x.body)).filter(Boolean),owner:txt(j.owner,j.ownerName,j.assignedTo)};
+    out[id]={id,name:txt(j.name,j.title,j.projectName,j.reference,id),customerId:txt(j.customerId),status:txt(j.status,'Active'),stage:txt(j.stage,j.phase,'Active'),progress:n(j.progress,j.percentComplete,j.completionPct),dueDate:dateOnly(txt(j.dueDate,j.targetDate,j.nextKeyDate,project.targetCompletion))||null,targetMarginPct:n(j.targetMarginPct,j.targetMargin,project.targetMargin,j.marginTarget),quotedNet,agreedValue,salesOrderValue,commercialValueSource:salesOrderValue>0?'sales_orders':'quote_fallback',purchaseOrderCommittedCost,committedCost:n(j.committedCost,j.committed,purchaseOrderCommittedCost),actualCost:n(j.actualCost,j.actual),forecastCost:n(j.forecastCost,j.forecast),salesOrderIds:[...new Set([...arr(j.salesOrderIds).map(String),...soIds])],poIds:[...new Set([...arr(j.poIds||j.purchaseOrderIds).map(String),...poIds])],hireIds:arr(j.hireIds).map(String),extraIds:arr(j.extraIds).map(String),labour,notes:arr(j.notes).map(x=>typeof x==='string'?x:txt(x.text,x.body)).filter(Boolean),owner:txt(j.owner,j.ownerName,j.assignedTo)};
   }
   return out;
 }
