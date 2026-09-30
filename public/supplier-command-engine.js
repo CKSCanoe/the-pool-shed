@@ -50,11 +50,13 @@
     });
     const raw=[];
     arr(d.purchaseOrders).filter(po=>po&&po.status!=='Cancelled').forEach(po=>{
+      const poGross=poGrossValue(po),bill=billByPo.get(String(po.id)),remaining=bill?num(bill.amountDue):Math.max(0,poGross-poPaidValue(po)),ratio=poGross>0?Math.min(1,remaining/poGross):0;
+      if(remaining<=0||ratio<=0)return;
       arr(po.lines).forEach((line,index)=>{
         const soId=String(line&&line.salesOrderId||po.originalSalesOrderId||'').trim();if(!soId)return;
-        const net=num(line.qty)*lineCost(line),gross=net+(net*lineVatRate(line));
+        const net=num(line.qty)*lineCost(line),lineGross=net+(net*lineVatRate(line)),gross=lineGross*ratio;
         if(gross<=0)return;
-        raw.push({po,soId,line,index,gross,due:fundingDueDate(po,billByPo.get(String(po.id))),supplier:po.supplier||''});
+        raw.push({po,soId,line,index,gross,due:fundingDueDate(po,bill),supplier:po.supplier||''});
       });
     });
     raw.sort((a,b)=>a.due.localeCompare(b.due)||String(a.po.id||'').localeCompare(String(b.po.id||''))||a.index-b.index);
