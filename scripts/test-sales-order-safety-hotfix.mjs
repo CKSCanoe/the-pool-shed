@@ -14,7 +14,8 @@ assert.match(legacy,/linked Purchase Orders exist/,'linked PO delete guard missi
 assert.match(legacy,/completedSalesCreditQtyForLine/,'completed credit line check missing');
 assert.match(legacy,/Create and complete a Sales Credit before removing it/,'credit-first line delete guard missing');
 assert.match(legacy,/canRemoveSalesOrderLine\(line, order\)/,'order-aware line removal guard missing');
-assert.match(sales,/canRemoveSalesOrderLine\(line, order\)/,'modern Sales workspace does not use order-aware removal guard');
+assert.match(sales,/so2SalesLineDeleteAssessment\(order,line\)/,'modern Sales workspace does not use the controlled delete assessment');
+assert.match(sales,/so2RemoveLinkedPoDemand/,'modern Sales workspace does not unwind safe unreceived PO demand');
 assert.match(css,/so-list-delete/,'bulk delete styling missing');
 assert.match(bundles,/canRemoveSalesOrderLine\(x,order\)/,'bundle removal bypasses Sales Order line guard');
 assert.match(bundles,/Every bundle line must be unallocated or fully credited first/,'bundle removal confirmation is missing safety language');
