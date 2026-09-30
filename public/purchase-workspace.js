@@ -1,7 +1,7 @@
 /* Pool Shed Purchase Order Supplier Command authority layer.
    Supplier-side mirror of Sales Order Command.
    Purchasing owns commercial intent; Warehouse owns physical stock truth.
-   v1.9.0 */
+   v2.0.0 */
 (function () {
   let purchaseCommandTab = 'items';
   const legacyPurchaseOrderDetailPage = typeof purchaseOrderDetailPage === 'function' ? purchaseOrderDetailPage : null;
@@ -18,6 +18,88 @@
 
   function poMoney(value) {
     return typeof money === 'function' ? money(Number(value || 0)) : '£' + Number(value || 0).toFixed(2);
+  }
+
+  function poFinancialsSafe(po) {
+    if (typeof purchaseOrderFinancials === 'function') return purchaseOrderFinancials(po);
+    const totals=(po.lines||[]).reduce(function(out,line){
+      const p=poProduct(line.productId)||{};
+      const qty=Number(line.qty||0),unit=Number(line.unitCost!=null?line.unitCost:p.cost||0),net=qty*unit;
+      let vat=0;
+      if(typeof vatAmount==='function') vat=Number(vatAmount(net,{taxCode:line.taxCode||p.taxCode||'20% VAT'})||0);
+      else vat=/zero|0%|exempt/i.test(String(line.taxCode||p.taxCode||''))?0:net*.2;
+      out.net+=net;out.vat+=vat;out.gross+=net+vat;return out;
+    },{net:0,vat:0,gross:0});
+    totals.paid=(po.payments||[]).reduce(function(n,payment){return n+Number(payment.amount||0);},0);
+    totals.balance=totals.gross-totals.paid;
+    Object.keys(totals).forEach(function(key){totals[key]=Math.round(Number(totals[key]||0)*100)/100;});
+    return totals;
+  }
+
+  function poPaymentState(po) {
+    if (typeof purchaseOrderPaymentStatus === 'function') return purchaseOrderPaymentStatus(po);
+    const totals=poFinancialsSafe(po);
+    if(totals.gross<=0&&totals.paid<=0)return 'Unvalued';
+    if(totals.paid<=0)return 'Unpaid';
+    if(totals.paid>totals.gross+.005)return 'Overpaid';
+    if(totals.paid+.005<totals.gross)return 'Part Paid';
+    return 'Paid';
+  }
+
+  function poProductThumb(p) {
+    const image=p&&(p.image||p.imageUrl||p.thumbnail||p.photo);
+    return image
+      ? '<span class="po-line-thumb has-image" style="background-image:url(&quot;' + poEsc(image) + '&quot;)"></span>'
+      : '<span class="po-line-thumb">PB</span>';
+  }
+
+  function poLineVat(line,p,net) {
+    if(typeof vatAmount==='function') return Number(vatAmount(net,{taxCode:line.taxCode||p.taxCode||'20% VAT'})||0);
+    return /zero|0%|exempt/i.test(String(line.taxCode||p.taxCode||'')) ? 0 : net*.2;
+  }
+
+  function poLineDeleteAssessment(po,line) {
+    const received=Number(line&&line.received||0);
+    const receiptLinked=(data.receiptEvents||[]).some(function(event){
+      return String(event.poId||'')===String(po.id||'') && String(event.productId||'')===String(line.productId||'');
+    });
+    const accountingTouched=(po.payments||[]).length>0 || Number(po.supplierInvoiceTotal||0)>0 || !!po.supplierInvoiceRef;
+    const supplierCommitted=!!(po.supplierEmailSentAt||po.supplierConfirmedAt||String(po.status||'').toLowerCase().includes('confirmed'));
+    return {allowed:received===0&&!receiptLinked,received,receiptLinked,accountingTouched,supplierCommitted};
+  }
+
+  function removePurchaseOrderLine(poId,index) {
+    const po=typeof purchaseOrderById==='function'?purchaseOrderById(poId):(data.purchaseOrders||[]).find(function(row){return row.id===poId;});
+    const line=po&&po.lines&&po.lines[Number(index)];
+    if(!po||!line)return typeof toast==='function'?toast('Purchase Order line not found.'):undefined;
+    const check=poLineDeleteAssessment(po,line),p=poProduct(line.productId)||{sku:line.productId,name:line.productId};
+    if(!check.allowed){
+      purchaseCommandTab='connections';
+      if(typeof toast==='function')toast('This line has receiving history. Keep it on the PO and use Supplier Returns & Credits instead.');
+      if(typeof render==='function')render();
+      return;
+    }
+    const reason=String(prompt('Reason for removing ' + (p.sku||p.name||'this line') + ' from ' + po.id + ' (required)')||'').trim();
+    if(!reason)return typeof toast==='function'?toast('A removal reason is required.'):undefined;
+    let warning='Remove this unreceived line from ' + po.id + '? The correction will stay in the PO activity history.';
+    if(check.supplierCommitted)warning+=' The supplier has already seen or confirmed this PO, so it will return to review.';
+    if(check.accountingTouched)warning+=' This PO already has accounting activity; its paid/balance position will recalculate after the line is removed.';
+    if(!confirm(warning))return;
+    const removed=JSON.parse(JSON.stringify(line));
+    po.lines.splice(Number(index),1);
+    po.lineCorrections=Array.isArray(po.lineCorrections)?po.lineCorrections:[];
+    const at=new Date().toISOString(),user=(typeof currentUser==='function'&&currentUser()&&(currentUser().name||currentUser().email))||'Purchasing';
+    po.lineCorrections.push({id:'POLINE-'+Date.now(),type:'Line removed before receipt',at,user,reason,line:removed,sku:p.sku||line.productId,name:p.name||''});
+    if(check.supplierCommitted){
+      po.reviewStatus='Needs review';
+      po.supplierEmailStatus='Changes pending';
+      if(!['Cancelled','Received'].includes(po.status))po.status='Draft - Review';
+    }
+    data.auditLog=Array.isArray(data.auditLog)?data.auditLog:[];
+    data.auditLog.push({id:'AUD-'+Date.now(),date:at,user,action:'Purchase order line removed',product:po.id,previousValue:removed,newValue:'Removed before receipt',reason});
+    if(typeof saveAppData==='function')saveAppData();
+    if(typeof toast==='function')toast((p.sku||p.name||'PO line') + ' removed from ' + po.id + ' and retained in audit history.');
+    if(typeof render==='function')render();
   }
 
   function poProduct(id) {
@@ -100,18 +182,20 @@
   }
 
   function poCommandTabs(po) {
+    const alias={demand:'connections',confirmation:'fulfilment',receipts:'fulfilment',returns:'connections',supplier:'more',payments:'costs'};
+    const activeTab=alias[purchaseCommandTab]||purchaseCommandTab;
     const tabs = [
       ['items','Items & Costing'],
-      ['demand','Demand Sources'],
-      ['confirmation','Supplier Confirmation'],
-      ['receipts','Deliveries & Receipts'],
-      ['costs','Costs & Invoice Match'],
-      ['returns','Returns & Credits'],
-      ['activity','Activity']
+      ['fulfilment','Fulfilment'],
+      ['addresses','Addresses'],
+      ['costs','Cost & Payments'],
+      ['connections','Sales Orders & Credits'],
+      ['activity','Activity & Payments'],
+      ['more','More']
     ];
-    return '<nav class="po-command-tabs" aria-label="Purchase Order sections">' + tabs.map(function (tab) {
-      return '<button type="button" class="' + (purchaseCommandTab === tab[0] ? 'active' : '') + '" data-po-command-tab="' + tab[0] + '|' + poEsc(po.id) + '">' + tab[1] + '</button>';
-    }).join('') + '</nav>';
+    return '<div class="po-tabs-shell"><nav class="po-command-tabs" aria-label="Purchase Order sections">' + tabs.map(function (tab) {
+      return '<button type="button" class="' + (activeTab === tab[0] ? 'active' : '') + '" data-po-command-tab="' + tab[0] + '|' + poEsc(po.id) + '">' + tab[1] + '</button>';
+    }).join('') + '</nav></div>';
   }
 
   function poSupplierCard(po, supplier) {
@@ -134,16 +218,32 @@
   }
 
   function poItemsTab(po) {
+    const financials=poFinancialsSafe(po);
+    const units=(po.lines||[]).reduce(function(n,line){return n+Number(line.qty||0);},0);
+    const receivedUnits=(po.lines||[]).reduce(function(n,line){return n+Number(line.received||0);},0);
     const rows = (po.lines || []).map(function (line, index) {
       const p = poProduct(line.productId) || { sku:line.productId, name:'Missing product' };
       const pending = Math.max(0, Number(line.qty || 0) - Number(line.received || 0));
-      const demand = line.salesOrderId ? line.salesOrderId : (line.projectId || po.projectId || po.jobId || 'Stock');
-      const cost = poLineCost(line);
-      const confirmed = Number(line.confirmedQty != null ? line.confirmedQty : line.qty || 0);
-      return '<tr><td><strong>' + poEsc(p.sku || '') + '</strong><small>' + poEsc(p.name || '') + '</small></td><td>' + poEsc(line.supplierSku || p.supplierSku || '—') + '</td><td><button type="button" class="link-button" data-po-command-tab="demand|' + poEsc(po.id) + '">' + poEsc(demand) + '</button></td><td><input class="po-qty" data-po-line-qty="' + poEsc(po.id) + '|' + poEsc(line.productId) + '" type="number" min="' + Number(line.received || 0) + '" value="' + Number(line.qty || 0) + '"></td><td>' + confirmed + '</td><td>' + Number(line.received || 0) + '</td><td>' + poPill(String(pending), pending ? 'warn' : 'good') + '</td><td class="right"><input class="po-cost-input" type="number" step="0.01" min="0" data-po-line-cost="' + poEsc(po.id) + '|' + index + '" value="' + cost.toFixed(2) + '"></td><td class="right"><strong>' + poMoney(cost * Number(line.qty || 0)) + '</strong></td></tr>';
+      const demand = line.salesOrderId ? line.salesOrderId : (line.projectId || po.projectId || po.jobId || 'General stock');
+      const cost = poLineCost(line),qty=Number(line.qty||0),lineNet=cost*qty,lineVat=poLineVat(line,p,lineNet),lineGross=lineNet+lineVat,vatPct=lineNet>0?Math.round(lineVat/lineNet*100):0;
+      const check=poLineDeleteAssessment(po,line);
+      const menuId='po-line-menu-' + String(po.id+'-'+index).replace(/[^a-z0-9_-]/gi,'-');
+      return '<tr class="po-line-row"><td class="po-product-cell"><div class="po-line-product">' + poProductThumb(p) + '<div><strong>' + poEsc(p.name || p.sku || 'Product') + '</strong><small>' + poEsc(p.sku || line.productId || '') + '</small></div></div></td>' +
+        '<td><strong>' + poEsc(line.supplierSku || p.supplierSku || '—') + '</strong><small>' + poEsc(p.brand || p.category || 'Supplier item') + '</small></td>' +
+        '<td><button type="button" class="link-button" data-po-command-tab="connections|' + poEsc(po.id) + '">' + poEsc(demand) + '</button></td>' +
+        '<td><div class="po-receiving-cell"><strong>' + Number(line.received || 0) + ' / ' + qty + '</strong><small>' + pending + ' outstanding</small></div></td>' +
+        '<td><input class="po-qty" data-po-line-qty="' + poEsc(po.id) + '|' + poEsc(line.productId) + '" type="number" min="' + Number(line.received || 0) + '" value="' + qty + '"></td>' +
+        '<td class="right"><input class="po-cost-input" type="number" step="0.01" min="0" data-po-line-cost="' + poEsc(po.id) + '|' + index + '" value="' + cost.toFixed(2) + '"><small>net unit</small></td>' +
+        '<td class="po-vat">' + vatPct + '%</td>' +
+        '<td class="right po-line-total"><strong>' + poMoney(lineGross) + '</strong><small>inc VAT</small></td>' +
+        '<td class="po-line-actions"><button type="button" class="secondary po-line-menu-button" data-po-line-menu="' + menuId + '" aria-haspopup="menu" aria-expanded="false">•••</button><div id="' + menuId + '" class="po-line-menu" role="menu" hidden>' +
+          (check.allowed ? '<button type="button" role="menuitem" class="danger-button" data-po-remove-line="' + poEsc(po.id) + '|' + index + '">Delete line</button><small>Allowed because nothing has been received.</small>' : '<button type="button" role="menuitem" data-po-line-credit="' + poEsc(po.id) + '|' + index + '">Return / credit</button><small>Receiving history is protected.</small>') +
+        '</div></td></tr>';
     }).join('') || '<tr><td colspan="9" class="po-empty">No supplier lines yet. Select a supplier and add products.</td></tr>';
-    const total = poOrderValue(po);
-    return '<section class="po-work-card"><div class="po-work-card-head"><div><h3>Supplier order lines</h3><p>Supplier-specific product search, exact supplier SKU, source demand and negotiated unit cost.</p></div><div class="po-line-add"><input id="poProductSearch" data-po-id="' + poEsc(po.id) + '" placeholder="Search supplier product, Pool Shed SKU, supplier SKU or barcode"><input id="poProductQty" type="number" min="1" value="1"><button type="button" class="primary" data-add-po-selected="' + poEsc(po.id) + '">Add line</button><div id="poProductResults" class="po-product-results" hidden></div></div></div><div class="po-table-wrap"><table class="po-command-table"><thead><tr><th>Item</th><th>Supplier SKU</th><th>Demand</th><th>Ordered</th><th>Confirmed</th><th>Received</th><th>Outstanding</th><th class="right">Unit cost</th><th class="right">Line total</th></tr></thead><tbody>' + rows + '</tbody></table></div><div class="po-total-strip"><span>PO net value</span><strong>' + poMoney(total) + '</strong></div></section>';
+    return '<section class="po-work-card po-items-card"><div class="po-items-toolbar"><div><span>ORDER LINES</span><strong>' + (po.lines||[]).length + ' lines · ' + units + ' units</strong><small>' + receivedUnits + ' received</small></div><div class="po-line-add"><input id="poProductSearch" data-po-id="' + poEsc(po.id) + '" placeholder="Search supplier product, Pool Shed SKU, supplier SKU or barcode"><input id="poProductQty" type="number" min="1" value="1"><button type="button" class="primary" data-add-po-selected="' + poEsc(po.id) + '">Add line</button><div id="poProductResults" class="po-product-results" hidden></div></div></div>' +
+      '<div class="po-table-wrap"><table class="po-command-table po-items-table"><thead><tr><th>Product</th><th>Supplier item</th><th>Demand / link</th><th>Receiving</th><th>Qty</th><th class="right">Unit net</th><th>VAT</th><th class="right">Line total</th><th></th></tr></thead><tbody>' + rows + '</tbody></table></div>' +
+      '<div class="po-financial-strip"><div><span>Subtotal net</span><strong>' + poMoney(financials.net) + '</strong></div><div><span>VAT</span><strong>' + poMoney(financials.vat) + '</strong></div><div class="grand"><span>Total inc VAT</span><strong>' + poMoney(financials.gross) + '</strong></div><div><span>Paid</span><strong>' + poMoney(financials.paid) + '</strong></div><div><span>' + (financials.balance<0?'Overpaid':'Balance due') + '</span><strong>' + poMoney(Math.abs(financials.balance)) + '</strong></div></div>' +
+      '<div class="po-line-rule"><strong>Clean-up rule:</strong> unreceived lines can be deleted with a reason. Once stock has been received, the line remains permanent and must use the return / credit process.</div></section>';
   }
 
   function poDemandTab(po) {
@@ -248,37 +348,65 @@
     events.push({date:po.createdAt||po.created||po.orderedDate||'',type:'Created',detail:'Purchase Order created'});
     if(po.reviewedAt)events.push({date:po.reviewedAt,type:'Reviewed',detail:'Reviewed by ' + (po.reviewedBy||'Purchasing')});
     if(po.supplierEmailSentAt)events.push({date:po.supplierEmailSentAt,type:'Sent',detail:'Supplier PO sent'});
+    (po.payments||[]).forEach(function(payment){events.push({date:payment.date||payment.recordedAt||'',type:'Payment',detail:poMoney(payment.amount) + ' · ' + (payment.type||'Other') + (payment.reference?' · '+payment.reference:'')});});
+    (po.paymentCorrections||[]).forEach(function(row){events.push({date:row.correctedAt||'',type:'Payment correction',detail:poMoney(row.amount||0) + ' removed · ' + (row.reason||'Correction')});});
+    (po.lineCorrections||[]).forEach(function(row){events.push({date:row.at||'',type:'Line correction',detail:(row.sku||row.line?.productId||'Item') + ' removed before receipt · ' + (row.reason||'Correction')});});
     (data.receiptEvents||[]).filter(function(event){return event.poId===po.id;}).forEach(function(event){events.push({date:event.date||'',type:'Receipt',detail:event.id + ' · ' + event.productId + ' × ' + event.qty});});
     (data.warehouseQcEvents||[]).filter(function(event){return event.poId===po.id;}).forEach(function(event){events.push({date:event.date||'',type:'QC',detail:(event.decision||'') + ' · ' + (event.productId||'') + ' × ' + Number(event.qty||0)});});
-    (data.purchaseReturns||[]).filter(function(row){return row.poId===po.id;}).forEach(function(row){events.push({date:row.createdAt||'',type:'Return',detail:row.id + ' · ' + row.reason + ' · ' + row.qty + ' unit(s)'});});
+    (data.purchaseReturns||[]).filter(function(row){return row.poId===po.id;}).forEach(function(row){events.push({date:row.createdAt||'',type:'Return / credit',detail:row.id + ' · ' + row.reason + ' · ' + row.qty + ' unit(s)'});});
     events.sort(function(a,b){return String(b.date).localeCompare(String(a.date));});
-    return '<section class="po-work-card"><div class="po-work-card-head"><div><h3>Purchase Order Activity</h3><p>Supplier, receiving, QC and returns events in one permanent chronology.</p></div></div><div class="po-activity">' + (events.map(function(event){return '<div><span></span><section><strong>' + poEsc(event.type) + '</strong><small>' + poEsc(event.date||'') + '</small><p>' + poEsc(event.detail) + '</p></section></div>';}).join('') || '<p class="po-empty">No activity recorded.</p>') + '</div></section>';
+    return '<section class="po-work-card"><div class="po-work-card-head"><div><h3>Purchase Order Activity</h3><p>Payments, supplier changes, receiving, QC, line corrections and credits in one permanent chronology.</p></div></div><div class="po-activity">' + (events.map(function(event){const tone=/payment/i.test(event.type)?' payment':/return|credit|correction/i.test(event.type)?' correction':/receipt|qc/i.test(event.type)?' receipt':'';return '<div class="' + tone.trim() + '"><span></span><section><strong>' + poEsc(event.type) + '</strong><small>' + poEsc(event.date||'') + '</small><p>' + poEsc(event.detail) + '</p></section></div>';}).join('') || '<p class="po-empty">No activity recorded.</p>') + '</div></section>';
+  }
+
+  function poAddressesTab(po) {
+    const supplier=poSupplier(po.supplier);
+    const locations=(data.locations||[]).filter(function(loc){return !['Returns Hold','Quarantine'].includes(loc.type);});
+    const locationOptions='<option value="">Main Warehouse / not specified</option>'+locations.map(function(loc){return '<option value="' + poEsc(loc.id) + '"' + (String(po.receivingLocationId||'')===String(loc.id)?' selected':'') + '>' + poEsc(loc.name||loc.id) + '</option>';}).join('');
+    return '<div class="po-dual-tab"><section class="po-work-card"><div class="po-work-card-head"><div><h3>Delivery address</h3><p>Where the supplier should send this Purchase Order.</p></div></div><div class="po-fields po-address-fields"><label>Delivery method<select data-po-field="' + poEsc(po.id) + '|deliveryMethod"><option' + ((po.deliveryMethod||'Warehouse')==='Warehouse'?' selected':'') + '>Warehouse</option><option' + (po.deliveryMethod==='Direct to Project/Site'?' selected':'') + '>Direct to Project/Site</option><option' + (po.deliveryMethod==='Drop Ship to Customer'?' selected':'') + '>Drop Ship to Customer</option></select></label><label>Receiving location<select data-po-field="' + poEsc(po.id) + '|receivingLocationId">' + locationOptions + '</select></label><label class="wide">Deliver to / site address<input data-po-field="' + poEsc(po.id) + '|customerShipTo" value="' + poEsc(po.customerShipTo||'') + '" placeholder="Main Warehouse or full project/customer delivery address"></label><label class="wide">Delivery instructions<input data-po-field="' + poEsc(po.id) + '|deliveryInstructions" value="' + poEsc(po.deliveryInstructions||'') + '" placeholder="Access, contact, unloading or booking instructions"></label></div></section><section class="po-work-card"><div class="po-work-card-head"><div><h3>Supplier address & contact</h3><p>Ordering details remain owned by the supplier record.</p></div><button type="button" class="secondary" data-open-supplier-profile="' + poEsc(po.supplier||'') + '">Open supplier</button></div><div class="po-address-summary"><strong>' + poEsc(supplier.name||po.supplier||'Supplier') + '</strong><p>' + poEsc(supplier.hqAddress||supplier.shippingAddress||'Supplier address not recorded') + '</p><small>' + poEsc(supplier.ordersEmail||supplier.email||'No ordering email') + (supplier.phone?' · '+poEsc(supplier.phone):'') + '</small></div></section></div>';
+  }
+
+  function poFulfilmentTab(po) {
+    return '<div class="po-tab-stack">' + poConfirmationTab(po) + poReceiptsTab(po) + '</div>';
+  }
+
+  function poCostPaymentsTab(po) {
+    const payment=typeof purchaseOrderPaymentsSection==='function'?purchaseOrderPaymentsSection(po,poSupplier(po.supplier)):'';
+    return '<div class="po-tab-stack">' + poCostsTab(po) + payment + '</div>';
+  }
+
+  function poConnectionsTab(po) {
+    return '<div class="po-tab-stack">' + poDemandTab(po) + poReturnsTab(po) + '</div>';
+  }
+
+  function poMoreTab(po) {
+    return '<div class="po-dual-tab">' + poSupplierCard(po,poSupplier(po.supplier)) + poDetailsCard(po) + '</div>';
   }
 
   function poTabContent(po) {
-    if (purchaseCommandTab === 'demand') return poDemandTab(po);
-    if (purchaseCommandTab === 'confirmation') return poConfirmationTab(po);
-    if (purchaseCommandTab === 'receipts') return poReceiptsTab(po);
-    if (purchaseCommandTab === 'costs') return poCostsTab(po);
-    if (purchaseCommandTab === 'returns') return poReturnsTab(po);
+    if (['demand','returns','connections'].includes(purchaseCommandTab)) return poConnectionsTab(po);
+    if (['confirmation','receipts','fulfilment'].includes(purchaseCommandTab)) return poFulfilmentTab(po);
+    if (purchaseCommandTab === 'addresses') return poAddressesTab(po);
+    if (['costs','payments'].includes(purchaseCommandTab)) return poCostPaymentsTab(po);
     if (purchaseCommandTab === 'activity') return poActivityTab(po);
+    if (['supplier','more'].includes(purchaseCommandTab)) return poMoreTab(po);
     return poItemsTab(po);
   }
 
   purchaseOrderDetailPage = function (po) {
     if (!po) return legacyPurchaseOrderListPage ? legacyPurchaseOrderListPage() : '<div class="po-empty">No Purchase Order selected.</div>';
-    const supplier=poSupplier(po.supplier);
-    const summary=poSummarySafe(po);
-    const health=purchaseOrderHealth(po);
-    return '<div class="purchase-command-page"><header class="po-command-head"><div class="po-command-title"><button type="button" class="secondary" data-back-po-list="true">← Purchase Orders</button><div><div class="po-command-kicker">SUPPLIER ORDER COMMAND</div><h1>' + poEsc(po.id) + ' ' + poPill(poStatusText(po), po.status === 'Received' ? 'good' : po.status === 'Cancelled' ? 'bad' : 'info') + '</h1><p>' + poEsc(po.supplier || 'Supplier to confirm') + ' · Expected ' + poEsc(po.due || 'not set') + ' · ' + summary.pending + ' units outstanding</p></div></div><div class="po-command-actions"><button type="button" class="secondary" data-po-save-action="email|' + poEsc(po.id) + '">Email / Print</button><button type="button" class="secondary" data-po-mark-confirmed="' + poEsc(po.id) + '">Supplier confirmed</button><button type="button" class="secondary" data-po-open-receiving="' + poEsc(po.id) + '">Book delivery</button><button type="button" class="primary" data-po-save-action="save|' + poEsc(po.id) + '">Save PO</button></div></header><section class="po-health-bar"><div><span>PO health</span><strong>' + poEsc(health.label) + '</strong><small>' + poEsc(health.detail) + '</small></div><div><span>Ordered</span><strong>' + summary.ordered + '</strong><small>' + poMoney(poOrderValue(po)) + '</small></div><div><span>Received</span><strong>' + summary.received + '</strong><small>' + summary.pending + ' pending</small></div><div><span>Demand links</span><strong>' + purchaseDemandSources(po).filter(function(s){return s.type!=='Replenishment / stock';}).length + '</strong><small>traceability only</small></div></section><section class="po-command-summary">' + poSupplierCard(po,supplier) + poDetailsCard(po) + poInboundCard(po) + '</section>' + poCommandTabs(po) + '<main class="po-command-body">' + poTabContent(po) + '</main></div>';
+    const supplier=poSupplier(po.supplier),summary=poSummarySafe(po),health=purchaseOrderHealth(po),financials=poFinancialsSafe(po),paymentState=poPaymentState(po);
+    return '<div class="purchase-command-page po-sales-parity"><header class="po-command-head"><div class="po-command-title"><button type="button" class="secondary" data-back-po-list="true">← Purchase Orders</button><div><div class="po-command-kicker">PURCHASE ORDER</div><h1>' + poEsc(po.id) + ' ' + poPill(poStatusText(po), po.status === 'Received' ? 'good' : po.status === 'Cancelled' ? 'bad' : 'info') + '</h1><p>' + poEsc(po.supplier || 'Supplier to confirm') + ' · Expected ' + poEsc(po.due || 'not set') + ' · ' + summary.pending + ' units outstanding</p></div></div><div class="po-command-actions"><button type="button" class="secondary" data-po-save-action="email|' + poEsc(po.id) + '">Email / Print</button><button type="button" class="secondary" data-po-open-receiving="' + poEsc(po.id) + '">Book delivery</button><button type="button" class="danger-button" data-delete-po="' + poEsc(po.id) + '">Delete PO</button><button type="button" class="primary" data-po-save-action="save|' + poEsc(po.id) + '">Save PO</button></div></header>' +
+      '<section class="po-health-bar"><div><span>PO health</span><strong>' + poEsc(health.label) + '</strong><small>' + poEsc(health.detail) + '</small></div><div><span>Ordered</span><strong>' + summary.ordered + '</strong><small>' + poMoney(financials.net) + ' net</small></div><div><span>Received</span><strong>' + summary.received + '</strong><small>' + summary.pending + ' pending</small></div><div><span>Supplier payment</span><strong>' + poEsc(paymentState) + '</strong><small>' + poMoney(financials.paid) + ' paid</small></div><div><span>Balance due</span><strong>' + poMoney(Math.max(0,financials.balance)) + '</strong><small>' + poMoney(financials.gross) + ' inc VAT</small></div></section>' +
+      '<section class="po-command-summary">' + poSupplierCard(po,supplier) + poDetailsCard(po) + poInboundCard(po) + '</section>' + poCommandTabs(po) + '<main class="po-command-body">' + poTabContent(po) + '</main></div>';
   };
 
   purchaseOrderListPage = function () {
-    const rows=(data.purchaseOrders||[]).slice().sort(function(a,b){const ha=purchaseOrderHealth(a),hb=purchaseOrderHealth(b);const rank={bad:0,warn:1,info:2,good:3};return rank[ha.tone]-rank[hb.tone] || String(a.due||'9999').localeCompare(String(b.due||'9999'));}).map(function(po){const summary=poSummarySafe(po),health=purchaseOrderHealth(po);return '<tr><td><button class="link-button" data-open-po-detail="' + poEsc(po.id) + '"><strong>' + poEsc(po.id) + '</strong></button><small>' + poEsc(po.source||'Manual PO') + '</small></td><td><strong>' + poEsc(po.supplier||'Supplier to confirm') + '</strong><small>' + poEsc((poSupplier(po.supplier).ordersEmail||poSupplier(po.supplier).email||'')) + '</small></td><td>' + poPill(health.label,health.tone) + '<small>' + poEsc(health.detail) + '</small></td><td>' + poEsc(poStatusText(po)) + '</td><td>' + summary.received + '/' + summary.ordered + '<small>' + summary.pending + ' outstanding</small></td><td>' + poEsc(po.due||'Not set') + '</td><td class="right">' + poMoney(poOrderValue(po)) + '</td><td><button type="button" class="primary" data-open-po-detail="' + poEsc(po.id) + '">Open</button></td></tr>';}).join('') || '<tr><td colspan="8" class="po-empty">No Purchase Orders yet.</td></tr>';
+    const rows=(data.purchaseOrders||[]).slice().sort(function(a,b){const ha=purchaseOrderHealth(a),hb=purchaseOrderHealth(b);const rank={bad:0,warn:1,info:2,good:3};return rank[ha.tone]-rank[hb.tone] || String(a.due||'9999').localeCompare(String(b.due||'9999'));}).map(function(po){const summary=poSummarySafe(po),health=purchaseOrderHealth(po),financials=poFinancialsSafe(po),paymentState=poPaymentState(po),deleteState=typeof purchaseOrderDeleteAssessment==='function'?purchaseOrderDeleteAssessment(po):{allowed:summary.received===0};return '<tr><td><button class="link-button" data-open-po-detail="' + poEsc(po.id) + '"><strong>' + poEsc(po.id) + '</strong></button><small>' + poEsc(po.source||'Manual PO') + '</small></td><td><strong>' + poEsc(po.supplier||'Supplier to confirm') + '</strong><small>' + poEsc((poSupplier(po.supplier).ordersEmail||poSupplier(po.supplier).email||'')) + '</small></td><td>' + poPill(health.label,health.tone) + '<small>' + poEsc(health.detail) + '</small></td><td>' + poEsc(poStatusText(po)) + '</td><td>' + summary.received + '/' + summary.ordered + '<small>' + summary.pending + ' outstanding</small></td><td>' + poEsc(po.due||'Not set') + '</td><td>' + poPill(paymentState,paymentState==='Paid'?'good':paymentState==='Part Paid'?'warn':paymentState==='Overpaid'?'info':'bad') + '<small>' + poMoney(Math.max(0,financials.balance)) + ' due</small></td><td class="right"><strong>' + poMoney(financials.gross) + '</strong><small>' + poMoney(financials.net) + ' net</small></td><td><div class="po-list-actions"><button type="button" class="primary" data-open-po-detail="' + poEsc(po.id) + '">Open</button>' + (deleteState.allowed?'<button type="button" class="danger-button" data-delete-po="' + poEsc(po.id) + '">Delete</button>':'') + '</div></td></tr>';}).join('') || '<tr><td colspan="9" class="po-empty">No Purchase Orders yet.</td></tr>';
     const open=(data.purchaseOrders||[]).filter(function(po){return !['Received','Cancelled'].includes(po.status);});
     const pending=open.reduce(function(n,po){return n+poSummarySafe(po).pending;},0);
     const risks=open.filter(function(po){return ['bad','warn'].includes(purchaseOrderHealth(po).tone);}).length;
-    return '<div class="purchase-command-page purchase-command-list"><header class="po-command-head"><div><div class="po-command-kicker">PURCHASING</div><h1>Purchase Orders</h1><p>Supplier orders, commitments, receipts, exceptions, returns and invoice matching.</p></div><div class="po-command-actions"><button type="button" class="primary" data-create-po-draft="true">New Purchase Order</button></div></header><section class="po-health-bar"><div><span>Open POs</span><strong>' + open.length + '</strong><small>not complete</small></div><div><span>Inbound units</span><strong>' + pending + '</strong><small>still expected</small></div><div><span>Needs attention</span><strong>' + risks + '</strong><small>late or exception</small></div><div><span>Suppliers</span><strong>' + (data.suppliers||[]).length + '</strong><small>supplier accounts</small></div></section><section class="po-work-card"><div class="po-work-card-head"><div><h3>Procurement work queue</h3><p>Exceptions and due commitments first. Open a PO for the full Supplier Order Command.</p></div></div><div class="po-table-wrap"><table class="po-command-table"><thead><tr><th>PO</th><th>Supplier</th><th>Health</th><th>Status</th><th>Receiving</th><th>Expected</th><th class="right">Value</th><th></th></tr></thead><tbody>' + rows + '</tbody></table></div></section></div>';
+    const outstanding=open.reduce(function(n,po){return n+Math.max(0,poFinancialsSafe(po).balance);},0);
+    return '<div class="purchase-command-page purchase-command-list po-sales-parity"><header class="po-command-head"><div><div class="po-command-kicker">PURCHASING</div><h1>Purchase Orders</h1><p>Supplier orders, commitments, receipts, payments, credits and invoice matching in one workflow.</p></div><div class="po-command-actions"><button type="button" class="primary" data-create-po-draft="true">New Purchase Order</button></div></header><section class="po-health-bar"><div><span>Open POs</span><strong>' + open.length + '</strong><small>not complete</small></div><div><span>Inbound units</span><strong>' + pending + '</strong><small>still expected</small></div><div><span>Needs attention</span><strong>' + risks + '</strong><small>late or exception</small></div><div><span>Outstanding to suppliers</span><strong>' + poMoney(outstanding) + '</strong><small>open PO balances</small></div><div><span>Suppliers</span><strong>' + (data.suppliers||[]).length + '</strong><small>supplier accounts</small></div></section><section class="po-work-card"><div class="po-work-card-head"><div><h3>Purchase Orders</h3><p>Open a PO for the same line-first workflow used by Sales Orders. Unreceived erroneous POs can be removed; received history remains permanent.</p></div></div><div class="po-table-wrap"><table class="po-command-table"><thead><tr><th>PO</th><th>Supplier</th><th>Health</th><th>Status</th><th>Receiving</th><th>Expected</th><th>Payment</th><th class="right">Total</th><th></th></tr></thead><tbody>' + rows + '</tbody></table></div></section></div>';
   };
 
   function saveLineField(datasetValue, fieldName, value) {
@@ -407,6 +535,9 @@
     document.querySelectorAll('[data-po-confirmation-note]').forEach(function(input){input.addEventListener('change',function(){saveLineField(input.dataset.poConfirmationNote,'supplierConfirmationNote',input.value);});});
     document.querySelectorAll('[data-po-mark-confirmed]').forEach(function(button){button.addEventListener('click',function(){const po=typeof purchaseOrderById==='function'?purchaseOrderById(button.dataset.poMarkConfirmed):null;if(!po)return;po.status='Supplier Confirmed';po.supplierConfirmedAt=new Date().toISOString();po.lines.forEach(function(line){if(line.confirmedQty==null)line.confirmedQty=Number(line.qty||0);if(line.confirmedUnitCost==null)line.confirmedUnitCost=poLineCost(line);if(!line.confirmedEta)line.confirmedEta=po.due||'';});if(typeof saveAppData==='function')saveAppData();if(typeof toast==='function')toast(po.id + ' marked Supplier Confirmed.');if(typeof render==='function')render();});});
     document.querySelectorAll('[data-po-create-return]').forEach(function(button){button.addEventListener('click',function(){const form=button.closest('[data-po-return-form]');if(!form)return;const result=purchaseCreateSupplierReturn({poId:button.dataset.poCreateReturn,productId:form.querySelector('[data-po-return-product]').value,qty:form.querySelector('[data-po-return-qty]').value,reason:form.querySelector('[data-po-return-reason]').value,locationId:form.querySelector('[data-po-return-location]').value,receiptId:form.querySelector('[data-po-return-receipt]').value});if(!result.ok)return typeof toast==='function'?toast(result.error):undefined;if(typeof saveAppData==='function')saveAppData();if(typeof toast==='function')toast(result.return.id + ' created and stock moved to Supplier Returns Hold.');if(typeof render==='function')render();});});
+    document.querySelectorAll('[data-po-line-menu]').forEach(function(button){button.addEventListener('click',function(event){event.stopPropagation();const menu=document.getElementById(button.dataset.poLineMenu);document.querySelectorAll('.po-line-menu').forEach(function(other){if(other!==menu)other.hidden=true;});if(menu){menu.hidden=!menu.hidden;button.setAttribute('aria-expanded',String(!menu.hidden));}});});
+    document.querySelectorAll('[data-po-remove-line]').forEach(function(button){button.addEventListener('click',function(){const parts=String(button.dataset.poRemoveLine||'').split('|');removePurchaseOrderLine(parts[0],parts[1]);});});
+    document.querySelectorAll('[data-po-line-credit]').forEach(function(button){button.addEventListener('click',function(){purchaseCommandTab='connections';if(typeof toast==='function')toast('Received PO lines stay in history. Use Supplier Returns & Credits to correct them.');if(typeof render==='function')render();});});
   }
 
   bindPurchase = function () {
@@ -420,3 +551,4 @@
   globalThis.purchaseReturnStatusSummary = purchaseReturnStatusSummary;
   globalThis.bindPurchaseCommand = bindPurchaseCommand;
 })();
+
