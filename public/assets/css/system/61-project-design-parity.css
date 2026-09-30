@@ -12,3 +12,52 @@
 @media(max-width:760px){.ps-project-lab{padding:16px 12px}.pl-heading{gap:12px}.ps-project-lab h1{font-size:24px}.pl-flow{grid-template-columns:repeat(2,minmax(0,1fr));padding:14px}.pl-health{grid-template-columns:1fr;gap:12px;padding:18px}.pl-metrics{gap:10px}.pl-metrics article{padding:13px}.pl-metrics strong{font-size:23px}.ps-project-lab .project-360-form-grid{grid-template-columns:1fr}.ps-project-lab td,.ps-project-lab th{padding:12px}.ps-project-lab form{padding:18px}.ps-project-lab .pl-panel>header,.ps-project-lab .project-360-card>header{padding:18px}.pl-section-heading>span{font-size:11px}}
 
 .pl-quick{display:flex;gap:10px;flex-wrap:wrap;margin:0 0 20px}.pl-quick .pl-entry{padding:0}.pl-quick .pl-entry:first-child button{background:var(--color-surface-default);color:var(--color-text-primary);border-color:var(--color-text-secondary)}
+
+/* Clean project settings: identity only, commercial values stay live from linked records. */
+.ps-project-lab .project-settings-clean .project-settings-source{
+  display:grid;
+  grid-template-columns:minmax(0,1fr) auto;
+  gap:18px;
+  align-items:center;
+  margin:18px 22px 0;
+  padding:16px 18px;
+  border:1px solid var(--color-border-default);
+  border-radius:8px;
+  background:var(--color-surface-subtle);
+}
+.ps-project-lab .project-settings-source span,
+.ps-project-lab .project-settings-source strong,
+.ps-project-lab .project-settings-source small{display:block}
+.ps-project-lab .project-settings-source>div:first-child>span{
+  color:var(--color-action-ink);
+  font-size:10px;
+  font-weight:900;
+  letter-spacing:.07em;
+}
+.ps-project-lab .project-settings-source>div:first-child>strong{margin-top:4px;font-size:16px}
+.ps-project-lab .project-settings-source p{margin:5px 0 0;color:var(--color-text-secondary);line-height:1.5}
+.ps-project-lab .project-settings-source-value{
+  min-width:190px;
+  padding-left:18px;
+  border-left:1px solid var(--color-border-default);
+}
+.ps-project-lab .project-settings-source-value span,
+.ps-project-lab .project-settings-source-value small{color:var(--color-text-secondary);font-size:11px}
+.ps-project-lab .project-settings-source-value strong{margin:3px 0;font-size:24px;color:var(--color-text-primary)}
+.ps-project-lab .project-settings-readonly{
+  display:flex;
+  align-items:center;
+  min-height:43px;
+  padding:10px 11px;
+  border:1px solid var(--color-border-default);
+  border-radius:6px;
+  background:var(--color-surface-subtle);
+  color:var(--color-text-primary);
+  font-size:14px;
+}
+.ps-project-lab .project-settings-clean label small{font-weight:400;line-height:1.4}
+@media(max-width:760px){
+  .ps-project-lab .project-settings-clean .project-settings-source{grid-template-columns:1fr;margin:14px 18px 0}
+  .ps-project-lab .project-settings-source-value{padding-left:0;padding-top:12px;border-left:0;border-top:1px solid var(--color-border-default)}
+}
+
