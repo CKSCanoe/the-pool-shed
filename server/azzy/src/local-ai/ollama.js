@@ -2,6 +2,12 @@ const endpoint=process.env.AZZY_OLLAMA_URL||'http://127.0.0.1:11434';
 const preferred=process.env.AZZY_OLLAMA_MODEL||'';
 const gatewayToken=process.env.AZZY_OLLAMA_TOKEN||'';
 let healthCache={at:0,value:null};
+let healthInflight=null;
+let brainCooldownUntil=0;
+function markBrainUnavailable(error,cooldownMs=45000){
+  const value={connected:false,endpoint,models:[],model:null,error:String(error?.message||error||'Local brain unavailable'),cooldownUntil:Date.now()+cooldownMs};
+  brainCooldownUntil=value.cooldownUntil;healthCache={at:Date.now(),value};return value;
+}
 
 async function jsonFetch(url,options={},timeout=3500){
   const c=new AbortController();
@@ -16,18 +22,21 @@ async function jsonFetch(url,options={},timeout=3500){
 }
 
 export async function health({force=false}={}){
-  if(!force&&healthCache.value&&Date.now()-healthCache.at<15000)return healthCache.value;
-  try{
-    const x=await jsonFetch(`${endpoint}/api/tags`);
-    const models=(x.models||[]).map(m=>m.name);
-    const value={connected:true,endpoint,models,model:preferred&&models.includes(preferred)?preferred:(models[0]||null)};
-    healthCache={at:Date.now(),value};
-    return value;
-  }catch(e){
-    const value={connected:false,endpoint,models:[],model:null,error:e.message};
-    healthCache={at:Date.now(),value};
-    return value;
-  }
+  const now=Date.now();
+  if(!force&&brainCooldownUntil>now&&healthCache.value)return healthCache.value;
+  const ttl=healthCache.value?.connected?15000:45000;
+  if(!force&&healthCache.value&&now-healthCache.at<ttl)return healthCache.value;
+  if(!force&&healthInflight)return healthInflight;
+  healthInflight=(async()=>{
+    try{
+      const started=Date.now(),x=await jsonFetch(`${endpoint}/api/tags`,{},1800);
+      const models=(x.models||[]).map(m=>m.name);
+      const value={connected:true,endpoint,models,model:preferred&&models.includes(preferred)?preferred:(models[0]||null),latencyMs:Date.now()-started};
+      brainCooldownUntil=0;healthCache={at:Date.now(),value};return value;
+    }catch(e){return markBrainUnavailable(e,45000);}
+    finally{healthInflight=null;}
+  })();
+  return healthInflight;
 }
 
 function stripThinking(text=''){
@@ -47,11 +56,16 @@ async function chat(model,messages,{format,timeout=30000,numPredict=320,temperat
     options:{temperature,top_p:.9,num_predict:numPredict,num_ctx:4096}
   };
   if(format)body.format=format;
-  return jsonFetch(`${endpoint}/api/chat`,{
-    method:'POST',
-    headers:{'content-type':'application/json'},
-    body:JSON.stringify(body)
-  },timeout);
+  try{
+    return await jsonFetch(`${endpoint}/api/chat`,{
+      method:'POST',
+      headers:{'content-type':'application/json'},
+      body:JSON.stringify(body)
+    },timeout);
+  }catch(error){
+    markBrainUnavailable(error,45000);
+    throw error;
+  }
 }
 
 function narratorSystem({user}){
@@ -96,7 +110,7 @@ export async function planWithLocalModel({message,contexts=[],primaryContext=nul
     userMessage:message
   };
   try{
-    const r=await chat(model,[{role:'system',content:system},{role:'user',content:JSON.stringify(payload)}],{format:{type:'object'},numPredict:180,temperature:.1,timeout:18000});
+    const r=await chat(model,[{role:'system',content:system},{role:'user',content:JSON.stringify(payload)}],{format:{type:'object'},numPredict:180,temperature:.1,timeout:8000});
     return JSON.parse(stripThinking(r.message?.content||'{}'));
   }catch{return null;}
 }
@@ -122,7 +136,7 @@ export async function narrateWithLocalModel(args){
   const {model,user}=args;
   const pack=narrationPayload(args);
   try{
-    const r=await chat(model,[{role:'system',content:narratorSystem({user})},{role:'user',content:JSON.stringify(pack)}],{numPredict:360,temperature:.42,timeout:30000});
+    const r=await chat(model,[{role:'system',content:narratorSystem({user})},{role:'user',content:JSON.stringify(pack)}],{numPredict:360,temperature:.42,timeout:18000});
     const answer=stripThinking(r.message?.content||'');
     return answer?{answer}:null;
   }catch{return null;}
@@ -141,7 +155,7 @@ export async function* streamNarrationWithLocalModel(args){
     options:{temperature:.42,top_p:.9,num_predict:360,num_ctx:4096}
   };
   const c=new AbortController();
-  const t=setTimeout(()=>c.abort(),35000);
+  const t=setTimeout(()=>c.abort(),20000);
   try{
     const headers={'content-type':'application/json'};
     if(gatewayToken)headers.Authorization=`Bearer ${gatewayToken}`;

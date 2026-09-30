@@ -34,11 +34,16 @@ async function rest(path,{timeout=12000,authorization='',optional=false}={}){
   requireBackend();
   const service=supabaseServerKey(process.env);
   if(!service&&!authorization)throw httpError('Sign in first.',401);
+  const url=`${process.env.SUPABASE_URL}/rest/v1/${path}`;
+  const request=async headers=>fetch(url,{headers,signal:AbortSignal.timeout(timeout)});
   try{
-    const headers=service
-      ? elevatedSupabaseHeaders(process.env,{Accept:'application/json'})
-      : {apikey:apiKey(),Authorization:authorization,Accept:'application/json'};
-    const r=await fetch(`${process.env.SUPABASE_URL}/rest/v1/${path}`,{headers,signal:AbortSignal.timeout(timeout)});
+    let r;
+    if(service){
+      r=await request(elevatedSupabaseHeaders(process.env,{Accept:'application/json'}));
+      if(!r.ok&&authorization&&(r.status===401||r.status===403)){
+        r=await request({apikey:apiKey(),Authorization:authorization,Accept:'application/json'});
+      }
+    }else r=await request({apikey:apiKey(),Authorization:authorization,Accept:'application/json'});
     if(!r.ok){if(optional)return null;throw httpError(`Pool Shed data service failed (${r.status}).`,r.status===401||r.status===403?r.status:502);}
     return r.status===204?null:await r.json();
   }catch(e){if(optional)return null;throw e;}
@@ -111,7 +116,7 @@ function financeDocumentRows(workspace,documents){
   return {supplierBills,customerInvoices};
 }
 async function enrichFinance(workspace,workspaceId,authorization){
-  const documents=await rest(`ps_finance_documents?workspace_id=eq.${enc(workspaceId)}&select=id,source_id,kind,xero_number,status,amount_due,amount_paid,amount_credited,payload,remote,updated_at&order=created_at.desc&limit=500`,{authorization,optional:true});
+  const documents=await rest(`ps_finance_documents?workspace_id=eq.${enc(workspaceId)}&select=id,source_id,kind,xero_number,status,amount_due,amount_paid,amount_credited,payload,remote,updated_at&order=created_at.desc&limit=500`,{authorization,optional:true,timeout:3500});
   if(!documents)return workspace;
   const rows=financeDocumentRows(workspace,documents),copy=structuredClone(workspace);
   copy.supplierBills=[...arr(copy.supplierBills),...rows.supplierBills];
@@ -122,7 +127,7 @@ export async function loadAzzyPoolShedContext(req){
   const auth=await authUser(req),workspaceId=WORKSPACE_ID,authorization=requestAuthorization(req);
   const [members,profiles,snapshots,revisions]=await Promise.all([
     rest(`ps_workspace_members?workspace_id=eq.${enc(workspaceId)}&user_id=eq.${enc(auth.id)}&select=workspace_id,user_id,role&limit=1`,{authorization}),
-    rest(`user_profiles?id=eq.${enc(auth.id)}&select=id,full_name,email,role,active,permissions&limit=1`,{authorization}),
+    rest(`user_profiles?id=eq.${enc(auth.id)}&select=id,full_name,email,role,active,permissions&limit=1`,{authorization,optional:true}),
     rest(`workspace_snapshots?workspace_id=eq.${enc(workspaceId)}&select=data,updated_at&limit=1`,{authorization}),
     rest(`ps_workspace_revisions?workspace_id=eq.${enc(workspaceId)}&select=id&order=id.desc&limit=1`,{authorization,optional:true})
   ]);
