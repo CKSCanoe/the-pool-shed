@@ -12,15 +12,22 @@ function psProjectQuoteSnapshotTotals(q){
  return {net:Number(totals.net||0),cost:Number(totals.cost||0),version:Number(latest?.number||q?.publishedVersion||q?.currentVersion||0)};
 }
 function psProjectOrderOwner(o){return String(o?.jobId||o?.projectId||'');}
-function psProjectSalesOrderNet(order,source){
- source=source||data;const products=new Map((source.products||[]).map(x=>[String(x.id),x])),customers=new Map((source.customers||[]).map(x=>[String(x.id),x])),priceList=String(order?.priceList||customers.get(String(order?.customerId||''))?.priceList||'rrp');
- return (order?.lines||[]).filter(l=>l.bundleRole!=='component').reduce((total,line)=>{
-  const product=products.get(String(line.productId||''))||{};let unit;
-  if(typeof salesOrderLinePrice==='function'){try{unit=Number(salesOrderLinePrice(order,line));}catch(_e){}}
-  if(!Number.isFinite(unit))unit=typeof line.unitPrice==='number'?line.unitPrice:typeof line.specialPrice==='number'?line.specialPrice:Number(line.sellPrice??line.price??line.unitSell??product[priceList]??product.rrp??0);
-  return total+psProjectPence(Number(line.qty||0)*Number(unit||0));
- },0);
+function psProjectSalesOrderPriceInfo(order,source){
+ source=source||data;const products=new Map((source.products||[]).map(x=>[String(x.id),x])),customers=new Map((source.customers||[]).map(x=>[String(x.id),x])),priceList=String(order?.priceList||customers.get(String(order?.customerId||''))?.priceList||'rrp'),lines=(order?.lines||[]).filter(l=>l.bundleRole!=='component');
+ let complete=lines.length>0,net=0;
+ lines.forEach(line=>{
+  const product=products.get(String(line.productId||''))||{},candidates=[
+   typeof line.unitPrice==='number'?line.unitPrice:undefined,
+   typeof line.specialPrice==='number'?line.specialPrice:undefined,
+   line.sellPrice,line.price,line.unitSell,product[priceList],product.rrp
+  ],raw=candidates.find(v=>v!==undefined&&v!==null&&v!==''&&Number.isFinite(Number(v)));
+  if(raw===undefined){complete=false;return;}
+  let unit=Number(raw);if(typeof salesOrderLinePrice==='function'){try{const live=Number(salesOrderLinePrice(order,line));if(Number.isFinite(live))unit=live;}catch(_e){}}
+  net+=psProjectPence(Number(line.qty||0)*unit);
+ });
+ return {net,complete};
 }
+function psProjectSalesOrderNet(order,source){return psProjectSalesOrderPriceInfo(order,source).net;}
 function psProjectQuoteRows(j,source){
  source=source||data;const p=psProjectModel(j),rows=[],seen=new Set(),quotes=Array.isArray(source.quotes)?source.quotes:[];
  const originalLink=(p.quoteLinks||[]).find(x=>x.role==='Original'),originalId=String(originalLink?.quoteId||p.quoteRef||'').split(/\s+v\d+$/i)[0];
@@ -126,10 +133,10 @@ function psProjectSummary(j,source,now){
  const indexCost=(map,key,row)=>{if(!key)return;const k=String(key),list=map.get(k);if(list)list.push(row);else map.set(k,[row]);};
  costs.forEach(row=>{indexCost(costByPo,row.poId,row);indexCost(costByOrder,row.orderId,row);indexCost(costByVariation,row.variationId,row);indexCost(costByTool,row.toolAssignmentId,row)});
  const actualRows=rows=>(rows||[]).filter(x=>x.state==='Actual'),sumNet=rows=>(rows||[]).reduce((n,x)=>n+cents(x.net),0),sumCoverage=rows=>(rows||[]).reduce((n,x)=>n+cents(x.coverageNet||0),0);
- const quote=cents(p.quoteNet||0),salesOrderNets=new Map(orders.map(o=>[String(o.id),psProjectSalesOrderNet(o,source)])),salesOrderRevenue=[...salesOrderNets.values()].reduce((n,v)=>n+v,0);
- const originalOrders=orders.filter(o=>!o.variationId),originalOrderRevenue=originalOrders.reduce((n,o)=>n+(salesOrderNets.get(String(o.id))||0),0),originalSellingValue=originalOrderRevenue>0?originalOrderRevenue:quote;
- const variationOrderRevenue=new Map();orders.filter(o=>o.variationId).forEach(o=>{const key=String(o.variationId),value=salesOrderNets.get(String(o.id))||0;variationOrderRevenue.set(key,(variationOrderRevenue.get(key)||0)+value);});
- const approvedVariationIds=new Set(variations.map(v=>String(v.id))),approvedExtra=variations.reduce((n,v)=>n+(variationOrderRevenue.has(String(v.id))?variationOrderRevenue.get(String(v.id)):cents(v.sellNet)),0)+[...variationOrderRevenue.entries()].filter(([id])=>!approvedVariationIds.has(id)).reduce((n,[,value])=>n+value,0),revenue=originalSellingValue+approvedExtra,revenueSource=originalOrderRevenue>0?'sales-orders':'quote-fallback';
+ const quote=cents(p.quoteNet||0),salesOrderPricing=new Map(orders.map(o=>[String(o.id),psProjectSalesOrderPriceInfo(o,source)])),salesOrderNets=new Map([...salesOrderPricing].map(([id,info])=>[id,info.net])),salesOrderRevenue=[...salesOrderNets.values()].reduce((n,v)=>n+v,0);
+ const originalOrders=orders.filter(o=>!o.variationId),originalPricingComplete=originalOrders.length>0&&originalOrders.every(o=>salesOrderPricing.get(String(o.id))?.complete),originalOrderRevenue=originalOrders.reduce((n,o)=>n+(salesOrderNets.get(String(o.id))||0),0),originalSellingValue=originalPricingComplete?originalOrderRevenue:quote;
+ const variationOrderRevenue=new Map(),variationOrderPricingComplete=new Map();orders.filter(o=>o.variationId).forEach(o=>{const key=String(o.variationId),info=salesOrderPricing.get(String(o.id))||{net:0,complete:false};variationOrderRevenue.set(key,(variationOrderRevenue.get(key)||0)+info.net);variationOrderPricingComplete.set(key,(variationOrderPricingComplete.get(key)??true)&&info.complete);});
+ const approvedVariationIds=new Set(variations.map(v=>String(v.id))),approvedExtra=variations.reduce((n,v)=>{const key=String(v.id),useOrders=variationOrderRevenue.has(key)&&variationOrderPricingComplete.get(key);return n+(useOrders?variationOrderRevenue.get(key):cents(v.sellNet));},0)+[...variationOrderRevenue.entries()].filter(([id])=>!approvedVariationIds.has(id)&&variationOrderPricingComplete.get(id)).reduce((n,[,value])=>n+value,0),revenue=originalSellingValue+approvedExtra,revenueSource=originalPricingComplete?'sales-orders':'quote-fallback';
  let actual=0,committed=0,uncommitted=cents(p.remainingNet||0),estimatedReceived=0,missingCosts=0;
  const poRows=[],coverage=new Map();
  (source.purchaseOrders||[]).forEach(po=>{
@@ -213,7 +220,7 @@ function psProjectSummary(j,source,now){
  const invoiceExposure={costExposure,invoicedQueued,exposureGap,thresholdPct:pct,thresholdNet:netThreshold,thresholdTriggered};if(thresholdTriggered)alerts.push({severity:'warn',text:'Invoice review recommended: project cost exposure is '+(costExposure/100).toFixed(2)+' while '+(invoicedQueued/100).toFixed(2)+' is queued/invoiced against the configured exposure threshold.'});
  const committedCosts=estimatedReceived+committed+labourFuture,remainingForecastCosts=uncommitted+tools+labourFuture,marginMovement=[{label:revenueSource==='sales-orders'?'Linked Sales Orders':'Accepted quote fallback',amount:revenue,type:'revenue'},{label:'Actual recorded cost',amount:-actual,type:'cost'},{label:'Received PO estimate',amount:-estimatedReceived,type:'cost'},{label:'Outstanding commitments',amount:-committed,type:'cost'},{label:'Remaining forecast',amount:-uncommitted,type:'cost'},{label:'Tools & hire',amount:-tools,type:'cost'},{label:'Scheduled labour',amount:-labourFuture,type:'cost'}];
   const commercialQuoteRows=quoteRows.filter(r=>['Extra','Credit'].includes(r.role)),pendingExtra=pending.reduce((n,v)=>n+cents(v.sellNet),0)+pendingQuoted.filter(r=>['Extra','Credit'].includes(r.role)).reduce((n,r)=>n+cents(r.sellNet),0),rejectedExtra=commercialQuoteRows.filter(r=>r.status==='Rejected').reduce((n,r)=>n+cents(r.sellNet),0);
-  return {toolAccrued,toolFuture,labourAccrued,labourForecast,labourFuture,missingCosts,costCategories,orderCostCoverage,quote,originalSellingValue,originalOrderRevenue,salesOrderRevenue,revenueSource,approvedExtra,revenue,totalSellingValue:revenue,actual,estimatedReceived,committed,committedCosts,uncommitted,tools,remainingForecastCosts,forecast,profit,margin,headroom,target,minimumMargin,alerts,recommendations,items,orders,poRows,orderMaterialAmounts,stock,materialVariance,invoiceExposure,marginMovement,quoteRows,pendingExtra,rejectedExtra,pendingExtraCount:commercialQuoteRows.filter(r=>r.status==='Pending').length,acceptedExtraCount:commercialQuoteRows.filter(r=>r.status==='Accepted'&&!r.handoverPending).length,rejectedExtraCount:commercialQuoteRows.filter(r=>r.status==='Rejected').length,referenceQuoteCount:quoteRows.filter(r=>r.role==='Reference').length,phaseTotal:(p.phases||[]).reduce((n,ph)=>n+cents(ph.amountNet),0)};
+  return {toolAccrued,toolFuture,labourAccrued,labourForecast,labourFuture,missingCosts,costCategories,orderCostCoverage,quote,originalSellingValue,originalOrderRevenue,originalPricingComplete,salesOrderRevenue,revenueSource,approvedExtra,revenue,totalSellingValue:revenue,actual,estimatedReceived,committed,committedCosts,uncommitted,tools,remainingForecastCosts,forecast,profit,margin,headroom,target,minimumMargin,alerts,recommendations,items,orders,poRows,orderMaterialAmounts,stock,materialVariance,invoiceExposure,marginMovement,quoteRows,pendingExtra,rejectedExtra,pendingExtraCount:commercialQuoteRows.filter(r=>r.status==='Pending').length,acceptedExtraCount:commercialQuoteRows.filter(r=>r.status==='Accepted'&&!r.handoverPending).length,rejectedExtraCount:commercialQuoteRows.filter(r=>r.status==='Rejected').length,referenceQuoteCount:quoteRows.filter(r=>r.role==='Reference').length,phaseTotal:(p.phases||[]).reduce((n,ph)=>n+cents(ph.amountNet),0)};
 }
 function psProjectCloseoutBlockers(j,source,finance,now){
  source=source||data;finance=finance||{};now=now||Date.now();const p=psProjectModel(j),s=psProjectSummary(j,source,now),blockers=[];
