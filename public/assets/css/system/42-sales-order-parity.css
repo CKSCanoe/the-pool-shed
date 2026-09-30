@@ -392,3 +392,70 @@ body .so2-line-menu .danger{color:var(--color-status-danger-text)!important}
   }
 }
 
+/* Sales Order supplier-funding connection */
+#screen-salesorders .so-funding-panel{
+  margin:0 0 10px;
+  border:1px solid var(--color-border-subtle);
+  border-radius:8px;
+  background:var(--color-surface-default);
+  overflow:hidden;
+}
+#screen-salesorders .so-funding-head{
+  display:flex;
+  align-items:flex-start;
+  gap:12px;
+  padding:10px 11px;
+  border-bottom:1px solid var(--color-border-subtle);
+  background:var(--color-surface-subtle);
+}
+#screen-salesorders .so-funding-head>div:first-child{min-width:0}
+#screen-salesorders .so-funding-head span,
+#screen-salesorders .so-funding-head strong,
+#screen-salesorders .so-funding-head small{display:block}
+#screen-salesorders .so-funding-head>div:first-child>span{
+  color:var(--color-action-ink);
+  font-size:8px;
+  font-weight:900;
+  letter-spacing:.07em;
+}
+#screen-salesorders .so-funding-head>div:first-child>strong{margin-top:2px;color:var(--color-text-primary);font-size:13px}
+#screen-salesorders .so-funding-head>div:first-child>small{margin-top:2px;color:var(--color-text-secondary);font-size:9px}
+#screen-salesorders .so-funding-summary{
+  margin-left:auto;
+  display:flex;
+  gap:10px;
+  flex-wrap:wrap;
+  justify-content:flex-end;
+  color:var(--color-text-secondary);
+  font-size:9px;
+}
+#screen-salesorders .so-funding-summary b{color:var(--color-text-primary)}
+#screen-salesorders .so-funding-list{padding:0 10px}
+#screen-salesorders .so-funding-row{
+  display:grid;
+  grid-template-columns:minmax(170px,1.25fr) repeat(3,minmax(120px,.8fr)) auto;
+  gap:9px;
+  align-items:center;
+  padding:9px 0;
+  border-bottom:1px solid var(--color-border-subtle);
+}
+#screen-salesorders .so-funding-row:last-child{border-bottom:0}
+#screen-salesorders .so-funding-row>div{min-width:0}
+#screen-salesorders .so-funding-row span,
+#screen-salesorders .so-funding-row strong,
+#screen-salesorders .so-funding-row small{display:block}
+#screen-salesorders .so-funding-row span{font-size:8px;color:var(--color-text-secondary);font-weight:800;text-transform:uppercase}
+#screen-salesorders .so-funding-row small{margin-top:2px;color:var(--color-text-secondary);font-size:8px}
+#screen-salesorders .so-funding-row.warn{box-shadow:inset 3px 0 0 var(--color-status-warning-text)}
+#screen-salesorders .so-funding-row.good{box-shadow:inset 3px 0 0 var(--color-status-success-text)}
+@media(max-width:1050px){
+  #screen-salesorders .so-funding-row{grid-template-columns:repeat(2,minmax(0,1fr))}
+  #screen-salesorders .so-funding-row>div:last-child{grid-column:1/-1}
+}
+@media(max-width:700px){
+  #screen-salesorders .so-funding-head{display:grid}
+  #screen-salesorders .so-funding-summary{margin-left:0;justify-content:flex-start}
+  #screen-salesorders .so-funding-row{grid-template-columns:1fr}
+  #screen-salesorders .so-funding-row>div:last-child{grid-column:auto}
+}
+
