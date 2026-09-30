@@ -113,6 +113,50 @@
     return (data.suppliers || []).find(function (item) { return item.name === name; }) || { name:name || 'Supplier to confirm' };
   }
 
+  function poSupplierOptions(selected) {
+    const current=String(selected||'').trim();
+    const names=(data.suppliers||[]).map(function(item){return String(item.name||'').trim();}).filter(Boolean);
+    if(current&&!names.some(function(name){return name===current;}))names.push(current);
+    names.sort(function(a,b){return a.localeCompare(b);});
+    return '<option value="">Select supplier</option>' + names.map(function(name){
+      return '<option value="' + poEsc(name) + '"' + (name===current?' selected':'') + '>' + poEsc(name) + '</option>';
+    }).join('');
+  }
+
+  function changePurchaseOrderSupplier(poId,newSupplier) {
+    const po=typeof purchaseOrderById==='function'?purchaseOrderById(poId):(data.purchaseOrders||[]).find(function(row){return row.id===poId;});
+    if(!po)return typeof toast==='function'?toast('Purchase Order not found.'):false;
+    const next=String(newSupplier||'').trim(),previous=String(po.supplier||'').trim();
+    if(!next){
+      if(typeof toast==='function')toast('Choose a supplier.');
+      if(typeof render==='function')render();
+      return false;
+    }
+    if(next===previous)return true;
+    const summary=poSummarySafe(po);
+    const receiptCount=(data.receiptEvents||[]).filter(function(event){return String(event.poId||'')===String(po.id||'');}).length;
+    const hasReceiving=summary.received>0||receiptCount>0;
+    if(hasReceiving&&!confirm('This PO already has received stock. Change the supplier name/account only? Receiving quantities, Goods In, costs and stock history will stay exactly as they are.')) {
+      if(typeof render==='function')render();
+      return false;
+    }
+    const at=new Date().toISOString(),user=(typeof currentUser==='function'&&currentUser()&&(currentUser().name||currentUser().email))||'Purchasing';
+    po.supplierCorrections=Array.isArray(po.supplierCorrections)?po.supplierCorrections:[];
+    po.supplierCorrections.push({id:'POSUP-'+Date.now(),at,user,from:previous||'Not set',to:next,receivedUnits:summary.received,receiptCount:receiptCount,reason:hasReceiving?'Supplier corrected after receipt / custom-line import':'Supplier changed before receipt'});
+    po.supplier=next;
+    if(!hasReceiving&&(po.supplierEmailSentAt||po.supplierConfirmedAt)){
+      po.reviewStatus='Needs review';
+      po.supplierEmailStatus='Changes pending';
+      if(!['Cancelled','Received'].includes(po.status))po.status='Draft - Review';
+    }
+    data.auditLog=Array.isArray(data.auditLog)?data.auditLog:[];
+    data.auditLog.push({id:'AUD-'+Date.now(),date:at,user,action:'Purchase order supplier corrected',product:po.id,previousValue:previous||'Not set',newValue:next,reason:hasReceiving?'Post-receipt supplier metadata correction':'Supplier changed'});
+    if(typeof saveAppData==='function')saveAppData();
+    if(typeof toast==='function')toast(po.id + ' supplier updated to ' + next + (hasReceiving?' without changing receiving history.':'.'));
+    if(typeof render==='function')render();
+    return true;
+  }
+
   function poLineCost(line) {
     const p = poProduct(line.productId) || {};
     return Number(line.unitCost != null ? line.unitCost : p.cost || 0);
@@ -202,7 +246,11 @@
 
   function poSupplierCard(po, supplier) {
     const openPos = (data.purchaseOrders || []).filter(function (other) { return other.supplier === po.supplier && !['Received','Cancelled'].includes(other.status); }).length;
-    return '<section class="po-command-card po-supplier-card"><div class="po-command-card-head"><div><span>Supplier</span><h3>' + poEsc(supplier.name || po.supplier || 'Supplier to confirm') + '</h3></div><button type="button" class="secondary" data-open-supplier-profile="' + poEsc(po.supplier || '') + '">Open supplier</button></div><div class="po-supplier-identity"><div class="po-supplier-avatar">' + poEsc((po.supplier || 'S').slice(0,2).toUpperCase()) + '</div><div><strong>' + poEsc(supplier.contact || 'Purchasing') + '</strong><small>' + poEsc(supplier.ordersEmail || supplier.email || 'No ordering email') + '</small><small>' + poEsc(supplier.phone || 'No telephone') + '</small></div>' + poPill((supplier.preferred ? 'Preferred' : 'Active'), supplier.preferred ? 'good' : 'info') + '</div><div class="po-mini-grid"><div><span>Account</span><strong>' + poEsc(supplier.accountNumber || supplier.code || 'Not set') + '</strong></div><div><span>Terms</span><strong>' + poEsc(supplier.terms || 'Not set') + '</strong></div><div><span>Lead time</span><strong>' + Number(supplier.leadTimeDays || 0) + ' days</strong></div><div><span>Open POs</span><strong>' + openPos + '</strong></div></div></section>';
+    const known=(data.suppliers||[]).some(function(item){return item.name===po.supplier;});
+    const corrected=(po.supplierCorrections||[]).length>0;
+    return '<section class="po-command-card po-supplier-card"><div class="po-command-card-head"><div><span>Supplier</span><h3>' + poEsc(supplier.name || po.supplier || 'Supplier to confirm') + '</h3></div>' + (known?'<button type="button" class="secondary" data-open-supplier-profile="' + poEsc(po.supplier || '') + '">Open supplier</button>':poPill('Custom / imported','warn')) + '</div>' +
+      '<div class="po-supplier-correction"><label>Supplier account<select data-po-supplier-change="' + poEsc(po.id) + '">' + poSupplierOptions(po.supplier) + '</select></label><small>' + (poSummarySafe(po).received>0?'Supplier can still be corrected after receipt. Goods In and stock history will not be changed.':'Choose the supplier responsible for this PO.') + '</small>' + (corrected?'<span class="po-supplier-corrected">Corrected ' + (po.supplierCorrections||[]).length + ' time' + ((po.supplierCorrections||[]).length===1?'':'s') + '</span>':'') + '</div>' +
+      '<div class="po-supplier-identity"><div class="po-supplier-avatar">' + poEsc((po.supplier || 'S').slice(0,2).toUpperCase()) + '</div><div><strong>' + poEsc(supplier.contact || 'Purchasing') + '</strong><small>' + poEsc(supplier.ordersEmail || supplier.email || 'No ordering email') + '</small><small>' + poEsc(supplier.phone || 'No telephone') + '</small></div>' + poPill((supplier.preferred ? 'Preferred' : known ? 'Active' : 'Needs supplier'), supplier.preferred ? 'good' : known ? 'info' : 'warn') + '</div><div class="po-mini-grid"><div><span>Account</span><strong>' + poEsc(supplier.accountNumber || supplier.code || 'Not set') + '</strong></div><div><span>Terms</span><strong>' + poEsc(supplier.terms || 'Not set') + '</strong></div><div><span>Lead time</span><strong>' + Number(supplier.leadTimeDays || 0) + ' days</strong></div><div><span>Open POs</span><strong>' + openPos + '</strong></div></div></section>';
   }
 
   function poDetailsCard(po) {
@@ -352,6 +400,7 @@
     if(po.supplierEmailSentAt)events.push({date:po.supplierEmailSentAt,type:'Sent',detail:'Supplier PO sent'});
     (po.payments||[]).forEach(function(payment){events.push({date:payment.date||payment.recordedAt||'',type:'Payment',detail:poMoney(payment.amount) + ' · ' + (payment.type||'Other') + (payment.reference?' · '+payment.reference:'')});});
     (po.paymentCorrections||[]).forEach(function(row){events.push({date:row.correctedAt||'',type:'Payment correction',detail:poMoney(row.amount||0) + ' removed · ' + (row.reason||'Correction')});});
+    (po.supplierCorrections||[]).forEach(function(row){events.push({date:row.at||'',type:'Supplier correction',detail:(row.from||'Not set') + ' → ' + (row.to||'Supplier') + (row.receivedUnits?' · ' + row.receivedUnits + ' units already received; physical history unchanged':'')});});
     (po.lineCorrections||[]).forEach(function(row){events.push({date:row.at||'',type:'Line correction',detail:(row.sku||row.line?.productId||'Item') + ' removed before receipt · ' + (row.reason||'Correction')});});
     (data.receiptEvents||[]).filter(function(event){return event.poId===po.id;}).forEach(function(event){events.push({date:event.date||'',type:'Receipt',detail:event.id + ' · ' + event.productId + ' × ' + event.qty});});
     (data.warehouseQcEvents||[]).filter(function(event){return event.poId===po.id;}).forEach(function(event){events.push({date:event.date||'',type:'QC',detail:(event.decision||'') + ' · ' + (event.productId||'') + ' × ' + Number(event.qty||0)});});
@@ -530,6 +579,7 @@
     document.querySelectorAll('[data-po-create-demand]').forEach(function(button){button.addEventListener('click',function(){const parts=button.dataset.poCreateDemand.split('|');const result=purchaseCreateOrMergeDemandPo(parts[0],parts[1],button.dataset.poCreateDemandQty);if(!result.ok)return typeof toast==='function'?toast(result.error):undefined;selectedPurchaseOrderId=result.po.id;purchaseOrderView='detail';activeSubPage.purchase='Purchase Orders';if(typeof saveAppData==='function')saveAppData();if(typeof toast==='function')toast('Demand added to ' + result.po.id + '.');if(typeof render==='function')render();});});
     document.querySelectorAll('[data-po-command-tab]').forEach(function(button){button.addEventListener('click',function(){purchaseCommandTab=button.dataset.poCommandTab.split('|')[0];if(typeof render==='function')render();});});
     document.querySelectorAll('[data-po-open-receiving]').forEach(function(button){button.addEventListener('click',function(){selectedGoodsInPoId=button.dataset.poOpenReceiving;warehousePoView='list';active='warehouse';activeSubPage.warehouse='Inbound';if(typeof toast==='function')toast('Opened easy booking-in for ' + selectedGoodsInPoId + '.');if(typeof render==='function')render();});});
+    document.querySelectorAll('[data-po-supplier-change]').forEach(function(select){select.addEventListener('change',function(){changePurchaseOrderSupplier(select.dataset.poSupplierChange,select.value);});});
     document.querySelectorAll('[data-po-line-cost]').forEach(function(input){input.addEventListener('change',function(){saveLineField(input.dataset.poLineCost,'unitCost',Math.max(0,Number(input.value||0)));if(typeof render==='function')render();});});
     document.querySelectorAll('[data-po-confirmed-qty]').forEach(function(input){input.addEventListener('change',function(){saveLineField(input.dataset.poConfirmedQty,'confirmedQty',Math.max(0,Math.floor(Number(input.value||0))));});});
     document.querySelectorAll('[data-po-confirmed-cost]').forEach(function(input){input.addEventListener('change',function(){saveLineField(input.dataset.poConfirmedCost,'confirmedUnitCost',Math.max(0,Number(input.value||0)));});});
@@ -553,6 +603,7 @@
   globalThis.purchaseReturnStatusSummary = purchaseReturnStatusSummary;
   globalThis.purchaseOrderLineDeleteAssessment = poLineDeleteAssessment;
   globalThis.removePurchaseOrderLine = removePurchaseOrderLine;
+  globalThis.changePurchaseOrderSupplier = changePurchaseOrderSupplier;
   globalThis.bindPurchaseCommand = bindPurchaseCommand;
 })();
 

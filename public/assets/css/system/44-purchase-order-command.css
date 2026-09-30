@@ -104,3 +104,10 @@
 @media(max-width:520px){
   .purchase-command-page .po-financial-strip,.purchase-command-page.po-sales-parity .po-health-bar{grid-template-columns:1fr}
 }
+
+.purchase-command-page .po-supplier-correction{padding:10px 11px;border-top:1px solid var(--color-border-default);border-bottom:1px solid var(--color-border-default);background:var(--color-surface-subtle)}
+.purchase-command-page .po-supplier-correction label{display:grid;grid-template-columns:minmax(120px,.7fr) minmax(180px,1.3fr);gap:8px;align-items:center;color:var(--color-text-secondary);font-size:10px;font-weight:800}
+.purchase-command-page .po-supplier-correction select{width:100%;height:34px;border:1px solid var(--color-border-default);border-radius:5px;background:var(--color-surface-default);color:var(--color-text-primary);padding:0 8px}
+.purchase-command-page .po-supplier-correction small{display:block;margin-top:6px;color:var(--color-text-secondary);font-size:9px;line-height:1.4}
+.purchase-command-page .po-supplier-corrected{display:inline-flex;margin-top:7px;padding:3px 7px;border:1px solid var(--color-status-info-line);border-radius:999px;background:var(--color-status-info-bg);color:var(--color-status-info-text);font-size:9px;font-weight:800}
+@media(max-width:640px){.purchase-command-page .po-supplier-correction label{grid-template-columns:1fr}}
