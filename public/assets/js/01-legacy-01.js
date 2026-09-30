@@ -7936,12 +7936,14 @@ const seed = {
         return (prefix || "NS") + "-" + seed;
       }
 
-      function createNonStockProduct(lineType, description, unitPrice, unitCost) {
+      function createNonStockProduct(lineType, description, unitPrice, unitCost, variantDescription) {
         const id = nextNonStockLineId(lineType === "shipping" ? "SHIP" : "CUSTOM");
-        const label = String(description || (lineType === "shipping" ? "Shipping charge" : "Custom sales line")).trim();
+        const label = String(description || (lineType === "shipping" ? "Shipping charge" : "Custom line")).trim();
+        const variant = String(variantDescription || "").trim();
         const productRecord = {
           id:id, sku:id, supplierSku:"", name:label, category:lineType === "shipping" ? "Shipping & Delivery" : "One-off Sales Charges",
           supplier:"Not applicable", brand:"Pool Bros", barcode:"", cost:Number(unitCost || 0), rrp:Number(unitPrice || 0), trade:Number(unitPrice || 0), wholesale:Number(unitPrice || 0), special:Number(unitPrice || 0),
+          variantName:variant, variantLabel:variant, variant:variant,
           reorder:0, unit:"Each", trackBatch:false, trackSerial:false, warranty:"N/A", productType:lineType === "shipping" ? "Shipping charge" : "Custom charge", status:"Live", stockTracked:false, hiddenFromCatalogue:true
         };
         data.products.push(productRecord);
@@ -7950,18 +7952,19 @@ const seed = {
 
       function addCustomSalesLine(orderId) {
         const order = salesOrder(orderId);
-        const description = (document.getElementById("customLineDescription") || {}).value || "";
+        const productName = ((document.getElementById("customLineProductName") || document.getElementById("customLineDescription") || {}).value || "").trim();
+        const variantDescription = ((document.getElementById("customLineVariant") || {}).value || "").trim();
         const qty = Math.max(1, Number((document.getElementById("customLineQty") || {}).value || 1));
         const unitPrice = Math.max(0, Number((document.getElementById("customLinePrice") || {}).value || 0));
         const unitCost = Math.max(0, Number((document.getElementById("customLineCost") || {}).value || 0));
         const accountCode = (document.getElementById("customLineAccount") || {}).value || "4010 Service Upsell";
         const taxCode = (document.getElementById("customLineTax") || {}).value || "20% VAT";
         const note = (document.getElementById("customLineNote") || {}).value || "";
-        if (!description.trim()) return toast("Enter a description for the custom sales line.");
-        const p = createNonStockProduct("custom", description, unitPrice, unitCost);
-        order.lines.push({ productId:p.id, lineType:"custom", description:description.trim(), note:note.trim(), qty:qty, allocated:qty, picked:0, packed:0, unitPrice:unitPrice, unitCost:unitCost, specialPrice:unitPrice, accountCode:accountCode, taxCode:taxCode });
-        addSalesOrderNotification(order,"Custom sales line added",description.trim()+" added at "+money(unitPrice)+" net","Internal note");
-        order.status="Needs Review"; saveAppData(); toast("Custom sales line added to "+order.id+"."); render();
+        if (!productName) return toast("Enter a product or service name for the custom line.");
+        const p = createNonStockProduct("custom", productName, unitPrice, unitCost, variantDescription);
+        order.lines.push({ productId:p.id, lineType:"custom", customProductName:productName, customVariant:variantDescription, variantDescription:variantDescription, description:variantDescription || productName, note:note.trim(), qty:qty, allocated:qty, picked:0, packed:0, unitPrice:unitPrice, unitCost:unitCost, specialPrice:unitPrice, accountCode:accountCode, taxCode:taxCode });
+        addSalesOrderNotification(order,"Custom sales line added",productName + (variantDescription ? " · " + variantDescription : "") + " added at " + money(unitPrice) + " net","Internal note");
+        order.status="Needs Review"; saveAppData(); toast("Custom line added to "+order.id+"."); render();
       }
 
       function shippingPresetAmount(value) {
@@ -8355,7 +8358,7 @@ const seed = {
           '<div class="so5-selected-product" data-so-selected-product hidden><strong>Selected</strong><span data-so-selected-product-copy></span><button type="button" data-add-line-order="' + order.id + '">Add to order</button></div></div>' +
         salesOrderBatchPicker(order) +
         '<section class="so-line-composer"><div class="so-line-composer-head"><div><span>Additional charges</span><strong>Add a non-stock sales line</strong><p>Use this for one-off work, labour, call-out charges, discounts, delivery and other items that must not affect inventory.</p></div><div class="so-line-choice"><button type="button" class="secondary active" data-line-composer-tab="custom">Custom sales line</button><button type="button" class="secondary" data-line-composer-tab="shipping">Shipping charge</button></div></div>' +
-        '<div class="so-line-form" data-line-composer-panel="custom"><label class="so-line-description"><span>Description</span><input id="customLineDescription" placeholder="Example: Additional installation labour"></label><label><span>Quantity</span><input id="customLineQty" type="number" min="1" step="1" value="1"></label><label><span>Unit price net</span><input id="customLinePrice" type="number" min="0" step="0.01" value="0.00"></label><label><span>Unit cost</span><input id="customLineCost" type="number" min="0" step="0.01" value="0.00"></label><label><span>Tax</span><select id="customLineTax">' + optionList(["20% VAT","Zero rated","Not rated"],"20% VAT") + '</select></label><label><span>Sales account</span><select id="customLineAccount">' + optionList(["4010 Service Upsell","4030 Labour Income","4050 Call-out Charges","4060 Miscellaneous Sales"],"4010 Service Upsell") + '</select></label><label class="so-line-note"><span>Internal note (optional)</span><textarea id="customLineNote" placeholder="Reason, engineer detail or approval note"></textarea></label><button type="button" class="primary-action" data-add-custom-line="' + order.id + '">Add custom line</button></div>' +
+        '<div class="so-line-form" data-line-composer-panel="custom"><label class="so-line-description"><span>Product / service name</span><input id="customLineProductName" placeholder="Example: One-piece pool shell"></label><label class="so-line-description"><span>Variant / specification</span><input id="customLineVariant" placeholder="Example: Light Grey · 10m × 3.7m × 1.5m"></label><label><span>Quantity</span><input id="customLineQty" type="number" min="1" step="1" value="1"></label><label><span>Unit price net</span><input id="customLinePrice" type="number" min="0" step="0.01" value="0.00"></label><label><span>Unit cost</span><input id="customLineCost" type="number" min="0" step="0.01" value="0.00"></label><label><span>Tax</span><select id="customLineTax">' + optionList(["20% VAT","Zero rated","Not rated"],"20% VAT") + '</select></label><label><span>Sales account</span><select id="customLineAccount">' + optionList(["4010 Service Upsell","4030 Labour Income","4050 Call-out Charges","4060 Miscellaneous Sales"],"4010 Service Upsell") + '</select></label><label class="so-line-note"><span>Internal note (optional)</span><textarea id="customLineNote" placeholder="Reason, engineer detail or approval note"></textarea></label><button type="button" class="primary-action" data-add-custom-line="' + order.id + '">Add custom line</button></div>' +
         '<div class="so-line-form" data-line-composer-panel="shipping" hidden><label class="so-line-description"><span>Shipping method</span><select id="shippingLineMethod"><option>Standard delivery</option><option>Express delivery</option><option>Pallet delivery</option><option>Chemical delivery surcharge</option><option>Free delivery</option><option>Collection</option><option>Custom shipping</option></select></label><label class="so-line-description"><span>Customer description</span><input id="shippingLineDescription" value="Standard delivery" placeholder="Shown on the sales order and invoice"></label><label><span>Charge net</span><input id="shippingLinePrice" type="number" min="0" step="0.01" value="12.50"></label><label><span>Tax</span><select id="shippingLineTax">' + optionList(["20% VAT","Zero rated","Not rated"],"20% VAT") + '</select></label><button type="button" class="primary-action" data-add-shipping-line="' + order.id + '">Add shipping</button></div>' +
         '<div class="so-line-assurance"><span aria-hidden="true">✓</span><div><strong>No stock movement</strong><br>These lines are included in totals, VAT, margin reporting, invoices and credits, but are excluded from allocation, picking, packing and goods-in.</div></div></section>';
       }
