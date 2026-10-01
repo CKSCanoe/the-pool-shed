@@ -574,9 +574,8 @@ function psProjectReportPdf(model){
 
  addPage('landscape','Appendix · Labour');
  y=section('Labour cost performance','Project time cost',34);
- table(['Person','Entries','Period','Time worked','Cost to date','Remaining forecast','Forecast total'],model.labourByPerson.map(x=>[
+ table(['Person','Period','Time worked','Cost to date','Remaining forecast','Forecast total'],model.labourByPerson.map(x=>[
   x.person,
-  String(x.entries),
   psProjectReportDateLabel(x.firstStart)+' → '+(x.ongoing?'Ongoing':psProjectReportDateLabel(x.lastEnd)),
   psProjectReportLabourTime(x),
   moneyP(x.accrued),
@@ -584,18 +583,27 @@ function psProjectReportPdf(model){
   moneyP(x.forecast)
  ]),y,{
   empty:'No project labour periods.',
-  rightCols:[1,4,5,6],boldCols:[0],
+  rightCols:[3,4,5],boldCols:[0],
   fontSize:7.8,
-  columnStyles:{0:{cellWidth:45},1:{cellWidth:20},2:{cellWidth:53},3:{cellWidth:73},4:{cellWidth:32},5:{cellWidth:36},6:{cellWidth:34}}
+  columnStyles:{0:{cellWidth:42},1:{cellWidth:52},2:{cellWidth:70},3:{cellWidth:32},4:{cellWidth:35},5:{cellWidth:34}}
  });
 
  addPage('landscape','Appendix · Hire & tools');
  y=section('Hire & tools','Equipment cost',34);
- table(['Item','Supplier','Reference','Type','Start','End','Daily rate','Purchase cost','Accrued','Forecast','Status'],model.tools.map(x=>[x.name,x.supplier,x.reference,x.mode,psProjectReportDateLabel(x.start),x.end?psProjectReportDateLabel(x.end):'Open',moneyP(x.dailyRate),moneyP(x.purchaseNet),moneyP(x.accrued),moneyP(x.forecast),x.running?'Running':'Stopped']),y,{
+ table(['Item','Supplier','Type','Period','Rate / purchase','Cost to date','Forecast total','Status'],model.tools.map(x=>[
+  x.name,
+  x.supplier,
+  x.mode,
+  psProjectReportDateLabel(x.start)+' → '+(x.end?psProjectReportDateLabel(x.end):'Open'),
+  x.mode==='Purchase'?moneyP(x.purchaseNet)+' purchase':moneyP(x.dailyRate)+'/day',
+  moneyP(x.accrued),
+  moneyP(x.forecast),
+  x.running?'Running':'Stopped'
+ ]),y,{
   empty:'No project tools or hire records.',
-  rightCols:[6,7,8,9],boldCols:[0],
+  rightCols:[5,6],boldCols:[0],
   fontSize:7.6,
-  columnStyles:{0:{cellWidth:46},1:{cellWidth:40},2:{cellWidth:28},3:{cellWidth:21},4:{cellWidth:26},5:{cellWidth:26},6:{cellWidth:28},7:{cellWidth:31},8:{cellWidth:29},9:{cellWidth:29},10:{cellWidth:24}}
+  columnStyles:{0:{cellWidth:45},1:{cellWidth:36},2:{cellWidth:20},3:{cellWidth:48},4:{cellWidth:34},5:{cellWidth:31},6:{cellWidth:31},7:{cellWidth:23}}
  });
 
  addPage('portrait','Appendix · Reconciliation & checks');
