@@ -33,6 +33,7 @@ const ctx={
   money:v=>'£'+Number(v||0).toFixed(2),
   psProjectCash:v=>'£'+(Number(v||0)/100).toFixed(2),
   psProjectEsc:v=>String(v??'').replace(/[&<>"]/g,''),
+  psProjectTable:(headers,rows,empty)=>'<table><thead><tr>'+headers.map(h=>'<th>'+h+'</th>').join('')+'</tr></thead><tbody>'+(rows||'<tr><td>'+empty+'</td></tr>')+'</tbody></table>',
   escapeHtml:v=>String(v??''),
   document:{addEventListener(){},querySelector(){return null;},createElement(){return {click(){}}}},
   window:{},
