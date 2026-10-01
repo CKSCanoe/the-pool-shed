@@ -6,6 +6,7 @@
    v2.0.0 */
 (function () {
   let purchaseCommandTab = 'items';
+  const poListFilters={search:'',supplier:'all',status:'all',payment:'all',receiving:'all',health:'all',expected:'all',link:'all'};
   const legacyPurchaseOrderDetailPage = typeof purchaseOrderDetailPage === 'function' ? purchaseOrderDetailPage : null;
   const legacyPurchaseOrderListPage = typeof purchaseOrderListPage === 'function' ? purchaseOrderListPage : null;
   const legacyBindPurchase = typeof bindPurchase === 'function' ? bindPurchase : null;
@@ -587,15 +588,97 @@
       '<section class="po-command-summary">' + poSupplierCard(po,supplier) + poDetailsCard(po) + poInboundCard(po) + '</section>' + poCommandTabs(po) + '<main class="po-command-body">' + poTabContent(po) + '</main></div>';
   };
 
+  function poFilterToday(){return new Date().toISOString().slice(0,10);}
+  function poFilterDateDistance(date){
+    if(!date)return null;
+    const today=new Date(poFilterToday()+'T00:00:00Z'),target=new Date(String(date).slice(0,10)+'T00:00:00Z');
+    if(Number.isNaN(target.getTime()))return null;
+    return Math.round((target-today)/86400000);
+  }
+  function poFilterLinks(po){
+    const lines=Array.isArray(po.lines)?po.lines:[];
+    return {
+      sales:lines.some(function(line){return !!String(line.salesOrderId||po.originalSalesOrderId||'').trim();}),
+      project:lines.some(function(line){return !!String(line.projectId||line.jobId||po.projectId||po.jobId||'').trim();})||!!String(po.projectId||po.jobId||'').trim(),
+      custom:lines.some(function(line){return !!(line.nonStockPurchase||line.lineType==='custom-purchase');})
+    };
+  }
+  function poMatchesListFilters(po){
+    const summary=poSummarySafe(po),health=purchaseOrderHealth(po),payment=poPaymentState(po),status=poStatusText(po),links=poFilterLinks(po);
+    const search=String(poListFilters.search||'').trim().toLowerCase();
+    if(search){
+      const lineText=(po.lines||[]).map(function(line){return [line.salesOrderId,line.projectId,line.jobId,line.supplierSku,line.customProductName,line.description].join(' ');}).join(' ');
+      const haystack=[po.id,po.supplier,po.source,po.supplierReference,po.supplierRef,po.projectId,po.jobId,po.originalSalesOrderId,lineText].join(' ').toLowerCase();
+      if(!haystack.includes(search))return false;
+    }
+    if(poListFilters.supplier!=='all'&&String(po.supplier||'')!==poListFilters.supplier)return false;
+    if(poListFilters.status!=='all'&&status!==poListFilters.status)return false;
+    if(poListFilters.payment!=='all'&&payment!==poListFilters.payment)return false;
+    if(poListFilters.health!=='all'&&health.tone!==poListFilters.health)return false;
+    if(poListFilters.receiving!=='all'){
+      const received=Number(summary.received||0),pending=Number(summary.pending||0);
+      if(poListFilters.receiving==='not-received'&&received!==0)return false;
+      if(poListFilters.receiving==='partial'&&!(received>0&&pending>0))return false;
+      if(poListFilters.receiving==='outstanding'&&pending<=0)return false;
+      if(poListFilters.receiving==='received'&&pending>0)return false;
+    }
+    if(poListFilters.expected!=='all'){
+      const distance=poFilterDateDistance(po.due);
+      if(poListFilters.expected==='no-date'&&distance!==null)return false;
+      if(poListFilters.expected==='overdue'&&!(distance!==null&&distance<0&&summary.pending>0))return false;
+      if(poListFilters.expected==='today'&&distance!==0)return false;
+      if(poListFilters.expected==='7-days'&&!(distance!==null&&distance>=0&&distance<=7))return false;
+      if(poListFilters.expected==='30-days'&&!(distance!==null&&distance>=0&&distance<=30))return false;
+    }
+    if(poListFilters.link!=='all'){
+      if(poListFilters.link==='sales-order'&&!links.sales)return false;
+      if(poListFilters.link==='project'&&!links.project)return false;
+      if(poListFilters.link==='custom'&&!links.custom)return false;
+      if(poListFilters.link==='unlinked'&&(links.sales||links.project))return false;
+    }
+    return true;
+  }
+  function poListFilterOptions(items,selected,label){
+    return '<option value="all">'+poEsc(label)+'</option>'+items.map(function(value){return '<option value="'+poEsc(value)+'"'+(value===selected?' selected':'')+'>'+poEsc(value)+'</option>';}).join('');
+  }
+  function poListFiltersActive(){
+    return Object.keys(poListFilters).some(function(key){return key==='search'?Boolean(String(poListFilters[key]||'').trim()):poListFilters[key]!=='all';});
+  }
+  function poListFilterBar(all,filtered){
+    const suppliers=Array.from(new Set(all.map(function(po){return po.supplier||'Supplier to confirm';}))).sort();
+    const statuses=Array.from(new Set(all.map(function(po){return poStatusText(po);}))).sort();
+    return '<section class="po-list-filter-shell">'+
+      '<div class="po-list-filter-heading"><div><span>FILTER PURCHASE ORDERS</span><strong>Find exactly the orders you need</strong><small>Supplier, status, payment, receiving, health, due date and linked demand.</small></div><div class="po-list-filter-count"><strong>'+filtered.length+'</strong><span>of '+all.length+' shown</span></div></div>'+
+      '<div class="po-list-filters">'+
+        '<label class="po-filter-search"><span>Search</span><div><input id="poListFilterSearch" value="'+poEsc(poListFilters.search)+'" placeholder="PO, supplier, reference, Sales Order or Project"><button type="button" class="secondary" data-po-apply-filter-search="true">Search</button></div></label>'+
+        '<label><span>Supplier</span><select data-po-list-filter="supplier">'+poListFilterOptions(suppliers,poListFilters.supplier,'All suppliers')+'</select></label>'+
+        '<label><span>Status</span><select data-po-list-filter="status">'+poListFilterOptions(statuses,poListFilters.status,'All statuses')+'</select></label>'+
+        '<label><span>Payment</span><select data-po-list-filter="payment"><option value="all">All payments</option><option value="Unpaid"'+(poListFilters.payment==='Unpaid'?' selected':'')+'>Unpaid</option><option value="Part Paid"'+(poListFilters.payment==='Part Paid'?' selected':'')+'>Part paid</option><option value="Paid"'+(poListFilters.payment==='Paid'?' selected':'')+'>Paid</option><option value="Overpaid"'+(poListFilters.payment==='Overpaid'?' selected':'')+'>Overpaid</option><option value="Unvalued"'+(poListFilters.payment==='Unvalued'?' selected':'')+'>Unvalued</option></select></label>'+
+        '<label><span>Receiving</span><select data-po-list-filter="receiving"><option value="all">All receiving</option><option value="outstanding"'+(poListFilters.receiving==='outstanding'?' selected':'')+'>Outstanding</option><option value="not-received"'+(poListFilters.receiving==='not-received'?' selected':'')+'>Not received</option><option value="partial"'+(poListFilters.receiving==='partial'?' selected':'')+'>Part received</option><option value="received"'+(poListFilters.receiving==='received'?' selected':'')+'>Fully received</option></select></label>'+
+        '<label><span>Health</span><select data-po-list-filter="health"><option value="all">All health</option><option value="bad"'+(poListFilters.health==='bad'?' selected':'')+'>At risk</option><option value="warn"'+(poListFilters.health==='warn'?' selected':'')+'>Needs attention</option><option value="good"'+(poListFilters.health==='good'?' selected':'')+'>Healthy</option><option value="info"'+(poListFilters.health==='info'?' selected':'')+'>Information</option></select></label>'+
+        '<label><span>Expected</span><select data-po-list-filter="expected"><option value="all">Any expected date</option><option value="overdue"'+(poListFilters.expected==='overdue'?' selected':'')+'>Overdue</option><option value="today"'+(poListFilters.expected==='today'?' selected':'')+'>Due today</option><option value="7-days"'+(poListFilters.expected==='7-days'?' selected':'')+'>Next 7 days</option><option value="30-days"'+(poListFilters.expected==='30-days'?' selected':'')+'>Next 30 days</option><option value="no-date"'+(poListFilters.expected==='no-date'?' selected':'')+'>No date</option></select></label>'+
+        '<label><span>Linked to</span><select data-po-list-filter="link"><option value="all">All demand</option><option value="sales-order"'+(poListFilters.link==='sales-order'?' selected':'')+'>Sales Order</option><option value="project"'+(poListFilters.link==='project'?' selected':'')+'>Project</option><option value="custom"'+(poListFilters.link==='custom'?' selected':'')+'>Custom PO lines</option><option value="unlinked"'+(poListFilters.link==='unlinked'?' selected':'')+'>General / unlinked</option></select></label>'+
+      '</div>'+
+      '<div class="po-list-filter-footer"><div class="po-list-quick-filters"><button type="button" class="secondary" data-po-quick-filter="open">Open only</button><button type="button" class="secondary" data-po-quick-filter="attention">Needs attention</button><button type="button" class="secondary" data-po-quick-filter="unpaid">Unpaid</button><button type="button" class="secondary" data-po-quick-filter="overdue">Overdue</button></div>'+
+      (poListFiltersActive()?'<button type="button" class="secondary po-clear-filters" data-po-clear-filters="true">Clear all filters</button>':'')+
+      '</div></section>';
+  }
+
   purchaseOrderListPage = function () {
-    const rows=(data.purchaseOrders||[]).slice().sort(function(a,b){const ha=purchaseOrderHealth(a),hb=purchaseOrderHealth(b);const rank={bad:0,warn:1,info:2,good:3};return rank[ha.tone]-rank[hb.tone] || String(a.due||'9999').localeCompare(String(b.due||'9999'));}).map(function(po){const summary=poSummarySafe(po),health=purchaseOrderHealth(po),financials=poFinancialsSafe(po),paymentState=poPaymentState(po),deleteState=typeof purchaseOrderDeleteAssessment==='function'?purchaseOrderDeleteAssessment(po):{allowed:summary.received===0};return '<tr><td><button class="link-button" data-open-po-detail="' + poEsc(po.id) + '"><strong>' + poEsc(po.id) + '</strong></button><small>' + poEsc(po.source||'Manual PO') + '</small></td><td><strong>' + poEsc(po.supplier||'Supplier to confirm') + '</strong><small>' + poEsc((poSupplier(po.supplier).ordersEmail||poSupplier(po.supplier).email||'')) + '</small></td><td>' + poPill(health.label,health.tone) + '<small>' + poEsc(health.detail) + '</small></td><td>' + poEsc(poStatusText(po)) + '</td><td>' + summary.received + '/' + summary.ordered + '<small>' + summary.pending + ' outstanding</small></td><td>' + poEsc(po.due||'Not set') + '</td><td>' + poPill(paymentState,paymentState==='Paid'?'good':paymentState==='Part Paid'?'warn':paymentState==='Overpaid'?'info':'bad') + '<small>' + poMoney(Math.max(0,financials.balance)) + ' due</small></td><td class="right"><strong>' + poMoney(financials.gross) + '</strong><small>' + poMoney(financials.net) + ' net</small></td><td><div class="po-list-actions"><button type="button" class="primary" data-open-po-detail="' + poEsc(po.id) + '">Open</button>' + (deleteState.allowed?'<button type="button" class="danger-button" data-delete-po="' + poEsc(po.id) + '">Delete</button>':'') + '</div></td></tr>';}).join('') || '<tr><td colspan="9" class="po-empty">No Purchase Orders yet.</td></tr>';
-    const open=(data.purchaseOrders||[]).filter(function(po){return !['Received','Cancelled'].includes(po.status);});
+    const all=(data.purchaseOrders||[]).slice();
+    const filtered=all.filter(poMatchesListFilters);
+    const sorted=filtered.slice().sort(function(a,b){const ha=purchaseOrderHealth(a),hb=purchaseOrderHealth(b);const rank={bad:0,warn:1,info:2,good:3};return rank[ha.tone]-rank[hb.tone] || String(a.due||'9999').localeCompare(String(b.due||'9999'));});
+    const rows=sorted.map(function(po){const summary=poSummarySafe(po),health=purchaseOrderHealth(po),financials=poFinancialsSafe(po),paymentState=poPaymentState(po),deleteState=typeof purchaseOrderDeleteAssessment==='function'?purchaseOrderDeleteAssessment(po):{allowed:summary.received===0};return '<tr><td><button class="link-button" data-open-po-detail="' + poEsc(po.id) + '"><strong>' + poEsc(po.id) + '</strong></button><small>' + poEsc(po.source||'Manual PO') + '</small></td><td><strong>' + poEsc(po.supplier||'Supplier to confirm') + '</strong><small>' + poEsc((poSupplier(po.supplier).ordersEmail||poSupplier(po.supplier).email||'')) + '</small></td><td>' + poPill(health.label,health.tone) + '<small>' + poEsc(health.detail) + '</small></td><td>' + poEsc(poStatusText(po)) + '</td><td>' + summary.received + '/' + summary.ordered + '<small>' + summary.pending + ' outstanding</small></td><td>' + poEsc(po.due||'Not set') + '</td><td>' + poPill(paymentState,paymentState==='Paid'?'good':paymentState==='Part Paid'?'warn':paymentState==='Overpaid'?'info':'bad') + '<small>' + poMoney(Math.max(0,financials.balance)) + ' due</small></td><td class="right"><strong>' + poMoney(financials.gross) + '</strong><small>' + poMoney(financials.net) + ' net</small></td><td><div class="po-list-actions"><button type="button" class="primary" data-open-po-detail="' + poEsc(po.id) + '">Open</button>' + (deleteState.allowed?'<button type="button" class="danger-button" data-delete-po="' + poEsc(po.id) + '">Delete</button>':'') + '</div></td></tr>';}).join('') || '<tr><td colspan="9" class="po-empty">'+(poListFiltersActive()?'No Purchase Orders match these filters. Clear or change a filter to see more orders.':'No Purchase Orders yet.')+'</td></tr>';
+    const open=filtered.filter(function(po){return !['Received','Cancelled'].includes(po.status);});
     const pending=open.reduce(function(n,po){return n+poSummarySafe(po).pending;},0);
     const risks=open.filter(function(po){return ['bad','warn'].includes(purchaseOrderHealth(po).tone);}).length;
     const outstanding=open.reduce(function(n,po){return n+Math.max(0,poFinancialsSafe(po).balance);},0);
-    return '<div class="purchase-command-page purchase-command-list po-sales-parity"><header class="po-command-head"><div><div class="po-command-kicker">PURCHASING</div><h1>Purchase Orders</h1><p>Supplier orders, commitments, receipts, payments, credits and invoice matching in one workflow.</p></div><div class="po-command-actions"><button type="button" class="primary" data-create-po-draft="true">New Purchase Order</button></div></header><section class="po-health-bar"><div><span>Open POs</span><strong>' + open.length + '</strong><small>not complete</small></div><div><span>Inbound units</span><strong>' + pending + '</strong><small>still expected</small></div><div><span>Needs attention</span><strong>' + risks + '</strong><small>late or exception</small></div><div><span>Outstanding to suppliers</span><strong>' + poMoney(outstanding) + '</strong><small>open PO balances</small></div><div><span>Suppliers</span><strong>' + (data.suppliers||[]).length + '</strong><small>supplier accounts</small></div></section><section class="po-work-card"><div class="po-work-card-head"><div><h3>Purchase Orders</h3><p>Open a PO for the same line-first workflow used by Sales Orders. Unreceived erroneous POs can be removed; received history remains permanent.</p></div></div><div class="po-table-wrap"><table class="po-command-table"><thead><tr><th>PO</th><th>Supplier</th><th>Health</th><th>Status</th><th>Receiving</th><th>Expected</th><th>Payment</th><th class="right">Total</th><th></th></tr></thead><tbody>' + rows + '</tbody></table></div></section></div>';
+    const supplierCount=new Set(filtered.map(function(po){return po.supplier||'Supplier to confirm';})).size;
+    return '<div class="purchase-command-page purchase-command-list po-sales-parity"><header class="po-command-head"><div><div class="po-command-kicker">PURCHASING</div><h1>Purchase Orders</h1><p>Supplier orders, commitments, receipts, payments, credits and invoice matching in one workflow.</p></div><div class="po-command-actions"><button type="button" class="primary" data-create-po-draft="true">New Purchase Order</button></div></header>'+
+      '<section class="po-health-bar"><div><span>Open POs</span><strong>' + open.length + '</strong><small>in this view</small></div><div><span>Inbound units</span><strong>' + pending + '</strong><small>still expected</small></div><div><span>Needs attention</span><strong>' + risks + '</strong><small>in this view</small></div><div><span>Outstanding to suppliers</span><strong>' + poMoney(outstanding) + '</strong><small>filtered open balances</small></div><div><span>Suppliers</span><strong>' + supplierCount + '</strong><small>'+filtered.length+' of '+all.length+' POs shown</small></div></section>'+
+      poListFilterBar(all,filtered)+
+      '<section class="po-work-card"><div class="po-work-card-head"><div><h3>Purchase Orders</h3><p>Showing '+filtered.length+' of '+all.length+' Purchase Orders. Open an order for receiving, payment, credits and supplier control.</p></div></div><div class="po-table-wrap"><table class="po-command-table"><thead><tr><th>PO</th><th>Supplier</th><th>Health</th><th>Status</th><th>Receiving</th><th>Expected</th><th>Payment</th><th class="right">Total</th><th></th></tr></thead><tbody>' + rows + '</tbody></table></div></section></div>';
   };
-
   function saveLineField(datasetValue, fieldName, value) {
     const parts=String(datasetValue||'').split('|');
     const po=typeof purchaseOrderById==='function'?purchaseOrderById(parts[0]):(data.purchaseOrders||[]).find(function(row){return row.id===parts[0];});
@@ -713,6 +796,11 @@
   globalThis.purchaseAddCustomPoLine = purchaseAddCustomPoLine;
 
   function bindPurchaseCommand() {
+    document.querySelectorAll('[data-po-list-filter]').forEach(function(select){select.addEventListener('change',function(){const key=select.dataset.poListFilter;if(Object.prototype.hasOwnProperty.call(poListFilters,key)){poListFilters[key]=select.value;if(typeof render==='function')render();}});});
+    document.querySelectorAll('[data-po-apply-filter-search]').forEach(function(button){button.addEventListener('click',function(){const input=document.getElementById('poListFilterSearch');poListFilters.search=input?input.value:'';if(typeof render==='function')render();});});
+    const poSearch=document.getElementById('poListFilterSearch');if(poSearch)poSearch.addEventListener('keydown',function(event){if(event.key!=='Enter')return;event.preventDefault();poListFilters.search=poSearch.value;if(typeof render==='function')render();});
+    document.querySelectorAll('[data-po-clear-filters]').forEach(function(button){button.addEventListener('click',function(){Object.assign(poListFilters,{search:'',supplier:'all',status:'all',payment:'all',receiving:'all',health:'all',expected:'all',link:'all'});if(typeof render==='function')render();});});
+    document.querySelectorAll('[data-po-quick-filter]').forEach(function(button){button.addEventListener('click',function(){const key=button.dataset.poQuickFilter;if(key==='open'){poListFilters.status='all';poListFilters.receiving='outstanding';}else if(key==='attention'){poListFilters.health='warn';}else if(key==='unpaid'){poListFilters.payment='Unpaid';}else if(key==='overdue'){poListFilters.expected='overdue';}if(typeof render==='function')render();});});
     document.querySelectorAll('[data-po-add-custom-line]').forEach(function(button){button.addEventListener('click',function(){
       const form=button.closest('[data-po-custom-line-form]');if(!form)return;
       const value=function(selector){const el=form.querySelector(selector);return el?el.value:'';};
