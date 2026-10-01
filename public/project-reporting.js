@@ -103,7 +103,8 @@ function psProjectReportRecordSnapshot(job,s,reason,at){
 }
 function psProjectReportModel(job,source=data,now=Date.now()){
  const p=psProjectModel(job),s=psProjectSummary(job,source,now),original=psProjectReportOriginal(job,p,s,source),finance=psProjectReportFinance(job,s);
- const receivableBySource=new Map(finance.receivables.map(d=>[String(d.source_id),d])),payableBySource=new Map(finance.payables.map(d=>[String(d.source_id),d]));
+ const groupDocsBySource=docs=>{const map=new Map();docs.forEach(d=>{const key=String(d.source_id||'');if(!key)return;const list=map.get(key);if(list)list.push(d);else map.set(key,[d]);});return map;};
+ const receivableBySource=groupDocsBySource(finance.receivables),payableBySource=groupDocsBySource(finance.payables);
  const invoiceRows=finance.receivables.map(doc=>{
   const net=psProjectReportDocNetInfo(doc),gross=psProjectReportDocGrossPence(doc);
   return {id:String(doc.id||''),reference:psProjectReportDocNumber(doc),sourceId:String(doc.source_id||''),date:psProjectReportIso(doc.remote?.DateString||doc.remote?.Date||doc.issue_date||doc.created_at),dueDate:psProjectReportIso(doc.remote?.DueDateString||doc.remote?.DueDate||doc.due_date),net:net.value,gross,paid:psProjectReportPence(doc.amount_paid),outstanding:psProjectReportPence(doc.amount_due),status:psProjectReportDocStatus(doc),exactNet:net.exact};
@@ -122,12 +123,14 @@ function psProjectReportModel(job,source=data,now=Date.now()){
   purchaseInvoices.push({id:'PO-FALLBACK-'+po.id,reference:reference||('PI for '+po.id),poId:String(po.id),supplier:String(po.supplier||'Supplier'),date:psProjectReportIso(po.supplierInvoiceDate||po.invoiceDate||po.date),dueDate:psProjectReportIso(po.paymentDue||po.due),net,gross,vat:Math.max(0,gross-net),paid:psProjectReportArray(po.payments).reduce((n,pay)=>n+psProjectReportPence(pay.amount),0),outstanding:Math.max(0,gross-psProjectReportArray(po.payments).reduce((n,pay)=>n+psProjectReportPence(pay.amount),0)),status:'Recorded on PO',exactNet:false});
  });
  const salesOrders=psProjectReportArray(s.orders).map(order=>{
-  const doc=receivableBySource.get(String(order.id)),net=psProjectReportOrderNetPence(order,source),fallbackPaid=psProjectReportArray(order.payments).reduce((n,pay)=>n+psProjectReportPence(pay.amount),0);
-  return {id:String(order.id),status:String(order.status||'Open'),date:psProjectReportIso(order.date||order.orderDate||order.createdAt||order.acceptedAt),quoteRef:String(order.quoteRef||''),scope:order.variationId?'Extra':'Original',net,paid:doc?psProjectReportPence(doc.amount_paid):fallbackPaid,invoiced:doc?psProjectReportDocNetInfo(doc).value:0,outstanding:doc?psProjectReportPence(doc.amount_due):0};
+  const docs=receivableBySource.get(String(order.id))||[],net=psProjectReportOrderNetPence(order,source),fallbackPaid=psProjectReportArray(order.payments).reduce((n,pay)=>n+psProjectReportPence(pay.amount),0);
+  const invoiced=docs.reduce((n,doc)=>n+psProjectReportDocNetInfo(doc).value,0),paid=docs.reduce((n,doc)=>n+psProjectReportPence(doc.amount_paid),0),outstanding=docs.reduce((n,doc)=>n+psProjectReportPence(doc.amount_due),0);
+  return {id:String(order.id),status:String(order.status||'Open'),date:psProjectReportIso(order.date||order.orderDate||order.createdAt||order.acceptedAt),quoteRef:String(order.quoteRef||''),scope:order.variationId?'Extra':'Original',net,paid:docs.length?paid:fallbackPaid,invoiced,outstanding:docs.length?outstanding:0};
  });
  const poRows=psProjectReportArray(s.poRows).map(row=>{
-  const po=row.po,doc=payableBySource.get(String(po.id)),bill=doc?psProjectReportDocNetInfo(doc):{value:0,exact:true},fallbackPaid=psProjectReportArray(po.payments).reduce((n,pay)=>n+psProjectReportPence(pay.amount),0);
-  return {id:String(po.id),supplier:String(po.supplier||'Supplier'),status:String(po.status||'Draft'),date:psProjectReportIso(po.date||po.orderDate||po.createdAt),due:psProjectReportIso(po.due||po.eta||po.expectedDate),ordered:Number(row.total||0),received:Number(row.received||0),open:Number(row.open||0),invoiced:doc?bill.value:(psProjectReportNum(po.supplierInvoiceTotal||po.invoiceTotal)?psProjectReportPence(po.supplierInvoiceTotal||po.invoiceTotal):0),paid:doc?psProjectReportPence(doc.amount_paid):fallbackPaid,outstanding:doc?psProjectReportPence(doc.amount_due):Math.max(0,psProjectReportPence(po.supplierInvoiceTotal||po.invoiceTotal||0)-fallbackPaid),billReference:doc?psProjectReportDocNumber(doc):String(po.supplierInvoiceRef||po.invoiceRef||''),exactNet:doc?bill.exact:!psProjectReportNum(po.supplierInvoiceTotal||po.invoiceTotal),lines:psProjectReportArray(row.lines).map(line=>{const unit=psProjectReportNum(line.unitCost??line.cost??source.products?.find(x=>x.id===line.productId)?.cost);return {name:psProjectReportProductName(line,source),sku:psProjectReportProductSku(line,source),qty:psProjectReportNum(line.qty),received:psProjectReportNum(line.received),unitCost:unit,lineCost:psProjectReportPence(psProjectReportNum(line.qty)*unit)};})};
+  const po=row.po,docs=payableBySource.get(String(po.id))||[],bills=docs.map(psProjectReportDocNetInfo),fallbackPaid=psProjectReportArray(po.payments).reduce((n,pay)=>n+psProjectReportPence(pay.amount),0);
+  const invoiced=docs.reduce((n,doc)=>n+psProjectReportDocNetInfo(doc).value,0),paid=docs.reduce((n,doc)=>n+psProjectReportPence(doc.amount_paid),0),outstanding=docs.reduce((n,doc)=>n+psProjectReportPence(doc.amount_due),0),fallbackInvoice=psProjectReportPence(po.supplierInvoiceTotal||po.invoiceTotal||0);
+  return {id:String(po.id),supplier:String(po.supplier||'Supplier'),status:String(po.status||'Draft'),date:psProjectReportIso(po.date||po.orderDate||po.createdAt),due:psProjectReportIso(po.due||po.eta||po.expectedDate),ordered:Number(row.total||0),received:Number(row.received||0),open:Number(row.open||0),invoiced:docs.length?invoiced:fallbackInvoice,paid:docs.length?paid:fallbackPaid,outstanding:docs.length?outstanding:Math.max(0,fallbackInvoice-fallbackPaid),billReference:docs.length?[...new Set(docs.map(psProjectReportDocNumber))].join(', '):String(po.supplierInvoiceRef||po.invoiceRef||''),exactNet:docs.length?bills.every(b=>b.exact):!psProjectReportNum(po.supplierInvoiceTotal||po.invoiceTotal),lines:psProjectReportArray(row.lines).map(line=>{const unit=psProjectReportNum(line.unitCost??line.cost??source.products?.find(x=>x.id===line.productId)?.cost);return {name:psProjectReportProductName(line,source),sku:psProjectReportProductSku(line,source),qty:psProjectReportNum(line.qty),received:psProjectReportNum(line.received),unitCost:unit,lineCost:psProjectReportPence(psProjectReportNum(line.qty)*unit)};})};
  });
  const supplierMap=new Map();poRows.forEach(row=>{const key=row.supplier,current=supplierMap.get(key)||{supplier:key,ordered:0,received:0,open:0,invoiced:0,paid:0,outstanding:0,pos:[]};current.ordered+=row.ordered;current.received+=row.received;current.open+=row.open;current.invoiced+=row.invoiced;current.paid+=row.paid;current.outstanding+=row.outstanding;current.pos.push(row);supplierMap.set(key,current);});
  const suppliers=[...supplierMap.values()].sort((a,b)=>b.ordered-a.ordered);
@@ -146,11 +149,11 @@ function psProjectReportModel(job,source=data,now=Date.now()){
  const nextCustomerDue=invoiceRows.filter(r=>r.outstanding>0&&r.dueDate).sort((a,b)=>a.dueDate.localeCompare(b.dueDate))[0]||null;
  const runway={cashPosition,dailyBurn,daysToZero,zeroDate,nextCustomerDue,horizonDays,customerCash,supplierCash,directActual,activeLabour:activeLabour.length,activeHire:activeHire.length,scenario:true};
  const costSources=[
-  {name:'Actual recorded costs',value:Number(s.actual||0),kind:'actual'},
-  {name:'Received PO estimates',value:Number(s.estimatedReceived||0),kind:'committed'},
-  {name:'Outstanding commitments',value:Number(s.committed||0),kind:'committed'},
-  {name:'Remaining forecast',value:Number(s.uncommitted||0),kind:'forecast'},
-  {name:'Tools and hire',value:Number(s.tools||0),kind:'forecast'},
+  {name:'Actual costs recorded',value:Number(s.actual||0),kind:'actual'},
+  {name:'Received goods awaiting invoice',value:Number(s.estimatedReceived||0),kind:'committed'},
+  {name:'Open committed costs',value:Number(s.committed||0),kind:'committed'},
+  {name:'Other remaining forecast',value:Number(s.uncommitted||0),kind:'forecast'},
+  {name:'Hire & tools',value:Number(s.tools||0),kind:'forecast'},
   {name:'Future labour',value:Number(s.labourFuture||0),kind:'forecast'}
  ].filter(x=>x.value>0);
  const labour=psProjectReportArray(p.labour).map(a=>{const c=psProjectLabourCharge(a,now),rateType=String(a.rateType||'day');return {id:String(a.id||''),person:String(a.supplier||a.employee||'Team').trim().replace(/\s+/g,' '),reference:String(a.ref||''),start:String(a.startDate||''),end:a.ongoing?'Ongoing':String(a.endDate||''),rate:psProjectReportPence(a.rate||0),rateType,units:c.units,forecastUnits:c.forecastUnits,dayEquivalent:c.units*(rateType==='half-day'?0.5:1),forecastDayEquivalent:c.forecastUnits*(rateType==='half-day'?0.5:1),accrued:psProjectReportPence(c.accrued),forecast:psProjectReportPence(c.forecast),ongoing:!!a.ongoing};});
