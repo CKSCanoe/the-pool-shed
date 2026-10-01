@@ -1,7 +1,7 @@
 import fs from 'node:fs';import assert from 'node:assert/strict';
 assert(fs.existsSync('public/supplier-command-workspace.js'),'Supplier Command workspace must exist');
 const js=fs.readFileSync('public/supplier-command-workspace.js','utf8');
-for(const token of ['Supplier Command','SUPPLIER PROFILE','SELECTED SUPPLIER OPERATIONS','CUSTOMER CASH COVER','BILLS & COMMITMENTS DUE','SUPPLIER PAYMENT TIMELINE','IMMEDIATE SUPPLIER ACTIONS','Outstanding Supplier Bills','Credit Alerts','Projected Exposure','Available Credit','Open PO Exposure','On-time Delivery','Average Actual Lead','Overview','Contacts','Products & Price Lists','Purchase Orders','Late & Backorders','Returns & Credits','Bills & Credits','Spend & Performance','Notes & Activity'])assert(js.includes(token),`Supplier Command missing ${token}`);
+for(const token of ['Supplier Command','SUPPLIER PROFILE','SUPPLIER OPERATIONS','CUSTOMER CASH COVER','BILLS & COMMITMENTS DUE','SUPPLIER PAYMENT TIMELINE','IMMEDIATE SUPPLIER ACTIONS','Outstanding Supplier Bills','Credit Alerts','Projected Exposure','Available Credit','Open PO Exposure','On-time Delivery','Average Actual Lead','Overview','Contacts','Products & Price Lists','Purchase Orders','Late & Backorders','Returns & Credits','Bills & Credits','Spend & Performance','Notes & Activity'])assert(js.includes(token),`Supplier Command missing ${token}`);
 assert(!/12m Spend|12-month spend/.test(js),'12m spend must not appear in day-to-day Supplier Overview');
 assert(js.includes('Day ')&&js.includes('days order → receipt'),'Supplier PO timers must show live Day X and frozen order-to-receipt duration');
 for(const token of ['Import Price List','Export Supplier Products','Download Import Template','Price List History','Open Product Details','Cost History','Edit Credit Limit'])assert(js.includes(token),`Supplier product/credit workspace missing ${token}`);
@@ -9,4 +9,6 @@ assert(js.includes('supplierManagementPage = function')||js.includes('supplierMa
 assert(js.includes('supplierProfilePage = function')||js.includes('supplierProfilePage=function'),'Supplier Command must own the dedicated Supplier Profile render when opened from PO/context');
 assert(js.includes("purchaseOrderView='supplier-profile'"),'Supplier directory must open the dedicated supplier profile route');
 assert(!js.includes('function attentionRail('),'Retired right-hand Supplier attention rail must not return');
-console.log('PASS Supplier Command directory, dedicated profile, funding control, tabs and ordered operational Overview contract');
+assert(!js.slice(js.indexOf('function commandPage()'),js.indexOf('supplierManagementPage = function')).includes('supplierDetails('),'Supplier Directory must not render operations below the list');
+assert(js.slice(js.indexOf('function supplierProfilePageView(name)'),js.indexOf('function commandPage()')).includes('supplierDetails(name)'),'Supplier Profile must contain Supplier Operations');
+console.log('PASS Supplier Directory, dedicated Profile, embedded Operations, funding controls and tabs contract');
