@@ -362,9 +362,9 @@ function psProjectReportPdf(model){
   doc.setDrawColor(...line);doc.setLineWidth(.25);
   for(let i=0;i<=4;i++){const gy=top+i*height/4;doc.line(left,gy,left+width,gy);}
   doc.setDrawColor(...aqua);doc.setLineWidth(1.2);let prev=null;
-  vals.forEach((v,i)=>{const x=left+(rows.length===1?.5:i/(rows.length-1))*width,yy=top+(max-v)/span*height;if(prev)doc.line(prev.x,prev.y,x,yy);doc.setFillColor(...aqua);doc.circle(x,yy,1.8,'F');prev={x,y:yy};});
+  vals.forEach((v,i)=>{const x=left+(rows.length===1 ? .5 : i/(rows.length-1))*width,yy=top+(max-v)/span*height;if(prev)doc.line(prev.x,prev.y,x,yy);doc.setFillColor(...aqua);doc.circle(x,yy,1.8,'F');prev={x,y:yy};});
   doc.setFontSize(7);doc.setTextColor(...muted);doc.text(moneyP(Math.round(max*100)),14,top+2);doc.text(moneyP(Math.round(min*100)),14,top+height);
-  const step=Math.max(1,Math.ceil(rows.length/5));rows.forEach((r,i)=>{if(i%step&&i!==rows.length-1)return;const x=left+(rows.length===1?.5:i/(rows.length-1))*width;doc.text(new Date(r.at).toLocaleDateString('en-GB',{day:'2-digit',month:'short'}),x,top+height+7,{align:'center'});});
+  const step=Math.max(1,Math.ceil(rows.length/5));rows.forEach((r,i)=>{if(i%step&&i!==rows.length-1)return;const x=left+(rows.length===1 ? .5 : i/(rows.length-1))*width;doc.text(new Date(r.at).toLocaleDateString('en-GB',{day:'2-digit',month:'short'}),x,top+height+7,{align:'center'});});
   y=top+height+18;
  }else y=empty('Profit history will build automatically as project commercial values change.',y);
  y=section('Forecast cost composition','Where the money goes',y);
