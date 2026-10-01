@@ -88,6 +88,15 @@ assert.match(parity,/'Reports':'Reports'/,'Polished Project navigation must expo
 assert.match(index,/project-reporting\.js\?v=1\.45\.3/,'Project reporting runtime must be loaded');
 assert.match(index,/jspdf@2\.5\.2/,'Pinned PDF export library must be loaded');
 assert.match(index,/xlsx@0\.18\.5/,'Pinned Excel export library must be loaded');
+assert.match(reporting,/function psProjectReportPdf\(model\)/,'PDF export must use the dedicated Project report renderer');
+assert.match(reporting,/showHead:'everyPage'/,'PDF tables must repeat column headers on every continuation page');
+assert.match(reporting,/rowPageBreak:'avoid'/,'PDF rows must not be split unpredictably across pages');
+assert.match(reporting,/addPage\('landscape','Sales & customer invoices'/,'Wide sales tables must use landscape pages');
+assert.match(reporting,/addPage\('landscape','Purchase Order line detail'/,'PO line detail must have its own landscape page');
+assert.match(reporting,/Purchase Order product lines/,'PDF must include full Purchase Order line detail');
+assert.match(reporting,/Customer invoices/,'PDF must include customer invoice detail');
+assert.match(reporting,/Purchase invoices \/ PI/,'PDF must include supplier PI detail');
+assert.match(reporting,/Financial data checks/,'PDF must include reporting confidence checks');
 assert(!workspace.includes("download=j.id+'-project-report.html'"),'Legacy HTML project report download must be removed');
 
 console.log('PASS Project Reports: live SO/PO/PI accounting, cash runway, reconciliation, PDF/Excel wiring and Project navigation');
