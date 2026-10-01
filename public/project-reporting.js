@@ -146,10 +146,10 @@ function psProjectReportModel(job,source=data,now=Date.now()){
   {name:'Tools and hire',value:Number(s.tools||0),kind:'forecast'},
   {name:'Future labour',value:Number(s.labourFuture||0),kind:'forecast'}
  ].filter(x=>x.value>0);
- const labour=psProjectReportArray(p.labour).map(a=>{const c=psProjectLabourCharge(a,now),rateType=String(a.rateType||'day');return {id:String(a.id||''),person:String(a.supplier||a.employee||'Team').trim().replace(/\\s+/g,' '),reference:String(a.ref||''),start:String(a.startDate||''),end:a.ongoing?'Ongoing':String(a.endDate||''),rate:psProjectReportPence(a.rate||0),rateType,units:c.units,forecastUnits:c.forecastUnits,dayEquivalent:c.units*(rateType==='half-day'?0.5:1),forecastDayEquivalent:c.forecastUnits*(rateType==='half-day'?0.5:1),accrued:psProjectReportPence(c.accrued),forecast:psProjectReportPence(c.forecast),ongoing:!!a.ongoing};});
+ const labour=psProjectReportArray(p.labour).map(a=>{const c=psProjectLabourCharge(a,now),rateType=String(a.rateType||'day');return {id:String(a.id||''),person:String(a.supplier||a.employee||'Team').trim().replace(/\s+/g,' '),reference:String(a.ref||''),start:String(a.startDate||''),end:a.ongoing?'Ongoing':String(a.endDate||''),rate:psProjectReportPence(a.rate||0),rateType,units:c.units,forecastUnits:c.forecastUnits,dayEquivalent:c.units*(rateType==='half-day'?0.5:1),forecastDayEquivalent:c.forecastUnits*(rateType==='half-day'?0.5:1),accrued:psProjectReportPence(c.accrued),forecast:psProjectReportPence(c.forecast),ongoing:!!a.ongoing};});
  const labourPeopleMap=new Map();
  labour.forEach(row=>{
-  const key=(row.person||'Team').trim().replace(/\\s+/g,' ').toLocaleLowerCase('en-GB'),existing=labourPeopleMap.get(key)||{person:row.person||'Team',entries:0,firstStart:'',lastEnd:'',ongoing:false,fullDays:0,halfDays:0,forecastFullDays:0,forecastHalfDays:0,equivalentDays:0,forecastEquivalentDays:0,accrued:0,forecast:0,remainingForecast:0,references:[]};
+  const key=(row.person||'Team').trim().replace(/\s+/g,' ').toLocaleLowerCase('en-GB'),existing=labourPeopleMap.get(key)||{person:row.person||'Team',entries:0,firstStart:'',lastEnd:'',ongoing:false,fullDays:0,halfDays:0,forecastFullDays:0,forecastHalfDays:0,equivalentDays:0,forecastEquivalentDays:0,accrued:0,forecast:0,remainingForecast:0,references:[]};
   existing.entries++;
   if(!existing.firstStart||row.start<existing.firstStart)existing.firstStart=row.start;
   if(row.ongoing)existing.ongoing=true;
