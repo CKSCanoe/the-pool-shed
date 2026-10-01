@@ -639,7 +639,7 @@
     const poButton=event.target.closest('[data-so-open-po-funding]');
     if(poButton){event.preventDefault();selectedPurchaseOrderId=poButton.dataset.soOpenPoFunding;purchaseOrderView='detail';if(typeof purchaseCommandTab!=='undefined')purchaseCommandTab='connections';activeSubPage.purchase='Purchase Orders';active='purchase';render();return;}
     const supplierButton=event.target.closest('[data-so-open-supplier-funding]');
-    if(supplierButton){event.preventDefault();if(typeof globalThis.openSupplierCommand==='function'){globalThis.openSupplierCommand(supplierButton.dataset.soOpenSupplierFunding,'Overview');return;}selectedSupplierName=supplierButton.dataset.soOpenSupplierFunding;purchaseOrderView='suppliers';activeSubPage.purchase='Suppliers';active='purchase';render();return;}
+    if(supplierButton){event.preventDefault();if(typeof globalThis.openSupplierCommand==='function'){globalThis.openSupplierCommand(supplierButton.dataset.soOpenSupplierFunding,'Overview');return;}selectedSupplierName=supplierButton.dataset.soOpenSupplierFunding;purchaseOrderView='supplier-profile';activeSubPage.purchase='Suppliers';active='purchase';render();return;}
   },true);
 
   /* Customer Orders was a duplicate list over data.salesOrders. Keep old links safe,
