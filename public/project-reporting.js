@@ -241,41 +241,230 @@ function psProjectReports(job,p,s){
 }
 function psProjectReportFilename(model,ext){const safe=String(model.job.name||model.job.id).replace(/[^A-Za-z0-9_-]+/g,'-').replace(/^-+|-+$/g,'').slice(0,70)||model.job.id;return 'Pool-Bros-'+safe+'-Financial-Report-'+psProjectUKDate()+'.'+ext;}
 function psProjectReportPdf(model){
- const C=window.jspdf;if(!C?.jsPDF){psProjectReportPrint(model);return;}
- const doc=new C.jsPDF({unit:'mm',format:'a4',orientation:'portrait'}),brand=[15,27,36],aqua=[24,124,140],ink=[23,36,44],muted=[92,105,113],green=[39,130,91],amber=[192,122,32],red=[185,71,79],light=[244,246,245];
+ const C=window.jspdf;
+ if(!C?.jsPDF||typeof C.jsPDF.API.autoTable!=='function'){psProjectReportPrint(model);return;}
+ const doc=new C.jsPDF({unit:'mm',format:'a4',orientation:'portrait'});
+ const brand=[15,27,36],aqua=[24,124,140],ink=[23,36,44],muted=[92,105,113],green=[39,130,91],amber=[192,122,32],red=[185,71,79],light=[244,246,245],line=[214,222,225],white=[255,255,255];
  const moneyP=v=>'£'+(Number(v||0)/100).toLocaleString('en-GB',{minimumFractionDigits:2,maximumFractionDigits:2});
- const header=(title,sub)=>{doc.setFillColor(...brand);doc.rect(0,0,210,27,'F');doc.setTextColor(255,255,255);doc.setFont('helvetica','bold');doc.setFontSize(15);doc.text('POOL SHED  /  POOL BROS',14,11);doc.setFontSize(8);doc.setFont('helvetica','normal');doc.text(title,14,17);if(sub)doc.text(sub,14,22);doc.setTextColor(...ink);};
- const addFooter=()=>{const pages=doc.internal.getNumberOfPages();for(let i=1;i<=pages;i++){doc.setPage(i);doc.setFontSize(7);doc.setTextColor(...muted);doc.text(model.job.id+'  ·  '+model.job.name,14,290);doc.text('Management report · values exclude VAT unless marked as cash/gross',105,290,{align:'center'});doc.text(i+' / '+pages,196,290,{align:'right'});}};
- const table=(head,body,y,opts={})=>{if(typeof doc.autoTable==='function'){doc.autoTable({head:[head],body,startY:y,theme:'grid',styles:{font:'helvetica',fontSize:7,cellPadding:2,textColor:ink,lineColor:[214,222,225],lineWidth:.15},headStyles:{fillColor:brand,textColor:[255,255,255],fontStyle:'bold'},alternateRowStyles:{fillColor:light},margin:{left:14,right:14},...opts});return doc.lastAutoTable.finalY;}let yy=y;body.slice(0,20).forEach(r=>{doc.text(r.join(' | '),14,yy);yy+=5;});return yy;};
- header('PROJECT FINANCIAL REPORT',model.job.name+' · '+model.job.id+' · '+psProjectReportDateLabel(model.asOf));
- doc.setFontSize(20);doc.setFont('helvetica','bold');doc.text(model.job.name,14,40);doc.setFontSize(9);doc.setFont('helvetica','normal');doc.setTextColor(...muted);doc.text((customer(model.job.customerId)?.name||'No customer')+' · '+model.job.status,14,46);doc.setTextColor(...ink);
- const cards=[['SOLD VALUE',model.s.revenue],['FORECAST COST',model.s.forecast],['FORECAST PROFIT',model.s.profit],['FORECAST MARGIN',null]];
- cards.forEach((c,i)=>{const x=14+i*46;doc.setFillColor(...light);doc.roundedRect(x,54,42,29,2,2,'F');doc.setFontSize(7);doc.setTextColor(...muted);doc.text(c[0],x+3,61);doc.setFontSize(13);doc.setFont('helvetica','bold');doc.setTextColor(...ink);doc.text(c[0]==='FORECAST MARGIN'?psProjectReportPct(model.s.margin):moneyP(c[1]),x+3,72);doc.setFont('helvetica','normal');doc.setFontSize(7);doc.setTextColor(...muted);doc.text(c[0]==='FORECAST MARGIN'?'Target '+Number(model.s.target).toFixed(1)+'%':'Ex VAT',x+3,79);});
- doc.setFontSize(11);doc.setFont('helvetica','bold');doc.setTextColor(...ink);doc.text('Original plan vs current forecast',14,96);
- let y=table(['Measure','Original','Current forecast','Movement'],[
-  ['Revenue',moneyP(model.original.revenue),moneyP(model.s.revenue),moneyP(model.s.revenue-model.original.revenue)],
-  ['Cost',model.original.costKnown?moneyP(model.original.cost):'Not captured',moneyP(model.s.forecast),model.original.costKnown?moneyP(model.s.forecast-model.original.cost):'No baseline'],
-  ['Gross profit',model.original.profit===null?'Not captured':moneyP(model.original.profit),moneyP(model.s.profit),model.original.profit===null?'No baseline':moneyP(model.s.profit-model.original.profit)],
-  ['Margin',psProjectReportPct(model.original.margin),psProjectReportPct(model.s.margin),model.original.margin===null?'No baseline':(model.s.margin-model.original.margin).toFixed(1)+' pts']
- ],101);
- y+=8;doc.setFillColor(...(model.runway.daysToZero!==null&&model.runway.daysToZero<=14?red:model.runway.daysToZero!==null&&model.runway.daysToZero<=30?amber:green));doc.roundedRect(14,y,182,31,2,2,'F');doc.setTextColor(255,255,255);doc.setFont('helvetica','bold');doc.setFontSize(8);doc.text('CASH RUNWAY SCENARIO · IF NO FURTHER CUSTOMER CASH IS RECEIVED',18,y+7);doc.setFontSize(12);const runwayText=model.runway.cashPosition<=0?'Recorded project cash is already negative by '+moneyP(Math.abs(model.runway.cashPosition)):model.runway.daysToZero===null?'No zero-cash date from the current recorded burn':'Projected to reach £0 in about '+model.runway.daysToZero+' days · '+psProjectReportDateLabel(model.runway.zeroDate);doc.text(runwayText,18,y+15);doc.setFont('helvetica','normal');doc.setFontSize(7);const wrap=doc.splitTextToSize('Recorded cash '+moneyP(model.runway.cashPosition)+' · estimated daily burn '+moneyP(model.runway.dailyBurn)+' · customer cash outstanding '+moneyP(model.customerOutstanding)+'. Management scenario, not a bank balance forecast.',174);doc.text(wrap,18,y+22);doc.setTextColor(...ink);
- doc.addPage();header('PROFIT MOMENTUM & COST COMPOSITION',model.job.name);
- const rows=model.timeline.slice(-12),vals=rows.map(r=>Number(r.profit||0)/100);if(rows.length){const min=Math.min(...vals),max=Math.max(...vals),span=Math.max(1,max-min),left=24,top=45,width=165,height=70;doc.setDrawColor(...aqua);doc.setLineWidth(.7);let prev=null;vals.forEach((v,i)=>{const x=left+(rows.length===1 ? .5 : i/(rows.length-1))*width,yy=top+(max-v)/span*height;if(prev)doc.line(prev.x,prev.y,x,yy);doc.setFillColor(...aqua);doc.circle(x,yy,1.5,'F');prev={x,y:yy};});doc.setFontSize(7);doc.setTextColor(...muted);doc.text(moneyP(Math.round(max*100)),14,top+2);doc.text(moneyP(Math.round(min*100)),14,top+height);doc.setTextColor(...ink);}
- doc.setFontSize(11);doc.setFont('helvetica','bold');doc.text('Forecast cost composition',14,135);let by=144,maxCost=Math.max(1,...model.costSources.map(x=>x.value));model.costSources.forEach(x=>{doc.setFontSize(7);doc.setFont('helvetica','normal');doc.text(x.name,14,by);doc.setFillColor(230,236,236);doc.rect(60,by-3,100,4,'F');doc.setFillColor(...aqua);doc.rect(60,by-3,100*x.value/maxCost,4,'F');doc.text(moneyP(x.value),196,by,{align:'right'});by+=10;});
- doc.addPage();header('SUPPLIERS & PURCHASE INVOICES',model.job.name);
- y=table(['Supplier','Ordered net','PI net','Paid cash','Outstanding','Open PO'],model.suppliers.map(x=>[x.supplier,moneyP(x.ordered),moneyP(x.invoiced),moneyP(x.paid),moneyP(x.outstanding),moneyP(x.open)]),36);
- if(y>240){doc.addPage();header('PURCHASE INVOICES',model.job.name);y=36;}else{y+=9;doc.setFontSize(11);doc.setFont('helvetica','bold');doc.text('Purchase invoices / PI',14,y);y+=4;}
- table(['PI / invoice','Supplier','PO','Net','VAT','Gross','Paid','Outstanding'],model.purchaseInvoices.map(x=>[x.reference,x.supplier,x.poId,moneyP(x.net),moneyP(x.vat),moneyP(x.gross),moneyP(x.paid),moneyP(x.outstanding)]),y);
- doc.addPage();header('SALES & REVENUE',model.job.name);
- doc.setFontSize(10);doc.setFont('helvetica','bold');doc.text('Original contract '+moneyP(model.original.revenue)+'    Approved extras '+moneyP(model.s.approvedExtra)+'    Sold value '+moneyP(model.s.revenue),14,39);doc.setFont('helvetica','normal');doc.setFontSize(8);doc.text('Invoiced net '+moneyP(model.invoiceRows.reduce((n,r)=>n+r.net,0))+'    Cash received '+moneyP(model.customerCash)+'    Outstanding cash '+moneyP(model.customerOutstanding),14,47);
- table(['Sales Order','Scope','Status','Sell net','Invoiced net','Paid cash','Outstanding cash'],model.salesOrders.map(x=>[x.id,x.scope,x.status,moneyP(x.net),moneyP(x.invoiced),moneyP(x.paid),moneyP(x.outstanding)]),56);
- doc.addPage();header('LABOUR, HIRE & TOOLS',model.job.name);
- y=table(['Person','Reference','Start','End','Rate','Accrued','Forecast'],model.labour.map(x=>[x.person,x.reference,psProjectReportDateLabel(x.start),x.end==='Ongoing'?'Ongoing':psProjectReportDateLabel(x.end),moneyP(x.rate),moneyP(x.accrued),moneyP(x.forecast)]),36);
- y+=9;doc.setFontSize(11);doc.setFont('helvetica','bold');doc.text('Hire & tools',14,y);y+=4;table(['Item','Supplier','Ref','Type','Start','Rate / cost','Accrued','Forecast'],model.tools.map(x=>[x.name,x.supplier,x.reference,x.mode,psProjectReportDateLabel(x.start),moneyP(x.dailyRate||x.purchaseNet),moneyP(x.accrued),moneyP(x.forecast)]),y);
- doc.addPage();header('RECONCILIATION & DATA CHECKS',model.job.name);
- y=table(['Forecast cost source','Amount'],model.costSources.map(x=>[x.name,moneyP(x.value)]).concat([['Forecast final cost',moneyP(model.s.forecast)],['Total sold value',moneyP(model.s.revenue)],['Forecast gross profit',moneyP(model.s.profit)],['Forecast margin',psProjectReportPct(model.s.margin)]]),36);
- y+=10;doc.setFontSize(11);doc.setFont('helvetica','bold');doc.text('Financial data checks',14,y);doc.setFontSize(8);doc.setFont('helvetica','normal');y+=7;model.checks.forEach(c=>{const lines=doc.splitTextToSize('• '+c.text,180);doc.text(lines,16,y);y+=lines.length*4+3;if(y>275){doc.addPage();header('FINANCIAL DATA CHECKS',model.job.name);y=36;}});
- addFooter();doc.save(psProjectReportFilename(model,'pdf'));
+ const pct=v=>v===null||!Number.isFinite(Number(v))?'Not captured':Number(v).toFixed(1)+'%';
+ const customerName=customer(model.job.customerId)?.name||'No customer';
+ const pageMeta=new Map();
+ const size=()=>({w:doc.internal.pageSize.getWidth(),h:doc.internal.pageSize.getHeight()});
+ const meta=(title,sub)=>pageMeta.set(doc.internal.getCurrentPageInfo().pageNumber,{title,sub});
+ const drawHeader=(title,sub)=>{
+  const {w}=size();
+  doc.setFillColor(...brand);doc.rect(0,0,w,24,'F');
+  doc.setTextColor(...white);doc.setFont('helvetica','bold');doc.setFontSize(13);doc.text('POOL BROS',14,9);
+  doc.setFontSize(8);doc.setFont('helvetica','normal');doc.text('PROJECT FINANCIAL REPORT',14,15);
+  doc.setFont('helvetica','bold');doc.setFontSize(9);doc.text(title,w-14,9,{align:'right'});
+  if(sub){doc.setFont('helvetica','normal');doc.setFontSize(7.5);doc.text(doc.splitTextToSize(sub,95),w-14,14,{align:'right'});}
+  doc.setTextColor(...ink);meta(title,sub);
+ };
+ const addPage=(orientation,title,sub)=>{
+  doc.addPage('a4',orientation||'portrait');drawHeader(title,sub||model.job.name+' · '+model.job.id);
+ };
+ const drawFooterForPage=pageNo=>{
+  doc.setPage(pageNo);const {w,h}=size(),m=pageMeta.get(pageNo)||{};
+  doc.setDrawColor(...line);doc.line(14,h-13,w-14,h-13);
+  doc.setTextColor(...muted);doc.setFont('helvetica','normal');doc.setFontSize(6.8);
+  doc.text(model.job.id+' · '+model.job.name,14,h-7);
+  doc.text('Management report · project accounting values exclude VAT unless explicitly labelled gross/cash',w/2,h-7,{align:'center'});
+  doc.text(pageNo+' / '+doc.internal.getNumberOfPages(),w-14,h-7,{align:'right'});
+ };
+ const section=(title,eyebrow,y=33)=>{
+  const {w}=size();doc.setTextColor(...muted);doc.setFont('helvetica','bold');doc.setFontSize(7.2);doc.text(String(eyebrow||'').toUpperCase(),14,y);
+  doc.setTextColor(...ink);doc.setFontSize(14);doc.text(title,14,y+7);
+  doc.setDrawColor(...line);doc.line(14,y+11,w-14,y+11);return y+17;
+ };
+ const note=(text,y,tone='neutral')=>{
+  const {w}=size(),palette=tone==='bad'?red:tone==='warn'?amber:tone==='good'?green:aqua;
+  const lines=doc.splitTextToSize(text,w-36),h=Math.max(15,8+lines.length*4.1);
+  doc.setFillColor(...light);doc.setDrawColor(...palette);doc.setLineWidth(.8);doc.roundedRect(14,y,w-28,h,2,2,'FD');
+  doc.setFillColor(...palette);doc.rect(14,y,3,h,'F');
+  doc.setTextColor(...ink);doc.setFont('helvetica','normal');doc.setFontSize(8);doc.text(lines,21,y+6);return y+h;
+ };
+ const empty=(label,y)=>{
+  const {w}=size();doc.setFillColor(...light);doc.roundedRect(14,y,w-28,18,2,2,'F');
+  doc.setTextColor(...muted);doc.setFont('helvetica','italic');doc.setFontSize(8.5);doc.text(label,20,y+11);return y+18;
+ };
+ const table=(head,body,y,opts={})=>{
+  if(!body?.length)return empty(opts.empty||'No records to show for this section.',y);
+  const currentMeta=pageMeta.get(doc.internal.getCurrentPageInfo().pageNumber)||{};
+  doc.autoTable({
+   head:[head],body,startY:y,theme:'grid',showHead:'everyPage',rowPageBreak:'avoid',
+   margin:{left:14,right:14,top:31,bottom:18},
+   styles:{font:'helvetica',fontSize:opts.fontSize||8.1,cellPadding:{top:2.2,right:2,bottom:2.2,left:2},textColor:ink,lineColor:line,lineWidth:.15,valign:'middle',overflow:'linebreak'},
+   headStyles:{fillColor:brand,textColor:white,fontStyle:'bold',fontSize:opts.headFontSize||7.6,halign:'left'},
+   alternateRowStyles:{fillColor:light},
+   columnStyles:opts.columnStyles||{},
+   didParseCell:data=>{
+    if(opts.rightCols?.includes(data.column.index))data.cell.styles.halign='right';
+    if(opts.centerCols?.includes(data.column.index))data.cell.styles.halign='center';
+    if(opts.boldCols?.includes(data.column.index)&&data.section==='body')data.cell.styles.fontStyle='bold';
+   },
+   didDrawPage:()=>{
+    const info=doc.internal.getCurrentPageInfo(),existing=pageMeta.get(info.pageNumber);
+    if(!existing)drawHeader(currentMeta.title||'Project detail',currentMeta.sub||model.job.name+' · '+model.job.id);
+   },
+   ...opts.autoTable
+  });
+  return doc.lastAutoTable.finalY;
+ };
+ const kpi=(x,y,w,h,label,value,sub,tone='neutral')=>{
+  const border=tone==='bad'?red:tone==='warn'?amber:tone==='good'?green:line;
+  doc.setFillColor(...white);doc.setDrawColor(...border);doc.setLineWidth(.45);doc.roundedRect(x,y,w,h,2.5,2.5,'FD');
+  doc.setTextColor(...muted);doc.setFont('helvetica','bold');doc.setFontSize(6.8);doc.text(label,x+4,y+7);
+  doc.setTextColor(...ink);doc.setFontSize(15);doc.text(value,x+4,y+17);
+  doc.setTextColor(...muted);doc.setFont('helvetica','normal');doc.setFontSize(7);doc.text(doc.splitTextToSize(sub||'',w-8),x+4,y+23);
+ };
+ const variance=(current,original,type)=>{
+  if(original===null||original===undefined)return 'No original baseline';
+  const d=Number(current||0)-Number(original||0);
+  if(type==='margin')return (d>=0?'+':'')+d.toFixed(1)+' pts';
+  return (d>=0?'+':'-')+moneyP(Math.abs(d));
+ };
+ const allPoLines=[];
+ model.poRows.forEach(po=>po.lines.forEach(line=>allPoLines.push([po.supplier,po.id,line.name,line.sku,String(line.qty),String(line.received),moneyP(Math.round(Number(line.unitCost||0)*100)),moneyP(line.lineCost)])));
+
+ drawHeader('Executive summary',model.job.name+' · '+model.job.id+' · '+psProjectReportDateLabel(model.asOf));
+ doc.setTextColor(...ink);doc.setFont('helvetica','bold');doc.setFontSize(21);doc.text(model.job.name,14,38);
+ doc.setFont('helvetica','normal');doc.setFontSize(9);doc.setTextColor(...muted);
+ doc.text(customerName+' · '+model.job.status+' · Owner: '+(model.job.owner||'Unassigned'),14,45);
+ doc.text('As at '+psProjectReportDateLabel(model.asOf)+' · Project '+model.job.id,14,51);
+
+ const marginTone=model.s.margin!==null&&model.s.margin<model.s.minimumMargin?'bad':model.s.margin!==null&&model.s.margin<model.s.target?'warn':'good';
+ kpi(14,58,87,33,'SOLD VALUE',moneyP(model.s.revenue),'Original '+moneyP(model.original.revenue),'neutral');
+ kpi(109,58,87,33,'FORECAST FINAL COST',moneyP(model.s.forecast),model.original.costKnown?'Original '+moneyP(model.original.cost):'Original cost not captured',model.original.costKnown&&model.s.forecast>model.original.cost?'warn':'neutral');
+ kpi(14,98,87,33,'FORECAST GROSS PROFIT',moneyP(model.s.profit),model.original.profit===null?'Original profit not captured':'Original '+moneyP(model.original.profit),model.s.profit<0?'bad':'good');
+ kpi(109,98,87,33,'FORECAST MARGIN',pct(model.s.margin),'Target '+Number(model.s.target||0).toFixed(1)+'% · Minimum '+Number(model.s.minimumMargin||0).toFixed(1)+'%',marginTone);
+
+ let y=section('Original plan vs current forecast','Commercial movement',143);
+ y=table(['Measure','Original','Current forecast','Movement'],[
+  ['Revenue',moneyP(model.original.revenue),moneyP(model.s.revenue),variance(model.s.revenue,model.original.revenue,'money')],
+  ['Cost',model.original.costKnown?moneyP(model.original.cost):'Not captured',moneyP(model.s.forecast),model.original.costKnown?variance(model.s.forecast,model.original.cost,'money'):'No baseline'],
+  ['Gross profit',model.original.profit===null?'Not captured':moneyP(model.original.profit),moneyP(model.s.profit),model.original.profit===null?'No baseline':variance(model.s.profit,model.original.profit,'money')],
+  ['Margin',pct(model.original.margin),pct(model.s.margin),model.original.margin===null?'No baseline':variance(model.s.margin,model.original.margin,'margin')]
+ ],y,{rightCols:[1,2,3],boldCols:[0]});
+ y+=8;
+ const runwayTone=model.runway.cashPosition<=0||model.runway.daysToZero!==null&&model.runway.daysToZero<=14?'bad':model.runway.daysToZero!==null&&model.runway.daysToZero<=30?'warn':'good';
+ const runwayTitle=model.runway.cashPosition<=0
+  ?'Recorded project cash position is already '+moneyP(Math.abs(model.runway.cashPosition))+' negative.'
+  :model.runway.daysToZero===null
+   ?'No zero-cash date from the current recorded burn.'
+   :'If no further customer cash is received, project cash reaches £0 in about '+model.runway.daysToZero+' days · '+psProjectReportDateLabel(model.runway.zeroDate)+'.';
+ y=note(runwayTitle+' Recorded project cash '+moneyP(model.runway.cashPosition)+' · estimated daily burn '+moneyP(model.runway.dailyBurn)+' · customer cash outstanding '+moneyP(model.customerOutstanding)+'. This is a management scenario, not a bank balance forecast.',y,runwayTone);
+
+ addPage('portrait','Profit & cost movement');
+ y=section('Profit momentum','Direction of travel',34);
+ const rows=model.timeline.slice(-16),vals=rows.map(r=>Number(r.profit||0)/100);
+ if(rows.length){
+  const {w}=size(),left=27,top=y+4,width=w-47,height=66,min=Math.min(...vals),max=Math.max(...vals),span=Math.max(1,max-min);
+  doc.setDrawColor(...line);doc.setLineWidth(.25);
+  for(let i=0;i<=4;i++){const gy=top+i*height/4;doc.line(left,gy,left+width,gy);}
+  doc.setDrawColor(...aqua);doc.setLineWidth(1.2);let prev=null;
+  vals.forEach((v,i)=>{const x=left+(rows.length===1?.5:i/(rows.length-1))*width,yy=top+(max-v)/span*height;if(prev)doc.line(prev.x,prev.y,x,yy);doc.setFillColor(...aqua);doc.circle(x,yy,1.8,'F');prev={x,y:yy};});
+  doc.setFontSize(7);doc.setTextColor(...muted);doc.text(moneyP(Math.round(max*100)),14,top+2);doc.text(moneyP(Math.round(min*100)),14,top+height);
+  const step=Math.max(1,Math.ceil(rows.length/5));rows.forEach((r,i)=>{if(i%step&&i!==rows.length-1)return;const x=left+(rows.length===1?.5:i/(rows.length-1))*width;doc.text(new Date(r.at).toLocaleDateString('en-GB',{day:'2-digit',month:'short'}),x,top+height+7,{align:'center'});});
+  y=top+height+18;
+ }else y=empty('Profit history will build automatically as project commercial values change.',y);
+ y=section('Forecast cost composition','Where the money goes',y);
+ if(model.costSources.length){
+  const maxCost=Math.max(1,...model.costSources.map(x=>x.value));
+  model.costSources.forEach(x=>{
+   const {w}=size();doc.setTextColor(...ink);doc.setFont('helvetica','normal');doc.setFontSize(8);doc.text(x.name,14,y+4);
+   doc.setFillColor(230,236,236);doc.roundedRect(68,y,90,5,2,2,'F');doc.setFillColor(...aqua);doc.roundedRect(68,y,90*x.value/maxCost,5,2,2,'F');
+   doc.setFont('helvetica','bold');doc.text(moneyP(x.value),w-14,y+4,{align:'right'});y+=11;
+  });
+  doc.setDrawColor(...line);doc.line(14,y,196,y);y+=7;doc.setFontSize(10);doc.setFont('helvetica','bold');doc.text('Forecast final cost',14,y);doc.text(moneyP(model.s.forecast),196,y,{align:'right'});
+ }else y=empty('No project cost sources have been recorded.',y);
+
+ addPage('landscape','Sales & customer invoices');
+ y=section('Sales Orders','Revenue source',34);
+ y=table(['Sales Order','Scope','Status','Sell net','Invoiced net','Paid cash','Outstanding cash'],model.salesOrders.map(x=>[x.id,x.scope,x.status,moneyP(x.net),moneyP(x.invoiced),moneyP(x.paid),moneyP(x.outstanding)]),y,{
+  empty:'No linked Sales Orders.',
+  rightCols:[3,4,5,6],boldCols:[0],
+  columnStyles:{0:{cellWidth:30},1:{cellWidth:26},2:{cellWidth:27},3:{cellWidth:34},4:{cellWidth:34},5:{cellWidth:34},6:{cellWidth:38}}
+ });
+ y=doc.lastAutoTable?.finalY||y;y+=10;
+ if(y>170){addPage('landscape','Customer invoices');y=34;}
+ else y=section('Customer invoices','Invoiced and paid',y);
+ table(['Invoice','Source','Invoice date','Due date','Net','Gross','Paid cash','Outstanding cash','Status'],model.invoiceRows.map(x=>[x.reference,x.sourceId,psProjectReportDateLabel(x.date),psProjectReportDateLabel(x.dueDate),moneyP(x.net),moneyP(x.gross),moneyP(x.paid),moneyP(x.outstanding),x.status]),y,{
+  empty:'No linked customer invoices.',
+  rightCols:[4,5,6,7],boldCols:[0],
+  columnStyles:{0:{cellWidth:28},1:{cellWidth:30},2:{cellWidth:27},3:{cellWidth:27},4:{cellWidth:30},5:{cellWidth:30},6:{cellWidth:30},7:{cellWidth:34},8:{cellWidth:28}}
+ });
+
+ addPage('landscape','Suppliers & Purchase Orders');
+ y=section('Supplier summary','Committed, invoiced and paid',34);
+ y=table(['Supplier','Ordered net','PI net','Paid cash','Outstanding cash','Open PO'],model.suppliers.map(x=>[x.supplier,moneyP(x.ordered),moneyP(x.invoiced),moneyP(x.paid),moneyP(x.outstanding),moneyP(x.open)]),y,{
+  empty:'No project supplier spend yet.',
+  rightCols:[1,2,3,4,5],boldCols:[0],
+  columnStyles:{0:{cellWidth:70},1:{cellWidth:38},2:{cellWidth:38},3:{cellWidth:38},4:{cellWidth:40},5:{cellWidth:38}}
+ });
+ y=(doc.lastAutoTable?.finalY||y)+10;
+ if(y>170){addPage('landscape','Purchase Order summary');y=34;}else y=section('Purchase Order summary','One row per PO',y);
+ table(['PO','Supplier','Status','Ordered','Received','Open','PI net','Paid','Outstanding'],model.poRows.map(x=>[x.id,x.supplier,x.status,moneyP(x.ordered),moneyP(x.received),moneyP(x.open),moneyP(x.invoiced),moneyP(x.paid),moneyP(x.outstanding)]),y,{
+  empty:'No linked Purchase Orders.',
+  rightCols:[3,4,5,6,7,8],boldCols:[0],
+  columnStyles:{0:{cellWidth:25},1:{cellWidth:55},2:{cellWidth:27},3:{cellWidth:30},4:{cellWidth:30},5:{cellWidth:30},6:{cellWidth:30},7:{cellWidth:30},8:{cellWidth:34}}
+ });
+
+ addPage('landscape','Purchase Order line detail');
+ y=section('Purchase Order product lines','Full supplier cost detail',34);
+ table(['Supplier','PO','Product / description','SKU','Qty','Received','Unit cost','Line total'],allPoLines,y,{
+  empty:'No Purchase Order product lines.',
+  rightCols:[4,5,6,7],boldCols:[1],
+  fontSize:7.8,
+  columnStyles:{0:{cellWidth:45},1:{cellWidth:23},2:{cellWidth:78},3:{cellWidth:31},4:{cellWidth:18},5:{cellWidth:21},6:{cellWidth:30},7:{cellWidth:32}}
+ });
+
+ addPage('landscape','Purchase invoices / PI');
+ y=section('Purchase invoices / PI','Supplier bill register',34);
+ table(['PI / invoice','Supplier','PO','Invoice date','Due date','Net','VAT','Gross','Paid','Outstanding','Status'],model.purchaseInvoices.map(x=>[x.reference,x.supplier,x.poId,psProjectReportDateLabel(x.date),psProjectReportDateLabel(x.dueDate),moneyP(x.net),moneyP(x.vat),moneyP(x.gross),moneyP(x.paid),moneyP(x.outstanding),x.status]),y,{
+  empty:'No linked supplier invoices / PIs.',
+  rightCols:[5,6,7,8,9],boldCols:[0],
+  fontSize:7.5,
+  columnStyles:{0:{cellWidth:25},1:{cellWidth:42},2:{cellWidth:22},3:{cellWidth:25},4:{cellWidth:25},5:{cellWidth:26},6:{cellWidth:24},7:{cellWidth:27},8:{cellWidth:27},9:{cellWidth:32},10:{cellWidth:24}}
+ });
+
+ addPage('landscape','Labour');
+ y=section('Labour cost performance','Project time cost',34);
+ table(['Person','Reference','Start','End','Rate type','Rate','Accrued units','Forecast units','Accrued cost','Forecast cost'],model.labour.map(x=>[x.person,x.reference,psProjectReportDateLabel(x.start),x.end==='Ongoing'?'Ongoing':psProjectReportDateLabel(x.end),x.rateType,moneyP(x.rate),String(x.units),String(x.forecastUnits),moneyP(x.accrued),moneyP(x.forecast)]),y,{
+  empty:'No project labour periods.',
+  rightCols:[5,6,7,8,9],boldCols:[0],
+  columnStyles:{0:{cellWidth:44},1:{cellWidth:30},2:{cellWidth:28},3:{cellWidth:28},4:{cellWidth:25},5:{cellWidth:27},6:{cellWidth:25},7:{cellWidth:27},8:{cellWidth:30},9:{cellWidth:30}}
+ });
+
+ addPage('landscape','Hire & tools');
+ y=section('Hire & tools','Equipment cost',34);
+ table(['Item','Supplier','Reference','Type','Start','End','Daily rate','Purchase cost','Accrued','Forecast','Status'],model.tools.map(x=>[x.name,x.supplier,x.reference,x.mode,psProjectReportDateLabel(x.start),x.end?psProjectReportDateLabel(x.end):'Open',moneyP(x.dailyRate),moneyP(x.purchaseNet),moneyP(x.accrued),moneyP(x.forecast),x.running?'Running':'Stopped']),y,{
+  empty:'No project tools or hire records.',
+  rightCols:[6,7,8,9],boldCols:[0],
+  fontSize:7.6,
+  columnStyles:{0:{cellWidth:46},1:{cellWidth:40},2:{cellWidth:28},3:{cellWidth:21},4:{cellWidth:26},5:{cellWidth:26},6:{cellWidth:28},7:{cellWidth:31},8:{cellWidth:29},9:{cellWidth:29},10:{cellWidth:24}}
+ });
+
+ addPage('portrait','Reconciliation & checks');
+ y=section('Forecast reconciliation','Every cost counted once',34);
+ y=table(['Cost source','Amount'],model.costSources.map(x=>[x.name,moneyP(x.value)]).concat([
+  ['Forecast final cost',moneyP(model.s.forecast)],
+  ['Total sold value',moneyP(model.s.revenue)],
+  ['Forecast gross profit',moneyP(model.s.profit)],
+  ['Forecast margin',pct(model.s.margin)]
+ ]),y,{rightCols:[1],boldCols:[0],columnStyles:{0:{cellWidth:118},1:{cellWidth:58}}});
+ y=(doc.lastAutoTable?.finalY||y)+10;
+ if(y>205){addPage('portrait','Financial data checks');y=34;}else y=section('Financial data checks','Exceptions that affect confidence',y);
+ if(model.checks.length){
+  model.checks.forEach(c=>{
+   if(y>260){addPage('portrait','Financial data checks');y=34;}
+   const tone=c.severity==='bad'?'bad':c.severity==='warn'?'warn':'good';y=note(c.text,y,tone)+5;
+  });
+ }else y=empty('No financial data-quality exceptions were found.',y);
+
+ const pages=doc.internal.getNumberOfPages();
+ for(let i=1;i<=pages;i++)drawFooterForPage(i);
+ doc.setProperties({title:model.job.name+' Financial Report',subject:'Pool Bros project financial management report',author:'Pool Bros',creator:'Pool Shed'});
+ doc.save(psProjectReportFilename(model,'pdf'));
 }
 function psProjectReportPrint(model){
  const win=window.open('','_blank','noopener,noreferrer');if(!win){toast('Allow pop-ups to export this report.');return;}
