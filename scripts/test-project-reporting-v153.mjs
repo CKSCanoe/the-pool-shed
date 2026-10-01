@@ -146,7 +146,7 @@ assert.match(reporting,/Cash due/,'Outstanding invoice cash must use plain-Engli
 assert.match(reporting,/What it means/,'Detailed statement must use plain-English financial meaning');
 assert.match(reporting,/Cash recorded/,'Detailed statement must distinguish recorded cash from net value');
 assert(!reporting.includes('Outstanding / status'),'Detailed statement must not combine unrelated concepts in one column');
-assert(!reporting.includes("['Item','Supplier','Reference','Type','Start','End','Daily rate','Purchase cost'"),'Hire table must not waste columns that are mutually exclusive');
+assert.match(reporting,/table\(\['Item','Supplier','Type','Period','Rate \/ purchase','Cost to date','Forecast total','Status'\]/,'PDF hire table must combine mutually exclusive rate and purchase-cost columns');
 assert.match(reporting,/POOL SHED · BY POOL BROS/,'PDF header must use Pool Shed branding');
 for(const line of reporting.split('\n').filter(line=>line.includes('columnStyles:{'))){
   const widths=[...line.matchAll(/cellWidth:(\d+(?:\.\d+)?)/g)].map(m=>Number(m[1]));
