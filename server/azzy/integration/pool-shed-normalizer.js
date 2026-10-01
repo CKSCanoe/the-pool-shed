@@ -105,10 +105,12 @@ function productResolver(data,products){
 function normaliseSuppliers(data){
   return keyBy(arr(data.suppliers).map(s=>compact({
     id:idOf(s),name:txt(s.name,s.company,s.supplierName,idOf(s)),code:txt(s.code,s.accountNumber),
-    email:txt(s.ordersEmail,s.email),phone:txt(s.phone),status:txt(s.status,'Active'),
+    email:txt(s.ordersEmail,s.email),accountsEmail:txt(s.accountsEmail),returnsEmail:txt(s.returnsEmail),phone:txt(s.phone),mobile:txt(s.mobile),status:txt(s.status,'Active'),
+    accountType:txt(s.accountType,/pro\\s*forma/i.test(txt(s.terms))?'Pro Forma':'Credit'),terms:txt(s.terms),accountNumber:txt(s.accountNumber),
     creditLimit:n(s.creditLimit,s.credit_limit),creditUsed:n(s.creditUsed,s.outstandingBalance,s.balance),
     minimumOrder:n(s.minimumOrder),freeShippingThreshold:n(s.freeShippingThreshold,s.freeCarriageThreshold),
     shippingCost:n(s.shippingCost,s.carriageNet),leadTimeDays:n(s.leadTimeDays,s.leadTime),
+    address:s.address||compact({line1:txt(s.addressLine1),line2:txt(s.addressLine2),city:txt(s.city),county:txt(s.county),postcode:txt(s.postcode),country:txt(s.country)}),
     rating:n(s.rating),preferred:bool(s.preferred),performance:s.performance||null
   })),x=>x.id);
 }
@@ -177,11 +179,12 @@ function normalisePurchaseOrders(data,products){
     paymentStatus:txt(o.paymentStatus,o.paymentState,o.paid===true?'Paid':''),
     totalNet:n(o.totalNet,o.netTotal,o.subtotal),
     lines:lineRows(o).map(l=>{
-      const p=resolveProduct(l),sku=p?.sku||explicitSkuOf(l)||productIdOf(l);if(!sku)return null;
+      const p=resolveProduct(l),custom=bool(l.nonStockPurchase)||txt(l.lineType)==='custom-purchase',sku=p?.sku||explicitSkuOf(l)||(custom?txt(l.supplierSku,l.customReference,l.productId):productIdOf(l));if(!sku)return null;
       return compact({
-        productId:productIdOf(l)||p?.id||null,sku,name:txt(l.name,l.description,l.productName,p?.name,sku),
-        qty:n(l.qty,l.quantity),received:n(l.received,l.receivedQty,l.qtyReceived),unitCost:n(l.unitCost,l.cost,l.buyPrice,p?.unitCost),
-        supplierSku:txt(l.supplierSku,p?.supplierSku),projectId:txt(l.projectId,l.jobId)||null,salesOrderId:txt(l.salesOrderId,o.originalSalesOrderId)||null,
+        productId:productIdOf(l)||p?.id||null,sku,name:txt(l.customProductName,l.name,l.description,l.productName,p?.name,sku),
+        description:txt(l.description),lineType:txt(l.lineType,custom?'custom-purchase':'stock'),nonStockPurchase:custom,uom:txt(l.uom,l.unit),purchaseCategory:txt(l.purchaseCategory),
+        qty:n(l.qty,l.quantity),received:n(l.received,l.receivedQty,l.qtyReceived),unitCost:n(l.unitCost,l.cost,l.buyPrice,p?.unitCost),taxCode:txt(l.taxCode,p?.taxCode,'20% VAT'),
+        supplierSku:txt(l.supplierSku,l.customReference,p?.supplierSku),projectId:txt(l.projectId,l.jobId)||null,salesOrderId:txt(l.salesOrderId,o.originalSalesOrderId)||null,
         orderedDate:dateOnly(txt(l.orderedDate,o.orderedDate,o.orderDate))||null,dueDate:dateOnly(txt(l.dueDate,o.due,o.expectedDate))||null,
         leadTimeDays:n(l.leadTimeDays),chaseStatus:txt(l.chaseStatus),nextChaseDate:dateOnly(txt(l.nextChaseDate))||null,
         salesOrderAllocations:arr(l.salesOrderAllocations).map(x=>({salesOrderId:txt(x.salesOrderId),qty:n(x.qty),date:dateOnly(txt(x.date,x.at))||null}))
@@ -236,11 +239,10 @@ function normaliseBills(data,products){
 function normaliseInvoices(data){return keyBy(arr(data.customerInvoices||data.invoices).map(i=>({id:idOf(i),projectId:txt(i.projectId,i.jobId),customerId:txt(i.customerId),amountNet:n(i.amountNet,i.net,i.netTotal),dueDate:dateOnly(txt(i.dueDate))||null,status:txt(i.status,'Draft'),expectedPaymentDate:dateOnly(txt(i.expectedPaymentDate,i.expectedDate))||null})),x=>x.id);}
 
 function normaliseReceipts(data,products){
-  const resolveProduct=productResolver(data,products),rows=arr(data.goodsReceipts||data.receiptEvents);
-  const lineOf=l=>{const p=resolveProduct(l),sku=p?.sku||explicitSkuOf(l)||productIdOf(l);return sku?{sku,qty:n(l.qty,l.quantity,l.receivedQty),unitCost:n(l.unitCost,l.cost),qc:txt(l.qc,l.qcDecision,'Accepted')}:null;};
-  return keyBy(rows.map((r,idx)=>({id:idOf(r)||`RECEIPT-${idx+1}`,poId:txt(r.poId,r.purchaseOrderId),supplierId:txt(r.supplierId),receivedAt:txt(r.receivedAt,r.createdAt,r.at),lines:(lineRows(r).length?lineRows(r).map(lineOf):[lineOf(r)]).filter(Boolean)})),x=>x.id);
+  const resolveProduct=productResolver(data,products),physical=arr(data.goodsReceipts||data.receiptEvents),direct=arr(data.purchaseOrders).flatMap(po=>arr(po.nonStockReceipts).map(r=>({...r,poId:txt(r.poId,po.id),nonStockPurchase:true}))),rows=[...physical,...direct];
+  const lineOf=l=>{const p=resolveProduct(l),sku=p?.sku||explicitSkuOf(l)||productIdOf(l);return sku?compact({sku,name:txt(l.customProductName,l.name,l.description,p?.name,sku),qty:n(l.qty,l.quantity,l.receivedQty),unitCost:n(l.unitCost,l.cost),qc:txt(l.qc,l.qcDecision,l.decision,'Accepted'),nonStockPurchase:bool(l.nonStockPurchase),projectId:txt(l.projectId)}):null;};
+  return keyBy(rows.map((r,idx)=>({id:idOf(r)||`RECEIPT-${idx+1}`,poId:txt(r.poId,r.purchaseOrderId),supplierId:txt(r.supplierId),receivedAt:txt(r.receivedAt,r.createdAt,r.at,r.date),nonStockPurchase:bool(r.nonStockPurchase),projectId:txt(r.projectId),lines:(lineRows(r).length?lineRows(r).map(lineOf):[lineOf(r)]).filter(Boolean)})),x=>x.id);
 }
-
 function normaliseGoodsNotes(data,products){
   const resolveProduct=productResolver(data,products);
   return keyBy(arr(data.goodsNotes||data.deliveryNotes||data.shipments).map((g,idx)=>({id:idOf(g)||`GN-${idx+1}`,salesOrderId:txt(g.salesOrderId,g.orderId),status:txt(g.status),createdAt:txt(g.createdAt,g.created,g.date),carrier:txt(g.carrier),tracking:txt(g.tracking,g.trackingNumber),lines:lineRows(g).map(l=>{const p=resolveProduct(l),sku=p?.sku||explicitSkuOf(l)||productIdOf(l);return sku?{sku,name:txt(l.name,p?.name,sku),qty:n(l.qty,l.quantity),picked:n(l.picked,l.pickedQty),packed:n(l.packed,l.packedQty),shipped:n(l.shipped,l.shippedQty,l.qty)}:null;}).filter(Boolean)})),x=>x.id);

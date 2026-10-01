@@ -56,6 +56,7 @@ async function authUser(req){
   return r.json();
 }
 function normalizeRole(role){const raw=text(role)==='User'?'Office':text(role);return ROLE_IDS.includes(raw)?raw:'Office';}
+function membershipRoleToAppRole(role){const raw=text(role).toLowerCase();if(raw==='admin')return 'Admin';if(raw==='operator')return 'Office';if(raw==='viewer')return 'Office';return normalizeRole(role);}
 function security(workspace){const s=workspace?.securityControl;return s&&typeof s==='object'?s:{};}
 function explicitOverride(workspace,user,module,op='view'){
   const value=security(workspace)?.userOverrides?.[String(user.id)]?.[module]?.[op];
@@ -124,20 +125,29 @@ async function enrichFinance(workspace,workspaceId,authorization){
   return copy;
 }
 export async function loadAzzyPoolShedContext(req){
-  const auth=await authUser(req),workspaceId=WORKSPACE_ID,authorization=requestAuthorization(req);
+  const auth=await authUser(req),workspaceId=WORKSPACE_ID,authorization=requestAuthorization(req),hasServerAuthority=Boolean(supabaseServerKey(process.env));
+  // workspace_snapshots is protected by ps_workspace_can_read(workspace_id).
+  // Without a server secret, a successful authenticated snapshot read proves membership.
+  // Do not query ps_workspace_members directly because workspace hardening intentionally
+  // revokes authenticated table access to it.
+  const memberPromise=hasServerAuthority
+    ? rest(`ps_workspace_members?workspace_id=eq.${enc(workspaceId)}&user_id=eq.${enc(auth.id)}&select=workspace_id,user_id,role&limit=1`,{authorization})
+    : Promise.resolve(null);
   const [members,profiles,snapshots,revisions]=await Promise.all([
-    rest(`ps_workspace_members?workspace_id=eq.${enc(workspaceId)}&user_id=eq.${enc(auth.id)}&select=workspace_id,user_id,role&limit=1`,{authorization}),
+    memberPromise,
     rest(`user_profiles?id=eq.${enc(auth.id)}&select=id,full_name,email,role,active,permissions&limit=1`,{authorization,optional:true}),
     rest(`workspace_snapshots?workspace_id=eq.${enc(workspaceId)}&select=data,updated_at&limit=1`,{authorization}),
     rest(`ps_workspace_revisions?workspace_id=eq.${enc(workspaceId)}&select=id&order=id.desc&limit=1`,{authorization,optional:true})
   ]);
-  const member=members?.[0];if(!member)throw httpError('Azzy access denied for this workspace.',403);
+  const member=members?.[0]||null;
+  if(hasServerAuthority&&!member)throw httpError('Azzy access denied for this workspace.',403);
   const profile=profiles?.[0]||{};if(profile.active===false)throw httpError('This Pool Shed account is inactive.',403);
   const snapshot=snapshots?.[0];if(!snapshot?.data)throw httpError('Pool Shed workspace data is unavailable.',503);
-  const user={id:auth.id,full_name:profile.full_name||auth.user_metadata?.full_name||auth.email||'Pool Shed user',email:profile.email||auth.email||'',role:normalizeRole(profile.role||member.role),permissions:profile.permissions&&typeof profile.permissions==='object'?profile.permissions:{}};
-  const permissions=deriveAzzyPermissions(snapshot.data,user),revision=Number(revisions?.[0]?.id||0)+1;
+  const resolvedRole=profile.role?normalizeRole(profile.role):(member?membershipRoleToAppRole(member.role):membershipRoleToAppRole(auth.user_metadata?.role||'Office'));
+  const user={id:auth.id,full_name:profile.full_name||auth.user_metadata?.full_name||auth.email||'Pool Shed user',email:profile.email||auth.email||'',role:resolvedRole,permissions:profile.permissions&&typeof profile.permissions==='object'?profile.permissions:{}};
+  const permissions=deriveAzzyPermissions(snapshot.data,user),revisionRaw=Number(revisions?.[0]?.id),revision=Number.isFinite(revisionRaw)?revisionRaw+1:1;
   let workspace=snapshot.data;
   if(permissions.includes('finance.read'))workspace=await enrichFinance(workspace,workspaceId,authorization);
-  return {workspaceId,workspace,user,permissions,revision,updatedAt:snapshot.updated_at,membershipRole:member.role};
+  return {workspaceId,workspace,user,permissions,revision,updatedAt:snapshot.updated_at,membershipRole:member?.role||'authenticated-workspace-member',accessMode:hasServerAuthority?'server-authority':'authenticated-rls'};
 }
 export function azzyOriginAllowed(req){return appOriginAllowed(req,process.env);}

@@ -1,0 +1,10 @@
+import fs from 'node:fs';import assert from 'node:assert/strict';
+const js=fs.readFileSync('public/supplier-command-workspace.js','utf8'),css=fs.readFileSync('public/assets/css/system/49-supplier-command.css','utf8'),build=fs.readFileSync('scripts/build.sh','utf8');
+for(const token of ['SUPPLIER PROFILE','SUPPLIER OPERATIONS','CUSTOMER CASH COVER','BILLS & COMMITMENTS DUE','SUPPLIER PAYMENT TIMELINE','scSupplierAccountType','data-sc-open-sales-order','data-sc-open-po','openSupplierCommand'])assert(js.includes(token),'Option B missing '+token);
+for(const tab of ['Overview','Contacts','Products & Price Lists','Purchase Orders','Late & Backorders','Returns & Credits','Bills & Credits','Spend & Performance','Notes & Activity'])assert(js.includes(tab),'Supplier tab missing '+tab);
+for(const route of ["scState.tab==='Contacts'?contacts(name)","scState.tab==='Products & Price Lists'?products(name)","scState.tab==='Purchase Orders'?purchaseOrders(name)","scState.tab==='Late & Backorders'?lateBackorders(name)","scState.tab==='Returns & Credits'?returnsCredits(name)","scState.tab==='Bills & Credits'?billsCredits(name)","scState.tab==='Spend & Performance'?spendPerformance(name)","scState.tab==='Notes & Activity'?notesActivity(name)","return overview(name)"])assert(js.includes(route),'Supplier tab dispatcher missing '+route);
+assert(js.includes("if(el.dataset.scTab!==undefined){scState.tab=el.dataset.scTab"),'Supplier tabs must have a click handler');
+assert(css.includes('.sc-b-workspace-grid'),'Approved Option B workspace styling is not in production CSS');
+assert(css.includes('.supplier-funding-table'),'Supplier funding table styling is missing');
+assert(build.includes('test-supplier-option-b-v151.mjs'),'Option B regression guard must run on every production build');
+console.log('PASS approved Supplier Option B workspace, all tabs, funding controls and record navigation are protected by the build gate');

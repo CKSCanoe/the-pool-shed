@@ -26,6 +26,12 @@ export default async function handler(req,res){
     const ctx=await loadAzzyPoolShedContext(req),opts=runtimeOpts(ctx);
     const memoryLoad=action==='record'?{ok:true,skipped:true}:await safeMemory(()=>hydrateAzzyMemory(req,ctx),'memory load');
 
+    if(action==='diagnostics'){
+      if(req.method!=='GET')return send(res,405,{ok:false,error:'GET required.'});
+      const w=ctx.workspace||{};
+      return send(res,200,{ok:true,workspaceId:ctx.workspaceId,workspaceUpdatedAt:ctx.updatedAt,accessMode:ctx.accessMode||'unknown',role:ctx.user?.role||'',permissions:ctx.permissions||[],counts:{projects:Array.isArray(w.jobs||w.projects)?(w.jobs||w.projects).length:0,salesOrders:Array.isArray(w.salesOrders)?w.salesOrders.length:0,purchaseOrders:Array.isArray(w.purchaseOrders)?w.purchaseOrders.length:0,products:Array.isArray(w.products)?w.products.length:0,suppliers:Array.isArray(w.suppliers)?w.suppliers.length:0},memoryMode:azzyMemoryMode(),memoryHealthy:Boolean(memoryLoad.ok)});
+    }
+
     if(action==='bootstrap'){
       if(req.method!=='GET')return send(res,405,{ok:false,error:'GET required.'});
       const loginSession=String(url.searchParams.get('loginSession')||'').trim().slice(0,160);
@@ -98,7 +104,9 @@ export default async function handler(req,res){
     return send(res,404,{ok:false,error:'Unknown Azzy operation.'});
   }catch(e){
     console.error('Azzy API error',e);
-    const status=e.statusCode||500;
-    return send(res,status,{ok:false,error:status<500?e.message:'Azzy could not read the current Pool Shed workspace. Please try again.'});
+    const status=e.statusCode||500,raw=String(e?.message||'');
+    const stage=status===401?'authentication':status===403?'workspace-access':/workspace|data service|snapshot/i.test(raw)?'workspace-data':'runtime';
+    const code=status===401?'AZZY_AUTH_REQUIRED':status===403?'AZZY_WORKSPACE_DENIED':status===503?'AZZY_DEPENDENCY_UNAVAILABLE':'AZZY_RUNTIME_ERROR';
+    return send(res,status,{ok:false,code,stage,error:status<500?raw:(status===503&&raw?raw:'Azzy could not read the current Pool Shed workspace. Please try again.')});
   }
 }

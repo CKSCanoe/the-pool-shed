@@ -24,10 +24,13 @@ run_node_stage "workspace and sales safety" \
   test-sales-order-line-delete-v147.mjs \
   test-sales-order-entry-cards-v147.mjs \
   test-sales-order-unification-v149.mjs \
+  test-runtime-dead-code-v151.mjs \
   test-sales-order-vat-regression-v146.mjs \
   test-sales-order-subscriptions-v146.mjs
 
 run_node_stage "purchasing" \
+  test-supplier-command-workspace-v115.mjs \
+  test-supplier-option-b-v151.mjs \
   test-supplier-onboarding-v148.mjs \
   test-supplier-funding-v149.mjs \
   test-purchase-custom-lines-v150.mjs \
@@ -81,6 +84,8 @@ run_node_stage "authentication and backend compatibility" \
 run_node_stage "Azzy" \
   test-deployment-lock-v1271.mjs \
   test-azzy-origin-policy.mjs \
+  test-azzy-workspace-access-v151.mjs \
+  test-azzy-resilience-v151.mjs \
   test-azzy-jarvis-final.mjs \
   test-azzy-poolshed-ready-final.mjs \
   test-azzy-brain-gateway.mjs \

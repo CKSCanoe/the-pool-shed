@@ -25,6 +25,10 @@ function searchResultText(row){
 const contextKey=c=>c?.type&&c?.id?`${c.type}:${c.id}`:null;
 const sameContext=(a,b)=>contextKey(a)===contextKey(b);
 const projectContexts=contexts=>(contexts||[]).filter(c=>c.type==='project');
+function safeIntelligence(db,user){
+  try{return {...filterIntelligenceForUser(buildSignals(db),user),error:null};}
+  catch(error){console.warn('Azzy intelligence degraded',error?.message||error);return {signals:[],wins:[],error:String(error?.message||error||'Intelligence unavailable')};}
+}
 
 function contextLabel(db,c){
   if(!c)return 'Pool Shed';
@@ -75,7 +79,7 @@ function compose({intent,executions,session,user,contexts,primaryContext,deltas=
   }
   switch(intent){
     case 'greeting':{
-      const {signals,wins}=filterIntelligenceForUser(buildSignals(db),user),high=signals.filter(x=>x.severity>=80);
+      const {signals,wins}=safeIntelligence(db,user),high=signals.filter(x=>x.severity>=80);
       const hour=new Date().getHours(),hello=hour<12?'Morning':hour<18?'Afternoon':'Evening';answer=`${hello}, ${user.name}. I'm here.`;if(high.length)answer+=` ${high.length===1?'One thing needs':'A couple of things need'} your attention when you're ready.`;else if(wins.length)answer+=` Nothing critical is jumping out, and there is some good movement in the system.`;else answer+=` Nothing urgent is jumping out right now.`;
       followups=['What needs me today?','What changed?'];break;
     }
@@ -387,16 +391,21 @@ function watchedSignals(db,user,session){
 }
 
 export async function bootstrap(userId='aaron'){
-  const db=runtimeSnapshot(),user=currentUser(userId),brain=await brainHealth(),available=availableContexts(db,user);let session=memory.session(user.id);const safe=sanitiseContexts(db,user,session.contexts);if(safe.length!==session.contexts.length)session=memory.syncContexts(user.id,safe,session.primaryContext);
-  const {signals,wins}=filterIntelligenceForUser(buildSignals(db),user),attention=signals.map(x=>({...x,seen:session.seenSignals[x.id]===hash({title:x.title,summary:x.summary,severity:x.severity})})),watchSignals=watchedSignals(db,user,session);for(const w of watchSignals)if(!attention.some(a=>a.id===w.id))attention.unshift(w);
-  return {user,users:Object.values(db.users).map(x=>({id:x.id,name:x.name,role:x.role})),primaryContext:session.primaryContext,activeContexts:session.contexts,contexts:available,attention,wins,assistantReady:true,assistantMode:brain.connected&&brain.model?'enhanced':'core',brainConnected:Boolean(brain.connected),brainError:brain.connected?null:(brain.error||'Local brain unavailable'),dataMode:db.meta.mode,revision:db.meta.revision,audit:memory.auditFor(user.id),conversationId:session.conversationId,conversationStartedAt:session.conversationStartedAt,conversation:session.history.slice(-50),conversations:memory.conversationsFor(user.id),decisions:memory.decisionsFor(user.id,session.contexts),watches:memory.watchesFor(user.id)};
+  const db=runtimeSnapshot(),user=currentUser(userId),warnings=[];
+  let brain;try{brain=await brainHealth();}catch(error){warnings.push('Local brain health unavailable');brain={connected:false,model:null,error:String(error?.message||error||'Local brain unavailable')};}
+  let available=[];try{available=availableContexts(db,user);}catch(error){warnings.push('Record context index degraded');console.warn('Azzy context index degraded',error?.message||error);}
+  let session=memory.session(user.id);const safe=sanitiseContexts(db,user,session.contexts);if(safe.length!==session.contexts.length)session=memory.syncContexts(user.id,safe,session.primaryContext);
+  const intelligence=safeIntelligence(db,user);if(intelligence.error)warnings.push('Operational intelligence degraded');
+  const attention=intelligence.signals.map(x=>({...x,seen:session.seenSignals[x.id]===hash({title:x.title,summary:x.summary,severity:x.severity})}));
+  let watchSignals=[];try{watchSignals=watchedSignals(db,user,session);}catch(error){warnings.push('Watch signals degraded');console.warn('Azzy watches degraded',error?.message||error);}
+  for(const w of watchSignals)if(!attention.some(a=>a.id===w.id))attention.unshift(w);
+  return {user,users:Object.values(db.users).map(x=>({id:x.id,name:x.name,role:x.role})),primaryContext:session.primaryContext,activeContexts:session.contexts,contexts:available,attention,wins:intelligence.wins,assistantReady:true,assistantMode:brain.connected&&brain.model?'enhanced':'core',brainConnected:Boolean(brain.connected),brainError:brain.connected?null:(brain.error||'Local brain unavailable'),degradedWarnings:warnings,dataMode:db.meta.mode,revision:db.meta.revision,audit:memory.auditFor(user.id),conversationId:session.conversationId,conversationStartedAt:session.conversationStartedAt,conversation:session.history.slice(-50),conversations:memory.conversationsFor(user.id),decisions:memory.decisionsFor(user.id,session.contexts),watches:memory.watchesFor(user.id)};
 }
-
 export function updateWorkingContexts(userId,{action='add',context=null,contexts=[]}={}){
   const db=runtimeSnapshot(),user=currentUser(userId),targets=sanitiseContexts(db,user,context?[context]:contexts);if(!targets.length)return {ok:false,error:'No accessible record was supplied.'};let s;if(action==='add')s=memory.addContexts(user.id,targets);else if(action==='only')s=memory.setOnlyContexts(user.id,targets);else if(action==='remove'){s=memory.session(user.id);for(const c of targets)s=memory.removeContext(user.id,c);}else if(action==='primary')s=memory.setPrimaryContext(user.id,targets[0]);else return {ok:false,error:'Unknown context action.'};return {ok:true,activeContexts:s.contexts,primaryContext:s.primaryContext};
 }
 
-export function markAttentionSeen(userId,ids=[]){const user=currentUser(userId),db=runtimeSnapshot(),session=memory.session(user.id),{signals}=filterIntelligenceForUser(buildSignals(db),user),all=[...signals,...watchedSignals(db,user,session)],wanted=new Set(ids||[]),rows=all.filter(x=>wanted.has(x.id));for(const x of rows)memory.rememberSignal(user.id,x.id,hash({title:x.title,summary:x.summary,severity:x.severity}));return {ok:true,count:rows.length};}
+export function markAttentionSeen(userId,ids=[]){const user=currentUser(userId),db=runtimeSnapshot(),session=memory.session(user.id),{signals}=safeIntelligence(db,user),all=[...signals,...watchedSignals(db,user,session)],wanted=new Set(ids||[]),rows=all.filter(x=>wanted.has(x.id));for(const x of rows)memory.rememberSignal(user.id,x.id,hash({title:x.title,summary:x.summary,severity:x.severity}));return {ok:true,count:rows.length};}
 
 export async function approveAction(userId,actionIdValue){
   const user=currentUser(userId);if(!user.permissions.includes('actions.approve'))return {ok:false,error:'You do not have approval permission.'};

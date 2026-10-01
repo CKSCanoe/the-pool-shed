@@ -1,0 +1,18 @@
+import fs from 'node:fs';import assert from 'node:assert/strict';import {normalisePoolShedWorkspace} from '../server/azzy/integration/pool-shed-normalizer.js';
+const host=fs.readFileSync('public/azzy-jarvis-host.js','utf8'),agent=fs.readFileSync('server/azzy/src/core/agent.js','utf8'),api=fs.readFileSync('api/azzy.js','utf8');
+assert.match(host,/function bootHealthy\(\)/,'Azzy browser needs a healthy-boot guard');
+assert.doesNotMatch(host,/if\(state\.boot&&!force\)return state\.boot/,'A failed boot must not permanently suppress reconnection');
+assert.match(host,/error\?\.status===401/,'Azzy API client must refresh authentication after a 401');
+assert.match(host,/Retry connection/,'Azzy offline state needs an explicit retry route');
+assert.match(host,/addEventListener\('online'/,'Azzy should recover when browser connectivity returns');
+assert.match(agent,/function safeIntelligence/,'Azzy intelligence errors must degrade instead of taking down bootstrap');
+assert.equal((agent.match(/filterIntelligenceForUser\(buildSignals\(db\),user\)/g)||[]).length,1,'Only the guarded intelligence helper may call buildSignals directly');
+assert.match(api,/action==='diagnostics'/,'Azzy needs an authenticated diagnostics endpoint');
+const raw={suppliers:[{id:'SUP-1',name:'Builders Merchant',accountType:'Pro Forma',terms:'Pro Forma',creditLimit:0,address:{line1:'1 Trade Park',city:'Hereford'}}],products:[],stock:[],customers:[],jobs:[{id:'PRJ-1',name:'Pool build'}],salesOrders:[],purchaseOrders:[{id:'PO-1',supplier:'Builders Merchant',lines:[{productId:'POCUSTOM-1',lineType:'custom-purchase',nonStockPurchase:true,customProductName:'MOT Type 1',description:'Bulk bag',supplierSku:'MOT1',purchaseCategory:'Building materials',uom:'bag',qty:3,unitCost:65,taxCode:'20% VAT',projectId:'PRJ-1'}],nonStockReceipts:[{id:'NSR-1',lineId:'POCUSTOM-1',productId:'POCUSTOM-1',customProductName:'MOT Type 1',qty:1,projectId:'PRJ-1',decision:'Accepted',date:'2026-10-01'}]}]};
+const db=normalisePoolShedWorkspace(raw,{users:[{id:'U1',name:'User',role:'Admin',permissions:['projects.read','purchasing.read']}],revision:1,today:'2026-10-01'});
+assert.equal(db.suppliers['SUP-1'].accountType,'Pro Forma');
+assert.equal(db.purchaseOrders['PO-1'].lines[0].nonStockPurchase,true);
+assert.equal(db.purchaseOrders['PO-1'].lines[0].name,'MOT Type 1');
+assert.equal(db.purchaseOrders['PO-1'].lines[0].projectId,'PRJ-1');
+assert.ok(Object.values(db.goodsReceipts).some(r=>r.nonStockPurchase),'Azzy must see custom non-stock PO receipts');
+console.log('PASS Azzy recovers from transient failures and understands current supplier/custom-PO data');
