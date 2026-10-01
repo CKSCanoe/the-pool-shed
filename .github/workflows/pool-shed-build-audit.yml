@@ -18,6 +18,9 @@ jobs:
         uses: actions/setup-node@v4
         with:
           node-version: '24'
-          cache: 'npm'
+      - name: Install pnpm
+        run: npm install --global pnpm@10
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
       - name: Build and run production gates
         run: npm run build
