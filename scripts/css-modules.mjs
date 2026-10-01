@@ -43,4 +43,5 @@ export const CSS_MODULES = Object.freeze([
   "system/61-project-design-parity.css",
   "system/62-record-controls.css",
   "system/63-workspace-compatibility.css",
+  "system/64-project-reporting.css",
 ]);

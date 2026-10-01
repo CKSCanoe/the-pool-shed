@@ -47,6 +47,7 @@ run_node_stage "projects" \
   test-project-hire-v145.mjs \
   test-project-labour-v146.mjs \
   test-project-live-commercial-v147.mjs \
+  test-project-reporting-v153.mjs \
   test-project-settings-clean-v148.mjs \
   test-project-control-v144.mjs \
   test-project-email-v144.mjs \
