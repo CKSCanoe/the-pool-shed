@@ -14,6 +14,14 @@ assert.equal(s.labourAccrued,140000);assert.equal(s.labourForecast,140000);asser
 const joe=p.labour.find(x=>x.supplier==='Joe');apply('labour-stop',{id:joe.id,endDate:'2026-09-30'});assert.equal(joe.ongoing,false);assert.equal(joe.endDate,'2026-09-30');
 apply('labour-add',{supplier:'Joe',ref:'JOE-2',startDate:'2026-10-02',endDate:'2026-10-02',rateType:'half-day',rate:175,replaceRemaining:'no'});
 assert.equal(p.labour.filter(x=>x.supplier==='Joe').length,2,'return visits stay as separate labour periods');
+const joeReturn=p.labour.find(x=>x.ref==='JOE-2');
+apply('labour-edit',{id:joeReturn.id,supplier:'Joe',ref:'JOE-2',startDate:'2026-10-05',endDate:'2026-10-05',rateType:'day',rate:300,notes:'Corrected date and rate',replaceRemaining:'no'});
+assert.equal(joeReturn.startDate,'2026-10-05','labour start date can be corrected');
+assert.equal(joeReturn.endDate,'2026-10-05','labour end date can be corrected');
+assert.equal(joeReturn.rateType,'day');assert.equal(joeReturn.rate,300);assert.equal(joeReturn.notes,'Corrected date and rate');
+assert(joeReturn.updatedAt&&joeReturn.updatedBy,'labour edits retain an audit-friendly updated stamp');
+assert.throws(()=>apply('labour-edit',{id:joeReturn.id,supplier:'Joe',ref:'JOE-2',startDate:'2026-10-06',endDate:'2026-10-05',rateType:'day',rate:300,replaceRemaining:'no'}),/end date/);
+
 const weekendPeriod=c.PoolShedProjectEngine.labourCharge({startDate:'2026-10-02',endDate:'2026-10-05',rateType:'day',rate:350,ongoing:false},Date.parse('2026-10-05T12:00:00Z'));
 assert.equal(weekendPeriod.units,2,'Friday to Monday counts two working days, not four calendar days');
 assert.equal(weekendPeriod.accrued,700,'weekend days do not add labour cost');
@@ -29,4 +37,7 @@ assert.throws(()=>apply('labour-add',{supplier:'Mitch',ref:'BAD2',startDate:'202
 assert.throws(()=>apply('labour-add',{supplier:'Mitch',ref:'BAD3',startDate:'2026-09-30',endDate:'2026-09-30',rateType:'hour',rate:30}),/day rate or half-day rate/);
 const blockers=c.psProjectCloseoutBlockers(job,undefined,{},Date.parse('2026-10-02T12:00:00Z'));
 assert(blockers.some(x=>x.code==='OUTSTANDING_LABOUR'));
+const labourUi=fs.readFileSync('public/project-labour.js','utf8');
+assert.match(labourUi,/data-project-labour-edit/,'labour register exposes an Edit action');
+assert.match(labourUi,/data-project-form="labour-edit"/,'labour edit dialog saves through the project transaction authority');
 console.log('PASS project labour weekday-only day/half-day rates, inclusive dates, ongoing alerts, end dates, repeat visits and close-out protection');
