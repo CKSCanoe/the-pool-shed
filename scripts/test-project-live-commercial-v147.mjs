@@ -83,4 +83,9 @@ assert.equal(s.revenueSource,'quote-fallback');
 assert.equal(s.originalSellingValue,100000);
 assert.equal(s.revenue,120000,'With no active original SO, legacy accepted quote remains a safe fallback');
 
+const projectUi=fs.readFileSync('public/project-workspace.js','utf8');
+assert.match(projectUi,/Where the money goes/);
+assert.match(projectUi,/Live from Sales Orders and Purchase Orders/,'money view identifies its live source records');
+assert.match(projectUi,/data-open-so/,'money view links back to Sales Orders');
+assert.match(projectUi,/data-open-po/,'money view links back to Purchase Orders');
 console.log('PASS live SO project value, PO commitments, labour cost, extra SO replacement and quote fallback');
