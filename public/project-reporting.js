@@ -132,7 +132,7 @@ function psProjectReportModel(job,source=data,now=Date.now()){
  let horizonDays=30;if(target&&target>today)horizonDays=Math.max(7,Math.min(365,Math.ceil((Date.parse(target+'T00:00:00Z')-Date.parse(today+'T00:00:00Z'))/86400000)));
  const activeLabour=psProjectReportArray(p.labour).filter(a=>a.ongoing&&String(a.startDate||'')<=today),labourDaily=activeLabour.reduce((n,a)=>n+psProjectReportPence(a.rate||0),0);
  const activeHire=psProjectReportArray(source.toolAssignments).filter(a=>String(a.jobId)===String(job.id)&&a.chargeModel==='calendar-day'&&!a.lastChargeDate),hireDaily=activeHire.reduce((n,a)=>n+psProjectReportPence(a.dailyRate||0),0);
- const futureKnown=Math.max(0,Number(s.forecast||0)-Number(s.actual||0)-Number(s.toolAccrued||0)-Number(s.labourAccrued||0)-Number(s.toolFuture||0)-Number(s.labourFuture||0));
+ const futureKnown=Math.max(0,Number(s.forecast||0)-Number(s.actual||0)-Number(s.tools||0)-Number(s.labourFuture||0));
  const spreadDaily=Math.round(futureKnown/horizonDays),dailyBurn=Math.max(0,labourDaily+hireDaily+spreadDaily);
  const daysToZero=cashPosition>0&&dailyBurn>0?Math.max(0,Math.floor(cashPosition/dailyBurn)):cashPosition<=0?0:null;
  const zeroDate=daysToZero===null?'':new Date(Date.parse(today+'T12:00:00Z')+daysToZero*86400000).toISOString().slice(0,10);
