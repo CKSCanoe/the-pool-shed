@@ -70,8 +70,9 @@ function psProjectToolCharge(a,now=Date.now()) {
 }
 function psProjectLabourCharge(a,now=Date.now()){
  const today=psProjectUKDate(now),start=String(a?.startDate||''),ongoing=!!a?.ongoing,end=ongoing?today:String(a?.endDate||''),rate=Math.max(0,Number(a?.rate||0)),rateType=a?.rateType==='half-day'?'half-day':'day';
- const count=(from,to)=>psProjectDate(from)&&psProjectDate(to)&&to>=from?Math.round((Date.parse(to)-Date.parse(from))/86400000)+1:0;
- const accruedEnd=!psProjectDate(start)||today<start?'':ongoing?today:(!psProjectDate(end)?'':end<today?end:today),units=accruedEnd?count(start,accruedEnd):0,forecastUnits=ongoing?units:count(start,end),activeToday=psProjectDate(start)&&start<=today&&(ongoing||(psProjectDate(end)&&end>=today));
+ const isWeekday=value=>{if(!psProjectDate(value))return false;const day=new Date(value+'T00:00:00Z').getUTCDay();return day!==0&&day!==6;};
+ const count=(from,to)=>{if(!psProjectDate(from)||!psProjectDate(to)||to<from)return 0;let units=0;for(let cursor=Date.parse(from+'T00:00:00Z'),last=Date.parse(to+'T00:00:00Z');cursor<=last;cursor+=86400000){const day=new Date(cursor).getUTCDay();if(day!==0&&day!==6)units++;}return units;};
+ const accruedEnd=!psProjectDate(start)||today<start?'':ongoing?today:(!psProjectDate(end)?'':end<today?end:today),units=accruedEnd?count(start,accruedEnd):0,forecastUnits=ongoing?units:count(start,end),activeToday=psProjectDate(start)&&start<=today&&isWeekday(today)&&(ongoing||(psProjectDate(end)&&end>=today));
  return {units,forecastUnits,accrued:Math.round(units*rate*100)/100,forecast:Math.round(forecastUnits*rate*100)/100,future:Math.round(Math.max(0,forecastUnits-units)*rate*100)/100,running:ongoing&&start<=today,activeToday,rateType,unitLabel:rateType==='half-day'?'half-days':'days'};
 }
 function psProjectToolApply(j,p,v,now,action){
