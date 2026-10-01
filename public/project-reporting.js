@@ -103,7 +103,8 @@ function psProjectReportRecordSnapshot(job,s,reason,at){
 }
 function psProjectReportModel(job,source=data,now=Date.now()){
  const p=psProjectModel(job),s=psProjectSummary(job,source,now),original=psProjectReportOriginal(job,p,s,source),finance=psProjectReportFinance(job,s);
- const receivableBySource=new Map(finance.receivables.map(d=>[String(d.source_id),d])),payableBySource=new Map(finance.payables.map(d=>[String(d.source_id),d]));
+ const groupDocsBySource=docs=>{const map=new Map();docs.forEach(d=>{const key=String(d.source_id||'');if(!key)return;const list=map.get(key);if(list)list.push(d);else map.set(key,[d]);});return map;};
+ const receivableBySource=groupDocsBySource(finance.receivables),payableBySource=groupDocsBySource(finance.payables);
  const invoiceRows=finance.receivables.map(doc=>{
   const net=psProjectReportDocNetInfo(doc),gross=psProjectReportDocGrossPence(doc);
   return {id:String(doc.id||''),reference:psProjectReportDocNumber(doc),sourceId:String(doc.source_id||''),date:psProjectReportIso(doc.remote?.DateString||doc.remote?.Date||doc.issue_date||doc.created_at),dueDate:psProjectReportIso(doc.remote?.DueDateString||doc.remote?.DueDate||doc.due_date),net:net.value,gross,paid:psProjectReportPence(doc.amount_paid),outstanding:psProjectReportPence(doc.amount_due),status:psProjectReportDocStatus(doc),exactNet:net.exact};
@@ -122,12 +123,14 @@ function psProjectReportModel(job,source=data,now=Date.now()){
   purchaseInvoices.push({id:'PO-FALLBACK-'+po.id,reference:reference||('PI for '+po.id),poId:String(po.id),supplier:String(po.supplier||'Supplier'),date:psProjectReportIso(po.supplierInvoiceDate||po.invoiceDate||po.date),dueDate:psProjectReportIso(po.paymentDue||po.due),net,gross,vat:Math.max(0,gross-net),paid:psProjectReportArray(po.payments).reduce((n,pay)=>n+psProjectReportPence(pay.amount),0),outstanding:Math.max(0,gross-psProjectReportArray(po.payments).reduce((n,pay)=>n+psProjectReportPence(pay.amount),0)),status:'Recorded on PO',exactNet:false});
  });
  const salesOrders=psProjectReportArray(s.orders).map(order=>{
-  const doc=receivableBySource.get(String(order.id)),net=psProjectReportOrderNetPence(order,source),fallbackPaid=psProjectReportArray(order.payments).reduce((n,pay)=>n+psProjectReportPence(pay.amount),0);
-  return {id:String(order.id),status:String(order.status||'Open'),date:psProjectReportIso(order.date||order.orderDate||order.createdAt||order.acceptedAt),quoteRef:String(order.quoteRef||''),scope:order.variationId?'Extra':'Original',net,paid:doc?psProjectReportPence(doc.amount_paid):fallbackPaid,invoiced:doc?psProjectReportDocNetInfo(doc).value:0,outstanding:doc?psProjectReportPence(doc.amount_due):0};
+  const docs=receivableBySource.get(String(order.id))||[],net=psProjectReportOrderNetPence(order,source),fallbackPaid=psProjectReportArray(order.payments).reduce((n,pay)=>n+psProjectReportPence(pay.amount),0);
+  const invoiced=docs.reduce((n,doc)=>n+psProjectReportDocNetInfo(doc).value,0),paid=docs.reduce((n,doc)=>n+psProjectReportPence(doc.amount_paid),0),outstanding=docs.reduce((n,doc)=>n+psProjectReportPence(doc.amount_due),0);
+  return {id:String(order.id),status:String(order.status||'Open'),date:psProjectReportIso(order.date||order.orderDate||order.createdAt||order.acceptedAt),quoteRef:String(order.quoteRef||''),scope:order.variationId?'Extra':'Original',net,paid:docs.length?paid:fallbackPaid,invoiced,outstanding:docs.length?outstanding:0};
  });
  const poRows=psProjectReportArray(s.poRows).map(row=>{
-  const po=row.po,doc=payableBySource.get(String(po.id)),bill=doc?psProjectReportDocNetInfo(doc):{value:0,exact:true},fallbackPaid=psProjectReportArray(po.payments).reduce((n,pay)=>n+psProjectReportPence(pay.amount),0);
-  return {id:String(po.id),supplier:String(po.supplier||'Supplier'),status:String(po.status||'Draft'),date:psProjectReportIso(po.date||po.orderDate||po.createdAt),due:psProjectReportIso(po.due||po.eta||po.expectedDate),ordered:Number(row.total||0),received:Number(row.received||0),open:Number(row.open||0),invoiced:doc?bill.value:(psProjectReportNum(po.supplierInvoiceTotal||po.invoiceTotal)?psProjectReportPence(po.supplierInvoiceTotal||po.invoiceTotal):0),paid:doc?psProjectReportPence(doc.amount_paid):fallbackPaid,outstanding:doc?psProjectReportPence(doc.amount_due):Math.max(0,psProjectReportPence(po.supplierInvoiceTotal||po.invoiceTotal||0)-fallbackPaid),billReference:doc?psProjectReportDocNumber(doc):String(po.supplierInvoiceRef||po.invoiceRef||''),exactNet:doc?bill.exact:!psProjectReportNum(po.supplierInvoiceTotal||po.invoiceTotal),lines:psProjectReportArray(row.lines).map(line=>{const unit=psProjectReportNum(line.unitCost??line.cost??source.products?.find(x=>x.id===line.productId)?.cost);return {name:psProjectReportProductName(line,source),sku:psProjectReportProductSku(line,source),qty:psProjectReportNum(line.qty),received:psProjectReportNum(line.received),unitCost:unit,lineCost:psProjectReportPence(psProjectReportNum(line.qty)*unit)};})};
+  const po=row.po,docs=payableBySource.get(String(po.id))||[],bills=docs.map(psProjectReportDocNetInfo),fallbackPaid=psProjectReportArray(po.payments).reduce((n,pay)=>n+psProjectReportPence(pay.amount),0);
+  const invoiced=docs.reduce((n,doc)=>n+psProjectReportDocNetInfo(doc).value,0),paid=docs.reduce((n,doc)=>n+psProjectReportPence(doc.amount_paid),0),outstanding=docs.reduce((n,doc)=>n+psProjectReportPence(doc.amount_due),0),fallbackInvoice=psProjectReportPence(po.supplierInvoiceTotal||po.invoiceTotal||0);
+  return {id:String(po.id),supplier:String(po.supplier||'Supplier'),status:String(po.status||'Draft'),date:psProjectReportIso(po.date||po.orderDate||po.createdAt),due:psProjectReportIso(po.due||po.eta||po.expectedDate),ordered:Number(row.total||0),received:Number(row.received||0),open:Number(row.open||0),invoiced:docs.length?invoiced:fallbackInvoice,paid:docs.length?paid:fallbackPaid,outstanding:docs.length?outstanding:Math.max(0,fallbackInvoice-fallbackPaid),billReference:docs.length?[...new Set(docs.map(psProjectReportDocNumber))].join(', '):String(po.supplierInvoiceRef||po.invoiceRef||''),exactNet:docs.length?bills.every(b=>b.exact):!psProjectReportNum(po.supplierInvoiceTotal||po.invoiceTotal),lines:psProjectReportArray(row.lines).map(line=>{const unit=psProjectReportNum(line.unitCost??line.cost??source.products?.find(x=>x.id===line.productId)?.cost);return {name:psProjectReportProductName(line,source),sku:psProjectReportProductSku(line,source),qty:psProjectReportNum(line.qty),received:psProjectReportNum(line.received),unitCost:unit,lineCost:psProjectReportPence(psProjectReportNum(line.qty)*unit)};})};
  });
  const supplierMap=new Map();poRows.forEach(row=>{const key=row.supplier,current=supplierMap.get(key)||{supplier:key,ordered:0,received:0,open:0,invoiced:0,paid:0,outstanding:0,pos:[]};current.ordered+=row.ordered;current.received+=row.received;current.open+=row.open;current.invoiced+=row.invoiced;current.paid+=row.paid;current.outstanding+=row.outstanding;current.pos.push(row);supplierMap.set(key,current);});
  const suppliers=[...supplierMap.values()].sort((a,b)=>b.ordered-a.ordered);
@@ -146,11 +149,11 @@ function psProjectReportModel(job,source=data,now=Date.now()){
  const nextCustomerDue=invoiceRows.filter(r=>r.outstanding>0&&r.dueDate).sort((a,b)=>a.dueDate.localeCompare(b.dueDate))[0]||null;
  const runway={cashPosition,dailyBurn,daysToZero,zeroDate,nextCustomerDue,horizonDays,customerCash,supplierCash,directActual,activeLabour:activeLabour.length,activeHire:activeHire.length,scenario:true};
  const costSources=[
-  {name:'Actual recorded costs',value:Number(s.actual||0),kind:'actual'},
-  {name:'Received PO estimates',value:Number(s.estimatedReceived||0),kind:'committed'},
-  {name:'Outstanding commitments',value:Number(s.committed||0),kind:'committed'},
-  {name:'Remaining forecast',value:Number(s.uncommitted||0),kind:'forecast'},
-  {name:'Tools and hire',value:Number(s.tools||0),kind:'forecast'},
+  {name:'Actual costs recorded',value:Number(s.actual||0),kind:'actual'},
+  {name:'Received goods awaiting invoice',value:Number(s.estimatedReceived||0),kind:'committed'},
+  {name:'Open committed costs',value:Number(s.committed||0),kind:'committed'},
+  {name:'Other remaining forecast',value:Number(s.uncommitted||0),kind:'forecast'},
+  {name:'Hire & tools',value:Number(s.tools||0),kind:'forecast'},
   {name:'Future labour',value:Number(s.labourFuture||0),kind:'forecast'}
  ].filter(x=>x.value>0);
  const labour=psProjectReportArray(p.labour).map(a=>{const c=psProjectLabourCharge(a,now),rateType=String(a.rateType||'day');return {id:String(a.id||''),person:String(a.supplier||a.employee||'Team').trim().replace(/\s+/g,' '),reference:String(a.ref||''),start:String(a.startDate||''),end:a.ongoing?'Ongoing':String(a.endDate||''),rate:psProjectReportPence(a.rate||0),rateType,units:c.units,forecastUnits:c.forecastUnits,dayEquivalent:c.units*(rateType==='half-day'?0.5:1),forecastDayEquivalent:c.forecastUnits*(rateType==='half-day'?0.5:1),accrued:psProjectReportPence(c.accrued),forecast:psProjectReportPence(c.forecast),ongoing:!!a.ongoing};});
@@ -310,8 +313,16 @@ function psProjectReportPdf(model){
  const drawHeader=(title,sub)=>{
   const {w}=size();
   doc.setFillColor(...brand);doc.rect(0,0,w,24,'F');
-  doc.setTextColor(...white);doc.setFont('helvetica','bold');doc.setFontSize(13);doc.text('POOL BROS',14,9);
-  doc.setFontSize(8);doc.setFont('helvetica','normal');doc.text('PROJECT FINANCIAL REPORT',14,15);
+  let brandX=14;
+  try{
+   const logo=document.querySelector('#brandMark img');
+   if(logo?.complete&&logo.naturalWidth&&logo.naturalHeight){
+    const logoH=18,logoW=Math.min(27,logoH*(logo.naturalWidth/logo.naturalHeight));
+    doc.addImage(logo,'PNG',14,3,logoW,logoH,undefined,'FAST');brandX=18+logoW;
+   }
+  }catch{}
+  doc.setTextColor(...white);doc.setFont('helvetica','bold');doc.setFontSize(12);doc.text('POOL SHED · BY POOL BROS',brandX,9);
+  doc.setFontSize(8);doc.setFont('helvetica','normal');doc.text('PROJECT FINANCIAL REPORT',brandX,15);
   doc.setFont('helvetica','bold');doc.setFontSize(9);doc.text(title,w-14,9,{align:'right'});
   if(sub){doc.setFont('helvetica','normal');doc.setFontSize(7.5);doc.text(doc.splitTextToSize(sub,95),w-14,14,{align:'right'});}
   doc.setTextColor(...ink);meta(title,sub);
@@ -380,7 +391,7 @@ function psProjectReportPdf(model){
   return (d>=0?'+':'-')+moneyP(Math.abs(d));
  };
  const allPoLines=[];
- model.poRows.forEach(po=>po.lines.forEach(line=>allPoLines.push([po.supplier,po.id,line.name,line.sku,String(line.qty),String(line.received),moneyP(Math.round(Number(line.unitCost||0)*100)),moneyP(line.lineCost)])));
+ model.poRows.forEach(po=>po.lines.forEach(line=>allPoLines.push([po.supplier+'\n'+po.id,line.name,line.sku,String(line.qty),String(line.received),moneyP(Math.round(Number(line.unitCost||0)*100)),moneyP(line.lineCost)])));
 
  const statementRows=[];
  const statementDate=v=>psProjectReportIso(v)||'';
@@ -398,13 +409,13 @@ function psProjectReportPdf(model){
  model.salesOrders.forEach(o=>{
   const raw=psProjectReportArray(model.s.orders).find(x=>String(x.id)===String(o.id))||{};
   addStatement({date:raw.orderDate||raw.date||raw.createdAt,type:'Sales Order',reference:o.id,party:customerName,
-   description:o.scope+' project revenue',stage:'Sold value',value:o.net,cash:o.paid?statementCash(o.paid,'in'):'—',outstanding:o.outstanding,status:o.status});
+   description:o.scope+' project revenue',stage:'Sold value',value:o.net,cash:o.paid&&!o.invoiced?statementCash(o.paid,'in'):'—',outstanding:o.invoiced?0:o.outstanding,status:o.status});
  });
  model.invoiceRows.forEach(r=>addStatement({date:r.date,type:'Customer Invoice',reference:r.reference,party:customerName,
   description:'Linked to '+(r.sourceId||'project'),stage:'Customer invoice',value:r.net,cash:r.paid?statementCash(r.paid,'in'):'—',outstanding:r.outstanding,status:r.status}));
  model.poRows.forEach(po=>{
   addStatement({date:po.date,type:'Purchase Order',reference:po.id,party:po.supplier,description:'Supplier order',
-   stage:'Committed cost',value:po.ordered,cash:po.paid?statementCash(po.paid,'out'):'—',outstanding:po.outstanding,status:po.status});
+   stage:'Committed cost',value:po.ordered,cash:po.paid&&!po.invoiced?statementCash(po.paid,'out'):'—',outstanding:po.invoiced?0:po.outstanding,status:po.status});
   po.lines.forEach(line=>addStatement({date:po.date,type:'PO Line',reference:po.id,party:po.supplier,
    description:line.name+' · '+line.sku+' · Qty '+line.qty+' · Received '+line.received,stage:'Order line detail',
    value:line.lineCost,cash:'—',outstanding:0,status:po.status}));
@@ -494,38 +505,27 @@ function psProjectReportPdf(model){
  kpi(109,y,87,31,'PI / SUPPLIER INVOICED',moneyP(piNet),'Supplier invoices linked to project','neutral');
  y+=38;
  kpi(14,y,87,31,'SUPPLIER CASH PAID',moneyP(model.supplierCash),'Recorded supplier payments','neutral');
- kpi(109,y,87,31,'OPEN PO COMMITMENT',moneyP(poOpen),'Still open on linked Purchase Orders',poOpen>0?'warn':'good');
+ kpi(109,y,87,31,'REMAINING PO COMMITMENT',moneyP(poOpen),'Net value still open on linked Purchase Orders',poOpen>0?'warn':'good');
  y+=45;
- y=section('Largest supplier commitments','Quick supplier view',y);
- if(model.suppliers.length){
-  const topSuppliers=model.suppliers.slice().sort((a,b)=>b.ordered-a.ordered).slice(0,5),maxSupplier=Math.max(1,...topSuppliers.map(x=>x.ordered));
-  topSuppliers.forEach(sup=>{
+ y=section('Largest remaining supplier commitments','Quick supplier view',y);
+ const openSuppliers=model.suppliers.filter(x=>x.open>0).sort((a,b)=>b.open-a.open).slice(0,5);
+ if(openSuppliers.length){
+  const maxSupplier=Math.max(1,...openSuppliers.map(x=>x.open));
+  openSuppliers.forEach(sup=>{
    doc.setTextColor(...ink);doc.setFont('helvetica','normal');doc.setFontSize(8);doc.text(doc.splitTextToSize(sup.supplier,48),14,y+4);
-   doc.setFillColor(230,236,236);doc.roundedRect(68,y,90,5,2,2,'F');doc.setFillColor(...aqua);doc.roundedRect(68,y,90*sup.ordered/maxSupplier,5,2,2,'F');
-   doc.setFont('helvetica','bold');doc.text(moneyP(sup.ordered),196,y+4,{align:'right'});y+=11;
+   doc.setFillColor(230,236,236);doc.roundedRect(68,y,90,5,2,2,'F');doc.setFillColor(...aqua);doc.roundedRect(68,y,90*sup.open/maxSupplier,5,2,2,'F');
+   doc.setFont('helvetica','bold');doc.text(moneyP(sup.open),196,y+4,{align:'right'});y+=11;
   });
- }else y=empty('No linked supplier commitments yet.',y);
+ }else y=empty('No remaining supplier PO commitments.',y);
  y+=5;
  const issueCount=model.checks.filter(x=>x.severity==='bad'||x.severity==='warn').length;
  y=note(issueCount?issueCount+' financial reporting check'+(issueCount===1?' needs':'s need')+' attention. Full details are included in the appendix.':'No current financial reporting exceptions were found. Full source detail is included in the appendix.',y,issueCount?'warn':'good');
 
- addPage('portrait','Detailed appendix');
- const {w:appendixW,h:appendixH}=size();
- doc.setTextColor(...muted);doc.setFont('helvetica','bold');doc.setFontSize(8);doc.text('DETAILED PROJECT STATEMENT & AUDIT APPENDIX',14,47);
- doc.setTextColor(...ink);doc.setFontSize(25);doc.text('Every record behind the report',14,62);
- doc.setFont('helvetica','normal');doc.setFontSize(10);doc.setTextColor(...muted);
- doc.text(doc.splitTextToSize('The following pages show the detailed Sales Orders, customer invoices, supplier commitments, Purchase Order lines, purchase invoices, labour, hire/tools and project ledger records that sit behind the management summary.',175),14,74);
- doc.setFillColor(...light);doc.setDrawColor(...line);doc.roundedRect(14,102,182,52,3,3,'FD');
- doc.setTextColor(...ink);doc.setFont('helvetica','bold');doc.setFontSize(11);doc.text('Important: lifecycle records are linked, not additive.',20,114);
- doc.setFont('helvetica','normal');doc.setFontSize(8.5);doc.setTextColor(...muted);
- doc.text(doc.splitTextToSize('A PO, its PI and its supplier payment can describe the same underlying spend at different stages. Likewise, a quote, Sales Order, invoice and payment can describe the same customer revenue. The reconciled totals shown in this report count each commercial amount once.',166),20,123);
- doc.setTextColor(...ink);doc.setFont('helvetica','bold');doc.setFontSize(10);doc.text('Use the appendix to trace a number back to its source record.',14,171);
- doc.setFont('helvetica','normal');doc.setFontSize(8.5);doc.setTextColor(...muted);
- doc.text('The final Detailed Project Statement is chronological and includes every reporting record currently linked to this project.',14,181);
-
  addPage('landscape','Appendix · Sales & customer invoices');
- y=section('Sales Orders','Revenue source',34);
- y=table(['Sales Order','Scope','Status','Sell net','Invoiced net','Paid cash','Outstanding cash'],model.salesOrders.map(x=>[x.id,x.scope,x.status,moneyP(x.net),moneyP(x.invoiced),moneyP(x.paid),moneyP(x.outstanding)]),y,{
+ y=section('Audit appendix','Source records behind the management report',34);
+ y=note('The appendix is for traceability. Quotes, Sales Orders, invoices, Purchase Orders, supplier invoices and payments are lifecycle stages, so they must not be added together. The final Detailed Project Statement gives the chronological source trail.',y,'neutral')+8;
+ y=section('Sales Orders','Revenue source',y);
+ y=table(['Sales Order','Scope','Status','Sold net','Invoiced net','Cash received','Cash due'],model.salesOrders.map(x=>[x.id,x.scope,x.status,moneyP(x.net),moneyP(x.invoiced),moneyP(x.paid),moneyP(x.outstanding)]),y,{
   empty:'No linked Sales Orders.',
   rightCols:[3,4,5,6],boldCols:[0],
   columnStyles:{0:{cellWidth:30},1:{cellWidth:26},2:{cellWidth:27},3:{cellWidth:34},4:{cellWidth:34},5:{cellWidth:34},6:{cellWidth:38}}
@@ -533,50 +533,49 @@ function psProjectReportPdf(model){
  y=doc.lastAutoTable?.finalY||y;y+=10;
  if(y>170){addPage('landscape','Appendix · Customer invoices');y=34;}
  else y=section('Customer invoices','Invoiced and paid',y);
- table(['Invoice','Source','Invoice date','Due date','Net','Gross','Paid cash','Outstanding cash','Status'],model.invoiceRows.map(x=>[x.reference,x.sourceId,psProjectReportDateLabel(x.date),psProjectReportDateLabel(x.dueDate),moneyP(x.net),moneyP(x.gross),moneyP(x.paid),moneyP(x.outstanding),x.status]),y,{
+ table(['Invoice','Sales Order / source','Invoice date','Due date','Net value','Gross incl VAT','Cash received','Cash due','Status'],model.invoiceRows.map(x=>[x.reference,x.sourceId,psProjectReportDateLabel(x.date),psProjectReportDateLabel(x.dueDate),moneyP(x.net),moneyP(x.gross),moneyP(x.paid),moneyP(x.outstanding),x.status]),y,{
   empty:'No linked customer invoices.',
   rightCols:[4,5,6,7],boldCols:[0],
-  columnStyles:{0:{cellWidth:28},1:{cellWidth:30},2:{cellWidth:27},3:{cellWidth:27},4:{cellWidth:30},5:{cellWidth:30},6:{cellWidth:30},7:{cellWidth:34},8:{cellWidth:28}}
+  columnStyles:{0:{cellWidth:27},1:{cellWidth:31},2:{cellWidth:26},3:{cellWidth:26},4:{cellWidth:29},5:{cellWidth:31},6:{cellWidth:29},7:{cellWidth:32},8:{cellWidth:27}}
  });
 
  addPage('landscape','Appendix · Suppliers & Purchase Orders');
  y=section('Supplier summary','Committed, invoiced and paid',34);
- y=table(['Supplier','Ordered net','PI net','Paid cash','Outstanding cash','Open PO'],model.suppliers.map(x=>[x.supplier,moneyP(x.ordered),moneyP(x.invoiced),moneyP(x.paid),moneyP(x.outstanding),moneyP(x.open)]),y,{
+ y=table(['Supplier','Ordered net','Received net','PI net','Cash paid','Cash due','Remaining PO'],model.suppliers.map(x=>[x.supplier,moneyP(x.ordered),moneyP(x.received),moneyP(x.invoiced),moneyP(x.paid),moneyP(x.outstanding),moneyP(x.open)]),y,{
   empty:'No project supplier spend yet.',
-  rightCols:[1,2,3,4,5],boldCols:[0],
-  columnStyles:{0:{cellWidth:70},1:{cellWidth:38},2:{cellWidth:38},3:{cellWidth:38},4:{cellWidth:40},5:{cellWidth:38}}
+  rightCols:[1,2,3,4,5,6],boldCols:[0],
+  columnStyles:{0:{cellWidth:58},1:{cellWidth:32},2:{cellWidth:32},3:{cellWidth:32},4:{cellWidth:32},5:{cellWidth:32},6:{cellWidth:32}}
  });
  y=(doc.lastAutoTable?.finalY||y)+10;
  if(y>170){addPage('landscape','Appendix · Purchase Order summary');y=34;}else y=section('Purchase Order summary','One row per PO',y);
- table(['PO','Supplier','Status','Ordered','Received','Open','PI net','Paid','Outstanding'],model.poRows.map(x=>[x.id,x.supplier,x.status,moneyP(x.ordered),moneyP(x.received),moneyP(x.open),moneyP(x.invoiced),moneyP(x.paid),moneyP(x.outstanding)]),y,{
+ table(['PO','Supplier','Status','Ordered net','Received net','Remaining PO','PI net','Cash due'],model.poRows.map(x=>[x.id,x.supplier,x.status,moneyP(x.ordered),moneyP(x.received),moneyP(x.open),moneyP(x.invoiced),moneyP(x.outstanding)]),y,{
   empty:'No linked Purchase Orders.',
-  rightCols:[3,4,5,6,7,8],boldCols:[0],
-  columnStyles:{0:{cellWidth:25},1:{cellWidth:55},2:{cellWidth:27},3:{cellWidth:30},4:{cellWidth:30},5:{cellWidth:30},6:{cellWidth:30},7:{cellWidth:30},8:{cellWidth:34}}
+  rightCols:[3,4,5,6,7],boldCols:[0],
+  columnStyles:{0:{cellWidth:24},1:{cellWidth:50},2:{cellWidth:25},3:{cellWidth:30},4:{cellWidth:32},5:{cellWidth:32},6:{cellWidth:30},7:{cellWidth:32}}
  });
 
  addPage('landscape','Appendix · Purchase Order line detail');
  y=section('Purchase Order product lines','Full supplier cost detail',34);
- table(['Supplier','PO','Product / description','SKU','Qty','Received','Unit cost','Line total'],allPoLines,y,{
+ table(['Supplier / PO','Product / description','SKU','Qty ordered','Qty received','Unit cost','Line total'],allPoLines,y,{
   empty:'No Purchase Order product lines.',
-  rightCols:[4,5,6,7],boldCols:[1],
+  rightCols:[3,4,5,6],boldCols:[0],
   fontSize:7.8,
-  columnStyles:{0:{cellWidth:45},1:{cellWidth:23},2:{cellWidth:78},3:{cellWidth:31},4:{cellWidth:18},5:{cellWidth:21},6:{cellWidth:30},7:{cellWidth:32}}
+  columnStyles:{0:{cellWidth:50},1:{cellWidth:84},2:{cellWidth:30},3:{cellWidth:20},4:{cellWidth:22},5:{cellWidth:30},6:{cellWidth:31}}
  });
 
  addPage('landscape','Appendix · Purchase invoices / PI');
  y=section('Purchase invoices / PI','Supplier bill register',34);
- table(['PI / invoice','Supplier','PO','Invoice date','Due date','Net','VAT','Gross','Paid','Outstanding','Status'],model.purchaseInvoices.map(x=>[x.reference,x.supplier,x.poId,psProjectReportDateLabel(x.date),psProjectReportDateLabel(x.dueDate),moneyP(x.net),moneyP(x.vat),moneyP(x.gross),moneyP(x.paid),moneyP(x.outstanding),x.status]),y,{
+ table(['PI / invoice','Supplier','PO','Invoice date','Due date','Net cost','Gross incl VAT','Cash paid','Cash due','Status'],model.purchaseInvoices.map(x=>[x.reference,x.supplier,x.poId,psProjectReportDateLabel(x.date),psProjectReportDateLabel(x.dueDate),moneyP(x.net),moneyP(x.gross),moneyP(x.paid),moneyP(x.outstanding),x.status]),y,{
   empty:'No linked supplier invoices / PIs.',
-  rightCols:[5,6,7,8,9],boldCols:[0],
+  rightCols:[5,6,7,8],boldCols:[0],
   fontSize:7.5,
-  columnStyles:{0:{cellWidth:25},1:{cellWidth:42},2:{cellWidth:22},3:{cellWidth:25},4:{cellWidth:25},5:{cellWidth:26},6:{cellWidth:24},7:{cellWidth:27},8:{cellWidth:27},9:{cellWidth:32},10:{cellWidth:24}}
+  columnStyles:{0:{cellWidth:24},1:{cellWidth:42},2:{cellWidth:22},3:{cellWidth:23},4:{cellWidth:23},5:{cellWidth:27},6:{cellWidth:28},7:{cellWidth:27},8:{cellWidth:27},9:{cellWidth:24}}
  });
 
  addPage('landscape','Appendix · Labour');
  y=section('Labour cost performance','Project time cost',34);
- table(['Person','Entries','Period','Time worked','Cost to date','Remaining forecast','Forecast total'],model.labourByPerson.map(x=>[
+ table(['Person','Period','Time worked','Cost to date','Remaining forecast','Forecast total'],model.labourByPerson.map(x=>[
   x.person,
-  String(x.entries),
   psProjectReportDateLabel(x.firstStart)+' → '+(x.ongoing?'Ongoing':psProjectReportDateLabel(x.lastEnd)),
   psProjectReportLabourTime(x),
   moneyP(x.accrued),
@@ -584,18 +583,27 @@ function psProjectReportPdf(model){
   moneyP(x.forecast)
  ]),y,{
   empty:'No project labour periods.',
-  rightCols:[1,4,5,6],boldCols:[0],
+  rightCols:[3,4,5],boldCols:[0],
   fontSize:7.8,
-  columnStyles:{0:{cellWidth:45},1:{cellWidth:20},2:{cellWidth:53},3:{cellWidth:73},4:{cellWidth:32},5:{cellWidth:36},6:{cellWidth:34}}
+  columnStyles:{0:{cellWidth:42},1:{cellWidth:52},2:{cellWidth:70},3:{cellWidth:32},4:{cellWidth:35},5:{cellWidth:34}}
  });
 
  addPage('landscape','Appendix · Hire & tools');
  y=section('Hire & tools','Equipment cost',34);
- table(['Item','Supplier','Reference','Type','Start','End','Daily rate','Purchase cost','Accrued','Forecast','Status'],model.tools.map(x=>[x.name,x.supplier,x.reference,x.mode,psProjectReportDateLabel(x.start),x.end?psProjectReportDateLabel(x.end):'Open',moneyP(x.dailyRate),moneyP(x.purchaseNet),moneyP(x.accrued),moneyP(x.forecast),x.running?'Running':'Stopped']),y,{
+ table(['Item','Supplier','Type','Period','Rate / purchase','Cost to date','Forecast total','Status'],model.tools.map(x=>[
+  x.name,
+  x.supplier,
+  x.mode,
+  psProjectReportDateLabel(x.start)+' → '+(x.end?psProjectReportDateLabel(x.end):'Open'),
+  x.mode==='Purchase'?moneyP(x.purchaseNet)+' purchase':moneyP(x.dailyRate)+'/day',
+  moneyP(x.accrued),
+  moneyP(x.forecast),
+  x.running?'Running':'Stopped'
+ ]),y,{
   empty:'No project tools or hire records.',
-  rightCols:[6,7,8,9],boldCols:[0],
+  rightCols:[5,6],boldCols:[0],
   fontSize:7.6,
-  columnStyles:{0:{cellWidth:46},1:{cellWidth:40},2:{cellWidth:28},3:{cellWidth:21},4:{cellWidth:26},5:{cellWidth:26},6:{cellWidth:28},7:{cellWidth:31},8:{cellWidth:29},9:{cellWidth:29},10:{cellWidth:24}}
+  columnStyles:{0:{cellWidth:45},1:{cellWidth:36},2:{cellWidth:20},3:{cellWidth:48},4:{cellWidth:34},5:{cellWidth:31},6:{cellWidth:31},7:{cellWidth:23}}
  });
 
  addPage('portrait','Appendix · Reconciliation & checks');
@@ -617,7 +625,7 @@ function psProjectReportPdf(model){
 
  addPage('landscape','Detailed Project Statement');
  y=section('Detailed Project Statement','Chronological source record',34);
- y=note('This statement lists every project reporting record currently linked to the financial report. Lifecycle rows are intentionally not additive: for example PO → PI → payment are stages of the same spend. Use the reconciled closing position below for authoritative totals.',y,'neutral')+7;
+ y=note('This statement lists every project reporting record currently linked to the financial report. Lifecycle rows are not additive. Cash is shown at the invoice / PI stage where possible so the same payment is not repeated on both an order and its invoice. Use the reconciled closing position below for authoritative totals.',y,'neutral')+7;
  const statementBody=statementRows.map(r=>[
   r.date?psProjectReportDateLabel(r.date):'Undated',
   r.type+(r.reference?'\\n'+r.reference:''),
@@ -626,25 +634,30 @@ function psProjectReportPdf(model){
   r.stage||'—',
   r.value?moneyP(r.value):'—',
   r.cash||'—',
-  (r.outstanding?moneyP(r.outstanding):'—')+(r.status?'\\n'+r.status:'')
+  r.outstanding?moneyP(r.outstanding):'—',
+  r.status||'—'
  ]);
- y=table(['Date','Record / reference','Supplier / customer','Description','Financial stage','Net value','Cash movement','Outstanding / status'],statementBody,y,{
+ y=table(['Date','Record / reference','Party','Detail','What it means','Net value','Cash recorded','Outstanding','Status'],statementBody,y,{
   empty:'No detailed project records are linked yet.',
   rightCols:[5,6,7],boldCols:[1],
-  fontSize:7.1,headFontSize:7,
-  columnStyles:{0:{cellWidth:20},1:{cellWidth:34},2:{cellWidth:35},3:{cellWidth:63},4:{cellWidth:34},5:{cellWidth:29},6:{cellWidth:29},7:{cellWidth:35}},
+  fontSize:7,headFontSize:6.8,
+  columnStyles:{0:{cellWidth:20},1:{cellWidth:30},2:{cellWidth:31},3:{cellWidth:55},4:{cellWidth:28},5:{cellWidth:25},6:{cellWidth:26},7:{cellWidth:28},8:{cellWidth:25}},
   autoTable:{margin:{left:8,right:8,top:31,bottom:18}}
  });
  y=(doc.lastAutoTable?.finalY||y)+10;
  if(y>165){addPage('landscape','Detailed Project Statement · closing position');y=34;}
  else y=section('Reconciled closing position','Authoritative project totals',y);
+ const supplierCashDue=model.poRows.reduce((n,r)=>n+r.outstanding,0),remainingPo=model.poRows.reduce((n,r)=>n+r.open,0);
  table(['Closing measure','Amount'],[
   ['Current sold value',moneyP(model.s.revenue)],
   ['Customer invoices net',moneyP(invoicedNet)],
+  ['Sold value not yet invoiced',moneyP(notInvoiced)],
   ['Customer cash received',moneyP(model.customerCash)],
-  ['Customer cash outstanding',moneyP(model.customerOutstanding)],
+  ['Customer cash due',moneyP(model.customerOutstanding)],
   ['Forecast final project cost',moneyP(model.s.forecast)],
+  ['Remaining PO commitment',moneyP(remainingPo)],
   ['Supplier cash paid',moneyP(model.supplierCash)],
+  ['Supplier cash due',moneyP(supplierCashDue)],
   ['Forecast gross profit',moneyP(model.s.profit)],
   ['Forecast margin',pct(model.s.margin)]
  ],y,{rightCols:[1],boldCols:[0],columnStyles:{0:{cellWidth:130},1:{cellWidth:55}}});
