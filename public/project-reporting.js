@@ -146,7 +146,22 @@ function psProjectReportModel(job,source=data,now=Date.now()){
   {name:'Tools and hire',value:Number(s.tools||0),kind:'forecast'},
   {name:'Future labour',value:Number(s.labourFuture||0),kind:'forecast'}
  ].filter(x=>x.value>0);
- const labour=psProjectReportArray(p.labour).map(a=>{const c=psProjectLabourCharge(a,now);return {id:String(a.id||''),person:String(a.supplier||a.employee||'Team'),reference:String(a.ref||''),start:String(a.startDate||''),end:a.ongoing?'Ongoing':String(a.endDate||''),rate:psProjectReportPence(a.rate||0),rateType:String(a.rateType||'day'),units:c.units,forecastUnits:c.forecastUnits,accrued:psProjectReportPence(c.accrued),forecast:psProjectReportPence(c.forecast),ongoing:!!a.ongoing};});
+ const labour=psProjectReportArray(p.labour).map(a=>{const c=psProjectLabourCharge(a,now),rateType=String(a.rateType||'day');return {id:String(a.id||''),person:String(a.supplier||a.employee||'Team').trim().replace(/\s+/g,' '),reference:String(a.ref||''),start:String(a.startDate||''),end:a.ongoing?'Ongoing':String(a.endDate||''),rate:psProjectReportPence(a.rate||0),rateType,units:c.units,forecastUnits:c.forecastUnits,dayEquivalent:c.units*(rateType==='half-day'?0.5:1),forecastDayEquivalent:c.forecastUnits*(rateType==='half-day'?0.5:1),accrued:psProjectReportPence(c.accrued),forecast:psProjectReportPence(c.forecast),ongoing:!!a.ongoing};});
+ const labourPeopleMap=new Map();
+ labour.forEach(row=>{
+  const key=(row.person||'Team').trim().replace(/\s+/g,' ').toLocaleLowerCase('en-GB'),existing=labourPeopleMap.get(key)||{person:row.person||'Team',entries:0,firstStart:'',lastEnd:'',ongoing:false,fullDays:0,halfDays:0,forecastFullDays:0,forecastHalfDays:0,equivalentDays:0,forecastEquivalentDays:0,accrued:0,forecast:0,remainingForecast:0,references:[]};
+  existing.entries++;
+  if(!existing.firstStart||row.start<existing.firstStart)existing.firstStart=row.start;
+  if(row.ongoing)existing.ongoing=true;
+  if(row.end&&row.end!=='Ongoing'&&(!existing.lastEnd||row.end>existing.lastEnd))existing.lastEnd=row.end;
+  if(row.rateType==='half-day'){existing.halfDays+=row.units;existing.forecastHalfDays+=row.forecastUnits;}
+  else{existing.fullDays+=row.units;existing.forecastFullDays+=row.forecastUnits;}
+  existing.equivalentDays+=row.dayEquivalent;existing.forecastEquivalentDays+=row.forecastDayEquivalent;
+  existing.accrued+=row.accrued;existing.forecast+=row.forecast;existing.remainingForecast+=Math.max(0,row.forecast-row.accrued);
+  if(row.reference&&!existing.references.includes(row.reference))existing.references.push(row.reference);
+  labourPeopleMap.set(key,existing);
+ });
+ const labourByPerson=[...labourPeopleMap.values()].sort((a,b)=>b.accrued-a.accrued||a.person.localeCompare(b.person));
  const tools=psProjectReportArray(source.toolAssignments).filter(a=>String(a.jobId)===String(job.id)).map(a=>{const tool=psProjectReportArray(source.toolAssets).find(t=>String(t.id)===String(a.toolId)),c=psProjectToolCharge(a,now);return {id:String(a.id||''),name:String(tool?.name||a.name||a.toolId||'Equipment'),supplier:String(a.supplier||tool?.supplier||''),reference:String(a.reference||''),start:String(a.startDate||psProjectReportIso(a.startedAt)),end:String(a.lastChargeDate||a.returnedAt||a.offHireAt||''),dailyRate:psProjectReportPence(a.dailyRate||0),purchaseNet:psProjectReportPence(a.purchaseNet||0),accrued:psProjectReportPence(c.accrued),forecast:psProjectReportPence(c.forecast),running:!!c.running,mode:a.chargeModel==='purchase'?'Purchase':'Hire'};});
  const checks=[];
  if(s.missingCosts)checks.push({severity:'bad',text:s.missingCosts+' material line'+(s.missingCosts===1?' has':'s have')+' missing or zero cost.'});
@@ -170,10 +185,17 @@ function psProjectReportModel(job,source=data,now=Date.now()){
  psProjectReportArray(p.costs).filter(c=>!c.voidedAt).forEach(c=>transactionLedger.push({date:c.date||'',type:'Project Cost',reference:c.ref||c.id,party:c.supplier||'',description:c.notes||c.category||'',revenue:0,cost:c.state==='Actual'?psProjectReportPence(c.net):0,committed:c.state==='Committed'?psProjectReportPence(c.net):0,paid:0,outstanding:0,status:c.state||''}));
  labour.forEach(r=>transactionLedger.push({date:r.start,type:'Labour',reference:r.reference||r.id,party:r.person,description:r.rateType,revenue:0,cost:r.accrued,committed:Math.max(0,r.forecast-r.accrued),paid:0,outstanding:0,status:r.ongoing?'Ongoing':'Ended'}));
  tools.forEach(r=>transactionLedger.push({date:r.start,type:r.mode==='Purchase'?'Tool Purchase':'Tool Hire',reference:r.reference||r.id,party:r.supplier,description:r.name,revenue:0,cost:r.accrued,committed:Math.max(0,r.forecast-r.accrued),paid:0,outstanding:0,status:r.running?'Running':'Stopped'}));
- return {job,p,s,original,finance,invoiceRows,purchaseInvoices,salesOrders,poRows,suppliers,customerOutstanding,customerCash,supplierCash,cashPosition,runway,costSources,labour,tools,checks,timeline,previous,transactionLedger,asOf:new Date(now).toISOString()};
+ return {job,p,s,original,finance,invoiceRows,purchaseInvoices,salesOrders,poRows,suppliers,customerOutstanding,customerCash,supplierCash,cashPosition,runway,costSources,labour,labourByPerson,tools,checks,timeline,previous,transactionLedger,asOf:new Date(now).toISOString()};
 }
 function psProjectReportMoney(v){return psProjectCash(Number(v||0));}
 function psProjectReportPct(v){return v===null||!Number.isFinite(Number(v))?'Not captured':Number(v).toFixed(1)+'%';}
+function psProjectReportLabourTime(row,forecast=false){
+ const full=Number(forecast?row.forecastFullDays:row.fullDays)||0,half=Number(forecast?row.forecastHalfDays:row.halfDays)||0,equivalent=Number(forecast?row.forecastEquivalentDays:row.equivalentDays)||0,parts=[];
+ if(full)parts.push(full+' full day'+(full===1?'':'s'));
+ if(half)parts.push(half+' half-day'+(half===1?'':'s'));
+ const eq=(Math.round(equivalent*10)/10).toLocaleString('en-GB',{maximumFractionDigits:1});
+ return eq+' day'+(equivalent===1?'':'s')+' equivalent'+(parts.length?' · '+parts.join(' + '):'');
+}
 function psProjectReportVariance(metric,current,original,known=true){
  if(!known)return '<span class="pr-neutral">No original baseline</span>';
  const delta=Number(current||0)-Number(original||0),favourable=metric==='cost'?delta<=0:delta>=0,label=metric==='margin'?Math.abs(delta).toFixed(1)+' pts '+(delta>=0?'up':'down'):psProjectReportMoney(Math.abs(delta))+' '+(delta>=0?(metric==='cost'?'over':'up'):(metric==='cost'?'under':'down'));
@@ -213,7 +235,7 @@ function psProjectReports(job,p,s){
  const supplierRows=model.suppliers.map(x=>'<tr><td>'+psProjectEsc(x.supplier)+'</td><td>'+psProjectReportMoney(x.ordered)+'</td><td>'+psProjectReportMoney(x.invoiced)+'</td><td>'+psProjectReportMoney(x.paid)+'</td><td>'+psProjectReportMoney(x.outstanding)+'</td><td>'+psProjectReportMoney(x.open)+'</td></tr>').join('');
  const piRows=model.purchaseInvoices.map(x=>'<tr><td>'+psProjectEsc(x.reference)+'</td><td>'+psProjectEsc(x.supplier)+'</td><td>'+psProjectEsc(x.poId)+'</td><td>'+psProjectReportDateLabel(x.date)+'</td><td>'+psProjectReportMoney(x.net)+'</td><td>'+psProjectReportMoney(x.vat)+'</td><td>'+psProjectReportMoney(x.gross)+'</td><td>'+psProjectReportMoney(x.paid)+'</td><td>'+psProjectReportMoney(x.outstanding)+'</td><td>'+psProjectEsc(x.status)+'</td></tr>').join('');
  const revenueRows=model.salesOrders.map(x=>'<tr><td><button class="link-button" data-open-so="'+psProjectEsc(x.id)+'">'+psProjectEsc(x.id)+'</button></td><td>'+psProjectEsc(x.scope)+'</td><td>'+psProjectEsc(x.status)+'</td><td>'+psProjectReportMoney(x.net)+'</td><td>'+psProjectReportMoney(x.invoiced)+'</td><td>'+psProjectReportMoney(x.paid)+'</td><td>'+psProjectReportMoney(x.outstanding)+'</td></tr>').join('');
- const labourRows=model.labour.map(x=>'<tr><td>'+psProjectEsc(x.person)+'</td><td>'+psProjectEsc(x.reference)+'</td><td>'+psProjectReportDateLabel(x.start)+'</td><td>'+psProjectEsc(x.end==='Ongoing'?'Ongoing':psProjectReportDateLabel(x.end))+'</td><td>'+psProjectEsc(x.rateType)+'</td><td>'+psProjectReportMoney(x.rate)+'</td><td>'+x.units+'</td><td>'+psProjectReportMoney(x.accrued)+'</td><td>'+psProjectReportMoney(x.forecast)+'</td></tr>').join('');
+ const labourRows=model.labourByPerson.map(x=>'<tr><td><strong>'+psProjectEsc(x.person)+'</strong><small>'+x.entries+' labour entr'+(x.entries===1?'y':'ies')+'</small></td><td>'+psProjectReportDateLabel(x.firstStart)+' → '+(x.ongoing?'Ongoing':psProjectReportDateLabel(x.lastEnd))+'</td><td>'+psProjectEsc(psProjectReportLabourTime(x))+'</td><td>'+psProjectReportMoney(x.accrued)+'</td><td>'+psProjectReportMoney(x.remainingForecast)+'</td><td>'+psProjectReportMoney(x.forecast)+'</td></tr>').join('');
  const toolRows=model.tools.map(x=>'<tr><td>'+psProjectEsc(x.name)+'</td><td>'+psProjectEsc(x.supplier)+'</td><td>'+psProjectEsc(x.reference)+'</td><td>'+psProjectEsc(x.mode)+'</td><td>'+psProjectReportDateLabel(x.start)+'</td><td>'+psProjectReportMoney(x.dailyRate||x.purchaseNet)+'</td><td>'+psProjectReportMoney(x.accrued)+'</td><td>'+psProjectReportMoney(x.forecast)+'</td><td>'+(x.running?'Running':'Stopped')+'</td></tr>').join('');
  const compare='<table class="pr-compare"><thead><tr><th>Measure</th><th>Original</th><th>Current forecast</th><th>Movement</th></tr></thead><tbody>'+
   '<tr><td>Revenue</td><td>'+psProjectReportMoney(o.revenue)+'</td><td>'+psProjectReportMoney(current.revenue)+'</td><td>'+psProjectReportVariance('revenue',current.revenue,o.revenue)+'</td></tr>'+
@@ -235,7 +257,7 @@ function psProjectReports(job,p,s){
   '<section class="pr-card"><header><div><span>SUPPLIERS & PURCHASE ORDERS</span><h3>Ordered, invoiced and paid</h3><p>PO value is committed cost. Linked PI/bill value is invoiced cost. Supplier payment is cash. They are not added together as separate project costs.</p></div></header>'+psProjectTable(['Supplier','Ordered net','PI net','Paid cash','Outstanding cash','Open PO'],supplierRows,'No project supplier spend yet.')+psProjectReportSupplierDetails(model)+'</section>'+
   '<section class="pr-card"><header><div><span>PURCHASE INVOICES / PI</span><h3>Supplier bill register</h3></div></header>'+psProjectTable(['PI / invoice','Supplier','PO','Date','Net','VAT','Gross','Paid','Outstanding','Status'],piRows,'No linked supplier invoices / PIs yet.')+'</section>'+
   '<section class="pr-card"><header><div><span>SALES & REVENUE</span><h3>From sold value to cash received</h3></div><div class="pr-mini-total"><span>Not yet invoiced</span><strong>'+psProjectReportMoney(Math.max(0,current.revenue-model.invoiceRows.reduce((n,r)=>n+r.net,0)))+'</strong></div></header><div class="pr-revenue-strip"><div><span>Original contract</span><strong>'+psProjectReportMoney(o.revenue)+'</strong></div><div><span>Approved extras</span><strong>'+psProjectReportMoney(current.approvedExtra)+'</strong></div><div><span>Current sold value</span><strong>'+psProjectReportMoney(current.revenue)+'</strong></div><div><span>Invoiced net</span><strong>'+psProjectReportMoney(model.invoiceRows.reduce((n,r)=>n+r.net,0))+'</strong></div><div><span>Cash received</span><strong>'+psProjectReportMoney(model.customerCash)+'</strong></div><div><span>Outstanding cash</span><strong>'+psProjectReportMoney(model.customerOutstanding)+'</strong></div></div>'+psProjectTable(['Sales Order','Scope','Status','Sell net','Invoiced net','Paid cash','Outstanding cash'],revenueRows,'No linked Sales Orders.')+'</section>'+
-  '<div class="pr-grid"><section class="pr-card"><header><div><span>LABOUR</span><h3>Labour cost performance</h3></div><strong>'+psProjectReportMoney(current.labourForecast)+'</strong></header>'+psProjectTable(['Person','Ref','Start','End','Rate type','Rate','Units','Accrued','Forecast'],labourRows,'No project labour periods.')+'</section><section class="pr-card"><header><div><span>HIRE & TOOLS</span><h3>Equipment cost</h3></div><strong>'+psProjectReportMoney(current.tools)+'</strong></header>'+psProjectTable(['Item','Supplier','Ref','Type','Start','Rate / cost','Accrued','Forecast','Status'],toolRows,'No project tools or hire.')+'</section></div>'+
+  '<div class="pr-grid"><section class="pr-card"><header><div><span>LABOUR</span><h3>Labour cost performance</h3></div><strong>'+psProjectReportMoney(current.labourForecast)+'</strong></header>'+psProjectTable(['Person','Period','Time worked','Cost to date','Remaining forecast','Forecast total'],labourRows,'No project labour periods.')+'</section><section class="pr-card"><header><div><span>HIRE & TOOLS</span><h3>Equipment cost</h3></div><strong>'+psProjectReportMoney(current.tools)+'</strong></header>'+psProjectTable(['Item','Supplier','Ref','Type','Start','Rate / cost','Accrued','Forecast','Status'],toolRows,'No project tools or hire.')+'</section></div>'+
   '<section class="pr-card"><header><div><span>RECONCILIATION</span><h3>How forecast profit is built</h3></div></header><div class="pr-reconcile">'+model.costSources.map(x=>'<div><span>'+psProjectEsc(x.name)+'</span><strong>'+psProjectReportMoney(x.value)+'</strong></div>').join('')+'<div class="total"><span>Forecast final cost</span><strong>'+psProjectReportMoney(current.forecast)+'</strong></div><div><span>Total sold value</span><strong>'+psProjectReportMoney(current.revenue)+'</strong></div><div class="profit"><span>Forecast gross profit</span><strong>'+psProjectReportMoney(current.profit)+'</strong></div><div class="profit"><span>Forecast margin</span><strong>'+psProjectReportPct(current.margin)+'</strong></div></div></section>'+
  '</section>';
 }
@@ -516,10 +538,19 @@ function psProjectReportPdf(model){
 
  addPage('landscape','Appendix · Labour');
  y=section('Labour cost performance','Project time cost',34);
- table(['Person','Reference','Start','End','Rate type','Rate','Accrued units','Forecast units','Accrued cost','Forecast cost'],model.labour.map(x=>[x.person,x.reference,psProjectReportDateLabel(x.start),x.end==='Ongoing'?'Ongoing':psProjectReportDateLabel(x.end),x.rateType,moneyP(x.rate),String(x.units),String(x.forecastUnits),moneyP(x.accrued),moneyP(x.forecast)]),y,{
+ table(['Person','Entries','Period','Time worked','Cost to date','Remaining forecast','Forecast total'],model.labourByPerson.map(x=>[
+  x.person,
+  String(x.entries),
+  psProjectReportDateLabel(x.firstStart)+' → '+(x.ongoing?'Ongoing':psProjectReportDateLabel(x.lastEnd)),
+  psProjectReportLabourTime(x),
+  moneyP(x.accrued),
+  moneyP(x.remainingForecast),
+  moneyP(x.forecast)
+ ]),y,{
   empty:'No project labour periods.',
-  rightCols:[5,6,7,8,9],boldCols:[0],
-  columnStyles:{0:{cellWidth:44},1:{cellWidth:30},2:{cellWidth:28},3:{cellWidth:28},4:{cellWidth:25},5:{cellWidth:27},6:{cellWidth:25},7:{cellWidth:27},8:{cellWidth:30},9:{cellWidth:30}}
+  rightCols:[1,4,5,6],boldCols:[0],
+  fontSize:7.8,
+  columnStyles:{0:{cellWidth:45},1:{cellWidth:20},2:{cellWidth:53},3:{cellWidth:73},4:{cellWidth:32},5:{cellWidth:36},6:{cellWidth:34}}
  });
 
  addPage('landscape','Appendix · Hire & tools');
@@ -628,7 +659,8 @@ function psProjectReportExcel(model){
  model.poRows.forEach(po=>po.lines.forEach(line=>supplierLines.push([po.supplier,po.id,po.status,line.name,line.sku,line.qty,line.received,line.unitCost,p(line.lineCost),po.billReference,p(po.invoiced),p(po.paid),p(po.outstanding)])));
  add('Suppliers',supplierLines,[24,18,15,36,18,10,10,14,16,20,16,16,18]);
  add('Purchase Invoices',[['PI / Invoice','Supplier','PO','Date','Due','Net','VAT','Gross','Paid','Outstanding','Status']].concat(model.purchaseInvoices.map(x=>[x.reference,x.supplier,x.poId,x.date,x.dueDate,p(x.net),p(x.vat),p(x.gross),p(x.paid),p(x.outstanding),x.status])),[22,24,18,14,14,16,14,16,16,18,16]);
- add('Labour',[['Person','Reference','Start','End','Rate type','Rate','Accrued units','Forecast units','Accrued cost','Forecast cost']].concat(model.labour.map(x=>[x.person,x.reference,x.start,x.end,x.rateType,p(x.rate),x.units,x.forecastUnits,p(x.accrued),p(x.forecast)])),[24,20,14,14,14,14,14,14,16,16]);
+ add('Labour',[['Person','Entries','First date','Last date / status','Full days','Half-days','Days equivalent','Cost to date','Remaining forecast','Forecast total']].concat(model.labourByPerson.map(x=>[x.person,x.entries,x.firstStart,x.ongoing?'Ongoing':x.lastEnd,x.fullDays,x.halfDays,x.equivalentDays,p(x.accrued),p(x.remainingForecast),p(x.forecast)])),[26,10,14,18,12,12,16,16,18,16]);
+ add('Labour Detail',[['Person','Reference','Start','End','Rate type','Rate','Accrued units','Forecast units','Accrued cost','Forecast cost']].concat(model.labour.map(x=>[x.person,x.reference,x.start,x.end,x.rateType,p(x.rate),x.units,x.forecastUnits,p(x.accrued),p(x.forecast)])),[24,20,14,14,14,14,14,14,16,16]);
  add('Hire & Tools',[['Item','Supplier','Reference','Type','Start','End','Daily rate','Purchase cost','Accrued','Forecast','Status']].concat(model.tools.map(x=>[x.name,x.supplier,x.reference,x.mode,x.start,x.end,p(x.dailyRate),p(x.purchaseNet),p(x.accrued),p(x.forecast),x.running?'Running':'Stopped'])),[28,24,20,12,14,14,14,16,16,16,14]);
  add('Cost Breakdown',[['Cost source','Actual / Forecast value']].concat(model.costSources.map(x=>[x.name,p(x.value)]),[['Forecast final cost',p(model.s.forecast)],['Forecast gross profit',p(model.s.profit)],['Forecast margin',pct(model.s.margin)]]),[34,22]);
  add('Profit Timeline',[['Date','Reason','Revenue','Actual cost','Committed cost','Forecast final cost','Forecast profit','Margin']].concat(model.timeline.map(x=>[x.at,x.reason,p(x.revenue),p(x.actual),p(x.committed),p(x.forecast),p(x.profit),pct(x.margin)])),[24,32,16,16,18,20,18,14]);
