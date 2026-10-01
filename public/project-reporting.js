@@ -625,7 +625,7 @@ function psProjectReportPdf(model){
 
  addPage('landscape','Detailed Project Statement');
  y=section('Detailed Project Statement','Chronological source record',34);
- y=note('This statement lists every project reporting record currently linked to the financial report. Lifecycle rows are intentionally not additive: for example PO → PI → payment are stages of the same spend. Use the reconciled closing position below for authoritative totals.',y,'neutral')+7;
+ y=note('This statement lists every project reporting record currently linked to the financial report. Lifecycle rows are not additive. Cash is shown at the invoice / PI stage where possible so the same payment is not repeated on both an order and its invoice. Use the reconciled closing position below for authoritative totals.',y,'neutral')+7;
  const statementBody=statementRows.map(r=>[
   r.date?psProjectReportDateLabel(r.date):'Undated',
   r.type+(r.reference?'\\n'+r.reference:''),
@@ -634,25 +634,30 @@ function psProjectReportPdf(model){
   r.stage||'—',
   r.value?moneyP(r.value):'—',
   r.cash||'—',
-  (r.outstanding?moneyP(r.outstanding):'—')+(r.status?'\\n'+r.status:'')
+  r.outstanding?moneyP(r.outstanding):'—',
+  r.status||'—'
  ]);
- y=table(['Date','Record / reference','Supplier / customer','Description','Financial stage','Net value','Cash movement','Outstanding / status'],statementBody,y,{
+ y=table(['Date','Record / reference','Party','Detail','What it means','Net value','Cash recorded','Outstanding','Status'],statementBody,y,{
   empty:'No detailed project records are linked yet.',
   rightCols:[5,6,7],boldCols:[1],
-  fontSize:7.1,headFontSize:7,
-  columnStyles:{0:{cellWidth:20},1:{cellWidth:34},2:{cellWidth:35},3:{cellWidth:63},4:{cellWidth:34},5:{cellWidth:29},6:{cellWidth:29},7:{cellWidth:35}},
+  fontSize:7,headFontSize:6.8,
+  columnStyles:{0:{cellWidth:20},1:{cellWidth:30},2:{cellWidth:31},3:{cellWidth:55},4:{cellWidth:28},5:{cellWidth:25},6:{cellWidth:26},7:{cellWidth:28},8:{cellWidth:25}},
   autoTable:{margin:{left:8,right:8,top:31,bottom:18}}
  });
  y=(doc.lastAutoTable?.finalY||y)+10;
  if(y>165){addPage('landscape','Detailed Project Statement · closing position');y=34;}
  else y=section('Reconciled closing position','Authoritative project totals',y);
+ const supplierCashDue=model.poRows.reduce((n,r)=>n+r.outstanding,0),remainingPo=model.poRows.reduce((n,r)=>n+r.open,0);
  table(['Closing measure','Amount'],[
   ['Current sold value',moneyP(model.s.revenue)],
   ['Customer invoices net',moneyP(invoicedNet)],
+  ['Sold value not yet invoiced',moneyP(notInvoiced)],
   ['Customer cash received',moneyP(model.customerCash)],
-  ['Customer cash outstanding',moneyP(model.customerOutstanding)],
+  ['Customer cash due',moneyP(model.customerOutstanding)],
   ['Forecast final project cost',moneyP(model.s.forecast)],
+  ['Remaining PO commitment',moneyP(remainingPo)],
   ['Supplier cash paid',moneyP(model.supplierCash)],
+  ['Supplier cash due',moneyP(supplierCashDue)],
   ['Forecast gross profit',moneyP(model.s.profit)],
   ['Forecast margin',pct(model.s.margin)]
  ],y,{rightCols:[1],boldCols:[0],columnStyles:{0:{cellWidth:130},1:{cellWidth:55}}});
