@@ -39,5 +39,5 @@ const blockers=c.psProjectCloseoutBlockers(job,undefined,{},Date.parse('2026-10-
 assert(blockers.some(x=>x.code==='OUTSTANDING_LABOUR'));
 const labourUi=fs.readFileSync('public/project-labour.js','utf8');
 assert.match(labourUi,/data-project-labour-edit/,'labour register exposes an Edit action');
-assert.match(labourUi,/data-project-form="labour-edit"/,'labour edit dialog saves through the project transaction authority');
+assert.match(labourUi,/form\(job,'labour-edit'/,'labour edit dialog saves through the project transaction authority');
 console.log('PASS project labour weekday-only day/half-day rates, inclusive dates, ongoing alerts, end dates, repeat visits and close-out protection');
