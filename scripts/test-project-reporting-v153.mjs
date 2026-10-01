@@ -13,8 +13,10 @@ const data={
 };
 const finance={
   documents:[
-    {id:'AR-1',kind:'ACCREC',source_id:'SO-1',status:'AUTHORISED',amount_paid:800,amount_due:640,remote:{InvoiceNumber:'INV-1',SubTotal:1200,Total:1440,Date:'2026-09-20',DueDate:'2026-10-10'}},
-    {id:'AP-1',kind:'ACCPAY',source_id:'PO-1',status:'AUTHORISED',amount_paid:100,amount_due:380,remote:{InvoiceNumber:'PI-44',SubTotal:400,Total:480,Date:'2026-09-22',DueDate:'2026-10-08',Contact:{Name:'Certikin'}}}
+    {id:'AR-1',kind:'ACCREC',source_id:'SO-1',status:'AUTHORISED',amount_paid:600,amount_due:480,remote:{InvoiceNumber:'INV-1',SubTotal:900,Total:1080,Date:'2026-09-20',DueDate:'2026-10-10'}},
+    {id:'AR-2',kind:'ACCREC',source_id:'SO-1',status:'AUTHORISED',amount_paid:200,amount_due:160,remote:{InvoiceNumber:'INV-2',SubTotal:300,Total:360,Date:'2026-09-24',DueDate:'2026-10-14'}},
+    {id:'AP-1',kind:'ACCPAY',source_id:'PO-1',status:'AUTHORISED',amount_paid:50,amount_due:250,remote:{InvoiceNumber:'PI-44',SubTotal:250,Total:300,Date:'2026-09-22',DueDate:'2026-10-08',Contact:{Name:'Certikin'}}},
+    {id:'AP-2',kind:'ACCPAY',source_id:'PO-1',status:'AUTHORISED',amount_paid:50,amount_due:130,remote:{InvoiceNumber:'PI-45',SubTotal:150,Total:180,Date:'2026-09-26',DueDate:'2026-10-12',Contact:{Name:'Certikin'}}}
   ]
 };
 const ctx={
@@ -60,12 +62,18 @@ assert.equal(model.s.committed,40000,'PO must remain the committed-cost authorit
 assert.equal(model.s.forecast,85000,'PO plus grouped labour must reconcile to forecast once, without PI/payment duplication');
 assert.equal(model.s.profit,35000);
 assert(Math.abs(model.s.margin-29.1666666667)<0.001);
-assert.equal(model.invoiceRows.length,1);
-assert.equal(model.invoiceRows[0].net,120000);
-assert.equal(model.invoiceRows[0].paid,80000);
-assert.equal(model.purchaseInvoices.length,1);
-assert.equal(model.purchaseInvoices[0].net,40000);
-assert.equal(model.purchaseInvoices[0].paid,10000);
+assert.equal(model.invoiceRows.length,2);
+assert.equal(model.invoiceRows.reduce((n,x)=>n+x.net,0),120000);
+assert.equal(model.invoiceRows.reduce((n,x)=>n+x.paid,0),80000);
+assert.equal(model.salesOrders[0].invoiced,120000,'Multiple customer invoices must aggregate back to one Sales Order');
+assert.equal(model.salesOrders[0].paid,80000);
+assert.equal(model.salesOrders[0].outstanding,64000);
+assert.equal(model.purchaseInvoices.length,2);
+assert.equal(model.purchaseInvoices.reduce((n,x)=>n+x.net,0),40000);
+assert.equal(model.purchaseInvoices.reduce((n,x)=>n+x.paid,0),10000);
+assert.equal(model.poRows[0].invoiced,40000,'Multiple supplier invoices must aggregate back to one PO');
+assert.equal(model.poRows[0].paid,10000);
+assert.equal(model.poRows[0].outstanding,38000);
 assert.equal(model.suppliers[0].ordered,40000);
 assert.equal(model.suppliers[0].invoiced,40000);
 assert.equal(model.customerCash,80000);
@@ -101,7 +109,7 @@ const index=fs.readFileSync('public/index.html','utf8');
 assert.match(workspace,/tabs=\[[^\]]*'Reports'/,'Reports must be a first-class Project tab');
 assert.match(workspace,/psProjectTab==='Reports'/,'Reports tab must route to financial reporting');
 assert.match(parity,/'Reports':'Reports'/,'Polished Project navigation must expose Reports');
-assert.match(index,/project-reporting\.js\?v=1\.45\.7/,'Project reporting runtime must be loaded');
+assert.match(index,/project-reporting\.js\?v=1\.45\.8/,'Project reporting runtime must be loaded');
 assert.match(index,/jspdf@2\.5\.2/,'Pinned PDF export library must be loaded');
 assert.match(index,/xlsx@0\.18\.5/,'Pinned Excel export library must be loaded');
 assert.match(reporting,/function psProjectReportPdf\(model\)/,'PDF export must use the dedicated Project report renderer');
@@ -116,9 +124,9 @@ assert.match(reporting,/Customer invoices/,'PDF must include customer invoice de
 assert.match(reporting,/Purchase invoices \/ PI/,'PDF must include supplier PI detail');
 assert.match(reporting,/Financial data checks/,'PDF must include reporting confidence checks');
 assert.match(reporting,/Management overview/,'PDF must keep a management-first visual overview before detailed records');
-assert.match(reporting,/DETAILED PROJECT STATEMENT & AUDIT APPENDIX/,'PDF must visibly separate the management report from detailed audit content');
+assert.match(reporting,/Audit appendix/,'PDF must visibly introduce source-record traceability without wasting a standalone divider page');
 assert.match(reporting,/Detailed Project Statement/,'PDF must finish with a detailed project statement');
-assert.match(reporting,/lifecycle records are linked, not additive/i,'PDF must explain that quote\/SO\/invoice\/payment and PO\/PI\/payment stages are not additive');
+assert.match(reporting,/Lifecycle rows are not additive/i,'PDF must explain that quote\/SO\/invoice\/payment and PO\/PI\/payment stages are not additive');
 assert.match(reporting,/PO Line/,'Detailed statement must include Purchase Order line records');
 assert.match(reporting,/Quote \/ /,'Detailed statement must include quote\/extra evidence');
 assert.match(reporting,/Customer Invoice/,'Detailed statement must include customer invoices');
@@ -130,6 +138,16 @@ assert.match(reporting,/labourByPerson/,'Management labour must use person-level
 assert.match(reporting,/Labour Detail/,'Excel must retain a separate detailed labour audit sheet');
 assert.match(reporting,/Time worked/,'Labour summary must show total time worked');
 assert.match(reporting,/Remaining forecast/,'Labour summary must show remaining forecast cost');
+assert.match(reporting,/\['Person','Period','Time worked','Cost to date','Remaining forecast','Forecast total'\]/,'PDF labour summary must stay grouped by person without a low-value entry-count column');
+assert.match(reporting,/Received net/,'PO money columns must say they are monetary values');
+assert.match(reporting,/Remaining PO/,'PO open value must use a clear financial label');
+assert.match(reporting,/Gross incl VAT/,'Invoice gross values must be explicitly labelled');
+assert.match(reporting,/Cash due/,'Outstanding invoice cash must use plain-English wording');
+assert.match(reporting,/What it means/,'Detailed statement must use plain-English financial meaning');
+assert.match(reporting,/Cash recorded/,'Detailed statement must distinguish recorded cash from net value');
+assert(!reporting.includes('Outstanding / status'),'Detailed statement must not combine unrelated concepts in one column');
+assert(!reporting.includes("['Item','Supplier','Reference','Type','Start','End','Daily rate','Purchase cost'"),'Hire table must not waste columns that are mutually exclusive');
+assert.match(reporting,/POOL SHED · BY POOL BROS/,'PDF header must use Pool Shed branding');
 assert(!workspace.includes("download=j.id+'-project-report.html'"),'Legacy HTML project report download must be removed');
 
 console.log('PASS Project Reports: live SO/PO/PI accounting, cash runway, reconciliation, PDF/Excel wiring and Project navigation');
