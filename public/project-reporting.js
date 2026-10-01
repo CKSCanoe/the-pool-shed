@@ -313,8 +313,16 @@ function psProjectReportPdf(model){
  const drawHeader=(title,sub)=>{
   const {w}=size();
   doc.setFillColor(...brand);doc.rect(0,0,w,24,'F');
-  doc.setTextColor(...white);doc.setFont('helvetica','bold');doc.setFontSize(13);doc.text('POOL BROS',14,9);
-  doc.setFontSize(8);doc.setFont('helvetica','normal');doc.text('PROJECT FINANCIAL REPORT',14,15);
+  let brandX=14;
+  try{
+   const logo=document.querySelector('#brandMark img');
+   if(logo?.complete&&logo.naturalWidth&&logo.naturalHeight){
+    const logoH=18,logoW=Math.min(27,logoH*(logo.naturalWidth/logo.naturalHeight));
+    doc.addImage(logo,'PNG',14,3,logoW,logoH,undefined,'FAST');brandX=18+logoW;
+   }
+  }catch{}
+  doc.setTextColor(...white);doc.setFont('helvetica','bold');doc.setFontSize(12);doc.text('POOL SHED · BY POOL BROS',brandX,9);
+  doc.setFontSize(8);doc.setFont('helvetica','normal');doc.text('PROJECT FINANCIAL REPORT',brandX,15);
   doc.setFont('helvetica','bold');doc.setFontSize(9);doc.text(title,w-14,9,{align:'right'});
   if(sub){doc.setFont('helvetica','normal');doc.setFontSize(7.5);doc.text(doc.splitTextToSize(sub,95),w-14,14,{align:'right'});}
   doc.setTextColor(...ink);meta(title,sub);
@@ -383,7 +391,7 @@ function psProjectReportPdf(model){
   return (d>=0?'+':'-')+moneyP(Math.abs(d));
  };
  const allPoLines=[];
- model.poRows.forEach(po=>po.lines.forEach(line=>allPoLines.push([po.supplier,po.id,line.name,line.sku,String(line.qty),String(line.received),moneyP(Math.round(Number(line.unitCost||0)*100)),moneyP(line.lineCost)])));
+ model.poRows.forEach(po=>po.lines.forEach(line=>allPoLines.push([po.supplier+'\n'+po.id,line.name,line.sku,String(line.qty),String(line.received),moneyP(Math.round(Number(line.unitCost||0)*100)),moneyP(line.lineCost)])));
 
  const statementRows=[];
  const statementDate=v=>psProjectReportIso(v)||'';
@@ -401,13 +409,13 @@ function psProjectReportPdf(model){
  model.salesOrders.forEach(o=>{
   const raw=psProjectReportArray(model.s.orders).find(x=>String(x.id)===String(o.id))||{};
   addStatement({date:raw.orderDate||raw.date||raw.createdAt,type:'Sales Order',reference:o.id,party:customerName,
-   description:o.scope+' project revenue',stage:'Sold value',value:o.net,cash:o.paid?statementCash(o.paid,'in'):'—',outstanding:o.outstanding,status:o.status});
+   description:o.scope+' project revenue',stage:'Sold value',value:o.net,cash:o.paid&&!o.invoiced?statementCash(o.paid,'in'):'—',outstanding:o.invoiced?0:o.outstanding,status:o.status});
  });
  model.invoiceRows.forEach(r=>addStatement({date:r.date,type:'Customer Invoice',reference:r.reference,party:customerName,
   description:'Linked to '+(r.sourceId||'project'),stage:'Customer invoice',value:r.net,cash:r.paid?statementCash(r.paid,'in'):'—',outstanding:r.outstanding,status:r.status}));
  model.poRows.forEach(po=>{
   addStatement({date:po.date,type:'Purchase Order',reference:po.id,party:po.supplier,description:'Supplier order',
-   stage:'Committed cost',value:po.ordered,cash:po.paid?statementCash(po.paid,'out'):'—',outstanding:po.outstanding,status:po.status});
+   stage:'Committed cost',value:po.ordered,cash:po.paid&&!po.invoiced?statementCash(po.paid,'out'):'—',outstanding:po.invoiced?0:po.outstanding,status:po.status});
   po.lines.forEach(line=>addStatement({date:po.date,type:'PO Line',reference:po.id,party:po.supplier,
    description:line.name+' · '+line.sku+' · Qty '+line.qty+' · Received '+line.received,stage:'Order line detail',
    value:line.lineCost,cash:'—',outstanding:0,status:po.status}));
@@ -497,17 +505,18 @@ function psProjectReportPdf(model){
  kpi(109,y,87,31,'PI / SUPPLIER INVOICED',moneyP(piNet),'Supplier invoices linked to project','neutral');
  y+=38;
  kpi(14,y,87,31,'SUPPLIER CASH PAID',moneyP(model.supplierCash),'Recorded supplier payments','neutral');
- kpi(109,y,87,31,'OPEN PO COMMITMENT',moneyP(poOpen),'Still open on linked Purchase Orders',poOpen>0?'warn':'good');
+ kpi(109,y,87,31,'REMAINING PO COMMITMENT',moneyP(poOpen),'Net value still open on linked Purchase Orders',poOpen>0?'warn':'good');
  y+=45;
- y=section('Largest supplier commitments','Quick supplier view',y);
- if(model.suppliers.length){
-  const topSuppliers=model.suppliers.slice().sort((a,b)=>b.ordered-a.ordered).slice(0,5),maxSupplier=Math.max(1,...topSuppliers.map(x=>x.ordered));
-  topSuppliers.forEach(sup=>{
+ y=section('Largest remaining supplier commitments','Quick supplier view',y);
+ const openSuppliers=model.suppliers.filter(x=>x.open>0).sort((a,b)=>b.open-a.open).slice(0,5);
+ if(openSuppliers.length){
+  const maxSupplier=Math.max(1,...openSuppliers.map(x=>x.open));
+  openSuppliers.forEach(sup=>{
    doc.setTextColor(...ink);doc.setFont('helvetica','normal');doc.setFontSize(8);doc.text(doc.splitTextToSize(sup.supplier,48),14,y+4);
-   doc.setFillColor(230,236,236);doc.roundedRect(68,y,90,5,2,2,'F');doc.setFillColor(...aqua);doc.roundedRect(68,y,90*sup.ordered/maxSupplier,5,2,2,'F');
-   doc.setFont('helvetica','bold');doc.text(moneyP(sup.ordered),196,y+4,{align:'right'});y+=11;
+   doc.setFillColor(230,236,236);doc.roundedRect(68,y,90,5,2,2,'F');doc.setFillColor(...aqua);doc.roundedRect(68,y,90*sup.open/maxSupplier,5,2,2,'F');
+   doc.setFont('helvetica','bold');doc.text(moneyP(sup.open),196,y+4,{align:'right'});y+=11;
   });
- }else y=empty('No linked supplier commitments yet.',y);
+ }else y=empty('No remaining supplier PO commitments.',y);
  y+=5;
  const issueCount=model.checks.filter(x=>x.severity==='bad'||x.severity==='warn').length;
  y=note(issueCount?issueCount+' financial reporting check'+(issueCount===1?' needs':'s need')+' attention. Full details are included in the appendix.':'No current financial reporting exceptions were found. Full source detail is included in the appendix.',y,issueCount?'warn':'good');
