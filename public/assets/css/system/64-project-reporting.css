@@ -39,6 +39,10 @@
 .pr-toggle{display:flex;gap:5px;padding:4px;background:var(--color-surface-subtle);border-radius:10px}
 .pr-toggle button{padding:7px 10px;border:0;background:transparent;color:var(--color-text-secondary)}
 .pr-toggle button.active{background:var(--color-surface-default);color:var(--color-action-ink);box-shadow:var(--shadow-raised)}
+.pr-chart-period{display:flex;align-items:baseline;gap:10px;flex-wrap:wrap;margin:0 0 4px;padding:9px 12px;border:1px solid var(--color-border-subtle);background:var(--color-surface-subtle);border-radius:11px}
+.pr-chart-period span{font-size:.68rem;font-weight:850;letter-spacing:.09em;color:var(--color-text-muted)}
+.pr-chart-period strong{font-size:.88rem;color:var(--color-text-primary)}
+.pr-chart-period small{font-size:.78rem;color:var(--color-text-secondary)}
 .pr-chart{display:block;width:100%;min-height:260px;overflow:visible}
 .pr-chart line{stroke:var(--color-border-subtle);stroke-width:1}
 .pr-chart text{fill:var(--color-text-muted);font:11px system-ui,sans-serif}
