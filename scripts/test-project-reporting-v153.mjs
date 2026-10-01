@@ -84,6 +84,11 @@ assert.equal(ctx.psProjectReportLabourTime(model.labourByPerson[0]),'1.5 days eq
 assert.equal(model.runway.scenario,true);
 assert(model.runway.daysToZero!==null&&model.runway.daysToZero>=0,'Cash runway must resolve when active daily burn exists');
 assert(model.costSources.reduce((n,x)=>n+x.value,0)===model.s.forecast,'Report cost composition must reconcile exactly to project forecast');
+assert.equal(model.firstFinancialDate,'2026-09-20','Profit timeline must begin at the first dated financial movement');
+const timelineWindow=ctx.psProjectReportTimelineWindow(model);
+assert.equal(new Date(timelineWindow.startMs).toISOString().slice(0,10),'2026-09-20');
+assert.equal(new Date(timelineWindow.endMs).toISOString().slice(0,10),'2026-10-01');
+assert.equal(timelineWindow.spanDays,11,'Project age must use elapsed calendar time, not event count');
 
 const html=ctx.psProjectReports(job,p,model.s);
 for(const phrase of ['PROJECT FINANCIAL REPORT','Export PDF','Export Excel','PURCHASE INVOICES / PI','CASH RUNWAY SCENARIO','SUPPLIERS & PURCHASE ORDERS','RECONCILIATION']){
@@ -96,10 +101,12 @@ const index=fs.readFileSync('public/index.html','utf8');
 assert.match(workspace,/tabs=\[[^\]]*'Reports'/,'Reports must be a first-class Project tab');
 assert.match(workspace,/psProjectTab==='Reports'/,'Reports tab must route to financial reporting');
 assert.match(parity,/'Reports':'Reports'/,'Polished Project navigation must expose Reports');
-assert.match(index,/project-reporting\.js\?v=1\.45\.6/,'Project reporting runtime must be loaded');
+assert.match(index,/project-reporting\.js\?v=1\.45\.7/,'Project reporting runtime must be loaded');
 assert.match(index,/jspdf@2\.5\.2/,'Pinned PDF export library must be loaded');
 assert.match(index,/xlsx@0\.18\.5/,'Pinned Excel export library must be loaded');
 assert.match(reporting,/function psProjectReportPdf\(model\)/,'PDF export must use the dedicated Project report renderer');
+assert.match(reporting,/function psProjectReportTimelineWindow\(model\)/,'Profit graph must use a real date-scaled project timeline');
+assert(html.includes('PROJECT AGE'),'Live profit graph must show the project age period');
 assert.match(reporting,/showHead:'everyPage'/,'PDF tables must repeat column headers on every continuation page');
 assert.match(reporting,/rowPageBreak:'avoid'/,'PDF rows must not be split unpredictably across pages');
 assert.match(reporting,/addPage\('landscape','Appendix · Sales & customer invoices'/,'Wide sales tables must use landscape pages');

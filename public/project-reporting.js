@@ -21,6 +21,13 @@ function psProjectReportDateLabel(value){
  const iso=psProjectReportIso(value);if(!iso)return 'Not set';
  return new Date(iso+'T12:00:00Z').toLocaleDateString('en-GB',{day:'2-digit',month:'short',year:'numeric',timeZone:'Europe/London'});
 }
+function psProjectReportDateMs(value){
+ const iso=psProjectReportIso(value);return iso?Date.parse(iso+'T12:00:00Z'):NaN;
+}
+function psProjectReportShortDate(value,includeYear=false){
+ const ms=typeof value==='number'?value:psProjectReportDateMs(value);if(!Number.isFinite(ms))return 'Not set';
+ return new Date(ms).toLocaleDateString('en-GB',{day:'2-digit',month:'short',...(includeYear?{year:'2-digit'}:{}),timeZone:'Europe/London'});
+}
 function psProjectReportDocGrossPence(doc){
  const remote=doc?.remote||{};
  if(Number.isFinite(Number(remote.Total)))return psProjectReportPence(remote.Total);
@@ -116,7 +123,7 @@ function psProjectReportModel(job,source=data,now=Date.now()){
  });
  const salesOrders=psProjectReportArray(s.orders).map(order=>{
   const doc=receivableBySource.get(String(order.id)),net=psProjectReportOrderNetPence(order,source),fallbackPaid=psProjectReportArray(order.payments).reduce((n,pay)=>n+psProjectReportPence(pay.amount),0);
-  return {id:String(order.id),status:String(order.status||'Open'),quoteRef:String(order.quoteRef||''),scope:order.variationId?'Extra':'Original',net,paid:doc?psProjectReportPence(doc.amount_paid):fallbackPaid,invoiced:doc?psProjectReportDocNetInfo(doc).value:0,outstanding:doc?psProjectReportPence(doc.amount_due):0};
+  return {id:String(order.id),status:String(order.status||'Open'),date:psProjectReportIso(order.date||order.orderDate||order.createdAt||order.acceptedAt),quoteRef:String(order.quoteRef||''),scope:order.variationId?'Extra':'Original',net,paid:doc?psProjectReportPence(doc.amount_paid):fallbackPaid,invoiced:doc?psProjectReportDocNetInfo(doc).value:0,outstanding:doc?psProjectReportPence(doc.amount_due):0};
  });
  const poRows=psProjectReportArray(s.poRows).map(row=>{
   const po=row.po,doc=payableBySource.get(String(po.id)),bill=doc?psProjectReportDocNetInfo(doc):{value:0,exact:true},fallbackPaid=psProjectReportArray(po.payments).reduce((n,pay)=>n+psProjectReportPence(pay.amount),0);
@@ -171,21 +178,32 @@ function psProjectReportModel(job,source=data,now=Date.now()){
  const noCategory=psProjectReportArray(p.costs).filter(c=>!c.voidedAt&&!String(c.category||'').trim());if(noCategory.length)checks.push({severity:'warn',text:noCategory.length+' project cost'+(noCategory.length===1?' needs':'s need')+' a category.'});
  const customerOutstanding=invoiceRows.reduce((n,r)=>n+r.outstanding,0);if(customerOutstanding>0)checks.push({severity:'warn',text:psProjectCash(customerOutstanding)+' customer cash is outstanding on linked invoices.'});
  if(!checks.length)checks.push({severity:'good',text:'No current reporting data-quality exceptions were found.'});
- p.reportSnapshots=psProjectReportArray(p.reportSnapshots);
- const current=psProjectReportSnapshotRow(job,s,'Current',now);
- const snapshots=p.reportSnapshots.slice(-24),timeline=snapshots.length?snapshots.slice():[];
- if(!timeline.length&&original.profit!==null)timeline.push({at:p.quoteAcceptedAt||p.acceptedAt||job.createdAt||new Date(now-86400000).toISOString(),reason:'Original plan',revenue:original.revenue,forecast:original.cost,profit:original.profit,margin:original.margin});
- if(!timeline.length||psProjectReportSnapshotSignature(timeline[timeline.length-1])!==psProjectReportSnapshotSignature(current))timeline.push(current);
- const previous=timeline.length>1?timeline[timeline.length-2]:null;
  const transactionLedger=[];
- salesOrders.forEach(o=>transactionLedger.push({date:'',type:'Sales Order',reference:o.id,party:customer(job.customerId)?.name||'',description:o.scope+' scope',revenue:o.net,cost:0,committed:0,paid:o.paid,outstanding:o.outstanding,status:o.status}));
+ salesOrders.forEach(o=>transactionLedger.push({date:o.date,type:'Sales Order',reference:o.id,party:customer(job.customerId)?.name||'',description:o.scope+' scope',revenue:o.net,cost:0,committed:0,paid:o.paid,outstanding:o.outstanding,status:o.status}));
  invoiceRows.forEach(r=>transactionLedger.push({date:r.date,type:'Customer Invoice',reference:r.reference,party:customer(job.customerId)?.name||'',description:r.sourceId,revenue:r.net,cost:0,committed:0,paid:r.paid,outstanding:r.outstanding,status:r.status}));
  poRows.forEach(r=>transactionLedger.push({date:r.date,type:'Purchase Order',reference:r.id,party:r.supplier,description:r.lines.map(l=>l.name).join(', '),revenue:0,cost:0,committed:r.ordered,paid:r.paid,outstanding:r.outstanding,status:r.status}));
  purchaseInvoices.forEach(r=>transactionLedger.push({date:r.date,type:'Purchase Invoice',reference:r.reference,party:r.supplier,description:r.poId,revenue:0,cost:r.net,committed:0,paid:r.paid,outstanding:r.outstanding,status:r.status}));
  psProjectReportArray(p.costs).filter(c=>!c.voidedAt).forEach(c=>transactionLedger.push({date:c.date||'',type:'Project Cost',reference:c.ref||c.id,party:c.supplier||'',description:c.notes||c.category||'',revenue:0,cost:c.state==='Actual'?psProjectReportPence(c.net):0,committed:c.state==='Committed'?psProjectReportPence(c.net):0,paid:0,outstanding:0,status:c.state||''}));
  labour.forEach(r=>transactionLedger.push({date:r.start,type:'Labour',reference:r.reference||r.id,party:r.person,description:r.rateType,revenue:0,cost:r.accrued,committed:Math.max(0,r.forecast-r.accrued),paid:0,outstanding:0,status:r.ongoing?'Ongoing':'Ended'}));
  tools.forEach(r=>transactionLedger.push({date:r.start,type:r.mode==='Purchase'?'Tool Purchase':'Tool Hire',reference:r.reference||r.id,party:r.supplier,description:r.name,revenue:0,cost:r.accrued,committed:Math.max(0,r.forecast-r.accrued),paid:0,outstanding:0,status:r.running?'Running':'Stopped'}));
- return {job,p,s,original,finance,invoiceRows,purchaseInvoices,salesOrders,poRows,suppliers,customerOutstanding,customerCash,supplierCash,cashPosition,runway,costSources,labour,labourByPerson,tools,checks,timeline,previous,transactionLedger,asOf:new Date(now).toISOString()};
+ const firstFinancialDate=transactionLedger
+  .filter(r=>psProjectReportIso(r.date)&&(Math.abs(Number(r.revenue||0))+Math.abs(Number(r.cost||0))+Math.abs(Number(r.committed||0))+Math.abs(Number(r.paid||0))+Math.abs(Number(r.outstanding||0))>0))
+  .map(r=>psProjectReportIso(r.date)).sort()[0]||'';
+ p.reportSnapshots=psProjectReportArray(p.reportSnapshots);
+ const current=psProjectReportSnapshotRow(job,s,'Current',now);
+ const snapshots=p.reportSnapshots.slice(-180),rawTimeline=snapshots.length?snapshots.slice():[];
+ if(!rawTimeline.length&&original.profit!==null)rawTimeline.push({at:firstFinancialDate||p.quoteAcceptedAt||p.acceptedAt||job.createdAt||new Date(now-86400000).toISOString(),reason:'Original plan',revenue:original.revenue,actual:0,committed:0,forecast:original.cost,profit:original.profit,margin:original.margin});
+ if(!rawTimeline.length||psProjectReportSnapshotSignature(rawTimeline[rawTimeline.length-1])!==psProjectReportSnapshotSignature(current))rawTimeline.push(current);
+ const previous=rawTimeline.length>1?rawTimeline[rawTimeline.length-2]:null;
+ let timeline=rawTimeline.slice();
+ if(firstFinancialDate){
+  const startMs=psProjectReportDateMs(firstFinancialDate),dated=timeline.filter(r=>Number.isFinite(psProjectReportDateMs(r.at))).sort((a,b)=>psProjectReportDateMs(a.at)-psProjectReportDateMs(b.at));
+  const before=dated.filter(r=>psProjectReportDateMs(r.at)<=startMs).pop();
+  const after=dated.filter(r=>psProjectReportDateMs(r.at)>startMs);
+  const baseline=before||((original.profit!==null)?{revenue:original.revenue,actual:0,committed:0,forecast:original.cost,profit:original.profit,margin:original.margin}:dated[0]||current);
+  timeline=[{...baseline,at:new Date(startMs).toISOString(),reason:'First dated project financial activity'},...after];
+ }
+ return {job,p,s,original,finance,invoiceRows,purchaseInvoices,salesOrders,poRows,suppliers,customerOutstanding,customerCash,supplierCash,cashPosition,runway,costSources,labour,labourByPerson,tools,checks,timeline,previous,transactionLedger,firstFinancialDate,asOf:new Date(now).toISOString()};
 }
 function psProjectReportMoney(v){return psProjectCash(Number(v||0));}
 function psProjectReportPct(v){return v===null||!Number.isFinite(Number(v))?'Not captured':Number(v).toFixed(1)+'%';}
@@ -201,16 +219,32 @@ function psProjectReportVariance(metric,current,original,known=true){
  const delta=Number(current||0)-Number(original||0),favourable=metric==='cost'?delta<=0:delta>=0,label=metric==='margin'?Math.abs(delta).toFixed(1)+' pts '+(delta>=0?'up':'down'):psProjectReportMoney(Math.abs(delta))+' '+(delta>=0?(metric==='cost'?'over':'up'):(metric==='cost'?'under':'down'));
  return '<span class="'+(delta===0?'pr-neutral':favourable?'pr-good':'pr-bad')+'">'+psProjectEsc(label)+'</span>';
 }
+function psProjectReportTimelineWindow(model){
+ let rows=psProjectReportArray(model.timeline).filter(r=>Number.isFinite(psProjectReportDateMs(r.at))).slice().sort((a,b)=>psProjectReportDateMs(a.at)-psProjectReportDateMs(b.at));
+ if(!rows.length)return {rows:[],startMs:NaN,endMs:NaN,spanDays:0};
+ const firstRowMs=psProjectReportDateMs(rows[0].at),explicitStart=psProjectReportDateMs(model.firstFinancialDate),startMs=Number.isFinite(explicitStart)?explicitStart:firstRowMs;
+ rows=rows.filter(r=>psProjectReportDateMs(r.at)>=startMs);
+ if(!rows.length)rows=[model.timeline[model.timeline.length-1]];
+ const asOfMs=psProjectReportDateMs(model.asOf),lastMs=psProjectReportDateMs(rows[rows.length-1].at);
+ let endMs=Math.max(startMs,lastMs,Number.isFinite(asOfMs)?asOfMs:lastMs);
+ if(lastMs<endMs){
+  rows.push({at:new Date(endMs).toISOString(),reason:'Current position',revenue:Number(model.s.revenue||0),actual:Number(model.s.actual||0),committed:Number(model.s.committedCosts||0),forecast:Number(model.s.forecast||0),profit:Number(model.s.profit||0),margin:model.s.margin===null?null:Number(model.s.margin)});
+ }
+ if(endMs===startMs)endMs=startMs+86400000;
+ return {rows,startMs,endMs,spanDays:Math.max(0,Math.round((endMs-startMs)/86400000))};
+}
 function psProjectReportGraph(model){
- const rows=model.timeline.slice(-12),mode=psProjectReportChartMode;
+ const range=psProjectReportTimelineWindow(model),rows=range.rows,mode=psProjectReportChartMode;
  if(!rows.length)return '<div class="pr-empty">Profit history will build automatically as project commercial values change.</div>';
- const values=rows.map(r=>mode==='margin'?Number(r.margin||0):Number(r.profit||0)/100),min=Math.min(...values),max=Math.max(...values),span=Math.max(1,max-min),w=900,h=250,pad=36;
- const point=(v,i)=>({x:pad+(rows.length===1?0.5:(i/(rows.length-1)))*(w-pad*2),y:pad+(max-v)/span*(h-pad*2)});
+ const values=rows.map(r=>mode==='margin'?Number(r.margin||0):Number(r.profit||0)/100),min=Math.min(...values),max=Math.max(...values),span=Math.max(1,max-min),w=900,h=250,pad=46;
+ const point=(v,i)=>{const t=psProjectReportDateMs(rows[i].at),ratio=Math.max(0,Math.min(1,(t-range.startMs)/(range.endMs-range.startMs)));return {x:pad+ratio*(w-pad*2),y:pad+(max-v)/span*(h-pad*2)};};
  const pts=values.map(point),path=pts.map((p,i)=>(i?'L':'M')+p.x.toFixed(1)+' '+p.y.toFixed(1)).join(' ');
  const dots=pts.map((p,i)=>'<g><circle cx="'+p.x+'" cy="'+p.y+'" r="5"></circle><title>'+psProjectEsc(psProjectReportDateLabel(rows[i].at)+' · '+rows[i].reason+' · '+(mode==='margin'?values[i].toFixed(1)+'%':money(values[i])))+'</title></g>').join('');
- const labels=rows.map((r,i)=>{if(rows.length>6&&i%Math.ceil(rows.length/6)!==0&&i!==rows.length-1)return '';const p=pts[i];return '<text x="'+p.x+'" y="'+(h-8)+'" text-anchor="middle">'+psProjectEsc(new Date(r.at).toLocaleDateString('en-GB',{day:'2-digit',month:'short'}))+'</text>';}).join('');
+ const tickCount=range.spanDays>365?6:range.spanDays>90?5:4;
+ const labels=Array.from({length:tickCount},(_,i)=>{const ratio=tickCount===1?0:i/(tickCount-1),t=range.startMs+ratio*(range.endMs-range.startMs),x=pad+ratio*(w-pad*2);return '<text x="'+x+'" y="'+(h-8)+'" text-anchor="middle">'+psProjectEsc(psProjectReportShortDate(t,range.spanDays>300))+'</text>';}).join('');
  const grids=[0,.25,.5,.75,1].map(f=>{const y=pad+f*(h-pad*2),v=max-f*span;return '<line x1="'+pad+'" y1="'+y+'" x2="'+(w-pad)+'" y2="'+y+'"></line><text x="'+(pad-8)+'" y="'+(y+4)+'" text-anchor="end">'+psProjectEsc(mode==='margin'?v.toFixed(1)+'%':money(v))+'</text>';}).join('');
- return '<svg class="pr-chart" viewBox="0 0 '+w+' '+h+'" role="img" aria-label="'+(mode==='margin'?'Margin':'Profit')+' momentum">'+grids+'<path d="'+path+'"></path>'+dots+labels+'</svg>';
+ const period='<div class="pr-chart-period"><span>PROJECT AGE</span><strong>'+psProjectEsc(psProjectReportDateLabel(range.startMs))+' to '+psProjectEsc(psProjectReportDateLabel(range.endMs))+'</strong><small>'+range.spanDays+' day'+(range.spanDays===1?'':'s')+' of dated financial history</small></div>';
+ return period+'<svg class="pr-chart" viewBox="0 0 '+w+' '+h+'" role="img" aria-label="'+(mode==='margin'?'Margin':'Profit')+' momentum over project age">'+grids+'<path d="'+path+'"></path>'+dots+labels+'</svg>';
 }
 function psProjectReportBars(model){
  const max=Math.max(1,...model.costSources.map(x=>x.value));
@@ -421,15 +455,17 @@ function psProjectReportPdf(model){
 
  addPage('portrait','Profit & cost movement');
  y=section('Profit momentum','Direction of travel',34);
- const rows=model.timeline.slice(-16),vals=rows.map(r=>Number(r.profit||0)/100);
+ const range=psProjectReportTimelineWindow(model),rows=range.rows,vals=rows.map(r=>Number(r.profit||0)/100);
  if(rows.length){
-  const {w}=size(),left=27,top=y+4,width=w-47,height=66,min=Math.min(...vals),max=Math.max(...vals),span=Math.max(1,max-min);
+  const {w}=size(),left=27,top=y+11,width=w-47,height=66,min=Math.min(...vals),max=Math.max(...vals),span=Math.max(1,max-min);
+  doc.setFontSize(7.5);doc.setTextColor(...muted);doc.text('Project age: '+psProjectReportDateLabel(range.startMs)+' to '+psProjectReportDateLabel(range.endMs)+' · '+range.spanDays+' day'+(range.spanDays===1?'':'s')+' of dated financial history',14,y+4);
   doc.setDrawColor(...line);doc.setLineWidth(.25);
   for(let i=0;i<=4;i++){const gy=top+i*height/4;doc.line(left,gy,left+width,gy);}
   doc.setDrawColor(...aqua);doc.setLineWidth(1.2);let prev=null;
-  vals.forEach((v,i)=>{const x=left+(rows.length===1 ? .5 : i/(rows.length-1))*width,yy=top+(max-v)/span*height;if(prev)doc.line(prev.x,prev.y,x,yy);doc.setFillColor(...aqua);doc.circle(x,yy,1.8,'F');prev={x,y:yy};});
+  vals.forEach((v,i)=>{const t=psProjectReportDateMs(rows[i].at),ratio=Math.max(0,Math.min(1,(t-range.startMs)/(range.endMs-range.startMs))),x=left+ratio*width,yy=top+(max-v)/span*height;if(prev)doc.line(prev.x,prev.y,x,yy);doc.setFillColor(...aqua);doc.circle(x,yy,1.8,'F');prev={x,y:yy};});
   doc.setFontSize(7);doc.setTextColor(...muted);doc.text(moneyP(Math.round(max*100)),14,top+2);doc.text(moneyP(Math.round(min*100)),14,top+height);
-  const step=Math.max(1,Math.ceil(rows.length/5));rows.forEach((r,i)=>{if(i%step&&i!==rows.length-1)return;const x=left+(rows.length===1 ? .5 : i/(rows.length-1))*width;doc.text(new Date(r.at).toLocaleDateString('en-GB',{day:'2-digit',month:'short'}),x,top+height+7,{align:'center'});});
+  const tickCount=range.spanDays>365?6:range.spanDays>90?5:4;
+  Array.from({length:tickCount},(_,i)=>{const ratio=tickCount===1?0:i/(tickCount-1),t=range.startMs+ratio*(range.endMs-range.startMs),x=left+ratio*width;doc.text(psProjectReportShortDate(t,range.spanDays>300),x,top+height+7,{align:'center'});});
   y=top+height+18;
  }else y=empty('Profit history will build automatically as project commercial values change.',y);
  y=section('Forecast cost composition','Where the money goes',y);
