@@ -58,7 +58,9 @@
   function poLineVat(line,p,net) {
     if(typeof vatAmount==='function') return Number(vatAmount(net,{taxCode:line.taxCode||p.taxCode||'20% VAT'})||0);
     const code=String(line.taxCode||p.taxCode||'20% VAT').toLowerCase();
-    return (/zero|exempt|not rated/.test(code)||/^\s*0(?:\.0+)?\s*%/.test(code)) ? 0 : net*.2;
+    if(/zero|exempt|not rated/.test(code)||/^\s*0(?:\.0+)?\s*%/.test(code))return 0;
+    const match=code.match(/(\d+(?:\.\d+)?)\s*%/);
+    return match ? net*(Number(match[1])/100) : net*.2;
   }
 
   function poLineDeleteAssessment(po,line) {
@@ -75,7 +77,7 @@
     const po=typeof purchaseOrderById==='function'?purchaseOrderById(poId):(data.purchaseOrders||[]).find(function(row){return row.id===poId;});
     const line=po&&po.lines&&po.lines[Number(index)];
     if(!po||!line)return typeof toast==='function'?toast('Purchase Order line not found.'):undefined;
-    const check=poLineDeleteAssessment(po,line),p=poProduct(line.productId)||{sku:line.productId,name:line.productId};
+    const check=poLineDeleteAssessment(po,line),p=poLineProduct(line);
     if(!check.allowed){
       purchaseCommandTab='connections';
       if(typeof toast==='function')toast('This line has receiving history. Keep it on the PO and use Supplier Returns & Credits instead.');
@@ -107,6 +109,98 @@
 
   function poProduct(id) {
     return typeof product === 'function' ? product(id) : ((data.products || []).find(function (item) { return item.id === id; }) || null);
+  }
+
+  function poIsCustomPurchaseLine(line) {
+    return !!(line && (line.nonStockPurchase || line.lineType === 'custom-purchase'));
+  }
+
+  function poLineProduct(line) {
+    if (poIsCustomPurchaseLine(line)) return {
+      id:line.productId,
+      sku:line.supplierSku || line.customReference || 'CUSTOM',
+      name:line.customProductName || line.description || 'Custom PO line',
+      supplierSku:line.supplierSku || '',
+      brand:line.purchaseCategory || 'Custom purchase',
+      category:line.purchaseCategory || 'Custom purchase',
+      taxCode:line.taxCode || '20% VAT',
+      cost:Number(line.unitCost || 0)
+    };
+    return poProduct(line && line.productId) || {sku:line && line.productId || 'Missing',name:'Missing product'};
+  }
+
+  function poProjectOptions(selected) {
+    const current=String(selected||'');
+    const jobs=(data.jobs||[]).filter(function(job){return job && !['Cancelled','Completed','Invoiced'].includes(job.status);});
+    return '<option value="">General business purchase / no project</option>' + jobs.map(function(job){
+      return '<option value="' + poEsc(job.id) + '"' + (String(job.id)===current?' selected':'') + '>' + poEsc((job.name||job.id) + ' · ' + job.id) + '</option>';
+    }).join('');
+  }
+
+  function poCustomLineComposer(po) {
+    return '<details class="po-custom-line-composer"><summary><span><strong>+ Add custom PO line</strong><small>Building materials, consumables, one-off supplier items and project costs that do not need a Sales Order.</small></span><span class="po-custom-summary-pill">PO-only purchase</span></summary>' +
+      '<div class="po-custom-line-form" data-po-custom-line-form="' + poEsc(po.id) + '">' +
+        '<label class="span-2">Item / service<input data-po-custom-name maxlength="180" placeholder="e.g. MOT Type 1, cement, timber, fixings, plant consumables"></label>' +
+        '<label class="span-2">Detailed description<textarea data-po-custom-description rows="2" maxlength="1000" placeholder="What exactly are we buying? Include size, grade, specification or other supplier detail."></textarea></label>' +
+        '<label>Supplier SKU / reference<input data-po-custom-sku maxlength="120" placeholder="Optional supplier code"></label>' +
+        '<label>Purchase category<select data-po-custom-category><option>Building materials</option><option>Groundworks</option><option>Plant & hire</option><option>Electrical</option><option>Plumbing</option><option>Pool equipment</option><option>Consumables</option><option>Delivery / freight</option><option>Professional services</option><option>Other</option></select></label>' +
+        '<label>Quantity<input data-po-custom-qty type="number" min="0.01" step="0.01" value="1"></label>' +
+        '<label>Unit<select data-po-custom-uom><option>each</option><option>bag</option><option>pack</option><option>box</option><option>tonne</option><option>kg</option><option>m</option><option>m²</option><option>m³</option><option>litre</option><option>load</option><option>day</option><option>job</option></select></label>' +
+        '<label>Unit cost net (£)<input data-po-custom-cost type="number" min="0" step="0.01" placeholder="0.00"></label>' +
+        '<label>VAT<select data-po-custom-vat><option>20% VAT</option><option>5% VAT</option><option>Zero Rated</option></select></label>' +
+        '<label class="span-2">Allocate cost to Project<select data-po-custom-project>' + poProjectOptions('') + '</select><small>Optional. If selected, this PO line becomes part of that Project\'s live cost and profit position.</small></label>' +
+        '<label>Expected / required date<input data-po-custom-date type="date" value="' + poEsc(po.due||'') + '"></label>' +
+        '<label>Receiving treatment<span class="po-custom-readonly"><strong>Non-stock direct purchase</strong><small>Receipt updates the PO/project cost but does not create warehouse stock.</small></span></label>' +
+        '<label class="span-2">Internal purchasing note<textarea data-po-custom-note rows="2" maxlength="1000" placeholder="Delivery instructions, site use, supplier notes, why this is being purchased..."></textarea></label>' +
+        '<div class="po-custom-line-actions span-2"><div><strong>No Sales Order required</strong><small>Use a Product Hub item instead if the item needs to become warehouse stock.</small></div><button type="button" class="primary" data-po-add-custom-line="' + poEsc(po.id) + '">Add custom line</button></div>' +
+      '</div></details>';
+  }
+
+  function purchaseAddCustomPoLine(poId, payload) {
+    const po=typeof purchaseOrderById==='function'?purchaseOrderById(poId):(data.purchaseOrders||[]).find(function(row){return String(row.id)===String(poId);});
+    if(!po)return {ok:false,error:'Purchase Order not found.'};
+    const name=String(payload.name||'').trim(),description=String(payload.description||'').trim(),qty=Number(payload.qty),unitCost=Number(payload.unitCost),projectId=String(payload.projectId||'').trim();
+    if(!name)return {ok:false,error:'Enter the custom item / service name.'};
+    if(!Number.isFinite(qty)||qty<=0)return {ok:false,error:'Enter a quantity greater than zero.'};
+    if(!Number.isFinite(unitCost)||unitCost<0)return {ok:false,error:'Enter a valid unit cost.'};
+    if(projectId && !(data.jobs||[]).some(function(job){return String(job.id)===projectId;}))return {ok:false,error:'Choose a valid Project or leave Project blank.'};
+    const token='POCUSTOM-'+Date.now()+'-'+Math.random().toString(36).slice(2,7),now=new Date().toISOString();
+    const line={
+      productId:token,
+      receiptLineId:token,
+      lineType:'custom-purchase',
+      nonStockPurchase:true,
+      customProductName:name,
+      description:description,
+      supplierSku:String(payload.supplierSku||'').trim(),
+      customReference:String(payload.supplierSku||'').trim(),
+      purchaseCategory:String(payload.purchaseCategory||'Other'),
+      qty:Math.round(qty*100)/100,
+      uom:String(payload.uom||'each'),
+      unitCost:Math.round(unitCost*100)/100,
+      taxCode:String(payload.taxCode||'20% VAT'),
+      projectId:projectId,
+      salesOrderId:'',
+      received:0,
+      orderedDate:poToday(),
+      dueDate:String(payload.dueDate||po.due||''),
+      supplierNotes:String(payload.note||'').trim(),
+      internalNote:String(payload.note||'').trim(),
+      receivingTreatment:'Non-stock direct purchase',
+      createdAt:now,
+      createdBy:(typeof currentUser==='function'&&currentUser()&&(currentUser().name||currentUser().email))||'Purchasing'
+    };
+    po.lines=Array.isArray(po.lines)?po.lines:[];
+    po.lines.push(line);
+    if(po.supplierEmailSentAt||po.supplierConfirmedAt){
+      po.reviewStatus='Needs review';
+      po.supplierEmailStatus='Changes pending';
+      if(!['Cancelled','Received'].includes(po.status))po.status='Draft - Review';
+    }
+    data.auditLog=Array.isArray(data.auditLog)?data.auditLog:[];
+    data.auditLog.push({id:'AUD-'+Date.now(),date:now,user:line.createdBy,action:'Custom purchase order line added',product:po.id,newValue:JSON.parse(JSON.stringify(line)),reason:projectId?'PO-only project purchase':'PO-only general purchase'});
+    if(typeof saveAppData==='function')saveAppData();
+    return {ok:true,po:po,line:line};
   }
 
   function poSupplier(name) {
@@ -225,9 +319,10 @@
   function purchaseDemandSources(po) {
     const sources = [];
     (po.lines || []).forEach(function (line) {
-      const p = poProduct(line.productId) || { sku:line.productId, name:line.productId };
+      const p = poLineProduct(line);
       if (line.salesOrderId) sources.push({ type:'Sales Order', ref:line.salesOrderId, productId:line.productId, sku:p.sku, name:p.name, qty:Number(line.qty || 0), note:'Demand source only. FIFO decides physical allocation after QC.' });
-      else if (line.projectId || po.projectId || po.jobId) sources.push({ type:'Project', ref:line.projectId || po.projectId || po.jobId, productId:line.productId, sku:p.sku, name:p.name, qty:Number(line.qty || 0), note:'Project procurement demand.' });
+      else if (line.projectId || po.projectId || po.jobId) sources.push({ type:'Project', ref:line.projectId || po.projectId || po.jobId, productId:line.productId, sku:p.sku, name:p.name, qty:Number(line.qty || 0), note:poIsCustomPurchaseLine(line)?'PO-only non-stock cost allocated directly to this Project.':'Project procurement demand.' });
+      else if(poIsCustomPurchaseLine(line)) sources.push({ type:'Direct purchase', ref:'PO-only', productId:line.productId, sku:p.sku, name:p.name, qty:Number(line.qty || 0), note:'Non-stock supplier purchase. No Sales Order link required and no warehouse stock is created.' });
       else sources.push({ type:'Replenishment / stock', ref:'General stock', productId:line.productId, sku:p.sku, name:p.name, qty:Number(line.qty || 0), note:'Warehouse or replenishment demand.' });
     });
     return sources;
@@ -300,17 +395,18 @@
     const units=(po.lines||[]).reduce(function(n,line){return n+Number(line.qty||0);},0);
     const receivedUnits=(po.lines||[]).reduce(function(n,line){return n+Number(line.received||0);},0);
     const rows = (po.lines || []).map(function (line, index) {
-      const p = poProduct(line.productId) || { sku:line.productId, name:'Missing product' };
+      const p = poLineProduct(line);
       const pending = Math.max(0, Number(line.qty || 0) - Number(line.received || 0));
-      const demand = line.salesOrderId ? line.salesOrderId : (line.projectId || po.projectId || po.jobId || 'General stock');
+      const demand = line.salesOrderId ? line.salesOrderId : (line.projectId || po.projectId || po.jobId || (poIsCustomPurchaseLine(line)?'PO-only purchase':'General stock'));
       const cost = poLineCost(line),qty=Number(line.qty||0),lineNet=cost*qty,lineVat=poLineVat(line,p,lineNet),lineGross=lineNet+lineVat,vatPct=lineNet>0?Math.round(lineVat/lineNet*100):0;
       const check=poLineDeleteAssessment(po,line);
       const menuId='po-line-menu-' + String(po.id+'-'+index).replace(/[^a-z0-9_-]/gi,'-');
-      return '<tr class="po-line-row"><td class="po-product-cell"><div class="po-line-product">' + poProductThumb(p) + '<div><strong>' + poEsc(p.name || p.sku || 'Product') + '</strong><small>' + poEsc(p.sku || line.productId || '') + '</small></div></div></td>' +
-        '<td><strong>' + poEsc(line.supplierSku || p.supplierSku || '—') + '</strong><small>' + poEsc(p.brand || p.category || 'Supplier item') + '</small></td>' +
+      const custom=poIsCustomPurchaseLine(line);
+      return '<tr class="po-line-row' + (custom?' po-custom-line-row':'') + '"><td class="po-product-cell"><div class="po-line-product">' + (custom?'<span class="po-line-thumb po-custom-thumb">PO</span>':poProductThumb(p)) + '<div><strong>' + poEsc(p.name || p.sku || 'Product') + '</strong><small>' + (custom?'<span class="po-custom-line-badge">CUSTOM PO LINE</span> · '+poEsc(line.uom||'each')+(line.description?' · '+poEsc(line.description):''):poEsc(p.sku || line.productId || '')) + '</small></div></div></td>' +
+        '<td><strong>' + poEsc(line.supplierSku || p.supplierSku || '—') + '</strong><small>' + poEsc(custom?(line.purchaseCategory||'Custom purchase'):(p.brand || p.category || 'Supplier item')) + (custom&&line.internalNote?'<br>'+poEsc(line.internalNote):'') + '</small></td>' +
         '<td><button type="button" class="link-button" data-po-command-tab="connections|' + poEsc(po.id) + '">' + poEsc(demand) + '</button></td>' +
-        '<td><div class="po-receiving-cell"><strong>' + Number(line.received || 0) + ' / ' + qty + '</strong><small>' + pending + ' outstanding</small></div></td>' +
-        '<td><input class="po-qty" data-po-line-qty="' + poEsc(po.id) + '|' + poEsc(line.productId) + '" type="number" min="' + Number(line.received || 0) + '" value="' + qty + '"></td>' +
+        '<td><div class="po-receiving-cell"><strong>' + Number(line.received || 0) + ' / ' + qty + '</strong><small>' + pending + ' outstanding' + (custom?' · non-stock':'') + '</small></div></td>' +
+        '<td><input class="po-qty" data-po-line-qty="' + poEsc(po.id) + '|' + poEsc(line.productId) + '" type="number" min="' + Number(line.received || 0) + '" step="' + (custom?'0.01':'1') + '" value="' + qty + '"><small>' + poEsc(custom?(line.uom||'each'):'units') + '</small></td>' +
         '<td class="right"><input class="po-cost-input" type="number" step="0.01" min="0" data-po-line-cost="' + poEsc(po.id) + '|' + index + '" value="' + cost.toFixed(2) + '"><small>net unit</small></td>' +
         '<td class="po-vat">' + vatPct + '%</td>' +
         '<td class="right po-line-total"><strong>' + poMoney(lineGross) + '</strong><small>inc VAT</small></td>' +
@@ -319,7 +415,7 @@
         '</div></td></tr>';
     }).join('') || '<tr><td colspan="9" class="po-empty">No supplier lines yet. Select a supplier and add products.</td></tr>';
     return '<section class="po-work-card po-items-card"><div class="po-items-toolbar"><div><span>ORDER LINES</span><strong>' + (po.lines||[]).length + ' lines · ' + units + ' units</strong><small>' + receivedUnits + ' received</small></div><div class="po-line-add"><input id="poProductSearch" data-po-id="' + poEsc(po.id) + '" placeholder="Search supplier product, Pool Shed SKU, supplier SKU or barcode"><input id="poProductQty" type="number" min="1" value="1"><button type="button" class="primary" data-add-po-selected="' + poEsc(po.id) + '">Add line</button><div id="poProductResults" class="po-product-results" hidden></div></div></div>' +
-      '<div class="po-table-wrap"><table class="po-command-table po-items-table"><thead><tr><th>Product</th><th>Supplier item</th><th>Demand / link</th><th>Receiving</th><th>Qty</th><th class="right">Unit net</th><th>VAT</th><th class="right">Line total</th><th></th></tr></thead><tbody>' + rows + '</tbody></table></div>' +
+      poCustomLineComposer(po) + '<div class="po-table-wrap"><table class="po-command-table po-items-table"><thead><tr><th>Product</th><th>Supplier item</th><th>Demand / link</th><th>Receiving</th><th>Qty</th><th class="right">Unit net</th><th>VAT</th><th class="right">Line total</th><th></th></tr></thead><tbody>' + rows + '</tbody></table></div>' +
       '<div class="po-items-lower-grid"><section class="po-items-commercial-card"><div><span>SUPPLIER ORDER CONTROL</span><strong>Commercial record</strong><p>Keep supplier cost, receiving and payment status connected to this PO. The PO remains the cost authority for linked Sales Orders and Projects.</p></div><div class="po-financial-strip"><div><span>Subtotal net</span><strong>' + poMoney(financials.net) + '</strong></div><div><span>VAT</span><strong>' + poMoney(financials.vat) + '</strong></div><div class="grand"><span>Total inc VAT</span><strong>' + poMoney(financials.gross) + '</strong></div></div><div class="po-line-rule"><strong>Clean-up rule:</strong> unreceived lines can be deleted with a reason. Once stock has been received, the line remains permanent and must use the return / credit process.</div></section>' + poLiveTotalsCard(po) + '</div></section>';
   }
 
@@ -333,26 +429,30 @@
 
   function poConfirmationTab(po) {
     const rows = (po.lines || []).map(function (line,index) {
-      const p = poProduct(line.productId) || {sku:line.productId,name:line.productId};
+      const p = poLineProduct(line);
       const ordered = Number(line.qty || 0);
       const confirmed = Number(line.confirmedQty != null ? line.confirmedQty : ordered);
       const baseCost = poLineCost(line);
       const confirmedCost = Number(line.confirmedUnitCost != null ? line.confirmedUnitCost : baseCost);
       const qtyIssue = confirmed < ordered;
       const costPct = baseCost > 0 ? ((confirmedCost-baseCost)/baseCost)*100 : 0;
-      return '<tr><td><strong>' + poEsc(p.sku) + '</strong><small>' + poEsc(p.name) + '</small></td><td>' + ordered + '</td><td><input class="po-qty" data-po-confirmed-qty="' + poEsc(po.id) + '|' + index + '" type="number" min="0" value="' + confirmed + '"></td><td><input type="date" data-po-confirmed-eta="' + poEsc(po.id) + '|' + index + '" value="' + poEsc(line.confirmedEta || po.due || '') + '"></td><td class="right"><input class="po-cost-input" type="number" step="0.01" min="0" data-po-confirmed-cost="' + poEsc(po.id) + '|' + index + '" value="' + confirmedCost.toFixed(2) + '"></td><td>' + (qtyIssue ? poPill((ordered-confirmed) + ' backordered','warn') : costPct >= 5 ? poPill('Cost +' + costPct.toFixed(1) + '%','warn') : poPill('Confirmed','good')) + '</td><td><input data-po-confirmation-note="' + poEsc(po.id) + '|' + index + '" value="' + poEsc(line.supplierConfirmationNote || '') + '" placeholder="Supplier note / substitution"></td></tr>';
+      return '<tr><td><strong>' + poEsc(p.sku) + '</strong><small>' + poEsc(p.name) + '</small></td><td>' + ordered + '</td><td><input class="po-qty" data-po-confirmed-qty="' + poEsc(po.id) + '|' + index + '" type="number" min="0" value="' + confirmed + '"></td><td><input type="date" data-po-confirmed-eta="' + poEsc(po.id) + '|' + index + '" value="' + poEsc(line.confirmedEta || line.dueDate || po.due || '') + '"></td><td class="right"><input class="po-cost-input" type="number" step="0.01" min="0" data-po-confirmed-cost="' + poEsc(po.id) + '|' + index + '" value="' + confirmedCost.toFixed(2) + '"></td><td>' + (qtyIssue ? poPill((ordered-confirmed) + ' backordered','warn') : costPct >= 5 ? poPill('Cost +' + costPct.toFixed(1) + '%','warn') : poPill('Confirmed','good')) + '</td><td><input data-po-confirmation-note="' + poEsc(po.id) + '|' + index + '" value="' + poEsc(line.supplierConfirmationNote || '') + '" placeholder="Supplier note / substitution"></td></tr>';
     }).join('') || '<tr><td colspan="7" class="po-empty">Add PO lines before recording supplier confirmation.</td></tr>';
     return '<section class="po-work-card"><div class="po-work-card-head"><div><h3>Supplier Confirmation</h3><p>Record what the supplier actually committed to: quantity, ETA, cost and any backorder/substitution.</p></div><button type="button" class="secondary" data-po-mark-confirmed="' + poEsc(po.id) + '">Mark supplier confirmed</button></div><div class="po-table-wrap"><table class="po-command-table"><thead><tr><th>Item</th><th>Ordered</th><th>Confirmed</th><th>ETA</th><th class="right">Confirmed cost</th><th>Exception</th><th>Supplier note</th></tr></thead><tbody>' + rows + '</tbody></table></div></section>';
   }
 
   function poReceiptsTab(po) {
-    const receipts = (data.receiptEvents || []).filter(function (event) { return event.poId === po.id; }).slice().sort(function(a,b){return String(b.date||'').localeCompare(String(a.date||''));});
-    const rows = receipts.map(function (event) {
-      const p=poProduct(event.productId)||{sku:event.productId,name:event.productId};
+    const physical=(data.receiptEvents||[]).filter(function(event){return event.poId===po.id;}).map(function(event){return Object.assign({nonStockPurchase:false},event);});
+    const direct=(po.nonStockReceipts||[]).map(function(event){return Object.assign({nonStockPurchase:true},event);});
+    const receipts=physical.concat(direct).slice().sort(function(a,b){return String(b.date||'').localeCompare(String(a.date||''));});
+    const rows=receipts.map(function(event){
+      const line=(po.lines||[]).find(function(item){return String(item.receiptLineId||item.productId)===String(event.lineId||event.productId);});
+      const p=line?poLineProduct(line):(poProduct(event.productId)||{sku:event.productId,name:event.customProductName||event.productId});
+      if(event.nonStockPurchase)return '<tr><td><strong>' + poEsc(event.id) + '</strong><small>' + poEsc(event.date||'') + '</small></td><td><strong>' + poEsc(p.sku||'CUSTOM') + '</strong><small>' + poEsc(p.name||'Custom purchase') + '</small></td><td>' + Number(event.qty||0) + '</td><td>' + poEsc(event.supplierReference||'—') + '</td><td>' + poPill(event.decision||'Received · non-stock',event.decision==='Damaged'?'bad':'good') + '</td><td>' + poEsc(line&&line.projectId ? 'Project '+line.projectId : 'Direct / expense') + '</td></tr>';
       const qc=(data.warehouseQcEvents||[]).filter(function(q){return q.receiptId===event.id;}).slice(-1)[0];
       return '<tr><td><strong>' + poEsc(event.id) + '</strong><small>' + poEsc(event.date || '') + '</small></td><td><strong>' + poEsc(p.sku) + '</strong><small>' + poEsc(p.name) + '</small></td><td>' + Number(event.qty || 0) + '</td><td>' + poEsc(event.supplierReference || '—') + '</td><td>' + poPill(qc ? qc.decision : 'Awaiting QC', qc && qc.decision === 'Accepted' ? 'good' : qc && ['Damaged','Wrong item'].includes(qc.decision) ? 'bad' : 'warn') + '</td><td>' + poEsc(event.locationId || '') + '</td></tr>';
-    }).join('') || '<tr><td colspan="6" class="po-empty">No physical deliveries have been booked in yet.</td></tr>';
-    return '<section class="po-work-card"><div class="po-work-card-head"><div><h3>Deliveries & Receipts</h3><p>Read-only physical receipt history from Warehouse. One PO can have multiple deliveries.</p></div><button type="button" class="primary" data-po-open-receiving="' + poEsc(po.id) + '">Book delivery in Warehouse</button></div><div class="po-rule-banner"><strong>Warehouse owns stock truth</strong><p>Purchasing can see receipts, QC and outstanding quantities but cannot type received stock manually.</p></div><div class="po-table-wrap"><table class="po-command-table"><thead><tr><th>Receipt / GRN</th><th>Item</th><th>Qty</th><th>Supplier ref</th><th>QC</th><th>Location</th></tr></thead><tbody>' + rows + '</tbody></table></div></section>';
+    }).join('') || '<tr><td colspan="6" class="po-empty">No deliveries have been booked in yet.</td></tr>';
+    return '<section class="po-work-card"><div class="po-work-card-head"><div><h3>Deliveries & Receipts</h3><p>Physical stock receipts come from Warehouse. Custom PO-only lines are recorded as non-stock receipts and never create warehouse inventory.</p></div><button type="button" class="primary" data-po-open-receiving="' + poEsc(po.id) + '">Book delivery in Warehouse</button></div><div class="po-rule-banner"><strong>One receipt truth, two treatments</strong><p>Catalogue stock follows Receiving → QC → Putaway. Custom non-stock purchases only update the PO/project receipt history.</p></div><div class="po-table-wrap"><table class="po-command-table"><thead><tr><th>Receipt / GRN</th><th>Item</th><th>Qty</th><th>Supplier ref</th><th>QC / treatment</th><th>Location / cost destination</th></tr></thead><tbody>' + rows + '</tbody></table></div></section>';
   }
 
   function poCostsTab(po) {
@@ -610,8 +710,29 @@
     if(typeof render==='function') render();
   };
   globalThis.purchaseCreateOrMergeDemandPo = purchaseCreateOrMergeDemandPo;
+  globalThis.purchaseAddCustomPoLine = purchaseAddCustomPoLine;
 
   function bindPurchaseCommand() {
+    document.querySelectorAll('[data-po-add-custom-line]').forEach(function(button){button.addEventListener('click',function(){
+      const form=button.closest('[data-po-custom-line-form]');if(!form)return;
+      const value=function(selector){const el=form.querySelector(selector);return el?el.value:'';};
+      const result=purchaseAddCustomPoLine(button.dataset.poAddCustomLine,{
+        name:value('[data-po-custom-name]'),
+        description:value('[data-po-custom-description]'),
+        supplierSku:value('[data-po-custom-sku]'),
+        purchaseCategory:value('[data-po-custom-category]'),
+        qty:value('[data-po-custom-qty]'),
+        uom:value('[data-po-custom-uom]'),
+        unitCost:value('[data-po-custom-cost]'),
+        taxCode:value('[data-po-custom-vat]'),
+        projectId:value('[data-po-custom-project]'),
+        dueDate:value('[data-po-custom-date]'),
+        note:value('[data-po-custom-note]')
+      });
+      if(!result.ok)return typeof toast==='function'?toast(result.error):undefined;
+      if(typeof toast==='function')toast((result.line.customProductName||'Custom line')+' added to '+result.po.id+'. No Sales Order link required.');
+      if(typeof render==='function')render();
+    });});
     document.querySelectorAll('[data-po-create-demand]').forEach(function(button){button.addEventListener('click',function(){const parts=button.dataset.poCreateDemand.split('|');const result=purchaseCreateOrMergeDemandPo(parts[0],parts[1],button.dataset.poCreateDemandQty);if(!result.ok)return typeof toast==='function'?toast(result.error):undefined;selectedPurchaseOrderId=result.po.id;purchaseOrderView='detail';activeSubPage.purchase='Purchase Orders';if(typeof saveAppData==='function')saveAppData();if(typeof toast==='function')toast('Demand added to ' + result.po.id + '.');if(typeof render==='function')render();});});
     document.querySelectorAll('[data-po-command-tab]').forEach(function(button){button.addEventListener('click',function(){purchaseCommandTab=button.dataset.poCommandTab.split('|')[0];if(typeof render==='function')render();});});
     document.querySelectorAll('[data-po-open-receiving]').forEach(function(button){button.addEventListener('click',function(){selectedGoodsInPoId=button.dataset.poOpenReceiving;warehousePoView='list';active='warehouse';activeSubPage.warehouse='Inbound';if(typeof toast==='function')toast('Opened easy booking-in for ' + selectedGoodsInPoId + '.');if(typeof render==='function')render();});});

@@ -223,6 +223,11 @@
     return typeof product === 'function' ? product(id) : (data.products || []).find(function (item) { return item.id === id; });
   }
 
+  function whLineProduct(line) {
+    if(line && (line.nonStockPurchase || line.lineType==='custom-purchase'))return {sku:line.supplierSku||'CUSTOM',name:line.customProductName||line.description||'Custom PO line'};
+    return whProduct(line&&line.productId)||{sku:line&&line.productId||'Missing',name:line&&line.productId||'Missing product'};
+  }
+
   function whLocation(id) {
     return typeof locationById === 'function' ? locationById(id) : (data.locations || []).find(function (item) { return item.id === id; });
   }
@@ -365,6 +370,7 @@
   }
 
   function whDemandCopy(line) {
+    if(line && (line.nonStockPurchase || line.lineType==='custom-purchase'))return (line.projectId?'Project '+line.projectId+' cost. ':'PO-only purchase. ')+'Non-stock receipt: no Sales Order allocation and no warehouse inventory.';
     const queue = warehouseEligibleShortages(line.productId);
     const total = queue.reduce(function (sum, item) { return sum + item.shortage; }, 0);
     const origin = line.salesOrderId ? 'Demand source ' + line.salesOrderId + '. ' : '';
@@ -375,7 +381,7 @@
   function whInboundLines(po) {
     if (!po) return '<div class="wh-empty">Select a Purchase Order to receive.</div>';
     const rows = (po.lines || []).map(function (line) {
-      const p = whProduct(line.productId) || { sku: line.productId, name: line.productId };
+      const p = whLineProduct(line);
       const pending = whPending(line);
       return '<tr><td><strong>' + whEsc(p.sku) + '</strong><small>' + whEsc(p.name) + '</small></td><td>' + Number(line.qty || 0) + '</td><td>' + Number(line.received || 0) + '</td><td>' + pending + '</td><td><input class="wh-qty" type="number" min="0" max="' + pending + '" value="' + (pending ? pending : 0) + '" data-wh-receive-qty="' + whEsc(po.id + '|' + (line.receiptLineId || line.productId)) + '" ' + (pending ? '' : 'disabled') + '></td><td><small>' + whEsc(whDemandCopy(line)) + '</small></td><td><div class="wh-row-actions"><button type="button" class="primary" data-wh-receive-line="' + whEsc(po.id + '|' + (line.receiptLineId || line.productId)) + '" ' + (pending ? '' : 'disabled') + '>Book into Receiving</button><button type="button" class="secondary" data-wh-shortage-line="' + whEsc(po.id + '|' + (line.receiptLineId || line.productId)) + '" ' + (pending ? '' : 'disabled') + '>Record shortage</button><button type="button" class="secondary" data-wh-wrong-line="' + whEsc(po.id + '|' + (line.receiptLineId || line.productId)) + '" ' + (pending ? '' : 'disabled') + '>Wrong item</button></div></td></tr>';
     }).join('');
@@ -403,11 +409,11 @@
   function whBatchBookingRows(po) {
     if (!po) return '<tr><td colspan="7" class="wh-empty">Select a Purchase Order above to start booking in.</td></tr>';
     return (po.lines || []).map(function (line) {
-      const p = whProduct(line.productId) || { sku:line.productId, name:line.productId };
+      const p = whLineProduct(line);
       const pending = whPending(line);
       const key = po.id + '|' + (line.receiptLineId || line.productId);
-      const destination = line.preferredLocationId || 'L-WH-A1';
-      return '<tr data-wh-book-row="' + whEsc(key) + '"><td><strong>' + whEsc(p.sku) + '</strong><small>' + whEsc(p.name) + '</small></td><td>' + Number(line.qty || 0) + '</td><td>' + Number(line.received || 0) + '</td><td>' + pending + '</td><td><input class="wh-qty" type="number" min="0" max="' + pending + '" value="0" data-wh-book-qty ' + (pending ? '' : 'disabled') + '></td><td><select data-wh-book-decision ' + (pending ? '' : 'disabled') + '><option>Accepted</option><option>Damaged</option><option>Shortage</option><option>Wrong item</option></select><select data-wh-book-destination ' + (pending ? '' : 'disabled') + '>' + whDestinationOptions(destination) + '</select></td><td><small>' + whEsc(whDemandCopy(line)) + '</small></td></tr>';
+      const custom=!!(line.nonStockPurchase||line.lineType==='custom-purchase'),destination=line.preferredLocationId || 'L-WH-A1';
+      return '<tr data-wh-book-row="' + whEsc(key) + '"' + (custom?' class="wh-nonstock-row"':'') + '><td><strong>' + whEsc(p.sku) + '</strong><small>' + whEsc(p.name) + (custom?' · CUSTOM PO LINE':'') + '</small></td><td>' + Number(line.qty || 0) + (custom?' '+whEsc(line.uom||'each'):'') + '</td><td>' + Number(line.received || 0) + '</td><td>' + pending + '</td><td><input class="wh-qty" type="number" min="0" max="' + pending + '" step="' + (custom?'0.01':'1') + '" value="0" data-wh-book-qty ' + (pending ? '' : 'disabled') + '></td><td><select data-wh-book-decision ' + (pending ? '' : 'disabled') + '><option>Accepted</option><option>Damaged</option><option>Shortage</option><option>Wrong item</option></select>' + (custom?'<span class="wh-direct-cost">Non-stock / direct cost</span><input type="hidden" data-wh-book-destination value="NON-STOCK">':'<select data-wh-book-destination ' + (pending ? '' : 'disabled') + '>' + whDestinationOptions(destination) + '</select>') + '</td><td><small>' + whEsc(whDemandCopy(line)) + '</small></td></tr>';
     }).join('');
   }
 
@@ -456,6 +462,7 @@
 
   function whAuditRows() {
     const rows = [];
+    (data.purchaseOrders||[]).forEach(function(po){(po.nonStockReceipts||[]).forEach(function(event){rows.push({date:event.date||'',type:'Non-stock receipt',ref:po.id,detail:(event.customProductName||event.productId||'Custom purchase')+' × '+Number(event.qty||0)+(event.projectId?' · Project '+event.projectId:''),user:event.user||'Warehouse'});});});
     (data.receiptEvents || []).forEach(function (event) { rows.push({ date:event.date || '', type:'Receipt', ref:event.poId || event.id, detail:(event.productId || '') + ' × ' + Number(event.qty || 0) + ' → ' + (event.locationId || ''), user:event.user || 'Warehouse' }); });
     (data.warehouseQcEvents || []).forEach(function (event) { rows.push({ date:event.date || '', type:'QC', ref:event.poId || event.receiptId || '', detail:(event.decision || '') + ' · ' + (event.productId || '') + ' × ' + Number(event.qty || 0) + (event.reason ? ' · ' + event.reason : ''), user:event.user || 'Warehouse' }); });
     (data.allocationEvents || []).forEach(function (event) { rows.push({ date:event.date || '', type:event.type === 'MANUAL_REALLOCATION' ? 'Reallocation' : 'FIFO Allocation', ref:event.poId || event.fromSalesOrderId || '', detail:(event.productId || '') + ' × ' + Number(event.qty || 0) + ' → ' + (event.salesOrderId || '') + (event.reason ? ' · ' + event.reason : ''), user:event.user || 'Warehouse' }); });
@@ -482,13 +489,30 @@
     data.warehouseQcEvents.push(Object.assign({ id: whEventId('QC'), date: new Date().toISOString(), user: whAllocationUser() }, payload));
   }
 
+  function warehouseReceiveNonStockLine(po,line,qty,supplierReference,note,decision) {
+    const amount=Math.max(0,Math.round(Number(qty||0)*100)/100);
+    if(!amount||amount>whPending(line))return {ok:false,error:'Enter a quantity no greater than the outstanding quantity.'};
+    const event={id:whEventId('NSR'),poId:po.id,lineId:line.receiptLineId||line.productId,productId:line.productId,customProductName:line.customProductName||line.description||'Custom purchase',qty:amount,supplier:po.supplier,supplierReference:supplierReference||po.supplierReference||po.supplierRef||'',note:note||'',decision:decision||'Accepted',nonStockPurchase:true,projectId:line.projectId||'',date:new Date().toISOString(),user:warehouseAllocationUser()};
+    po.nonStockReceipts=Array.isArray(po.nonStockReceipts)?po.nonStockReceipts:[];
+    po.nonStockReceipts.push(event);
+    line.received=Math.round((Number(line.received||0)+amount)*100)/100;
+    line.lastReceivedAt=event.date;
+    line.lastReceiveLocation='NON-STOCK';
+    if(decision==='Damaged'){line.warehouseException='Damaged';line.warehouseExceptionNote=note||'Damaged custom purchase received';}
+    data.auditLog=Array.isArray(data.auditLog)?data.auditLog:[];
+    data.auditLog.push({id:'AUD-'+Date.now()+'-'+Math.random().toString(36).slice(2,6),date:event.date,user:event.user,action:'Non-stock PO line received',product:po.id,previousValue:null,newValue:{lineId:event.lineId,name:event.customProductName,qty:amount,projectId:event.projectId,decision:event.decision},reason:'Custom PO-only purchase receipt; no warehouse stock created'});
+    if(typeof purchaseOrderStatusFromLines==='function')po.status=purchaseOrderStatusFromLines(po);
+    return {ok:true,event:event,nonStock:true};
+  }
+
   function warehouseReceiveLineToStaging(poId, lineKey, qty, supplierReference, note) {
     const po = (data.purchaseOrders || []).find(function (item) { return item.id === poId; });
     if (!po) return { ok:false, error:'Purchase Order not found.' };
     const line = (po.lines || []).find(function (item) { return item.receiptLineId === lineKey || item.productId === lineKey; });
     if (!line) return { ok:false, error:'Purchase Order line not found.' };
-    const amount = Math.max(0, Math.floor(Number(qty || 0)));
+    const amount = line.nonStockPurchase||line.lineType==='custom-purchase' ? Math.max(0,Math.round(Number(qty||0)*100)/100) : Math.max(0,Math.floor(Number(qty || 0)));
     if (!amount || amount > whPending(line)) return { ok:false, error:'Enter a quantity no greater than the outstanding quantity.' };
+    if(line.nonStockPurchase||line.lineType==='custom-purchase')return warehouseReceiveNonStockLine(po,line,amount,supplierReference,note,'Accepted');
     if (typeof recordPurchaseReceipt !== 'function') return { ok:false, error:'Receipt engine is unavailable.' };
     const event = recordPurchaseReceipt(po, line, amount, 'L-RECEIVING', Number(line.received || 0), { supplierReference:supplierReference || '', note:note || '' });
     if (!event) return { ok:false, error:'Receipt was not saved. Check the PO status and stock-count locks.' };
@@ -539,7 +563,7 @@
       const line = (po.lines || []).find(function (item) { return item.receiptLineId === row.lineKey || item.productId === row.lineKey; });
       if (!line) return {ok:false,error:'A Purchase Order line could not be matched.'};
       const decision = String(row.decision || 'Accepted');
-      const qty = Math.max(0,Math.floor(Number(row.qty || 0)));
+      const qty = line.nonStockPurchase||line.lineType==='custom-purchase' ? Math.max(0,Math.round(Number(row.qty||0)*100)/100) : Math.max(0,Math.floor(Number(row.qty || 0)));
       if (['Accepted','Damaged'].includes(decision)) {
         if (!qty) continue;
         if (qty > whPending(line)) return {ok:false,error:'Received quantity is greater than the outstanding PO quantity.'};
@@ -555,6 +579,13 @@
         if (!ex.ok) return ex;
         if (item.decision === 'Shortage') summary.shortage += whPending(item.line); else summary.wrongItem += 1;
         summary.exceptions.push({productId:item.line.productId,decision:item.decision});
+        continue;
+      }
+      if(item.line.nonStockPurchase||item.line.lineType==='custom-purchase'){
+        const direct=warehouseReceiveNonStockLine(po,item.line,item.qty,supplierReference||'',note||'',item.decision);
+        if(!direct.ok)return direct;
+        summary.receipts.push(direct.event.id);
+        if(item.decision==='Damaged')summary.damaged+=item.qty;else summary.accepted+=item.qty;
         continue;
       }
       const received = warehouseReceiveLineToStaging(po.id,item.lineKey,item.qty,supplierReference || '',note || '');
@@ -642,7 +673,7 @@
         const result = warehouseReceiveLineToStaging(parts[0], parts[1], input ? input.value : 0, ref ? ref.value : '', note ? note.value : '');
         if (!result.ok) return typeof toast === 'function' ? toast(result.error) : undefined;
         if (typeof saveAppData === 'function') saveAppData();
-        if (typeof toast === 'function') toast('Stock booked into Receiving/QC. It is not available or allocated until QC release.');
+        if (typeof toast === 'function') toast(result.nonStock ? 'Custom PO line received. PO/project cost updated; no warehouse stock was created.' : 'Stock booked into Receiving/QC. It is not available or allocated until QC release.');
         if (typeof render === 'function') render();
       });
     });

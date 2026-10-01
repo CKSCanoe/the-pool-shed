@@ -181,3 +181,110 @@
   #screen-purchase .po-funding-banner{display:grid}
 }
 
+/* Custom PO-only purchasing lines */
+#screen-purchase .po-custom-line-composer{
+  margin:0 12px 12px;
+  border:1px solid var(--color-border-default);
+  border-radius:8px;
+  background:var(--color-surface-default);
+  overflow:hidden;
+}
+#screen-purchase .po-custom-line-composer>summary{
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  gap:12px;
+  padding:11px 12px;
+  cursor:pointer;
+  list-style:none;
+  background:var(--color-surface-subtle);
+}
+#screen-purchase .po-custom-line-composer>summary::-webkit-details-marker{display:none}
+#screen-purchase .po-custom-line-composer>summary strong,
+#screen-purchase .po-custom-line-composer>summary small{display:block}
+#screen-purchase .po-custom-line-composer>summary strong{color:var(--color-text-primary);font-size:11px}
+#screen-purchase .po-custom-line-composer>summary small{margin-top:2px;color:var(--color-text-secondary);font-size:9px;line-height:1.4}
+#screen-purchase .po-custom-summary-pill,
+#screen-purchase .po-custom-line-badge{
+  display:inline-flex;
+  align-items:center;
+  padding:4px 7px;
+  border-radius:999px;
+  background:var(--color-action-soft);
+  color:var(--color-action-ink);
+  font-size:8px;
+  font-weight:900;
+  letter-spacing:.05em;
+  white-space:nowrap;
+}
+#screen-purchase .po-custom-line-form{
+  display:grid;
+  grid-template-columns:repeat(4,minmax(0,1fr));
+  gap:10px;
+  padding:12px;
+  border-top:1px solid var(--color-border-subtle);
+}
+#screen-purchase .po-custom-line-form label{
+  display:flex;
+  flex-direction:column;
+  gap:5px;
+  min-width:0;
+  color:var(--color-text-secondary);
+  font-size:9px;
+  font-weight:850;
+}
+#screen-purchase .po-custom-line-form label.span-2,
+#screen-purchase .po-custom-line-form .span-2{grid-column:span 2}
+#screen-purchase .po-custom-line-form input,
+#screen-purchase .po-custom-line-form select,
+#screen-purchase .po-custom-line-form textarea{
+  width:100%;
+  min-width:0;
+  box-sizing:border-box;
+  border:1px solid var(--color-border-default);
+  border-radius:6px;
+  background:var(--color-surface-default);
+  color:var(--color-text-primary);
+  padding:8px 9px;
+  font:inherit;
+  font-size:11px;
+}
+#screen-purchase .po-custom-line-form input,
+#screen-purchase .po-custom-line-form select{min-height:39px}
+#screen-purchase .po-custom-line-form textarea{resize:vertical;min-height:62px}
+#screen-purchase .po-custom-line-form label>small{font-weight:500;line-height:1.4}
+#screen-purchase .po-custom-readonly{
+  min-height:39px;
+  padding:7px 9px;
+  border:1px solid var(--color-status-success-line);
+  border-radius:6px;
+  background:var(--color-status-success-bg);
+}
+#screen-purchase .po-custom-readonly strong,
+#screen-purchase .po-custom-readonly small{display:block}
+#screen-purchase .po-custom-readonly strong{color:var(--color-text-primary)}
+#screen-purchase .po-custom-readonly small{margin-top:2px;color:var(--color-text-secondary);font-weight:500}
+#screen-purchase .po-custom-line-actions{
+  display:flex;
+  justify-content:space-between;
+  align-items:center;
+  gap:12px;
+  padding-top:4px;
+}
+#screen-purchase .po-custom-line-actions strong,
+#screen-purchase .po-custom-line-actions small{display:block}
+#screen-purchase .po-custom-line-actions strong{color:var(--color-text-primary);font-size:10px}
+#screen-purchase .po-custom-line-actions small{margin-top:2px;color:var(--color-text-secondary);font-size:9px}
+#screen-purchase .po-custom-line-row{background:color-mix(in srgb,var(--color-action-soft) 28%,var(--color-surface-default))}
+#screen-purchase .po-custom-thumb{background:var(--color-action-soft)!important;color:var(--color-action-ink)!important;font-weight:950!important}
+@media(max-width:1100px){
+  #screen-purchase .po-custom-line-form{grid-template-columns:repeat(2,minmax(0,1fr))}
+}
+@media(max-width:700px){
+  #screen-purchase .po-custom-line-form{grid-template-columns:1fr}
+  #screen-purchase .po-custom-line-form label.span-2,
+  #screen-purchase .po-custom-line-form .span-2{grid-column:1}
+  #screen-purchase .po-custom-line-actions{display:grid}
+  #screen-purchase .po-custom-line-actions button{width:100%}
+}
+

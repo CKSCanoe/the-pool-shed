@@ -30,6 +30,7 @@ run_node_stage "workspace and sales safety" \
 run_node_stage "purchasing" \
   test-supplier-onboarding-v148.mjs \
   test-supplier-funding-v149.mjs \
+  test-purchase-custom-lines-v150.mjs \
   test-purchase-order-command-v190.mjs \
   test-purchase-order-visual-guard-v190.mjs \
   test-purchase-returns-v190.mjs \
