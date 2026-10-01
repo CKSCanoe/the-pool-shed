@@ -85,7 +85,7 @@ const index=fs.readFileSync('public/index.html','utf8');
 assert.match(workspace,/tabs=\[[^\]]*'Reports'/,'Reports must be a first-class Project tab');
 assert.match(workspace,/psProjectTab==='Reports'/,'Reports tab must route to financial reporting');
 assert.match(parity,/'Reports':'Reports'/,'Polished Project navigation must expose Reports');
-assert.match(index,/project-reporting\.js\?v=1\.45\.3/,'Project reporting runtime must be loaded');
+assert.match(index,/project-reporting\.js\?v=1\.45\.4/,'Project reporting runtime must be loaded');
 assert.match(index,/jspdf@2\.5\.2/,'Pinned PDF export library must be loaded');
 assert.match(index,/xlsx@0\.18\.5/,'Pinned Excel export library must be loaded');
 assert.match(reporting,/function psProjectReportPdf\(model\)/,'PDF export must use the dedicated Project report renderer');
