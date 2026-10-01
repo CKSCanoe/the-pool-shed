@@ -148,6 +148,10 @@ assert.match(reporting,/Cash recorded/,'Detailed statement must distinguish reco
 assert(!reporting.includes('Outstanding / status'),'Detailed statement must not combine unrelated concepts in one column');
 assert(!reporting.includes("['Item','Supplier','Reference','Type','Start','End','Daily rate','Purchase cost'"),'Hire table must not waste columns that are mutually exclusive');
 assert.match(reporting,/POOL SHED · BY POOL BROS/,'PDF header must use Pool Shed branding');
+for(const line of reporting.split('\n').filter(line=>line.includes('columnStyles:{'))){
+  const widths=[...line.matchAll(/cellWidth:(\d+(?:\.\d+)?)/g)].map(m=>Number(m[1]));
+  if(widths.length>2)assert(widths.reduce((n,w)=>n+w,0)<=269,'Fixed-width landscape PDF table exceeds usable A4 width: '+line.trim());
+}
 assert(!workspace.includes("download=j.id+'-project-report.html'"),'Legacy HTML project report download must be removed');
 
 console.log('PASS Project Reports: live SO/PO/PI accounting, cash runway, reconciliation, PDF/Excel wiring and Project navigation');
