@@ -89,6 +89,35 @@
   function priceSummary(rows){const summary={increased:0,decreased:0,unchanged:0,unmatched:0};arr(rows).forEach(r=>{if(summary[r.change]!=null)summary[r.change]++;});return summary;}
   function stagePriceList(name,preview){const s=supplier(name);if(!s)return {staged:0};const rows=arr(preview&&preview.rows).filter(r=>r.change!=='unchanged').map(r=>Object.assign({},r));s.pendingPriceListReview={createdAt:new Date().toISOString(),rows,summary:priceSummary(rows)};if(typeof window.saveAppData==='function')window.saveAppData();return {staged:rows.length,summary:s.pendingPriceListReview.summary};}
   function commitPriceList(name,preview,ids){const d=getData()||{},selected=new Set(arr(ids)),s=supplier(name);let updated=0;arr(preview&&preview.rows).forEach(row=>{if(!selected.has(row.id)||!row.matched)return;let offer=arr(d.supplierProducts).find(o=>(row.offerId&&o.id===row.offerId)||(o.supplier===name&&o.productId===row.productId));const p=product(row.productId);if(!offer){d.supplierProducts=d.supplierProducts||[];offer={id:'SP-'+String(d.supplierProducts.length+1).padStart(5,'0'),productId:row.productId,supplier:name,supplierSku:row.supplierSku||p&&p.supplierSku||'',cost:row.oldCost,leadTimeDays:row.leadTimeDays||0,available:true};d.supplierProducts.push(offer);}offer.supplierCostHistory=arr(offer.supplierCostHistory);offer.supplierCostHistory.push({date:new Date().toISOString(),oldCost:num(offer.cost),newCost:num(row.newCost),source:'Supplier price list'});offer.cost=num(row.newCost);if(row.supplierSku)offer.supplierSku=row.supplierSku;if(row.leadTimeDays)offer.leadTimeDays=row.leadTimeDays;offer.available=String(row.status||'').toLowerCase()!=='discontinued';offer.lastUpdated=new Date().toISOString();if(p&&p.supplier===name){p.cost=offer.cost;if(row.supplierSku)p.supplierSku=row.supplierSku;}updated++;});if(s){s.priceListImports=arr(s.priceListImports);s.priceListImports.unshift({id:'PLI-'+Date.now(),date:new Date().toISOString(),rows:arr(preview&&preview.rows).length,updated,summary:preview.summary||{},source:'Supplier price list'});if(s.pendingPriceListReview&&Array.isArray(s.pendingPriceListReview.rows)){const remaining=s.pendingPriceListReview.rows.filter(r=>!selected.has(r.id));if(remaining.length)s.pendingPriceListReview={createdAt:s.pendingPriceListReview.createdAt||new Date().toISOString(),rows:remaining,summary:priceSummary(remaining)};else delete s.pendingPriceListReview;}}if((updated||s)&&typeof window.saveAppData==='function')window.saveAppData();return {updated};}
+  function supplierDeletionCheck(name){
+    const d=getData()||{},target=String(name||''),purchaseOrders=[];
+    arr(d.purchaseOrders).forEach(po=>{
+      if(!po)return;
+      const lines=arr(po.lines),headerMatch=String(po.supplier||'')===target;
+      const matchingLines=headerMatch?lines:lines.filter(line=>line&&(String(line.supplier||'')===target||String(line.supplierName||'')===target));
+      if(matchingLines.length)purchaseOrders.push({poId:String(po.id||''),lineCount:matchingLines.length});
+    });
+    const lineCount=purchaseOrders.reduce((sum,row)=>sum+row.lineCount,0);
+    return {supplier:target,canDelete:lineCount===0,lineCount,purchaseOrders};
+  }
+  function deleteSupplier(name){
+    const d=getData()||{},target=String(name||''),check=supplierDeletionCheck(target);
+    if(!target)return {deleted:false,blocked:false,reason:'Choose a supplier.'};
+    if(!check.canDelete)return Object.assign({deleted:false,blocked:true,reason:'Supplier is referenced by Purchase Order lines.'},check);
+    const supplierCountBefore=arr(d.suppliers).length,offerCountBefore=arr(d.supplierProducts).length;
+    d.suppliers=arr(d.suppliers).filter(s=>!s||String(s.name||'')!==target);
+    let clearedEmptyPos=0,unassignedProducts=0;
+    arr(d.purchaseOrders).forEach(po=>{if(po&&String(po.supplier||'')===target&&arr(po.lines).length===0){po.supplier='';clearedEmptyPos++;}});
+    arr(d.products).forEach(p=>{
+      if(!p)return;
+      if(String(p.supplier||'')===target){p.supplier='';unassignedProducts++;}
+      if(String(p.preferredSupplier||'')===target)p.preferredSupplier='';
+    });
+    d.supplierProducts=arr(d.supplierProducts).filter(row=>!row||String(row.supplier||'')!==target);
+    const deletedMaster=supplierCountBefore!==arr(d.suppliers).length,removedOffers=offerCountBefore-arr(d.supplierProducts).length;
+    if(typeof window.saveAppData==='function')window.saveAppData();
+    return {deleted:true,blocked:false,supplier:target,deletedMaster,unassignedProducts,clearedEmptyPos,removedOffers,lineCount:0,purchaseOrders:[]};
+  }
   function supplierSummary(name,options){const pos=supplierPos(name),credit=creditPosition(name),performance=deliveryPerformance(name,options),flags=smartFlags(name,options),bills=billRows(name,options),products=productRows(name);return {supplier:supplier(name),credit,performance,flags,bills,products,openPos:pos.filter(po=>!['Received','Cancelled'].includes(po.status)).length,outstandingBills:bills.filter(b=>b.amountDue>0),lateLines:flags.filter(f=>['late-po','short-receipt','chase-due'].includes(f.type)).length};}
-  window.PoolShedSupplierCommand={supplier,poSummary,poTiming,creditPosition,deliveryPerformance,billRows,smartFlags,productRows,previewPriceList,stagePriceList,commitPriceList,supplierSummary,poOrderedValue,poOutstandingValue,poGrossValue,fundingControl};
+  window.PoolShedSupplierCommand={supplier,poSummary,poTiming,creditPosition,deliveryPerformance,billRows,smartFlags,productRows,previewPriceList,stagePriceList,commitPriceList,supplierSummary,poOrderedValue,poOutstandingValue,poGrossValue,fundingControl,supplierDeletionCheck,deleteSupplier};
 })();
