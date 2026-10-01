@@ -521,23 +521,11 @@ function psProjectReportPdf(model){
  const issueCount=model.checks.filter(x=>x.severity==='bad'||x.severity==='warn').length;
  y=note(issueCount?issueCount+' financial reporting check'+(issueCount===1?' needs':'s need')+' attention. Full details are included in the appendix.':'No current financial reporting exceptions were found. Full source detail is included in the appendix.',y,issueCount?'warn':'good');
 
- addPage('portrait','Detailed appendix');
- const {w:appendixW,h:appendixH}=size();
- doc.setTextColor(...muted);doc.setFont('helvetica','bold');doc.setFontSize(8);doc.text('DETAILED PROJECT STATEMENT & AUDIT APPENDIX',14,47);
- doc.setTextColor(...ink);doc.setFontSize(25);doc.text('Every record behind the report',14,62);
- doc.setFont('helvetica','normal');doc.setFontSize(10);doc.setTextColor(...muted);
- doc.text(doc.splitTextToSize('The following pages show the detailed Sales Orders, customer invoices, supplier commitments, Purchase Order lines, purchase invoices, labour, hire/tools and project ledger records that sit behind the management summary.',175),14,74);
- doc.setFillColor(...light);doc.setDrawColor(...line);doc.roundedRect(14,102,182,52,3,3,'FD');
- doc.setTextColor(...ink);doc.setFont('helvetica','bold');doc.setFontSize(11);doc.text('Important: lifecycle records are linked, not additive.',20,114);
- doc.setFont('helvetica','normal');doc.setFontSize(8.5);doc.setTextColor(...muted);
- doc.text(doc.splitTextToSize('A PO, its PI and its supplier payment can describe the same underlying spend at different stages. Likewise, a quote, Sales Order, invoice and payment can describe the same customer revenue. The reconciled totals shown in this report count each commercial amount once.',166),20,123);
- doc.setTextColor(...ink);doc.setFont('helvetica','bold');doc.setFontSize(10);doc.text('Use the appendix to trace a number back to its source record.',14,171);
- doc.setFont('helvetica','normal');doc.setFontSize(8.5);doc.setTextColor(...muted);
- doc.text('The final Detailed Project Statement is chronological and includes every reporting record currently linked to this project.',14,181);
-
  addPage('landscape','Appendix · Sales & customer invoices');
- y=section('Sales Orders','Revenue source',34);
- y=table(['Sales Order','Scope','Status','Sell net','Invoiced net','Paid cash','Outstanding cash'],model.salesOrders.map(x=>[x.id,x.scope,x.status,moneyP(x.net),moneyP(x.invoiced),moneyP(x.paid),moneyP(x.outstanding)]),y,{
+ y=section('Audit appendix','Source records behind the management report',34);
+ y=note('The appendix is for traceability. Quotes, Sales Orders, invoices, Purchase Orders, supplier invoices and payments are lifecycle stages, so they must not be added together. The final Detailed Project Statement gives the chronological source trail.',y,'neutral')+8;
+ y=section('Sales Orders','Revenue source',y);
+ y=table(['Sales Order','Scope','Status','Sold net','Invoiced net','Cash received','Cash due'],model.salesOrders.map(x=>[x.id,x.scope,x.status,moneyP(x.net),moneyP(x.invoiced),moneyP(x.paid),moneyP(x.outstanding)]),y,{
   empty:'No linked Sales Orders.',
   rightCols:[3,4,5,6],boldCols:[0],
   columnStyles:{0:{cellWidth:30},1:{cellWidth:26},2:{cellWidth:27},3:{cellWidth:34},4:{cellWidth:34},5:{cellWidth:34},6:{cellWidth:38}}
@@ -545,43 +533,43 @@ function psProjectReportPdf(model){
  y=doc.lastAutoTable?.finalY||y;y+=10;
  if(y>170){addPage('landscape','Appendix · Customer invoices');y=34;}
  else y=section('Customer invoices','Invoiced and paid',y);
- table(['Invoice','Source','Invoice date','Due date','Net','Gross','Paid cash','Outstanding cash','Status'],model.invoiceRows.map(x=>[x.reference,x.sourceId,psProjectReportDateLabel(x.date),psProjectReportDateLabel(x.dueDate),moneyP(x.net),moneyP(x.gross),moneyP(x.paid),moneyP(x.outstanding),x.status]),y,{
+ table(['Invoice','Sales Order / source','Invoice date','Due date','Net value','Gross incl VAT','Cash received','Cash due','Status'],model.invoiceRows.map(x=>[x.reference,x.sourceId,psProjectReportDateLabel(x.date),psProjectReportDateLabel(x.dueDate),moneyP(x.net),moneyP(x.gross),moneyP(x.paid),moneyP(x.outstanding),x.status]),y,{
   empty:'No linked customer invoices.',
   rightCols:[4,5,6,7],boldCols:[0],
-  columnStyles:{0:{cellWidth:28},1:{cellWidth:30},2:{cellWidth:27},3:{cellWidth:27},4:{cellWidth:30},5:{cellWidth:30},6:{cellWidth:30},7:{cellWidth:34},8:{cellWidth:28}}
+  columnStyles:{0:{cellWidth:27},1:{cellWidth:31},2:{cellWidth:26},3:{cellWidth:26},4:{cellWidth:29},5:{cellWidth:31},6:{cellWidth:29},7:{cellWidth:32},8:{cellWidth:27}}
  });
 
  addPage('landscape','Appendix · Suppliers & Purchase Orders');
  y=section('Supplier summary','Committed, invoiced and paid',34);
- y=table(['Supplier','Ordered net','PI net','Paid cash','Outstanding cash','Open PO'],model.suppliers.map(x=>[x.supplier,moneyP(x.ordered),moneyP(x.invoiced),moneyP(x.paid),moneyP(x.outstanding),moneyP(x.open)]),y,{
+ y=table(['Supplier','Ordered net','Received net','PI net','Cash paid','Cash due','Remaining PO'],model.suppliers.map(x=>[x.supplier,moneyP(x.ordered),moneyP(x.received),moneyP(x.invoiced),moneyP(x.paid),moneyP(x.outstanding),moneyP(x.open)]),y,{
   empty:'No project supplier spend yet.',
-  rightCols:[1,2,3,4,5],boldCols:[0],
-  columnStyles:{0:{cellWidth:70},1:{cellWidth:38},2:{cellWidth:38},3:{cellWidth:38},4:{cellWidth:40},5:{cellWidth:38}}
+  rightCols:[1,2,3,4,5,6],boldCols:[0],
+  columnStyles:{0:{cellWidth:58},1:{cellWidth:32},2:{cellWidth:32},3:{cellWidth:32},4:{cellWidth:32},5:{cellWidth:32},6:{cellWidth:32}}
  });
  y=(doc.lastAutoTable?.finalY||y)+10;
  if(y>170){addPage('landscape','Appendix · Purchase Order summary');y=34;}else y=section('Purchase Order summary','One row per PO',y);
- table(['PO','Supplier','Status','Ordered','Received','Open','PI net','Paid','Outstanding'],model.poRows.map(x=>[x.id,x.supplier,x.status,moneyP(x.ordered),moneyP(x.received),moneyP(x.open),moneyP(x.invoiced),moneyP(x.paid),moneyP(x.outstanding)]),y,{
+ table(['PO','Supplier','Status','Ordered net','Received net','Remaining PO','PI net','Cash due'],model.poRows.map(x=>[x.id,x.supplier,x.status,moneyP(x.ordered),moneyP(x.received),moneyP(x.open),moneyP(x.invoiced),moneyP(x.outstanding)]),y,{
   empty:'No linked Purchase Orders.',
-  rightCols:[3,4,5,6,7,8],boldCols:[0],
-  columnStyles:{0:{cellWidth:25},1:{cellWidth:55},2:{cellWidth:27},3:{cellWidth:30},4:{cellWidth:30},5:{cellWidth:30},6:{cellWidth:30},7:{cellWidth:30},8:{cellWidth:34}}
+  rightCols:[3,4,5,6,7],boldCols:[0],
+  columnStyles:{0:{cellWidth:24},1:{cellWidth:50},2:{cellWidth:25},3:{cellWidth:30},4:{cellWidth:32},5:{cellWidth:32},6:{cellWidth:30},7:{cellWidth:32}}
  });
 
  addPage('landscape','Appendix · Purchase Order line detail');
  y=section('Purchase Order product lines','Full supplier cost detail',34);
- table(['Supplier','PO','Product / description','SKU','Qty','Received','Unit cost','Line total'],allPoLines,y,{
+ table(['Supplier / PO','Product / description','SKU','Qty ordered','Qty received','Unit cost','Line total'],allPoLines,y,{
   empty:'No Purchase Order product lines.',
-  rightCols:[4,5,6,7],boldCols:[1],
+  rightCols:[3,4,5,6],boldCols:[0],
   fontSize:7.8,
-  columnStyles:{0:{cellWidth:45},1:{cellWidth:23},2:{cellWidth:78},3:{cellWidth:31},4:{cellWidth:18},5:{cellWidth:21},6:{cellWidth:30},7:{cellWidth:32}}
+  columnStyles:{0:{cellWidth:50},1:{cellWidth:84},2:{cellWidth:30},3:{cellWidth:20},4:{cellWidth:22},5:{cellWidth:30},6:{cellWidth:31}}
  });
 
  addPage('landscape','Appendix · Purchase invoices / PI');
  y=section('Purchase invoices / PI','Supplier bill register',34);
- table(['PI / invoice','Supplier','PO','Invoice date','Due date','Net','VAT','Gross','Paid','Outstanding','Status'],model.purchaseInvoices.map(x=>[x.reference,x.supplier,x.poId,psProjectReportDateLabel(x.date),psProjectReportDateLabel(x.dueDate),moneyP(x.net),moneyP(x.vat),moneyP(x.gross),moneyP(x.paid),moneyP(x.outstanding),x.status]),y,{
+ table(['PI / invoice','Supplier','PO','Invoice date','Due date','Net cost','Gross incl VAT','Cash paid','Cash due','Status'],model.purchaseInvoices.map(x=>[x.reference,x.supplier,x.poId,psProjectReportDateLabel(x.date),psProjectReportDateLabel(x.dueDate),moneyP(x.net),moneyP(x.gross),moneyP(x.paid),moneyP(x.outstanding),x.status]),y,{
   empty:'No linked supplier invoices / PIs.',
-  rightCols:[5,6,7,8,9],boldCols:[0],
+  rightCols:[5,6,7,8],boldCols:[0],
   fontSize:7.5,
-  columnStyles:{0:{cellWidth:25},1:{cellWidth:42},2:{cellWidth:22},3:{cellWidth:25},4:{cellWidth:25},5:{cellWidth:26},6:{cellWidth:24},7:{cellWidth:27},8:{cellWidth:27},9:{cellWidth:32},10:{cellWidth:24}}
+  columnStyles:{0:{cellWidth:24},1:{cellWidth:42},2:{cellWidth:22},3:{cellWidth:23},4:{cellWidth:23},5:{cellWidth:27},6:{cellWidth:28},7:{cellWidth:27},8:{cellWidth:27},9:{cellWidth:24}}
  });
 
  addPage('landscape','Appendix · Labour');
