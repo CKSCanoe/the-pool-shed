@@ -257,6 +257,16 @@ function psProjectApply(action,v){
   if(!['day','half-day'].includes(rateType))throw Error('Choose a day rate or half-day rate.');const rate=amount(v.rate);if(rate<=0)throw Error('Enter the labour rate price.');
   if(v.variationId&&!p.variations.some(x=>x.id===v.variationId&&x.status==='Approved'))throw Error('Choose an approved extra.');const replaceRemaining=v.replaceRemaining==='yes';if(replaceRemaining&&v.variationId)throw Error('Allocate labour to either an approved extra or the general remaining allowance, not both.');
   p.labour.push({id:id(),supplier,ref,startDate,endDate,ongoing,rateType,rate,notes:String(v.notes||''),variationId:v.variationId||'',replaceRemaining,createdAt:now,createdBy:currentUser().name});
+ }else if(action==='labour-edit'){
+  if(['Completed','Invoiced','Cancelled'].includes(j.status))throw Error('Choose an open project.');
+  const row=(p.labour||[]).find(x=>x.id===v.id);if(!row)throw Error('Labour period not found.');
+  const supplier=text(v.supplier,'the employee or team member'),ref=text(v.ref,'a labour reference'),startDate=String(v.startDate||''),ongoing=v.ongoing==='on'||v.ongoing===true||v.ongoing==='true',endDate=ongoing?'':String(v.endDate||''),rateType=String(v.rateType||'');
+  if(!psProjectDate(startDate))throw Error('Enter a valid labour start date.');if(!ongoing&&(!psProjectDate(endDate)||endDate<startDate))throw Error('Enter an end date on or after the start date, or tick ongoing.');
+  if(!['day','half-day'].includes(rateType))throw Error('Choose a day rate or half-day rate.');const rate=amount(v.rate);if(rate<=0)throw Error('Enter the labour rate price.');
+  if(v.variationId&&!p.variations.some(x=>x.id===v.variationId&&x.status==='Approved'))throw Error('Choose an approved extra.');const replaceRemaining=v.replaceRemaining==='yes';if(replaceRemaining&&v.variationId)throw Error('Allocate labour to either an approved extra or the general remaining allowance, not both.');
+  const wasOngoing=!!row.ongoing;
+  Object.assign(row,{supplier,ref,startDate,endDate,ongoing,rateType,rate,notes:String(v.notes||''),variationId:v.variationId||'',replaceRemaining,updatedAt:now,updatedBy:currentUser().name});
+  if(ongoing){delete row.endedAt;delete row.endedBy;}else if(wasOngoing){row.endedAt=now;row.endedBy=currentUser().name;}
  }else if(action==='labour-stop'){
   const row=(p.labour||[]).find(x=>x.id===v.id);if(!row||!row.ongoing)throw Error('This labour period is not currently ongoing.');const endDate=String(v.endDate||psProjectUKDate()),today=psProjectUKDate();
   if(!psProjectDate(endDate)||endDate<row.startDate||endDate>today)throw Error('Choose a final working date from the labour start date up to today.');row.endDate=endDate;row.ongoing=false;row.endedAt=now;row.endedBy=currentUser().name;
