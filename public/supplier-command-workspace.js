@@ -220,6 +220,7 @@
     if(el.dataset.scSaveSupplierProfile!==undefined){saveSupplierProfile(el.dataset.scSaveSupplierProfile);return;}
     if(el.dataset.scNewSupplier!==undefined){newSupplier();return;}
   });
+  document.addEventListener('keydown',function(event){var row=event.target.closest&&event.target.closest('.supplier-directory-row[data-sc-open-profile]');if(!row||!['Enter',' '].includes(event.key))return;event.preventDefault();selectedSupplierName=row.dataset.scOpenProfile;scState.tab='Overview';purchaseOrderView='supplier-profile';activeSubPage.purchase='Suppliers';active='purchase';renderNow();});
   document.addEventListener('input',function(event){if(event.target.id==='scSupplierSearch'){scState.queueSearch=event.target.value;renderNow();}});
   document.addEventListener('change',function(event){if(event.target.id==='scSupplierFilter'){scState.queueFilter=event.target.value;renderNow();return;}if(event.target.id==='scPriceFile'&&event.target.files&&event.target.files[0]){var reader=new FileReader();reader.onload=function(){var box=document.getElementById('scPriceCsv');if(box)box.value=String(reader.result||'');};reader.readAsText(event.target.files[0]);}});
   globalThis.openSupplierCommand=function(name,tab){if(name)selectedSupplierName=name;scState.tab=tabs.includes(tab)?tab:'Overview';purchaseOrderView='supplier-profile';activeSubPage.purchase='Suppliers';active='purchase';renderNow();};
