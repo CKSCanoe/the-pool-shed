@@ -21,7 +21,7 @@
   function moneyValue(v){return typeof money==='function'?money(Number(v||0)):new Intl.NumberFormat('en-GB',{style:'currency',currency:'GBP'}).format(Number(v||0));}
   function num(v){const n=Number(v);return Number.isFinite(n)?n:0;}
   function product(id){return hub.productById(id);}
-  function allProducts(){return (dataStore().products||[]).filter(function(p){return p&&!p.deleted&&!p.hiddenFromCatalogue;});}
+  function allProducts(){return (dataStore().products||[]).filter(function(p){return p&&!p.deleted&&!p.hiddenFromCatalogue&&!(hub.isOrderLineOnly&&hub.isOrderLineOnly(p));});}
   function options(values,current,first){const unique=[...new Set((values||[]).filter(Boolean))].sort();return '<option value="">'+esc(first||'All')+'</option>'+unique.map(function(v){return '<option value="'+esc(v)+'" '+(String(v)===String(current)?'selected':'')+'>'+esc(v)+'</option>';}).join('');}
   function pill(label,tone){return '<span class="ph-pill '+esc(tone||'neutral')+'">'+esc(label)+'</span>';}
   function image(p){try{if(global.PoolShedProductImages)return global.PoolShedProductImages.markup(p,{mode:'variant',className:'ph-product-image',size:'sm',alt:p.name});}catch(_){}return '<span class="ph-product-image ph-product-fallback">PB</span>';}

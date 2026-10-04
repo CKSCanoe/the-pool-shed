@@ -34,6 +34,7 @@ run_node_stage "purchasing" \
   test-supplier-onboarding-v148.mjs \
   test-supplier-funding-v149.mjs \
   test-purchase-custom-lines-v150.mjs \
+  test-custom-po-catalogue-isolation-v153.mjs \
   test-purchase-order-filters-v152.mjs \
   test-purchase-order-command-v190.mjs \
   test-purchase-order-visual-guard-v190.mjs \

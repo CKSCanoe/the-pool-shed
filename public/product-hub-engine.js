@@ -13,13 +13,19 @@
   function text(value) { return String(value == null ? '' : value).trim(); }
   function lower(value) { return text(value).toLowerCase(); }
   function productById(id) { return (store().products || []).find(function (p) { return p && p.id === id && !p.deleted; }) || null; }
+  function isOrderLineOnly(product) {
+    if (!product) return false;
+    if (product.orderLineOnly === true) return true;
+    const id=text(product.id || product.sku);
+    return id.indexOf('POCUSTOM-') === 0 && (product.hiddenFromCatalogue || lower(product.productType).includes('custom purchase'));
+  }
   function isBundle(product) {
     if (!product) return false;
     const type = lower(product.productType || product.type);
     return product.bundleEnabled === true || product.bundleEnabled === 'Yes' || type === 'bundle' || type === 'bundle / kit' || (Array.isArray(product.bundleItems) && product.bundleItems.length > 0);
   }
   function isStocked(product) {
-    if (!product || product.deleted) return false;
+    if (!product || product.deleted || isOrderLineOnly(product)) return false;
     if (isBundle(product)) return false;
     const type = lower(product.productType || product.type);
     if (product.stockTracked === false || product.stockTracked === 'false') return false;
@@ -45,7 +51,7 @@
     const q = lower(raw);
     const terms = q.split(/\s+/).filter(Boolean);
     const rows = (store().products || []).filter(function (p) {
-      if (!p || p.deleted) return false;
+      if (!p || p.deleted || isOrderLineOnly(p)) return false;
       if (!opts.includeHidden && p.hiddenFromCatalogue) return false;
       if (opts.excludeBundles && isBundle(p)) return false;
       return true;
@@ -228,7 +234,7 @@
   }
 
   global.PoolShedProductHub={
-    version:'1.11.0', search:search, productById:productById, isBundle:isBundle, isStocked:isStocked, stockSummary:stockSummary,
+    version:'1.11.0', search:search, productById:productById, isBundle:isBundle, isOrderLineOnly:isOrderLineOnly, isStocked:isStocked, stockSummary:stockSummary,
     supplierOffer:supplierOffer, confirmedInbound:confirmedInbound, uncoveredDemand:uncoveredDemand, replenishmentSettings:replenishmentSettings,
     replenishmentRow:replenishmentRow, replenishmentRows:replenishmentRows, groupReplenishmentBySupplier:groupReplenishmentBySupplier,
     roundOrderQuantity:roundOrderQuantity, createDraftPurchaseOrders:createDraftPurchaseOrders,

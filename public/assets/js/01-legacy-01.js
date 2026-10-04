@@ -640,10 +640,62 @@ const seed = {
           });
         });
 
+        // Custom PO lines are transactional one-offs, not catalogue products.
+        // Keep a hidden compatibility record only where older code still expects product(line.productId),
+        // but never expose it to Product Hub, Inventory or replenishment.
+        const customPurchaseRefs = new Map();
+        source.purchaseOrders.forEach(function(po) {
+          (po.lines || []).forEach(function(line) {
+            const productId = String(line && line.productId || "").trim();
+            const customPurchase = !!productId && (
+              line.nonStockPurchase === true ||
+              line.lineType === "custom-purchase" ||
+              productId.indexOf("POCUSTOM-") === 0
+            );
+            if (customPurchase) customPurchaseRefs.set(productId, { po: po, line: line });
+          });
+        });
+        customPurchaseRefs.forEach(function(ref, productId) {
+          const line = ref.line || {}, po = ref.po || {};
+          let record = source.products.find(function(p) { return p && p.id === productId; });
+          const hiddenRecord = {
+            id: productId,
+            sku: productId,
+            name: line.customProductName || line.description || "Custom PO purchase",
+            category: line.purchaseCategory || "One-off Purchases",
+            supplier: po.supplier || "Supplier to confirm",
+            supplierSku: line.supplierSku || line.customReference || "",
+            barcode: "",
+            cost: Number(line.unitCost || 0),
+            rrp: 0,
+            trade: 0,
+            wholesale: 0,
+            reorder: 0,
+            unit: line.uom || "Each",
+            productType: "Custom purchase / non-stock",
+            stockTracked: false,
+            hiddenFromCatalogue: true,
+            orderLineOnly: true,
+            replenishmentEnabled: false,
+            status: "Internal",
+            deleted: false
+          };
+          if (record) Object.assign(record, hiddenRecord);
+          else source.products.push(hiddenRecord);
+        });
+        if (Array.isArray(source.stock)) source.stock = source.stock.filter(function(row) { return !customPurchaseRefs.has(String(row && row.productId || "")); });
+        if (Array.isArray(source.allocations)) source.allocations = source.allocations.filter(function(row) { return !customPurchaseRefs.has(String(row && row.productId || "")); });
+        if (Array.isArray(source.restockRules)) source.restockRules = source.restockRules.filter(function(row) { return !customPurchaseRefs.has(String(row && row.productId || "")); });
+        if (Array.isArray(source.supplierProducts)) source.supplierProducts = source.supplierProducts.filter(function(row) { return !customPurchaseRefs.has(String(row && row.productId || "")); });
+
         const productIds = new Set(source.products.map(function(p) { return p.id; }));
         const referencedProductIds = [];
         source.salesOrders.forEach(function(order) { order.lines.forEach(function(line) { if (line.productId) referencedProductIds.push(line.productId); }); });
-        source.purchaseOrders.forEach(function(po) { po.lines.forEach(function(line) { if (line.productId) referencedProductIds.push(line.productId); }); });
+        source.purchaseOrders.forEach(function(po) {
+          po.lines.forEach(function(line) {
+            if (line.productId && !customPurchaseRefs.has(String(line.productId))) referencedProductIds.push(line.productId);
+          });
+        });
         source.goodsNotes.forEach(function(note) { note.lines.forEach(function(line) { if (line.productId) referencedProductIds.push(line.productId); }); });
         source.stock.forEach(function(row) { if (row.productId) referencedProductIds.push(row.productId); });
         Array.from(new Set(referencedProductIds)).forEach(function(productId) {
@@ -677,7 +729,7 @@ const seed = {
             qty: Number(row.qty != null ? row.qty : (row.quantity != null ? row.quantity : (row.qty_on_hand != null ? row.qty_on_hand : row.onHand))) || 0,
             allocated: Number(row.allocated != null ? row.allocated : (row.qty_allocated != null ? row.qty_allocated : row.allocatedQty)) || 0
           };
-        }).filter(function(row) { return row.productId && row.locationId; });
+        }).filter(function(row) { return row.productId && row.locationId && !customPurchaseRefs.has(String(row.productId)); });
         const combinedStock = {};
         source.stock.forEach(function(row) {
           const key = row.productId + "|" + row.locationId;
