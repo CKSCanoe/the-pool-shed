@@ -130,6 +130,12 @@
     },
     "api/azzy.js": {
       "maxDuration": 60
+    },
+    "api/workspace-access.js": {
+      "maxDuration": 60
+    },
+    "api/workspace-recovery-publish.js": {
+      "maxDuration": 60
     }
   }
 }
