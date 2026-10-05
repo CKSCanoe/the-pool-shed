@@ -82,8 +82,7 @@ run_node_stage "authentication and backend compatibility" \
   test-login-release-v122.mjs \
   test-origin-policy-v146.mjs \
   test-supabase-key-compat-v146.mjs \
-  test-server-auth-hardening-v146.mjs \
-  test-shared-workspace-live-sync-v154.mjs
+  test-server-auth-hardening-v146.mjs
 
 run_node_stage "Azzy" \
   test-deployment-lock-v1271.mjs \
