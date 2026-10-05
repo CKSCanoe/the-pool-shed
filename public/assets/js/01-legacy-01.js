@@ -835,6 +835,7 @@ const seed = {
       }
 
       async function loadRemoteWorkspace() {
+        if (localStorage.getItem("poolshed:v172:recoveryHold") === "1") return true;
         if (localStorage.getItem("poolshed:v172:pendingSync") === "1") return saveRemoteWorkspace(true);
         if (!supabaseClient || !supabaseSession) return false;
         try {
@@ -857,6 +858,7 @@ const seed = {
       }
 
       async function saveRemoteWorkspace(force) {
+        if (localStorage.getItem("poolshed:v172:recoveryHold") === "1") return false;
         if (!supabaseClient || !supabaseSession || !navigator.onLine || workspaceSaveInFlight || workspaceSyncConflict) return false;
         workspaceSaveInFlight = true;
         try {
@@ -939,11 +941,13 @@ const seed = {
         if (!el) return;
         const pending = localStorage.getItem("poolshed:v172:pendingSync") === "1";
         if (workspaceLocalSaveFailed) { el.textContent = "Local save failed · keep this page open"; return; }
+        if (localStorage.getItem("poolshed:v172:recoveryHold") === "1") { el.textContent = "Recovery mode · shared sync paused"; return; }
         if (workspaceSyncConflict) { el.textContent = "Sync conflict · local changes kept"; return; }
         el.textContent = navigator.onLine ? (pending ? "Online · awaiting upload" : "Online · saved") : "Offline · changes saved";
       }
 
       async function syncPendingOfflineData() {
+        if (localStorage.getItem("poolshed:v172:recoveryHold") === "1") return;
         if (!navigator.onLine || localStorage.getItem("poolshed:v172:pendingSync") !== "1") return;
         await saveRemoteWorkspace(false);
       }
