@@ -130,6 +130,14 @@ function psProjectSummary(j,source,now){
  const allOrders=new Map((source.salesOrders||[]).map(o=>[o.id,o]));
  const productMap=new Map((source.products||[]).map(x=>[x.id,x]));
  const costs=(p.costs||[]).filter(x=>!x.voidedAt),variations=(p.variations||[]).filter(v=>v.status==='Approved');
+ const resolvedReturns=(source.purchaseReturns||[]).filter(r=>r&&r.status==='Closed'&&!r.voidedAt);
+ const returnCreditByPo=new Map(),returnCreditByLine=new Map();
+ resolvedReturns.forEach(r=>{
+  const credit=cents(r.creditNet!=null?r.creditNet:(r.creditAmount!=null?r.creditAmount:r.expectedCredit||0)),poKey=String(r.poId||''),lineKey=poKey+'|'+String(r.lineId||r.productId||'');
+  if(poKey)returnCreditByPo.set(poKey,(returnCreditByPo.get(poKey)||0)+credit);
+  if(poKey&&String(r.lineId||r.productId||''))returnCreditByLine.set(lineKey,(returnCreditByLine.get(lineKey)||0)+credit);
+ });
+ const resolvedLineCredit=(po,line)=>{const poKey=String(po?.id||''),primary=poKey+'|'+String(line?.receiptLineId||line?.productId||''),fallback=poKey+'|'+String(line?.productId||'');return returnCreditByLine.get(primary)||returnCreditByLine.get(fallback)||0;};
  const costByPo=new Map(),costByOrder=new Map(),costByVariation=new Map(),costByTool=new Map();
  const indexCost=(map,key,row)=>{if(!key)return;const k=String(key),list=map.get(k);if(list)list.push(row);else map.set(k,[row]);};
  costs.forEach(row=>{indexCost(costByPo,row.poId,row);indexCost(costByOrder,row.orderId,row);indexCost(costByVariation,row.variationId,row);indexCost(costByTool,row.toolAssignmentId,row)});
@@ -146,14 +154,15 @@ function psProjectSummary(j,source,now){
   let total=0,received=0;lines.forEach(l=>{
    const rate=l.unitCost??l.cost??productMap.get(l.productId)?.cost;
    if(rate==null||!Number.isFinite(Number(rate))||Number(rate)===0)missingCosts++;
-   const unit=Number(rate||0),orderedQty=cancelled?Number(l.received||0):Number(l.qty||0);total+=cents(orderedQty*unit);received+=cents(Math.min(Number(l.qty||0),Number(l.received||0))*unit);
+   const unit=Number(rate||0),orderedQty=cancelled?Number(l.received||0):Number(l.qty||0),lineTotal=cents(orderedQty*unit),lineReceived=cents(Math.min(Number(l.qty||0),Number(l.received||0))*unit),lineCredit=Math.min(lineTotal,resolvedLineCredit(po,l));
+   total+=Math.max(0,lineTotal-lineCredit);received+=Math.max(0,lineReceived-Math.min(lineReceived,lineCredit));
    if(orderIds.has(l.salesOrderId)){const key=l.salesOrderId+'|'+l.productId;coverage.set(key,(coverage.get(key)||0)+orderedQty);}
   });
-  const bills=actualRows(costByPo.get(String(po.id)));const covered=sumCoverage(bills),billed=sumNet(bills);
+  const poCredit=returnCreditByPo.get(String(po.id))||0,bills=actualRows(costByPo.get(String(po.id))),coveredRaw=sumCoverage(bills),billedRaw=sumNet(bills),covered=Math.max(0,coveredRaw-poCredit),billed=Math.max(0,billedRaw-poCredit);
   const committedPo=!String(po.status).toLowerCase().includes('draft');
   const estimate=Math.max(0,received-covered),open=Math.max(0,total-Math.max(received,covered));actual+=billed;
   if(committedPo){estimatedReceived+=estimate;committed+=open;}else uncommitted+=open+estimate;
-  poRows.push({po,lines,total,received,billed,covered,estimate,open,committed:committedPo});
+  poRows.push({po,lines,total,received,billed,covered,estimate,open,credit:poCredit,committed:committedPo});
  });
  const matchedPos=new Set(poRows.map(r=>r.po.id));
  costs.forEach(c=>{if(c.poId&&c.state==='Actual'&&matchedPos.has(c.poId))return;if(c.state==='Actual')actual+=cents(c.net);else committed+=cents(c.net);});
@@ -179,7 +188,7 @@ function psProjectSummary(j,source,now){
   linkedIds.forEach(id=>(costByOrder.get(id)||[]).forEach(c=>recordedRows.add(c)));linkedPoIds.forEach(id=>(costByPo.get(id)||[]).forEach(c=>recordedRows.add(c)));
   const recorded=sumNet([...recordedRows]);
   const orderForecast=linked.reduce((n,o)=>n+Math.max(0,(orderMaterialAmounts[o.id]||0)-sumCoverage(actualRows(costByOrder.get(String(o.id))))),0);
-  let purchaseForecast=0;linkedIds.forEach(id=>(poLinesByOrder.get(id)||[]).forEach(({po,line})=>{if(!['Cancelled','Canceled'].includes(po.status))purchaseForecast+=cents(Number(line.qty||0)*Number(line.unitCost??line.cost??productMap.get(line.productId)?.cost??0))}));
+  let purchaseForecast=0;linkedIds.forEach(id=>(poLinesByOrder.get(id)||[]).forEach(({po,line})=>{if(!['Cancelled','Canceled'].includes(po.status)){const lineValue=cents(Number(line.qty||0)*Number(line.unitCost??line.cost??productMap.get(line.productId)?.cost??0));purchaseForecast+=Math.max(0,lineValue-Math.min(lineValue,resolvedLineCredit(po,line)));}}));
   let matched=0;linkedPoIds.forEach(id=>{matched+=sumCoverage(actualRows(costByPo.get(id)))});
   const toolForecast=(toolsByVariation.get(String(v.id))||[]).reduce((n,a)=>n+(toolForecasts.get(a.id)||0),0),labourVariationForecast=(labourByVariation.get(String(v.id))||[]).reduce((n,a)=>n+(labourForecasts.get(a.id)||0),0);
   uncommitted+=Math.max(0,cents(v.costNet||0)-recorded-toolForecast-labourVariationForecast-orderForecast-Math.max(0,purchaseForecast-matched));
