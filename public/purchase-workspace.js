@@ -3,7 +3,7 @@
    Legacy command labels retained for compatibility: Items & Costing, Demand Sources, Supplier Confirmation, Deliveries & Receipts, Costs & Invoice Match, Returns & Credits, Activity.
    Supplier-side mirror of Sales Order Command.
    Purchasing owns commercial intent; Warehouse owns physical stock truth.
-   v2.0.0 */
+   v2.1.0 */
 (function () {
   let purchaseCommandTab = 'items';
   const poListFilters={search:'',supplier:'all',status:'all',payment:'all',receiving:'all',health:'all',expected:'all',link:'all'};
@@ -24,18 +24,35 @@
   }
 
   function poFinancialsSafe(po) {
-    if (typeof purchaseOrderFinancials === 'function') return purchaseOrderFinancials(po);
-    const totals=(po.lines||[]).reduce(function(out,line){
-      const p=poProduct(line.productId)||{};
-      const qty=Number(line.qty||0),unit=Number(line.unitCost!=null?line.unitCost:p.cost||0),net=qty*unit;
-      let vat=0;
-      if(typeof vatAmount==='function') vat=Number(vatAmount(net,{taxCode:line.taxCode||p.taxCode||'20% VAT'})||0);
-      else vat=/zero|0%|exempt/i.test(String(line.taxCode||p.taxCode||''))?0:net*.2;
-      out.net+=net;out.vat+=vat;out.gross+=net+vat;return out;
-    },{net:0,vat:0,gross:0});
-    totals.paid=(po.payments||[]).reduce(function(n,payment){return n+Number(payment.amount||0);},0);
+    let totals;
+    if (typeof purchaseOrderFinancials === 'function') totals=Object.assign({},purchaseOrderFinancials(po)||{});
+    else {
+      totals=(po.lines||[]).reduce(function(out,line){
+        const p=poLineProduct(line)||{};
+        const qty=Number(line.qty||0),unit=Number(line.unitCost!=null?line.unitCost:p.cost||0),net=qty*unit;
+        let vat=0;
+        if(typeof vatAmount==='function') vat=Number(vatAmount(net,{taxCode:line.taxCode||p.taxCode||'20% VAT'})||0);
+        else vat=/zero|0%|exempt/i.test(String(line.taxCode||p.taxCode||''))?0:net*.2;
+        out.net+=net;out.vat+=vat;out.gross+=net+vat;return out;
+      },{net:0,vat:0,gross:0});
+      totals.paid=(po.payments||[]).reduce(function(n,payment){return n+Number(payment.amount||0);},0);
+    }
+    totals.net=Number(totals.net||0);
+    totals.vat=Number(totals.vat||0);
+    totals.gross=Number(totals.gross!=null?totals.gross:totals.net+totals.vat);
+    totals.paid=Number(totals.paid!=null?totals.paid:(po.payments||[]).reduce(function(n,payment){return n+Number(payment.amount||0);},0));
+    const credits=poResolvedCreditTotals(po);
+    totals.originalNet=totals.net;
+    totals.originalVat=totals.vat;
+    totals.originalGross=totals.gross;
+    totals.creditNet=credits.net;
+    totals.creditVat=credits.vat;
+    totals.creditGross=credits.gross;
+    totals.net=Math.max(0,totals.net-credits.net);
+    totals.vat=Math.max(0,totals.vat-credits.vat);
+    totals.gross=Math.max(0,totals.gross-credits.gross);
     totals.balance=totals.gross-totals.paid;
-    Object.keys(totals).forEach(function(key){totals[key]=Math.round(Number(totals[key]||0)*100)/100;});
+    Object.keys(totals).forEach(function(key){if(typeof totals[key]==='number')totals[key]=Math.round(Number(totals[key]||0)*100)/100;});
     return totals;
   }
 
@@ -457,12 +474,15 @@
   }
 
   function poCostsTab(po) {
-    const ordered = poOrderValue(po);
-    const confirmed = poConfirmedValue(po);
-    const receivedValue = (po.lines || []).reduce(function(total,line){return total + Number(line.received||0) * Number(line.confirmedUnitCost != null ? line.confirmedUnitCost : poLineCost(line));},0);
-    const invoice = Number(po.supplierInvoiceTotal || 0);
-    const variance = invoice ? invoice - receivedValue : 0;
-    return '<div class="po-cost-layout"><section class="po-work-card"><div class="po-work-card-head"><div><h3>Three-way invoice match</h3><p>Compare the Purchase Order, physical receipts and supplier invoice before Accounting export.</p></div></div><div class="po-match-grid"><div><span>PO ordered</span><strong>' + poMoney(ordered) + '</strong></div><div><span>Supplier confirmed</span><strong>' + poMoney(confirmed) + '</strong></div><div><span>Physically received</span><strong>' + poMoney(receivedValue) + '</strong></div><div><span>Supplier invoice</span><strong>' + (invoice ? poMoney(invoice) : 'Not entered') + '</strong></div><div><span>Variance</span><strong class="' + (Math.abs(variance) > 0.01 ? 'bad-text' : 'good-text') + '">' + poMoney(variance) + '</strong></div></div><div class="po-fields"><label>Supplier invoice reference<input data-po-field="' + poEsc(po.id) + '|supplierInvoiceRef" value="' + poEsc(po.supplierInvoiceRef || '') + '"></label><label>Supplier invoice total<input type="number" step="0.01" min="0" data-po-field="' + poEsc(po.id) + '|supplierInvoiceTotal" value="' + Number(po.supplierInvoiceTotal || 0).toFixed(2) + '"></label><label>Match status<select data-po-field="' + poEsc(po.id) + '|invoiceMatchStatus"><option' + ((po.invoiceMatchStatus||'Needs review')==='Needs review'?' selected':'') + '>Needs review</option><option' + (po.invoiceMatchStatus==='Matched'?' selected':'') + '>Matched</option><option' + (po.invoiceMatchStatus==='Approved variance'?' selected':'') + '>Approved variance</option></select></label></div></section></div>';
+    const credits=poResolvedCreditTotals(po);
+    const ordered = Math.max(0,poOrderValue(po)-credits.net);
+    const confirmed = Math.max(0,poConfirmedValue(po)-credits.net);
+    const receivedRaw = (po.lines || []).reduce(function(total,line){return total + Number(line.received||0) * Number(line.confirmedUnitCost != null ? line.confirmedUnitCost : poLineCost(line));},0);
+    const receivedValue=Math.max(0,receivedRaw-credits.net);
+    const invoiceRaw = Number(po.supplierInvoiceTotal || 0);
+    const invoice = Math.max(0,invoiceRaw-credits.net);
+    const variance = invoiceRaw ? invoice - receivedValue : 0;
+    return '<div class="po-cost-layout"><section class="po-work-card"><div class="po-work-card-head"><div><h3>Three-way invoice match</h3><p>Compare the Purchase Order, physical receipts, completed credits and supplier invoice before Accounting export.</p></div></div><div class="po-match-grid"><div><span>PO net after credits</span><strong>' + poMoney(ordered) + '</strong></div><div><span>Supplier confirmed</span><strong>' + poMoney(confirmed) + '</strong></div><div><span>Received net after credits</span><strong>' + poMoney(receivedValue) + '</strong></div><div><span>Completed credits</span><strong>' + poMoney(credits.net) + '</strong></div><div><span>Supplier invoice net position</span><strong>' + (invoiceRaw ? poMoney(invoice) : 'Not entered') + '</strong></div><div><span>Variance</span><strong class="' + (Math.abs(variance) > 0.01 ? 'bad-text' : 'good-text') + '">' + poMoney(variance) + '</strong></div></div><div class="po-fields"><label>Supplier invoice reference<input data-po-field="' + poEsc(po.id) + '|supplierInvoiceRef" value="' + poEsc(po.supplierInvoiceRef || '') + '"></label><label>Supplier invoice total<input type="number" step="0.01" min="0" data-po-field="' + poEsc(po.id) + '|supplierInvoiceTotal" value="' + Number(po.supplierInvoiceTotal || 0).toFixed(2) + '"></label><label>Match status<select data-po-field="' + poEsc(po.id) + '|invoiceMatchStatus"><option' + ((po.invoiceMatchStatus||'Needs review')==='Needs review'?' selected':'') + '>Needs review</option><option' + (po.invoiceMatchStatus==='Matched'?' selected':'') + '>Matched</option><option' + (po.invoiceMatchStatus==='Approved variance'?' selected':'') + '>Approved variance</option></select></label></div></section></div>';
   }
 
   function ensureReturnsHoldLocation() {
@@ -476,51 +496,246 @@
     return 'PR-' + String(next).padStart(5,'0');
   }
 
+  function poReturnLine(po,row) {
+    if(!po||!row)return null;
+    return (po.lines||[]).find(function(line){
+      const token=String(line.receiptLineId||line.productId||'');
+      return token===String(row.lineId||'') || String(line.productId||'')===String(row.productId||'');
+    })||null;
+  }
+
+  function poReturnTreatment(line) {
+    const p=line?poLineProduct(line):null;
+    const words=[line&&line.receivingTreatment,line&&line.purchaseCategory,line&&line.description,p&&p.name,p&&p.category,p&&p.brand].filter(Boolean).join(' ').toLowerCase();
+    const nonStock=!!(line&&(line.nonStockPurchase||line.lineType==='custom-purchase'||/non-stock|service|hire|labour|installation|delivery|freight|professional|crane/.test(words)));
+    return {nonStock:nonStock,label:nonStock?'Service / non-stock':'Physical stock'};
+  }
+
+  function poReturnMatchesLine(row,po,line) {
+    if(!row||!po||!line||String(row.poId||'')!==String(po.id||''))return false;
+    const lineToken=String(line.receiptLineId||line.productId||'');
+    return String(row.lineId||'')===lineToken || String(row.productId||'')===String(line.productId||'');
+  }
+
+  function poReturnConsumedQty(po,line,excludeId) {
+    return (data.purchaseReturns||[]).filter(function(row){
+      return row.id!==excludeId && row.status!=='Cancelled' && poReturnMatchesLine(row,po,line);
+    }).reduce(function(n,row){return n+Number(row.qty||0);},0);
+  }
+
+  function poReturnCreditParts(line,net,vatOverride) {
+    const value=Math.max(0,Number(net||0));
+    const p=line?poLineProduct(line):{};
+    const vat=vatOverride==null?Math.max(0,Number(poLineVat(line||{},p||{},value)||0)):Math.max(0,Number(vatOverride||0));
+    return {net:Math.round(value*100)/100,vat:Math.round(vat*100)/100,gross:Math.round((value+vat)*100)/100};
+  }
+
+  function poResolvedCreditTotals(po) {
+    const totals={net:0,vat:0,gross:0,count:0};
+    (data.purchaseReturns||[]).filter(function(row){return String(row.poId||'')===String(po&&po.id||'')&&row.status==='Closed'&&!row.voidedAt;}).forEach(function(row){
+      const line=poReturnLine(po,row),parts=poReturnCreditParts(line,row.creditNet!=null?row.creditNet:(row.creditAmount!=null?row.creditAmount:row.expectedCredit),row.creditVat);
+      totals.net+=parts.net;totals.vat+=parts.vat;totals.gross+=row.creditGross!=null?Number(row.creditGross||0):parts.gross;totals.count++;
+    });
+    totals.net=Math.round(totals.net*100)/100;totals.vat=Math.round(totals.vat*100)/100;totals.gross=Math.round(totals.gross*100)/100;
+    return totals;
+  }
+
+  function poReturnHeldStock(row) {
+    if(!row||row.dispatchedAt||row.status==='Cancelled')return 0;
+    if(row.stockHeld===false)return 0;
+    const hold=(data.stock||[]).find(function(item){return String(item.productId||'')===String(row.productId||'')&&item.locationId==='L-RETURNS-HOLD';});
+    return Math.min(Number(row.qty||0),Math.max(0,Number(hold&&hold.qty||0)));
+  }
+
+  function poMoveReturnHoldOut(row,destination,note) {
+    const qty=poReturnHeldStock(row);
+    if(qty<=0){row.stockHeld=false;return {ok:true,qty:0};}
+    const hold=(data.stock||[]).find(function(item){return String(item.productId||'')===String(row.productId||'')&&item.locationId==='L-RETURNS-HOLD';});
+    if(!hold||Number(hold.qty||0)<qty)return {ok:false,error:'The Returns Hold quantity no longer matches this return. Review stock before completing it.'};
+    if(typeof removeStock==='function'){
+      if(!removeStock(row.productId,'L-RETURNS-HOLD',qty))return {ok:false,error:'The Returns Hold stock could not be removed.'};
+    }else hold.qty=Math.max(0,Number(hold.qty||0)-qty);
+    if(destination){
+      if(typeof addStock==='function')addStock(row.productId,destination,qty,0);
+      else {
+        let target=(data.stock||[]).find(function(item){return item.productId===row.productId&&item.locationId===destination;});
+        if(!target){target={productId:row.productId,locationId:destination,qty:0,allocated:0};data.stock.push(target);}
+        target.qty=Number(target.qty||0)+qty;
+      }
+    }
+    if(typeof addMovement==='function')addMovement(destination?'Supplier Return Cancelled':'Supplier Return Dispatch',row.productId,qty,'L-RETURNS-HOLD',destination||'SUPPLIER',row.id,(typeof currentUser==='function'&&currentUser()&&(currentUser().name||currentUser().email))||'Purchasing',note||row.poId);
+    row.stockHeld=false;
+    return {ok:true,qty:qty};
+  }
+
+  function poReturnAudit(action,row,reason,previousValue,newValue) {
+    data.auditLog=Array.isArray(data.auditLog)?data.auditLog:[];
+    const at=new Date().toISOString(),user=(typeof currentUser==='function'&&currentUser()&&(currentUser().name||currentUser().email))||'Purchasing';
+    data.auditLog.push({id:'AUD-'+Date.now()+'-'+Math.random().toString(36).slice(2,6),date:at,user:user,action:action,product:row.poId,previousValue:previousValue||'',newValue:newValue||row.id,reason:reason||row.reason||''});
+    row.updatedAt=at;row.updatedBy=user;
+  }
+
   function purchaseCreateSupplierReturn(input) {
     input = input || {};
     const po = typeof purchaseOrderById === 'function' ? purchaseOrderById(input.poId) : (data.purchaseOrders || []).find(function(row){return row.id===input.poId;});
     if (!po) return {ok:false,error:'Purchase Order not found.'};
-    const line = (po.lines || []).find(function(row){return row.productId===input.productId;});
-    if (!line) return {ok:false,error:'Product is not on this Purchase Order.'};
-    const qty = Math.max(0,Math.floor(Number(input.qty||0)));
-    if (!qty) return {ok:false,error:'Enter a return quantity.'};
+    const line = (po.lines || []).find(function(row){return String(row.productId||'')===String(input.productId||'')||String(row.receiptLineId||'')===String(input.productId||'');});
+    if (!line) return {ok:false,error:'Product or service is not on this Purchase Order.'};
+    const qty = Math.max(0,Number(input.qty||0));
+    if (!Number.isFinite(qty)||qty<=0) return {ok:false,error:'Enter a return quantity.'};
+    const received=Math.max(0,Number(line.received||0)),already=poReturnConsumedQty(po,line,'');
+    if(qty>Math.max(0,received-already)+0.00001)return {ok:false,error:'Only ' + Math.max(0,received-already) + ' received unit(s) remain available for return / credit.'};
     const reason = String(input.reason || '').trim();
     if (!reason) return {ok:false,error:'Choose a return reason.'};
-    const sourceLocation = input.locationId || 'L-WH-A1';
-    const stockRow = (data.stock || []).find(function(row){return row.productId===input.productId && row.locationId===sourceLocation;});
-    const free = stockRow ? (typeof available === 'function' ? Number(available(stockRow)||0) : Math.max(0,Number(stockRow.qty||0)-Number(stockRow.allocated||0))) : 0;
-    if (free < qty) return {ok:false,error:'Only ' + free + ' free unit(s) are available to return from this location.'};
-    ensureReturnsHoldLocation();
-    if (typeof removeStock === 'function') {
-      if (!removeStock(input.productId, sourceLocation, qty)) return {ok:false,error:'Stock could not be moved to Returns Hold.'};
-    } else {
-      stockRow.qty = Number(stockRow.qty||0)-qty;
-    }
-    if (typeof addStock === 'function') addStock(input.productId,'L-RETURNS-HOLD',qty,0);
-    else {
-      let hold=(data.stock||[]).find(function(row){return row.productId===input.productId&&row.locationId==='L-RETURNS-HOLD';});
-      if(!hold){hold={productId:input.productId,locationId:'L-RETURNS-HOLD',qty:0,allocated:0};data.stock.push(hold);} hold.qty+=qty;
+    const treatment=poReturnTreatment(line),sourceLocation = input.locationId || 'L-WH-A1';
+    let stockHeld=false;
+    if(!treatment.nonStock){
+      const stockRow = (data.stock || []).find(function(row){return String(row.productId||'')===String(line.productId||'') && row.locationId===sourceLocation;});
+      const free = stockRow ? (typeof available === 'function' ? Number(available(stockRow)||0) : Math.max(0,Number(stockRow.qty||0)-Number(stockRow.allocated||0))) : 0;
+      if (free < qty) return {ok:false,error:'Only ' + free + ' free unit(s) are available to return from this location.'};
+      ensureReturnsHoldLocation();
+      if (typeof removeStock === 'function') {
+        if (!removeStock(line.productId, sourceLocation, qty)) return {ok:false,error:'Stock could not be moved to Returns Hold.'};
+      } else stockRow.qty = Number(stockRow.qty||0)-qty;
+      if (typeof addStock === 'function') addStock(line.productId,'L-RETURNS-HOLD',qty,0);
+      else {
+        let hold=(data.stock||[]).find(function(row){return row.productId===line.productId&&row.locationId==='L-RETURNS-HOLD';});
+        if(!hold){hold={productId:line.productId,locationId:'L-RETURNS-HOLD',qty:0,allocated:0};data.stock.push(hold);} hold.qty+=qty;
+      }
+      stockHeld=true;
     }
     data.purchaseReturns = data.purchaseReturns || [];
-    const record={id:nextPurchaseReturnId(),poId:po.id,receiptId:input.receiptId||'',supplier:po.supplier,productId:input.productId,supplierSku:line.supplierSku || (poProduct(input.productId)||{}).supplierSku || '',qty:qty,unitCost:poLineCost(line),expectedCredit:poLineCost(line)*qty,reason:reason,status:'Awaiting Supplier Authorisation',sourceLocationId:sourceLocation,holdLocationId:'L-RETURNS-HOLD',createdAt:new Date().toISOString(),createdBy:(typeof currentUser==='function'&&currentUser()&&(currentUser().name||currentUser().email))||'Purchasing',rma:''};
+    const net=Math.round(poLineCost(line)*qty*100)/100,parts=poReturnCreditParts(line,net),now=new Date().toISOString();
+    const record={id:nextPurchaseReturnId(),poId:po.id,lineId:String(line.receiptLineId||line.productId||''),receiptId:input.receiptId||'',supplier:po.supplier,productId:line.productId,supplierSku:line.supplierSku || (poLineProduct(line)||{}).supplierSku || '',qty:qty,unitCost:poLineCost(line),expectedCredit:parts.net,expectedVat:parts.vat,expectedGrossCredit:parts.gross,reason:reason,status:'Awaiting Supplier Authorisation',sourceLocationId:treatment.nonStock?'':sourceLocation,holdLocationId:treatment.nonStock?'':'L-RETURNS-HOLD',stockHeld:stockHeld,nonStock:treatment.nonStock,projectId:String(line.projectId||line.jobId||po.projectId||po.jobId||''),salesOrderId:String(line.salesOrderId||''),createdAt:now,createdBy:(typeof currentUser==='function'&&currentUser()&&(currentUser().name||currentUser().email))||'Purchasing',rma:'',history:[{at:now,status:'Awaiting Supplier Authorisation',note:reason}]};
     data.purchaseReturns.push(record);
-    if (typeof addMovement === 'function') addMovement('Supplier Return Hold',input.productId,qty,sourceLocation,'L-RETURNS-HOLD',record.id,record.createdBy,po.id + ' · ' + reason);
+    if (stockHeld && typeof addMovement === 'function') addMovement('Supplier Return Hold',line.productId,qty,sourceLocation,'L-RETURNS-HOLD',record.id,record.createdBy,po.id + ' · ' + reason);
+    poReturnAudit('Supplier return / credit case created',record,reason,'',record.status);
     return {ok:true,return:record};
   }
 
+  function purchaseAuthoriseSupplierReturn(returnId,input) {
+    const row=(data.purchaseReturns||[]).find(function(item){return item.id===returnId;});
+    if(!row)return {ok:false,error:'Supplier return not found.'};
+    if(row.status==='Closed'||row.status==='Cancelled')return {ok:false,error:'This return is already closed.'};
+    input=input||{};const before=row.status,now=new Date().toISOString();
+    row.status='Supplier Authorised';row.authorisedAt=now;row.rma=String(input.rma||row.rma||'').trim();row.supplierAuthorisationNote=String(input.note||'').trim();
+    row.history=Array.isArray(row.history)?row.history:[];row.history.push({at:now,status:row.status,note:row.rma?('RMA / authorisation '+row.rma):'Supplier authorised'});
+    poReturnAudit('Supplier return authorised',row,row.supplierAuthorisationNote,before,row.status);
+    return {ok:true,return:row};
+  }
+
+  function purchaseDispatchSupplierReturn(returnId) {
+    const row=(data.purchaseReturns||[]).find(function(item){return item.id===returnId;});
+    if(!row)return {ok:false,error:'Supplier return not found.'};
+    if(row.status==='Closed'||row.status==='Cancelled')return {ok:false,error:'This return is already closed.'};
+    const po=(data.purchaseOrders||[]).find(function(item){return String(item.id)===String(row.poId);}),line=poReturnLine(po,row),treatment=poReturnTreatment(line);
+    if(treatment.nonStock||row.nonStock){return {ok:false,error:'This is a service / non-stock credit. There is nothing physical to dispatch; record the supplier credit or internal correction instead.'};}
+    if(row.status!=='Supplier Authorised'&&row.status!=='Dispatched / Awaiting Credit')return {ok:false,error:'Record supplier authorisation before dispatching the return.'};
+    if(row.dispatchedAt)return {ok:true,return:row};
+    const moved=poMoveReturnHoldOut(row,'',row.poId+' · '+row.reason);
+    if(!moved.ok)return moved;
+    const before=row.status,now=new Date().toISOString();row.status='Dispatched / Awaiting Credit';row.dispatchedAt=now;
+    row.history=Array.isArray(row.history)?row.history:[];row.history.push({at:now,status:row.status,note:'Returned to supplier'});
+    poReturnAudit('Supplier return dispatched',row,row.reason,before,row.status);
+    return {ok:true,return:row};
+  }
+
+  function purchaseCancelSupplierReturn(returnId,reason) {
+    const row=(data.purchaseReturns||[]).find(function(item){return item.id===returnId;});
+    if(!row)return {ok:false,error:'Supplier return not found.'};
+    if(row.status==='Closed'||row.status==='Cancelled')return {ok:false,error:'This return is already closed.'};
+    if(row.dispatchedAt)return {ok:false,error:'This return has already been dispatched. Complete the supplier credit instead of cancelling it.'};
+    const before=row.status,why=String(reason||'Return cancelled').trim();
+    if(poReturnHeldStock(row)>0){
+      const moved=poMoveReturnHoldOut(row,row.sourceLocationId||'L-WH-A1',row.poId+' · '+why);
+      if(!moved.ok)return moved;
+    }
+    const now=new Date().toISOString();row.status='Cancelled';row.cancelledAt=now;row.cancelReason=why;
+    row.history=Array.isArray(row.history)?row.history:[];row.history.push({at:now,status:row.status,note:why});
+    poReturnAudit('Supplier return cancelled',row,why,before,row.status);
+    return {ok:true,return:row};
+  }
+
+  function purchaseCompleteSupplierReturn(returnId,input) {
+    const row=(data.purchaseReturns||[]).find(function(item){return item.id===returnId;});
+    if(!row)return {ok:false,error:'Supplier return not found.'};
+    if(row.status==='Closed')return {ok:false,error:'This return / credit is already complete.'};
+    if(row.status==='Cancelled')return {ok:false,error:'This return was cancelled.'};
+    const po=(data.purchaseOrders||[]).find(function(item){return String(item.id)===String(row.poId);});
+    if(!po)return {ok:false,error:'The original Purchase Order could not be found.'};
+    const line=poReturnLine(po,row);
+    if(!line)return {ok:false,error:'The original Purchase Order line could not be found.'};
+    input=input||{};const resolution=String(input.resolutionType||'supplier-credit');
+    if(!['supplier-credit','internal-correction'].includes(resolution))return {ok:false,error:'Choose supplier credit or internal correction.'};
+    const treatment=poReturnTreatment(line),isNonStock=!!(row.nonStock||treatment.nonStock);
+    if(resolution==='supplier-credit'&&!isNonStock&&!row.dispatchedAt)return {ok:false,error:'Dispatch the physical return before recording the supplier credit.'};
+    if(resolution==='internal-correction'&&!isNonStock)return {ok:false,error:'Internal correction is reserved for services / non-stock entries made in error. Physical stock must follow the supplier return process.'};
+    const netInput=input.creditNet!=null?Number(input.creditNet):Number(row.expectedCredit||0);
+    if(!Number.isFinite(netInput)||netInput<0)return {ok:false,error:'Enter a valid credit amount.'};
+    const maxNet=Math.max(Number(row.expectedCredit||0),0);
+    if(netInput>maxNet+0.01)return {ok:false,error:'Credit cannot exceed the value linked to this return ('+poMoney(maxNet)+').'};
+    const parts=poReturnCreditParts(line,netInput,input.creditVat);
+    if(poReturnHeldStock(row)>0){
+      const moved=poMoveReturnHoldOut(row,'',row.poId+' · '+(resolution==='internal-correction'?'Internal correction':'Supplier credit'));
+      if(!moved.ok)return moved;
+      if(!row.dispatchedAt)row.dispatchedAt=new Date().toISOString();
+    }
+    const before=row.status,now=new Date().toISOString(),user=(typeof currentUser==='function'&&currentUser()&&(currentUser().name||currentUser().email))||'Purchasing';
+    row.status='Closed';row.closedAt=now;row.closedBy=user;row.resolutionType=resolution;row.creditNet=parts.net;row.creditVat=parts.vat;row.creditGross=parts.gross;row.creditAmount=parts.net;row.creditReference=String(input.creditReference||'').trim();row.creditDate=String(input.creditDate||poToday());row.resolutionNote=String(input.note||'').trim();row.nonStock=isNonStock;
+    row.history=Array.isArray(row.history)?row.history:[];row.history.push({at:now,status:'Closed',note:(resolution==='internal-correction'?'Internal correction':'Supplier credit')+(row.creditReference?' · '+row.creditReference:'')+' · '+poMoney(parts.net)+' net'});
+    line.creditedQty=Math.round((Number(line.creditedQty||0)+Number(row.qty||0))*1000)/1000;
+    line.creditedNet=Math.round((Number(line.creditedNet||0)+parts.net)*100)/100;
+    line.creditHistory=Array.isArray(line.creditHistory)?line.creditHistory:[];
+    line.creditHistory.push({returnId:row.id,at:now,type:resolution,qty:Number(row.qty||0),net:parts.net,vat:parts.vat,gross:parts.gross,reference:row.creditReference,user:user});
+    if(resolution==='supplier-credit'){
+      po.supplierCredits=Array.isArray(po.supplierCredits)?po.supplierCredits:[];
+      po.supplierCredits.push({id:'POCREDIT-'+Date.now(),returnId:row.id,poId:po.id,supplier:po.supplier,amount:parts.net,net:parts.net,vat:parts.vat,gross:parts.gross,reference:row.creditReference,date:row.creditDate,status:'Applied to PO',createdAt:now,createdBy:user});
+      data.financeCommand=data.financeCommand&&typeof data.financeCommand==='object'?data.financeCommand:{};
+      data.financeCommand.supplierCredits=Array.isArray(data.financeCommand.supplierCredits)?data.financeCommand.supplierCredits:[];
+      if(!data.financeCommand.supplierCredits.some(function(item){return item.returnId===row.id;}))data.financeCommand.supplierCredits.push({id:'SC-'+Date.now(),returnId:row.id,poId:po.id,supplier:po.supplier,amount:parts.gross,remaining:0,net:parts.net,vat:parts.vat,gross:parts.gross,reference:row.creditReference,date:row.creditDate,status:'Applied to PO',createdAt:now});
+    }else{
+      po.returnCorrections=Array.isArray(po.returnCorrections)?po.returnCorrections:[];
+      po.returnCorrections.push({id:'POCORR-'+Date.now(),returnId:row.id,poId:po.id,amount:parts.net,net:parts.net,vat:parts.vat,gross:parts.gross,reason:row.resolutionNote||row.reason,date:row.creditDate,createdAt:now,createdBy:user});
+    }
+    po.invoiceMatchStatus='Needs review';
+    poReturnAudit(resolution==='internal-correction'?'Purchase receipt/cost internally corrected':'Supplier credit completed',row,row.resolutionNote||row.reason,before,'Closed · '+poMoney(parts.net)+' net');
+    return {ok:true,return:row,po:po,credit:parts};
+  }
+
   function purchaseReturnStatusSummary(po) {
-    const rows=(data.purchaseReturns||[]).filter(function(row){return !po || row.poId===po.id;});
-    return {count:rows.length,open:rows.filter(function(row){return row.status!=='Closed';}).length,expectedCredit:rows.reduce(function(n,row){return n+Number(row.expectedCredit||0);},0)};
+    const rows=(data.purchaseReturns||[]).filter(function(row){return !po || String(row.poId||'')===String(po.id||'');});
+    const openRows=rows.filter(function(row){return !['Closed','Cancelled'].includes(row.status);});
+    const closedRows=rows.filter(function(row){return row.status==='Closed'&&!row.voidedAt;});
+    return {count:rows.length,open:openRows.length,expectedCredit:openRows.reduce(function(n,row){return n+Number(row.expectedCredit||0);},0),resolvedCredit:closedRows.reduce(function(n,row){return n+Number(row.creditNet!=null?row.creditNet:row.expectedCredit||0);},0)};
+  }
+
+  function poReturnActionButtons(po,row) {
+    if(!row)return '';
+    const line=poReturnLine(po,row),isNonStock=!!(row.nonStock||poReturnTreatment(line).nonStock),id=poEsc(row.id);
+    if(row.status==='Closed')return '<span class="po-return-resolution"><strong>'+poEsc(row.resolutionType==='internal-correction'?'Corrected internally':'Credit completed')+'</strong><small>'+poEsc(row.creditReference||row.creditDate||'Closed')+'</small></span>';
+    if(row.status==='Cancelled')return '<span class="muted">Cancelled</span>';
+    let actions='';
+    if(row.status==='Awaiting Supplier Authorisation')actions+='<button type="button" class="secondary" data-po-return-action="authorise|'+id+'">Supplier authorised</button>';
+    if(row.status==='Supplier Authorised'&&!isNonStock)actions+='<button type="button" class="secondary" data-po-return-action="dispatch|'+id+'">Mark dispatched</button>';
+    if((row.status==='Supplier Authorised'&&isNonStock)||row.status==='Dispatched / Awaiting Credit')actions+='<button type="button" class="primary" data-po-return-action="credit|'+id+'">Record supplier credit</button>';
+    if(isNonStock&&row.status!=='Dispatched / Awaiting Credit')actions+='<button type="button" class="secondary" data-po-return-action="correct|'+id+'">Internal correction</button>';
+    if(!row.dispatchedAt)actions+='<button type="button" class="danger-button" data-po-return-action="cancel|'+id+'">Cancel</button>';
+    return '<div class="po-return-actions">'+actions+'</div>';
   }
 
   function poReturnsTab(po) {
-    const returns=(data.purchaseReturns||[]).filter(function(row){return row.poId===po.id;});
-    const rows=returns.map(function(row){const p=poProduct(row.productId)||{sku:row.productId,name:row.productId};return '<tr><td><strong>' + poEsc(row.id) + '</strong><small>' + poEsc(row.createdAt||'') + '</small></td><td><strong>' + poEsc(p.sku) + '</strong><small>' + poEsc(p.name) + '</small></td><td>' + row.qty + '</td><td>' + poEsc(row.reason) + '</td><td>' + poPill(row.status,row.status==='Closed'?'good':'warn') + '</td><td class="right">' + poMoney(row.expectedCredit) + '</td></tr>';}).join('') || '<tr><td colspan="6" class="po-empty">No supplier returns have been created for this PO.</td></tr>';
-    const returnable=(po.lines||[]).filter(function(line){return Number(line.received||0)>0;});
-    const productOptions=returnable.map(function(line){const p=poProduct(line.productId)||{sku:line.productId,name:line.productId};return '<option value="' + poEsc(line.productId) + '">' + poEsc(p.sku + ' · ' + p.name) + '</option>';}).join('');
+    const returns=(data.purchaseReturns||[]).filter(function(row){return String(row.poId||'')===String(po.id||'');});
+    const rows=returns.map(function(row){
+      const line=poReturnLine(po,row),p=line?poLineProduct(line):(poProduct(row.productId)||{sku:row.supplierSku||row.productId,name:row.productId});
+      const detail=row.status==='Closed'?((row.resolutionType==='internal-correction'?'Internal correction':'Supplier credit')+(row.creditReference?' · '+row.creditReference:'')+' · '+poMoney(row.creditNet!=null?row.creditNet:row.expectedCredit)+' net'):(row.nonStock||poReturnTreatment(line).nonStock?'Service / non-stock':'Physical return');
+      return '<tr><td><strong>' + poEsc(row.id) + '</strong><small>' + poEsc(row.createdAt||'') + '</small></td><td><strong>' + poEsc(p.sku||row.supplierSku||row.productId) + '</strong><small>' + poEsc(p.name||row.productId) + '</small></td><td>' + row.qty + '</td><td>' + poEsc(row.reason) + '<small>'+poEsc(detail)+'</small></td><td>' + poPill(row.status,row.status==='Closed'?'good':row.status==='Cancelled'?'bad':'warn') + '</td><td class="right">' + poMoney(row.status==='Closed'?(row.creditNet!=null?row.creditNet:row.expectedCredit):row.expectedCredit) + '</td><td>'+poReturnActionButtons(po,row)+'</td></tr>';
+    }).join('') || '<tr><td colspan="7" class="po-empty">No supplier returns or credits have been created for this PO.</td></tr>';
+    const returnable=(po.lines||[]).filter(function(line){return Number(line.received||0)-poReturnConsumedQty(po,line,'')>0;});
+    const productOptions=returnable.map(function(line){const p=poLineProduct(line),remaining=Math.max(0,Number(line.received||0)-poReturnConsumedQty(po,line,''));return '<option value="' + poEsc(line.receiptLineId||line.productId) + '">' + poEsc((p.sku||line.productId) + ' · ' + (p.name||'Item') + ' · '+remaining+' returnable') + '</option>';}).join('');
     const locationOptions=(data.locations||[]).filter(function(loc){return !['L-RECEIVING','L-QUARANTINE','L-RETURNS-HOLD'].includes(loc.id);}).map(function(loc){return '<option value="' + poEsc(loc.id) + '">' + poEsc(loc.name) + '</option>';}).join('');
-    const receipts=(data.receiptEvents||[]).filter(function(event){return event.poId===po.id;}).map(function(event){return '<option value="' + poEsc(event.id) + '">' + poEsc(event.id + ' · ' + (event.supplierReference||'No supplier ref')) + '</option>';}).join('');
-    return '<div class="po-returns-layout"><section class="po-work-card"><div class="po-work-card-head"><div><h3>Supplier Returns & Credits</h3><p>Mis-orders, supplier errors, damage, warranty and duplicate deliveries remain linked to the original PO and receipt.</p></div></div><div class="po-table-wrap"><table class="po-command-table"><thead><tr><th>Return</th><th>Item</th><th>Qty</th><th>Reason</th><th>Status</th><th class="right">Expected credit</th></tr></thead><tbody>' + rows + '</tbody></table></div></section><aside class="po-work-card po-return-create"><div class="po-work-card-head"><div><h3>Create supplier return</h3><p>Only free stock can be moved to Returns Hold.</p></div></div><div class="po-return-form" data-po-return-form="' + poEsc(po.id) + '"><label>Product<select data-po-return-product>' + productOptions + '</select></label><label>Quantity<input type="number" min="1" value="1" data-po-return-qty></label><label>Reason<select data-po-return-reason><option>Mis-ordered by Pool Bros</option><option>Wrong quantity ordered</option><option>Supplier sent wrong item</option><option>Supplier sent excess quantity</option><option>Damaged on arrival</option><option>Faulty / warranty</option><option>Duplicate delivery</option><option>No longer required</option><option>Incorrect specification</option><option>Other</option></select></label><label>Current location<select data-po-return-location>' + locationOptions + '</select></label><label>Receipt / GRN<select data-po-return-receipt><option value="">Not specified</option>' + receipts + '</select></label><button type="button" class="primary" data-po-create-return="' + poEsc(po.id) + '">Move to Returns Hold</button></div><div class="po-rule-banner"><strong>Stock effect</strong><p>On Hand remains physical stock. Returned quantity is removed from Available and moved to Supplier Returns Hold until dispatched/credited.</p></div></aside></div>';
+    const receipts=(data.receiptEvents||[]).filter(function(event){return String(event.poId||'')===String(po.id||'');}).map(function(event){return '<option value="' + poEsc(event.id) + '">' + poEsc(event.id + ' · ' + (event.supplierReference||'No supplier ref')) + '</option>';}).join('');
+    const create=returnable.length?'<div class="po-return-form" data-po-return-form="' + poEsc(po.id) + '"><label>Product / service<select data-po-return-product>' + productOptions + '</select></label><label>Quantity<input type="number" min="0.01" step="0.01" value="1" data-po-return-qty></label><label>Reason<select data-po-return-reason><option>Mis-ordered by Pool Bros</option><option>Wrong quantity ordered</option><option>Supplier sent wrong item</option><option>Supplier sent excess quantity</option><option>Damaged on arrival</option><option>Faulty / warranty</option><option>Duplicate delivery</option><option>Duplicate cost / entered in error</option><option>No longer required</option><option>Incorrect specification</option><option>Other</option></select></label><label>Current location<select data-po-return-location><option value="">Not applicable / service</option>' + locationOptions + '</select></label><label>Receipt / GRN<select data-po-return-receipt><option value="">Not specified</option>' + receipts + '</select></label><button type="button" class="primary" data-po-create-return="' + poEsc(po.id) + '">Create return / credit case</button></div>':'<div class="po-empty">No received quantity remains available for a new return or credit.</div>';
+    return '<div class="po-returns-layout"><section class="po-work-card"><div class="po-work-card-head"><div><h3>Supplier Returns & Credits</h3><p>Complete the whole correction here. Physical returns move through Returns Hold; service and non-stock mistakes can be corrected without inventing stock movements.</p></div></div><div class="po-table-wrap"><table class="po-command-table"><thead><tr><th>Return</th><th>Item</th><th>Qty</th><th>Reason</th><th>Status</th><th class="right">Credit net</th><th>Next action</th></tr></thead><tbody>' + rows + '</tbody></table></div></section><aside class="po-work-card po-return-create"><div class="po-work-card-head"><div><h3>Create return / credit</h3><p>Use one linked case from receipt through supplier credit or internal correction.</p></div></div>'+create+'<div class="po-rule-banner"><strong>Linked correction</strong><p>When completed, the credit is applied back to the original PO and Project cost position while the original receipt remains in the audit trail.</p></div></aside></div>';
   }
 
   function poSupplierPaymentHistory(po) {
@@ -541,7 +756,7 @@
     (po.lineCorrections||[]).forEach(function(row){events.push({date:row.at||'',type:'Line correction',detail:(row.sku||row.line?.productId||'Item') + ' removed before receipt · ' + (row.reason||'Correction')});});
     (data.receiptEvents||[]).filter(function(event){return event.poId===po.id;}).forEach(function(event){events.push({date:event.date||'',type:'Receipt',detail:event.id + ' · ' + event.productId + ' × ' + event.qty});});
     (data.warehouseQcEvents||[]).filter(function(event){return event.poId===po.id;}).forEach(function(event){events.push({date:event.date||'',type:'QC',detail:(event.decision||'') + ' · ' + (event.productId||'') + ' × ' + Number(event.qty||0)});});
-    (data.purchaseReturns||[]).filter(function(row){return row.poId===po.id;}).forEach(function(row){events.push({date:row.createdAt||'',type:'Return / credit',detail:row.id + ' · ' + row.reason + ' · ' + row.qty + ' unit(s)'});});
+    (data.purchaseReturns||[]).filter(function(row){return row.poId===po.id;}).forEach(function(row){events.push({date:row.closedAt||row.dispatchedAt||row.authorisedAt||row.createdAt||'',type:'Return / credit',detail:row.id + ' · ' + row.reason + ' · ' + row.qty + ' unit(s) · ' + (row.status||'Open') + (row.status==='Closed'?' · '+(row.resolutionType==='internal-correction'?'internal correction':'supplier credit')+' '+poMoney(row.creditNet!=null?row.creditNet:row.expectedCredit):'')});});
     events.sort(function(a,b){return String(b.date).localeCompare(String(a.date));});
     return '<div class="po-tab-stack">' + poSupplierPaymentHistory(po) + '<section class="po-work-card"><div class="po-work-card-head"><div><h3>Purchase Order activity</h3><p>Payments, supplier changes, receiving, QC, line corrections and credits in one permanent chronology.</p></div></div><div class="po-activity">' + (events.map(function(event){const tone=/payment/i.test(event.type)?' payment':/return|credit|correction/i.test(event.type)?' correction':/receipt|qc/i.test(event.type)?' receipt':'';return '<div class="' + tone.trim() + '"><span></span><section><strong>' + poEsc(event.type) + '</strong><small>' + poEsc(event.date||'') + '</small><p>' + poEsc(event.detail) + '</p></section></div>';}).join('') || '<p class="po-empty">No activity recorded.</p>') + '</div></section></div>';
   }
@@ -742,9 +957,9 @@
   }
 
   function purchaseReturnsOverviewPage() {
-    const rows=(data.purchaseReturns||[]).slice().sort(function(a,b){return String(b.createdAt||'').localeCompare(String(a.createdAt||''));}).map(function(row){const p=poProduct(row.productId)||{sku:row.productId,name:row.productId};return '<tr><td><strong>' + poEsc(row.id) + '</strong><small>' + poEsc(row.poId) + '</small></td><td>' + poEsc(row.supplier) + '</td><td><strong>' + poEsc(p.sku) + '</strong><small>' + poEsc(p.name) + '</small></td><td>' + row.qty + '</td><td>' + poEsc(row.reason) + '</td><td>' + poPill(row.status,row.status==='Closed'?'good':'warn') + '</td><td class="right">' + poMoney(row.expectedCredit) + '</td></tr>';}).join('') || '<tr><td colspan="7" class="po-empty">No supplier returns or credits recorded.</td></tr>';
+    const rows=(data.purchaseReturns||[]).slice().sort(function(a,b){return String(b.createdAt||'').localeCompare(String(a.createdAt||''));}).map(function(row){const po=(data.purchaseOrders||[]).find(function(item){return String(item.id)===String(row.poId);}),line=poReturnLine(po,row),p=line?poLineProduct(line):(poProduct(row.productId)||{sku:row.supplierSku||row.productId,name:row.productId});return '<tr><td><strong>' + poEsc(row.id) + '</strong><small>' + poEsc(row.poId) + '</small></td><td>' + poEsc(row.supplier) + '</td><td><strong>' + poEsc(p.sku||row.productId) + '</strong><small>' + poEsc(p.name||row.productId) + '</small></td><td>' + row.qty + '</td><td>' + poEsc(row.reason) + '</td><td>' + poPill(row.status,row.status==='Closed'?'good':row.status==='Cancelled'?'bad':'warn') + '</td><td class="right">' + poMoney(row.status==='Closed'?(row.creditNet!=null?row.creditNet:row.expectedCredit):row.expectedCredit) + '</td><td>'+poReturnActionButtons(po,row)+'</td></tr>';}).join('') || '<tr><td colspan="8" class="po-empty">No supplier returns or credits recorded.</td></tr>';
     const summary=purchaseReturnStatusSummary();
-    return '<div class="purchase-command-page"><header class="po-command-head"><div><div class="po-command-kicker">PURCHASING / RETURNS</div><h1>Supplier Returns & Credits</h1><p>Mis-orders, supplier errors, damage, warranties and outstanding supplier credits.</p></div></header><section class="po-health-bar"><div><span>Return records</span><strong>' + summary.count + '</strong><small>all time</small></div><div><span>Open returns</span><strong>' + summary.open + '</strong><small>not closed</small></div><div><span>Expected credits</span><strong>' + poMoney(summary.expectedCredit) + '</strong><small>supplier value</small></div><div><span>Stock location</span><strong>Returns Hold</strong><small>excluded from Available</small></div></section><section class="po-work-card"><div class="po-work-card-head"><div><h3>Return & credit queue</h3><p>Create a return from the original Purchase Order so cost, receipt and stock history remain linked.</p></div></div><div class="po-table-wrap"><table class="po-command-table"><thead><tr><th>Return / PO</th><th>Supplier</th><th>Item</th><th>Qty</th><th>Reason</th><th>Status</th><th class="right">Expected credit</th></tr></thead><tbody>' + rows + '</tbody></table></div></section></div>';
+    return '<div class="purchase-command-page"><header class="po-command-head"><div><div class="po-command-kicker">PURCHASING / RETURNS</div><h1>Supplier Returns & Credits</h1><p>One end-to-end queue for returns, service corrections, supplier credits and the linked PO / Project cost reversal.</p></div></header><section class="po-health-bar"><div><span>Return records</span><strong>' + summary.count + '</strong><small>all time</small></div><div><span>Open returns</span><strong>' + summary.open + '</strong><small>need action</small></div><div><span>Expected credits</span><strong>' + poMoney(summary.expectedCredit) + '</strong><small>still open</small></div><div><span>Completed credits</span><strong>' + poMoney(summary.resolvedCredit) + '</strong><small>applied back</small></div></section><section class="po-work-card"><div class="po-work-card-head"><div><h3>Return & credit queue</h3><p>Complete each case here; closed credits stay attached to the original Purchase Order and Project audit trail.</p></div></div><div class="po-table-wrap"><table class="po-command-table"><thead><tr><th>Return / PO</th><th>Supplier</th><th>Item</th><th>Qty</th><th>Reason</th><th>Status</th><th class="right">Credit net</th><th>Next action</th></tr></thead><tbody>' + rows + '</tbody></table></div></section></div>';
   }
 
   function purchaseInvoiceMatchingPage() {
@@ -833,7 +1048,8 @@
     document.querySelectorAll('[data-po-confirmed-eta]').forEach(function(input){input.addEventListener('change',function(){saveLineField(input.dataset.poConfirmedEta,'confirmedEta',input.value);});});
     document.querySelectorAll('[data-po-confirmation-note]').forEach(function(input){input.addEventListener('change',function(){saveLineField(input.dataset.poConfirmationNote,'supplierConfirmationNote',input.value);});});
     document.querySelectorAll('[data-po-mark-confirmed]').forEach(function(button){button.addEventListener('click',function(){const po=typeof purchaseOrderById==='function'?purchaseOrderById(button.dataset.poMarkConfirmed):null;if(!po)return;const fundingState=poSupplierFundingState(po),funding=fundingState&&fundingState.funding,row=fundingState&&fundingState.row;if(funding&&funding.proForma&&row&&row.linkedRequirement>0&&row.customerShortfall>0){purchaseCommandTab='connections';if(typeof toast==='function')toast('Pro Forma funding shortfall: '+poMoney(row.customerShortfall)+' still needs customer funding before supplier release / confirmation.');if(typeof render==='function')render();return;}po.status='Supplier Confirmed';po.supplierConfirmedAt=new Date().toISOString();po.lines.forEach(function(line){if(line.confirmedQty==null)line.confirmedQty=Number(line.qty||0);if(line.confirmedUnitCost==null)line.confirmedUnitCost=poLineCost(line);if(!line.confirmedEta)line.confirmedEta=po.due||'';});if(typeof saveAppData==='function')saveAppData();if(typeof toast==='function')toast(po.id + ' marked Supplier Confirmed.');if(typeof render==='function')render();});});
-    document.querySelectorAll('[data-po-create-return]').forEach(function(button){button.addEventListener('click',function(){const form=button.closest('[data-po-return-form]');if(!form)return;const result=purchaseCreateSupplierReturn({poId:button.dataset.poCreateReturn,productId:form.querySelector('[data-po-return-product]').value,qty:form.querySelector('[data-po-return-qty]').value,reason:form.querySelector('[data-po-return-reason]').value,locationId:form.querySelector('[data-po-return-location]').value,receiptId:form.querySelector('[data-po-return-receipt]').value});if(!result.ok)return typeof toast==='function'?toast(result.error):undefined;if(typeof saveAppData==='function')saveAppData();if(typeof toast==='function')toast(result.return.id + ' created and stock moved to Supplier Returns Hold.');if(typeof render==='function')render();});});
+    document.querySelectorAll('[data-po-create-return]').forEach(function(button){button.addEventListener('click',function(){const form=button.closest('[data-po-return-form]');if(!form)return;const result=purchaseCreateSupplierReturn({poId:button.dataset.poCreateReturn,productId:form.querySelector('[data-po-return-product]').value,qty:form.querySelector('[data-po-return-qty]').value,reason:form.querySelector('[data-po-return-reason]').value,locationId:form.querySelector('[data-po-return-location]').value,receiptId:form.querySelector('[data-po-return-receipt]').value});if(!result.ok)return typeof toast==='function'?toast(result.error):undefined;if(typeof saveAppData==='function')saveAppData();if(typeof toast==='function')toast(result.return.id + (result.return.stockHeld?' created and moved to Supplier Returns Hold.':' created for credit / correction.'));if(typeof render==='function')render();});});
+    document.querySelectorAll('[data-po-return-action]').forEach(function(button){button.addEventListener('click',function(){const parts=String(button.dataset.poReturnAction||'').split('|'),action=parts[0],returnId=parts[1];let result=null;if(action==='authorise'){const rma=String(prompt('Supplier authorisation / RMA reference (optional)')||'').trim();result=purchaseAuthoriseSupplierReturn(returnId,{rma:rma});}else if(action==='dispatch'){if(!confirm('Confirm this return has physically left Pool Bros / site and has been sent back to the supplier?'))return;result=purchaseDispatchSupplierReturn(returnId);}else if(action==='credit'){const row=(data.purchaseReturns||[]).find(function(item){return item.id===returnId;});const ref=String(prompt('Supplier credit note / reference (required)')||'').trim();if(!ref)return typeof toast==='function'?toast('Enter the supplier credit note / reference.'):undefined;const amountText=prompt('Credit value net (£)',Number(row&&row.expectedCredit||0).toFixed(2));if(amountText===null)return;const amount=Number(amountText);if(!confirm('Apply '+poMoney(amount)+' net credit back to the original PO and linked Project cost?'))return;result=purchaseCompleteSupplierReturn(returnId,{resolutionType:'supplier-credit',creditReference:ref,creditNet:amount,creditDate:poToday()});}else if(action==='correct'){const reason=String(prompt('Internal correction reason (required)','Duplicate cost / entered in error')||'').trim();if(!reason)return typeof toast==='function'?toast('Enter a correction reason.'):undefined;const row=(data.purchaseReturns||[]).find(function(item){return item.id===returnId;});if(!confirm('Remove '+poMoney(Number(row&&row.expectedCredit||0))+' net from the effective PO and linked Project cost while keeping the original audit history?'))return;result=purchaseCompleteSupplierReturn(returnId,{resolutionType:'internal-correction',creditNet:Number(row&&row.expectedCredit||0),creditDate:poToday(),note:reason});}else if(action==='cancel'){const reason=String(prompt('Reason for cancelling this return / credit case (required)')||'').trim();if(!reason)return;result=purchaseCancelSupplierReturn(returnId,reason);}if(result&&!result.ok)return typeof toast==='function'?toast(result.error):undefined;if(result&&result.ok){if(typeof saveAppData==='function')saveAppData();if(typeof toast==='function')toast(result.return.id+' updated: '+result.return.status+'.');if(typeof render==='function')render();}});});
     document.querySelectorAll('[data-po-line-menu]').forEach(function(button){button.addEventListener('click',function(event){event.stopPropagation();const menu=document.getElementById(button.dataset.poLineMenu);document.querySelectorAll('.po-line-menu').forEach(function(other){if(other!==menu)other.hidden=true;});if(menu){menu.hidden=!menu.hidden;button.setAttribute('aria-expanded',String(!menu.hidden));}});});
     document.querySelectorAll('[data-po-remove-line]').forEach(function(button){button.addEventListener('click',function(){const parts=String(button.dataset.poRemoveLine||'').split('|');removePurchaseOrderLine(parts[0],parts[1]);});});
     document.querySelectorAll('[data-po-line-credit]').forEach(function(button){button.addEventListener('click',function(){purchaseCommandTab='connections';if(typeof toast==='function')toast('Received PO lines stay in history. Use Supplier Returns & Credits to correct them.');if(typeof render==='function')render();});});
@@ -913,7 +1129,12 @@
   globalThis.purchaseOrderHealth = purchaseOrderHealth;
   globalThis.purchaseDemandSources = purchaseDemandSources;
   globalThis.purchaseCreateSupplierReturn = purchaseCreateSupplierReturn;
+  globalThis.purchaseAuthoriseSupplierReturn = purchaseAuthoriseSupplierReturn;
+  globalThis.purchaseDispatchSupplierReturn = purchaseDispatchSupplierReturn;
+  globalThis.purchaseCompleteSupplierReturn = purchaseCompleteSupplierReturn;
+  globalThis.purchaseCancelSupplierReturn = purchaseCancelSupplierReturn;
   globalThis.purchaseReturnStatusSummary = purchaseReturnStatusSummary;
+  globalThis.purchaseResolvedCreditTotals = poResolvedCreditTotals;
   globalThis.purchaseOrderLineDeleteAssessment = poLineDeleteAssessment;
   globalThis.removePurchaseOrderLine = removePurchaseOrderLine;
   globalThis.changePurchaseOrderSupplier = changePurchaseOrderSupplier;
