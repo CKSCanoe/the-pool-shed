@@ -315,6 +315,9 @@ const seed = {
       let workspaceLocalSaveFailed = false;
       let workspaceSaveInFlight = false;
       let remoteSaveTimer = null;
+      let workspaceRealtimeChannel = null;
+      let workspacePollTimer = null;
+      let workspaceAccessVerified = false;
       let supabaseSession = null;
       let adminEditingUserId = "";
       const defaultUsers = [
@@ -834,26 +837,148 @@ const seed = {
         return true;
       }
 
+      async function ensureSharedWorkspaceAccess() {
+        if (!supabaseClient || !supabaseSession || !supabaseSession.access_token) return false;
+        try {
+          const response = await fetch("/api/workspace-access?workspace=" + encodeURIComponent(WORKSPACE_ID), {
+            method: "POST",
+            credentials: "same-origin",
+            headers: { Authorization: "Bearer " + supabaseSession.access_token }
+          });
+          const result = await response.json().catch(function(){ return {}; });
+          if (!response.ok) throw new Error(result.error || "Shared workspace access could not be verified.");
+          workspaceAccessVerified = true;
+          return true;
+        } catch (error) {
+          workspaceAccessVerified = false;
+          console.warn("Shared workspace access verification failed", error);
+          return false;
+        }
+      }
+
+      async function applyRemoteWorkspaceSnapshot(row, shouldRender) {
+        if (!row || !row.data) return false;
+        data = normalizeAppData(row.data);
+        remoteWorkspaceUpdatedAt = row.updated_at || null;
+        workspaceSyncConflict = false;
+        try {
+          localStorage.setItem("poolshed:v172:remoteRevision", remoteWorkspaceUpdatedAt || "");
+          localStorage.setItem("poolshed:v172:appData", JSON.stringify(data));
+          localStorage.removeItem("poolshed:v172:pendingSync");
+        } catch (error) { void error; }
+        await writeOfflineSnapshot();
+        updateOfflineStatus();
+        if (shouldRender) render();
+        return true;
+      }
+
+      function preserveUnsyncedWorkspaceRecovery(reason) {
+        try {
+          const localData = localStorage.getItem("poolshed:v172:appData");
+          if (!localData) return "";
+          const key = "poolshed:v172:recovery:" + Date.now();
+          localStorage.setItem(key, JSON.stringify({
+            reason: reason || "shared-workspace-refresh",
+            savedAt: new Date().toISOString(),
+            baseRevision: localStorage.getItem("poolshed:v172:remoteRevision") || null,
+            data: JSON.parse(localData)
+          }));
+          localStorage.setItem("poolshed:v172:lastRecoveryKey", key);
+          return key;
+        } catch (error) {
+          console.warn("Could not preserve local recovery copy", error);
+          return "";
+        }
+      }
+
       async function loadRemoteWorkspace() {
-        if (localStorage.getItem("poolshed:v172:pendingSync") === "1") return saveRemoteWorkspace(true);
         if (!supabaseClient || !supabaseSession) return false;
+        await ensureSharedWorkspaceAccess();
         try {
           const response = await supabaseClient.from("workspace_snapshots").select("data,updated_at").eq("workspace_id", WORKSPACE_ID).maybeSingle();
           if (response.error) throw response.error;
           if (response.data && response.data.data) {
-            data = normalizeAppData(response.data.data);
-            remoteWorkspaceUpdatedAt = response.data.updated_at || null;
-            localStorage.setItem("poolshed:v172:remoteRevision", remoteWorkspaceUpdatedAt || "");
-            localStorage.setItem("poolshed:v172:appData", JSON.stringify(data));
-            localStorage.removeItem("poolshed:v172:pendingSync");
-            await writeOfflineSnapshot();
-            return true;
+            const pending = localStorage.getItem("poolshed:v172:pendingSync") === "1";
+            const localBaseRevision = localStorage.getItem("poolshed:v172:remoteRevision") || null;
+            const remoteRevision = response.data.updated_at || null;
+
+            if (pending && localBaseRevision && localBaseRevision === remoteRevision) {
+              remoteWorkspaceUpdatedAt = remoteRevision;
+              if (await saveRemoteWorkspace(true)) return true;
+              return false;
+            }
+
+            if (pending && localBaseRevision !== remoteRevision) {
+              const recoveryKey = preserveUnsyncedWorkspaceRecovery("stale-local-workspace-on-sign-in");
+              localStorage.removeItem("poolshed:v172:pendingSync");
+              if (recoveryKey) toast("Latest shared workspace loaded. Unsynced local changes were kept in a recovery copy.");
+            }
+            return applyRemoteWorkspaceSnapshot(response.data, false);
           }
-          await saveRemoteWorkspace(true);
+          return saveRemoteWorkspace(true);
         } catch (error) {
           console.warn("Remote workspace load failed", error);
         }
         return false;
+      }
+
+      async function refreshSharedWorkspaceFromRemote(options) {
+        const opts = options || {};
+        if (!supabaseClient || !supabaseSession || !navigator.onLine || workspaceSaveInFlight) return false;
+        if (localStorage.getItem("poolshed:v172:pendingSync") === "1") return false;
+        try {
+          const response = await supabaseClient.from("workspace_snapshots").select("data,updated_at").eq("workspace_id", WORKSPACE_ID).maybeSingle();
+          if (response.error) throw response.error;
+          const row = response.data;
+          if (!row || !row.data || !row.updated_at || row.updated_at === remoteWorkspaceUpdatedAt) {
+            if (!opts.silent) toast("Shared workspace is already up to date.");
+            return false;
+          }
+          await applyRemoteWorkspaceSnapshot(row, true);
+          if (!opts.silent) toast("Shared workspace refreshed.");
+          return true;
+        } catch (error) {
+          console.warn("Shared workspace refresh failed", error);
+          if (!opts.silent) toast("Could not refresh the shared workspace.");
+          return false;
+        }
+      }
+
+      function stopSharedWorkspaceLiveSync() {
+        if (workspacePollTimer) clearInterval(workspacePollTimer);
+        workspacePollTimer = null;
+        if (workspaceRealtimeChannel && supabaseClient) {
+          try { supabaseClient.removeChannel(workspaceRealtimeChannel); } catch (error) { void error; }
+        }
+        workspaceRealtimeChannel = null;
+      }
+
+      function startSharedWorkspaceLiveSync() {
+        stopSharedWorkspaceLiveSync();
+        if (!supabaseClient || !supabaseSession) return;
+        try {
+          workspaceRealtimeChannel = supabaseClient
+            .channel("pool-shed-workspace-" + WORKSPACE_ID + "-" + supabaseSession.user.id)
+            .on("postgres_changes", {
+              event: "*",
+              schema: "public",
+              table: "workspace_snapshots",
+              filter: "workspace_id=eq." + WORKSPACE_ID
+            }, function(payload) {
+              const row = payload && payload.new;
+              if (!row || !row.data || row.updated_at === remoteWorkspaceUpdatedAt) return;
+              if (localStorage.getItem("poolshed:v172:pendingSync") === "1" || workspaceSaveInFlight) return;
+              applyRemoteWorkspaceSnapshot(row, true).catch(function(error) {
+                console.warn("Realtime workspace refresh failed", error);
+              });
+            })
+            .subscribe();
+        } catch (error) {
+          console.warn("Realtime workspace subscription unavailable", error);
+        }
+        workspacePollTimer = setInterval(function() {
+          refreshSharedWorkspaceFromRemote({ silent: true });
+        }, 8000);
       }
 
       async function saveRemoteWorkspace(force) {
@@ -2174,6 +2299,7 @@ const seed = {
         const applied = await applySupabaseSession(session);
         if (!applied) return false;
         await loadRemoteWorkspace();
+        startSharedWorkspaceLiveSync();
         showApp();
         return true;
       }
@@ -2231,6 +2357,7 @@ const seed = {
               const applied = await applySupabaseSession(current.data && current.data.session);
               if (!applied) return;
               await loadRemoteWorkspace();
+              startSharedWorkspaceLiveSync();
               return showApp();
             }
             const email = document.getElementById("loginEmail").value.trim();
@@ -2276,6 +2403,7 @@ const seed = {
           if (event === "TOKEN_REFRESHED" || event === "USER_UPDATED") return;
           if (event === "PASSWORD_RECOVERY") return showLogin("update");
           if (event === "SIGNED_OUT") {
+            stopSharedWorkspaceLiveSync();
             supabaseSession = null;
             isAuthenticated = false;
             if (!document.getElementById("loginScreen")?.classList.contains("hidden")) return;
@@ -15486,8 +15614,7 @@ const seed = {
         }
         if (button.matches("[data-workspace-refresh]")) {
           event.preventDefault();
-          toast("Page refreshed.");
-          render();
+          refreshSharedWorkspaceFromRemote({ silent: false });
           return;
         }
         if (button.type === "submit") return;
@@ -15502,7 +15629,12 @@ const seed = {
 
       bootApp();
     
-      window.addEventListener("online", function() { updateOfflineStatus(); syncPendingOfflineData(); });
+      window.addEventListener("online", function() {
+        updateOfflineStatus();
+        syncPendingOfflineData().then(function() {
+          return refreshSharedWorkspaceFromRemote({ silent: true });
+        });
+      });
       window.addEventListener("offline", updateOfflineStatus);
       window.addEventListener("load", function() {
         updateOfflineStatus();
