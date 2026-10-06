@@ -1,7 +1,7 @@
 (function(){
 'use strict';
 const APP_KEY='poolshed:v172:appData',PENDING_KEY='poolshed:v172:pendingSync',HOLD_KEY='poolshed:v172:recoveryHold';
-const DB_NAME='pool-shed-live-v1.8',STORE='snapshots',REMOTE_REVISION_KEY='poolshed:v172:remoteRevision';
+const DB_NAME='pool-shed-live-v1.8',STORE='snapshots',REMOTE_REVISION_KEY='poolshed:v172:remoteRevision',MASTER_PUBLISHED_KEY='poolshed:v172:lastSharedRecoveryPublish';
 let sharedClient=null;
 const $=id=>document.getElementById(id);
 function arr(v){return Array.isArray(v)?v:[]}
@@ -40,6 +40,13 @@ function download(candidate){
   const blob=new Blob([JSON.stringify(candidate.data,null,2)],{type:'application/json'}),url=URL.createObjectURL(blob),a=document.createElement('a');
   a.href=url;a.download='pool-shed-recovery-'+new Date().toISOString().replace(/[:.]/g,'-')+'.json';document.body.appendChild(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(url),1000);
 }
+function preserveLocalCopy(reason,data){
+  try{
+    const savedAt=new Date().toISOString(),key='poolshed:v172:recovery:'+reason+'-'+Date.now();
+    localStorage.setItem(key,JSON.stringify({reason,savedAt,data}));
+    return key;
+  }catch(_){return ''}
+}
 function getSharedClient(){
   if(sharedClient)return sharedClient;
   const cfg=window.POOL_SHED_CONFIG||{};
@@ -47,14 +54,22 @@ function getSharedClient(){
   sharedClient=window.supabase.createClient(cfg.supabaseUrl,cfg.supabasePublishableKey,{auth:{persistSession:true,autoRefreshToken:true,detectSessionInUrl:true}});
   return sharedClient;
 }
-async function publishShared(candidate){
-  if(localStorage.getItem(HOLD_KEY)!=='1')return alert('Restore and verify the recovered workspace locally before making it the shared master.');
-  if(!confirm('Make this recovered workspace the shared Pool Shed master for all users? The current server copy will be preserved in revision history first.'))return;
+async function publishShared(candidate,options){
+  options=options||{};
+  const directCurrent=options.allowCurrent===true&&candidate&&candidate.key===APP_KEY;
+  const onHold=localStorage.getItem(HOLD_KEY)==='1';
+  if(!onHold&&!directCurrent)return alert('Restore and verify the recovered workspace locally before making it the shared master.');
+  const c=candidate&&candidate.counts?candidate.counts:counts(candidate&&candidate.data);
+  const sourceLabel=directCurrent?'CURRENT BROWSER workspace':'recovered workspace';
+  const message='Make this '+sourceLabel+' the shared Pool Shed master for ALL users from now on?\n\nProjects '+c.projects+' · Sales Orders '+c.salesOrders+' · Purchase Orders '+c.purchaseOrders+'\n\nThe current server workspace will be preserved in revision history first. Existing receipt and putaway history is protected and cannot be deleted by this action.';
+  if(!confirm(message))return;
   const button=document.activeElement;if(button&&button.tagName==='BUTTON')button.disabled=true;
   try{
-    // User-initiated download gives an independent copy outside the app before publishing.
+    // Keep two independent safety copies before changing the shared master:
+    // a local recovery entry and a user-downloaded JSON file.
+    preserveLocalCopy('pre-shared-master',candidate.data);
     download(candidate);
-    $('status').textContent='Creating server revision and publishing the recovered workspace…';
+    $('status').textContent='Creating server revision and publishing the '+(directCurrent?'current browser workspace':'recovered workspace')+' as the shared master…';
     const client=getSharedClient(),sessionResult=await client.auth.getSession(),session=sessionResult.data&&sessionResult.data.session;
     if(!session)throw new Error('Please open Pool Shed, sign in as Admin, then return to this recovery page.');
     const response=await fetch('/api/workspace-recovery-publish?workspace=pool-bros-main',{
@@ -64,12 +79,13 @@ async function publishShared(candidate){
       body:JSON.stringify({snapshot:candidate.data})
     });
     const result=await response.json().catch(()=>({}));
-    if(!response.ok)throw new Error(result.error||'The recovered workspace could not be published.');
+    if(!response.ok)throw new Error(result.error||'The shared master could not be published.');
     if(result.updatedAt)localStorage.setItem(REMOTE_REVISION_KEY,result.updatedAt);
     localStorage.removeItem(PENDING_KEY);
     localStorage.removeItem(HOLD_KEY);
-    localStorage.setItem('poolshed:v172:lastSharedRecoveryPublish',new Date().toISOString());
-    $('status').textContent='Shared master published safely. Server history preserved. Projects '+result.after.projects+', Sales Orders '+result.after.salesOrders+', Purchase Orders '+result.after.purchaseOrders+'. Shared syncing is now enabled.';
+    localStorage.setItem(MASTER_PUBLISHED_KEY,new Date().toISOString());
+    localStorage.setItem('poolshed:v172:masterSource',directCurrent?'current-browser':'recovery');
+    $('status').textContent='Shared master published safely. Server history preserved. Projects '+result.after.projects+', Sales Orders '+result.after.salesOrders+', Purchase Orders '+result.after.purchaseOrders+'. All signed-in staff now read and write the same shared workspace.';
     window.scrollTo({top:0,behavior:'smooth'});
   }catch(error){
     $('status').textContent='Nothing was replaced. '+(error&&error.message?error.message:String(error));
@@ -116,10 +132,11 @@ async function scan(){
     restoreBtn.className='primary';restoreBtn.textContent='Restore this copy locally';restoreBtn.onclick=()=>restore(c);
     downloadBtn.className='secondary';downloadBtn.textContent='Download backup JSON';downloadBtn.onclick=()=>download(c);
     actions.append(restoreBtn,downloadBtn);
-    if(c.key===APP_KEY&&localStorage.getItem(HOLD_KEY)==='1'){
+    if(c.key===APP_KEY){
       const publishBtn=document.createElement('button');
-      publishBtn.className='primary';publishBtn.textContent='Make this the shared master';
-      publishBtn.onclick=()=>publishShared(c);actions.appendChild(publishBtn);
+      publishBtn.className='primary';publishBtn.textContent='Make current browser data the shared master';
+      publishBtn.title='Admin only. Creates a local backup, downloads JSON, preserves the previous server revision, then publishes this exact browser workspace for all users.';
+      publishBtn.onclick=()=>publishShared(c,{allowCurrent:true});actions.appendChild(publishBtn);
     }
     $('results').appendChild(el);
   });
