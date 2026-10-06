@@ -35,7 +35,7 @@ assert(!save.includes('.from("workspace_snapshots").update('),'direct snapshot u
 assert(!save.includes('.from("workspace_snapshots").insert('),'direct snapshot insert fallback must not exist');
 assert(save.includes('Another user saved Pool Shed first'),'stale save conflict must preserve local work');
 
-assert(access.includes("role=>'Admin'")||access.includes("role==='Admin'?'admin':'operator'"),'Admin must map to shared admin access');
+assert(access.includes("role=>role==='Admin'?'admin':'operator'"),'Admin must map to shared admin access');
 assert(access.includes('ps_workspace_members'),'staff membership must be server-provisioned');
 assert(access.includes('syncActiveStaffMemberships'),'Admin sign-in must connect every active staff profile to the shared workspace');
 assert(access.includes("method:'DELETE'"),'inactive/stale workspace memberships must be removed');
