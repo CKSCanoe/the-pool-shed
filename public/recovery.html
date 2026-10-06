@@ -30,6 +30,15 @@
     .actions{display:flex;gap:10px;flex-wrap:wrap;margin-top:14px}
     pre{white-space:pre-wrap;background:#0f1b24;color:#eaf2f6;border-radius:10px;padding:12px;max-height:220px;overflow:auto;font-size:12px}
     #status{font-weight:700}
+    .health-head{display:flex;gap:16px;align-items:flex-start;justify-content:space-between;flex-wrap:wrap}
+    .health-summary{display:grid;grid-template-columns:repeat(auto-fit,minmax(170px,1fr));gap:10px;margin-top:14px}
+    .health-metric{border:1px solid #d9e2e8;border-radius:10px;padding:12px;background:#f8fafb}
+    .health-metric strong{display:block;font-size:20px}.health-metric span{display:block;font-size:12px;color:#63717d;margin-top:3px}
+    .health-good{color:#16623f}.health-bad{color:#a12820}.health-warn{color:#8a5715}
+    .health-table{width:100%;border-collapse:collapse;margin-top:14px;font-size:13px}
+    .health-table th,.health-table td{text-align:left;padding:9px 8px;border-bottom:1px solid #e4eaee}
+    .health-table th{color:#63717d;font-size:11px;text-transform:uppercase;letter-spacing:.04em}
+    .hidden{display:none!important}
   </style>
 </head>
 <body>
@@ -47,10 +56,24 @@
       <a class="button primary" href="./">Open Pool Shed</a>
     </div>
   </section>
+  <section class="notice" id="sharedHealth">
+    <div class="health-head">
+      <div>
+        <h2>Shared Workspace Audit</h2>
+        <p>Checks the actual server master, revision history and whether every active Pool Shed login is connected to the same <strong>pool-bros-main</strong> workspace.</p>
+      </div>
+      <div class="actions">
+        <button id="runSharedHealth" class="secondary" type="button">Run shared workspace audit</button>
+        <button id="repairSharedUsers" class="primary hidden" type="button">Connect all active users</button>
+      </div>
+    </div>
+    <div id="healthStatus" class="muted">Sign in as Admin, then run the audit.</div>
+    <div id="healthDetails"></div>
+  </section>
   <div id="results" class="grid"></div>
 </main>
 <script src="./config.js?v=1.45.1" defer></script>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2" defer></script>
-<script src="./recovery.js?v=1.45.1-recovery3" defer></script>
+<script src="./recovery.js?v=1.45.1-recovery4" defer></script>
 </body>
 </html>
