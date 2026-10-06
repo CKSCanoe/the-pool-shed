@@ -314,9 +314,11 @@ const seed = {
       let remoteWorkspaceUpdatedAt = localStorage.getItem("poolshed:v172:remoteRevision") || null;
       let workspaceSyncConflict = false;
       let workspaceLocalSaveFailed = false;
+      let workspaceLocalRevisionCounter = Number(localStorage.getItem("poolshed:v172:localRevision") || 0);
       let workspaceSaveInFlight = false;
       let sharedWorkspaceReady = false;
       let remoteSaveTimer = null;
+      const WORKSPACE_LOCALSTORAGE_SAFE_CHARS = 1750000;
       let workspaceRealtimeChannel = null;
       let workspacePollTimer = null;
       let supabaseSession = null;
@@ -485,13 +487,28 @@ const seed = {
         });
       }
 
-      async function writeOfflineSnapshot() {
+      async function writeOfflineSnapshot(pendingSync, snapshotKey, reason) {
         try {
           const db = await openOfflineDb();
-          if (!db) return;
-          const tx = db.transaction(OFFLINE_STORE, "readwrite");
-          tx.objectStore(OFFLINE_STORE).put({ key: "latest", savedAt: new Date().toISOString(), data: clone(data), pendingSync: true });
-        } catch (error) { void error; }
+          if (!db) return false;
+          const key = snapshotKey || "latest";
+          return await new Promise(function(resolve) {
+            const tx = db.transaction(OFFLINE_STORE, "readwrite");
+            tx.objectStore(OFFLINE_STORE).put({
+              key: key,
+              savedAt: new Date().toISOString(),
+              data: clone(data),
+              pendingSync: pendingSync !== false,
+              reason: reason || ""
+            });
+            tx.oncomplete = function() { resolve(true); };
+            tx.onerror = function() { resolve(false); };
+            tx.onabort = function() { resolve(false); };
+          });
+        } catch (error) {
+          console.warn("Offline workspace snapshot failed", error);
+          return false;
+        }
       }
 
       async function readOfflineSnapshot() {
@@ -505,6 +522,39 @@ const seed = {
             request.onerror = function() { resolve(null); };
           });
         } catch (error) { return null; }
+      }
+
+      function cacheWorkspaceLocally(payload, pendingSync) {
+        let storedInLocalStorage = false;
+        try {
+          if (pendingSync) localStorage.setItem("poolshed:v172:pendingSync", "1");
+          else localStorage.removeItem("poolshed:v172:pendingSync");
+
+          if (String(payload || "").length <= WORKSPACE_LOCALSTORAGE_SAFE_CHARS) {
+            localStorage.setItem("poolshed:v172:appData", payload);
+            localStorage.setItem("poolshed:v172:localSnapshotMode", "localstorage");
+            storedInLocalStorage = true;
+          } else {
+            localStorage.removeItem("poolshed:v172:appData");
+            localStorage.setItem("poolshed:v172:localSnapshotMode", "indexeddb");
+          }
+        } catch (error) {
+          console.warn("Workspace localStorage cache unavailable; using IndexedDB", error);
+          try {
+            localStorage.removeItem("poolshed:v172:appData");
+            localStorage.setItem("poolshed:v172:localSnapshotMode", "indexeddb");
+            if (pendingSync) localStorage.setItem("poolshed:v172:pendingSync", "1");
+          } catch (ignored) { void ignored; }
+        }
+        return storedInLocalStorage;
+      }
+
+      async function preserveLargeWorkspaceRecovery(reason) {
+        const key = "recovery-" + Date.now();
+        const saved = await writeOfflineSnapshot(true, key, reason || "shared-workspace-sync");
+        if (!saved) return "";
+        try { localStorage.setItem("poolshed:v172:lastRecoveryKey", "indexeddb:" + key); } catch (error) { void error; }
+        return "indexeddb:" + key;
       }
 
       function normalizeAddress(value, phone) {
@@ -890,7 +940,8 @@ const seed = {
       }
 
       async function resolveSharedWorkspaceConflict() {
-        const recoveryKey = preserveUnsyncedWorkspaceRecovery("multi-user-save-conflict");
+        let recoveryKey = preserveUnsyncedWorkspaceRecovery("multi-user-save-conflict");
+        if (!recoveryKey) recoveryKey = await preserveLargeWorkspaceRecovery("multi-user-save-conflict");
         try {
           const response = await supabaseClient.from("workspace_snapshots").select("data,updated_at").eq("workspace_id", WORKSPACE_ID).maybeSingle();
           if (response.error) throw response.error;
@@ -914,12 +965,9 @@ const seed = {
         remoteWorkspaceUpdatedAt = row.updated_at || null;
         workspaceSyncConflict = false;
         sharedWorkspaceReady = true;
-        try {
-          localStorage.setItem("poolshed:v172:remoteRevision", remoteWorkspaceUpdatedAt || "");
-          localStorage.setItem("poolshed:v172:appData", JSON.stringify(data));
-          localStorage.removeItem("poolshed:v172:pendingSync");
-        } catch (error) { void error; }
-        await writeOfflineSnapshot();
+        try { localStorage.setItem("poolshed:v172:remoteRevision", remoteWorkspaceUpdatedAt || ""); } catch (error) { void error; }
+        cacheWorkspaceLocally(JSON.stringify(data), false);
+        await writeOfflineSnapshot(false);
         updateOfflineStatus();
         if (shouldRender) render();
         return true;
@@ -950,7 +998,8 @@ const seed = {
           }
 
           if (pending) {
-            const recoveryKey = preserveUnsyncedWorkspaceRecovery("stale-local-workspace-on-sign-in");
+            let recoveryKey = preserveUnsyncedWorkspaceRecovery("stale-local-workspace-on-sign-in");
+            if (!recoveryKey) recoveryKey = await preserveLargeWorkspaceRecovery("stale-local-workspace-on-sign-in");
             localStorage.removeItem("poolshed:v172:pendingSync");
             if (recoveryKey) toast("Shared workspace loaded. Unsynced browser changes were kept in Recovery.");
           }
@@ -965,6 +1014,9 @@ const seed = {
         if (localStorage.getItem("poolshed:v172:recoveryHold") === "1") return false;
         if (!supabaseClient || !supabaseSession || !navigator.onLine || workspaceSaveInFlight || workspaceSyncConflict) return false;
         workspaceSaveInFlight = true;
+        const savingLocalRevision = typeof workspaceLocalRevisionCounter === "number"
+          ? workspaceLocalRevisionCounter
+          : Number(localStorage.getItem("poolshed:v172:localRevision") || 0);
         try {
           const savedJson = JSON.stringify(normalizeAppData(data));
           const response = await supabaseClient.rpc("ps_workspace_save", {
@@ -985,8 +1037,18 @@ const seed = {
           remoteWorkspaceUpdatedAt = response.data.updated_at;
           sharedWorkspaceReady = true;
           localStorage.setItem("poolshed:v172:remoteRevision", remoteWorkspaceUpdatedAt);
-          if (localStorage.getItem("poolshed:v172:appData") === savedJson) localStorage.removeItem("poolshed:v172:pendingSync");
-          else queueRemoteWorkspaceSave();
+          const currentLocalRevision = typeof workspaceLocalRevisionCounter === "number"
+            ? workspaceLocalRevisionCounter
+            : Number(localStorage.getItem("poolshed:v172:localRevision") || 0);
+          const localSnapshotMode = localStorage.getItem("poolshed:v172:localSnapshotMode") || "";
+          const localStorageSnapshot = localStorage.getItem("poolshed:v172:appData");
+          const localPayloadUnchanged = localSnapshotMode === "indexeddb" || localStorageSnapshot === savedJson;
+          if (savingLocalRevision === currentLocalRevision && localPayloadUnchanged) {
+            localStorage.removeItem("poolshed:v172:pendingSync");
+            await writeOfflineSnapshot(false);
+          } else {
+            queueRemoteWorkspaceSave();
+          }
           updateOfflineStatus();
           return true;
         } catch (error) {
@@ -1064,16 +1126,26 @@ const seed = {
 
       function saveAppData() {
         data = normalizeAppData(data);
-        try {
-          const payload = JSON.stringify(data);
-          localStorage.setItem("poolshed:v172:pendingSync", "1");
-          localStorage.setItem("poolshed:v172:appData", payload);
-          workspaceLocalSaveFailed = false;
-        } catch (error) { workspaceLocalSaveFailed = true; updateOfflineStatus(); toast("Local saving failed. Keep this page open and export a backup before closing it."); return false; }
+        const payload = JSON.stringify(data);
+        workspaceLocalRevisionCounter += 1;
+        try { localStorage.setItem("poolshed:v172:localRevision", String(workspaceLocalRevisionCounter)); } catch (error) { void error; }
+        const storedInLocalStorage = cacheWorkspaceLocally(payload, true);
+        workspaceLocalSaveFailed = false;
+
         clearTimeout(offlineSaveTimer);
-        offlineSaveTimer = setTimeout(writeOfflineSnapshot, 50);
+        offlineSaveTimer = setTimeout(function() {
+          writeOfflineSnapshot(true).then(function(saved) {
+            if (!saved && !storedInLocalStorage) {
+              workspaceLocalSaveFailed = true;
+              updateOfflineStatus();
+              toast("Local workspace backup could not be written. Keep this page open until the shared save completes.");
+            }
+          });
+        }, 25);
+
         updateOfflineStatus();
         queueRemoteWorkspaceSave();
+        return true;
       }
 
       function loadAppData() {
@@ -1087,13 +1159,19 @@ const seed = {
       }
 
       async function restoreOfflineSnapshotIfNeeded() {
-        if (localStorage.getItem("poolshed:v172:appData")) return;
+        const localMode = localStorage.getItem("poolshed:v172:localSnapshotMode") || "";
+        const pending = localStorage.getItem("poolshed:v172:pendingSync") === "1";
+        const hasLocalStorageSnapshot = !!localStorage.getItem("poolshed:v172:appData");
+        if (localMode !== "indexeddb" && hasLocalStorageSnapshot && !pending) return false;
+
         const snapshot = await readOfflineSnapshot();
         if (snapshot && snapshot.data) {
           data = normalizeAppData(snapshot.data);
-          try { localStorage.setItem("poolshed:v172:appData", JSON.stringify(data)); } catch (error) { void error; }
-          render();
+          cacheWorkspaceLocally(JSON.stringify(data), pending || snapshot.pendingSync === true);
+          if (isAuthenticated) render();
+          return true;
         }
+        return false;
       }
 
       function updateOfflineStatus() {
@@ -2435,6 +2513,7 @@ const seed = {
 
       async function bootApp() {
         const hadPreviousSession = !!localStorage.getItem("poolshed:v169:sessionUserId");
+        await restoreOfflineSnapshotIfNeeded();
         if (!supabaseClient) return showLogin("login");
         const result = await supabaseClient.auth.getSession();
         if (result.error) {
@@ -15700,7 +15779,6 @@ const seed = {
       });
       window.addEventListener("load", function() {
         updateOfflineStatus();
-        restoreOfflineSnapshotIfNeeded();
         syncPendingOfflineData();
         if ("serviceWorker" in navigator && location.protocol !== "file:") navigator.serviceWorker.register("./service-worker.js?v=1.45.1", { updateViaCache:"none" }).catch(function() {});
       });

@@ -20,6 +20,7 @@ run_node_stage() {
 
 run_node_stage "workspace and sales safety" \
   test-workspace-audit-v1451.mjs \
+  test-large-workspace-persistence-v1452.mjs \
   test-sales-order-safety-hotfix.mjs \
   test-sales-order-line-delete-v147.mjs \
   test-sales-order-entry-cards-v147.mjs \
