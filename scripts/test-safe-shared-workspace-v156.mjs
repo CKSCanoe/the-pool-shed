@@ -36,8 +36,11 @@ assert(publish.includes("ps_workspace_save"),'recovery publish must use versione
 assert(publish.includes('mergeImmutableLedger'),'recovery publish must preserve immutable receipt/putaway ledgers');
 assert(!publish.includes("workspace_snapshots?workspace_id=eq.'+eq(WORKSPACE_ID),{method:'PATCH'"),'recovery publish must not directly overwrite snapshot');
 
-assert(recovery.includes('Make this the shared master'),'recovery UI must expose explicit promotion');
+assert(recovery.includes('Make current browser data the shared master'),'recovery UI must expose explicit current-browser master promotion');
+assert(recovery.includes("preserveLocalCopy('pre-shared-master'"),'master promotion must create a local recovery copy before publish');
 assert(recovery.includes('Download backup JSON'),'recovery UI must keep downloadable backup');
+assert(recovery.includes("options.allowCurrent===true&&candidate&&candidate.key===APP_KEY"),'direct promotion must be limited to the current browser workspace');
+assert(recovery.includes('previous server revision'),'confirmation must explain server revision preservation');
 assert(recovery.includes("localStorage.removeItem(HOLD_KEY)"),'sync hold may be removed only after successful publish');
 assert(recovery.includes('/api/workspace-recovery-publish?workspace=pool-bros-main'),'publish must go through protected server endpoint');
 

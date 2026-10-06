@@ -36,8 +36,9 @@
 <main>
   <section class="head danger">
     <h1>Pool Shed Data Recovery</h1>
-    <p>This screen only reads recovery copies stored in this browser. It does not change the shared server workspace unless you deliberately restore a copy.</p>
-    <p><strong>Shared syncing will be paused automatically after a local restore</strong> so the recovered data cannot be overwritten while you verify Projects, Sales Orders and Purchase Orders.</p>
+    <p>This screen reads Pool Shed workspace copies stored in this browser. Nothing changes on the shared server unless an Admin deliberately chooses to publish a workspace as the shared master.</p>
+    <p><strong>Your current browser workspace can now be promoted directly as the shared master.</strong> Before publishing, Pool Shed creates a local recovery copy, downloads a JSON backup, preserves the previous server revision, and protects permanent receipt / putaway history.</p>
+    <p>After the master is published, all authorised users load the same server workspace. Stale browser copies cannot silently overwrite a newer shared revision.</p>
   </section>
   <section class="notice">
     <div id="status">Scanning this browser for Pool Shed workspace copies…</div>
@@ -50,6 +51,6 @@
 </main>
 <script src="./config.js?v=1.45.1" defer></script>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2" defer></script>
-<script src="./recovery.js?v=1.45.1-recovery2" defer></script>
+<script src="./recovery.js?v=1.45.1-recovery3" defer></script>
 </body>
 </html>
