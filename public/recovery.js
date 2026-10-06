@@ -4,6 +4,7 @@ const APP_KEY='poolshed:v172:appData',PENDING_KEY='poolshed:v172:pendingSync',HO
 const DB_NAME='pool-shed-live-v1.8',STORE='snapshots',REMOTE_REVISION_KEY='poolshed:v172:remoteRevision',MASTER_PUBLISHED_KEY='poolshed:v172:lastSharedRecoveryPublish';
 let sharedClient=null;
 const $=id=>document.getElementById(id);
+const esc=value=>String(value==null?'':value).replace(/[&<>"']/g,ch=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[ch]));
 function arr(v){return Array.isArray(v)?v:[]}
 function counts(d){
   d=d&&typeof d==='object'?d:{};
@@ -54,6 +55,50 @@ function getSharedClient(){
   sharedClient=window.supabase.createClient(cfg.supabaseUrl,cfg.supabasePublishableKey,{auth:{persistSession:true,autoRefreshToken:true,detectSessionInUrl:true}});
   return sharedClient;
 }
+async function adminSession(){
+  const client=getSharedClient(),sessionResult=await client.auth.getSession(),session=sessionResult.data&&sessionResult.data.session;
+  if(!session)throw new Error('Please open Pool Shed, sign in as Admin, then return to this page.');
+  return session;
+}
+function renderSharedHealth(result){
+  const status=$('healthStatus'),details=$('healthDetails'),repair=$('repairSharedUsers');
+  if(!status||!details)return;
+  const master=result&&result.master||{},team=result&&result.team||{},countsValue=master.counts||{},users=arr(team.users);
+  const masterGood=!!master.exists&&master.requiredArraysOk===true;
+  const usersGood=team.allActiveConnected===true;
+  status.innerHTML='<strong class="'+(masterGood&&usersGood?'health-good':'health-warn')+'">'+(masterGood&&usersGood?'Shared workspace is healthy.':'Shared workspace needs attention.')+'</strong> '+
+    (master.exists?('Master updated '+esc(master.updatedAt||'unknown time')+'.'):'No server master is currently published.');
+  const userRows=users.map(user=>'<tr><td><strong>'+esc(user.name)+'</strong><br><span class="muted">'+esc(user.email)+'</span></td><td>'+esc(user.role)+'</td><td>'+(user.active?'<span class="health-good">Active</span>':'Inactive')+'</td><td>'+(user.connected?'<span class="health-good">Connected</span>':'<span class="health-bad">Not connected</span>')+'</td><td>'+esc(user.workspaceRole||'—')+'</td></tr>').join('');
+  details.innerHTML='<div class="health-summary">'+
+    '<div class="health-metric"><strong class="'+(masterGood?'health-good':'health-bad')+'">'+(masterGood?'Ready':'Attention')+'</strong><span>Shared master</span></div>'+
+    '<div class="health-metric"><strong>'+Number(countsValue.projects||0)+'</strong><span>Projects on server</span></div>'+
+    '<div class="health-metric"><strong>'+Number(countsValue.salesOrders||0)+'</strong><span>Sales Orders on server</span></div>'+
+    '<div class="health-metric"><strong>'+Number(countsValue.purchaseOrders||0)+'</strong><span>Purchase Orders on server</span></div>'+
+    '<div class="health-metric"><strong class="'+(usersGood?'health-good':'health-bad')+'">'+Number(team.connected||0)+' / '+Number(team.active||0)+'</strong><span>Active users connected</span></div>'+
+    '<div class="health-metric"><strong>'+Number((result.revisions&&result.revisions.recentCount)||0)+'</strong><span>Recent server revisions retained</span></div>'+
+    '</div>'+
+    (master.missingArrays&&master.missingArrays.length?'<p class="health-bad"><strong>Master is missing required data sections:</strong> '+esc(master.missingArrays.join(', '))+'</p>':'')+
+    '<table class="health-table"><thead><tr><th>User</th><th>Role</th><th>Status</th><th>Workspace</th><th>Workspace role</th></tr></thead><tbody>'+userRows+'</tbody></table>';
+  if(repair)repair.classList.toggle('hidden',usersGood);
+}
+async function runSharedHealth(repairMembers){
+  const status=$('healthStatus'),button=repairMembers?$('repairSharedUsers'):$('runSharedHealth');
+  if(button)button.disabled=true;
+  try{
+    if(status)status.textContent=repairMembers?'Connecting all active Pool Shed users…':'Checking the shared Pool Shed master and all active users…';
+    const session=await adminSession();
+    const response=await fetch('/api/workspace-health?action='+(repairMembers?'repair-members':'status'),{
+      method:'POST',credentials:'same-origin',headers:{Authorization:'Bearer '+session.access_token}
+    });
+    const result=await response.json().catch(()=>({}));
+    if(!response.ok)throw new Error(result.error||'Shared workspace audit failed.');
+    renderSharedHealth(result);
+    return result;
+  }catch(error){
+    if(status)status.innerHTML='<span class="health-bad"><strong>Audit could not complete.</strong> '+esc(error&&error.message?error.message:String(error))+'</span>';
+    return null;
+  }finally{if(button)button.disabled=false}
+}
 async function publishShared(candidate,options){
   options=options||{};
   const directCurrent=options.allowCurrent===true&&candidate&&candidate.key===APP_KEY;
@@ -70,8 +115,7 @@ async function publishShared(candidate,options){
     preserveLocalCopy('pre-shared-master',candidate.data);
     download(candidate);
     $('status').textContent='Creating server revision and publishing the '+(directCurrent?'current browser workspace':'recovered workspace')+' as the shared master…';
-    const client=getSharedClient(),sessionResult=await client.auth.getSession(),session=sessionResult.data&&sessionResult.data.session;
-    if(!session)throw new Error('Please open Pool Shed, sign in as Admin, then return to this recovery page.');
+    const session=await adminSession();
     const response=await fetch('/api/workspace-recovery-publish?workspace=pool-bros-main',{
       method:'POST',
       credentials:'same-origin',
@@ -85,7 +129,8 @@ async function publishShared(candidate,options){
     localStorage.removeItem(HOLD_KEY);
     localStorage.setItem(MASTER_PUBLISHED_KEY,new Date().toISOString());
     localStorage.setItem('poolshed:v172:masterSource',directCurrent?'current-browser':'recovery');
-    $('status').textContent='Shared master published safely. Server history preserved. Projects '+result.after.projects+', Sales Orders '+result.after.salesOrders+', Purchase Orders '+result.after.purchaseOrders+'. All signed-in staff now read and write the same shared workspace.';
+    $('status').textContent='Shared master published safely. Server history preserved. Projects '+result.after.projects+', Sales Orders '+result.after.salesOrders+', Purchase Orders '+result.after.purchaseOrders+'. All active staff are connected to the same shared workspace.';
+    await runSharedHealth(false);
     window.scrollTo({top:0,behavior:'smooth'});
   }catch(error){
     $('status').textContent='Nothing was replaced. '+(error&&error.message?error.message:String(error));
@@ -141,5 +186,9 @@ async function scan(){
     $('results').appendChild(el);
   });
 }
-$('rescan').addEventListener('click',scan);scan();
+$('rescan').addEventListener('click',scan);
+$('runSharedHealth').addEventListener('click',()=>runSharedHealth(false));
+$('repairSharedUsers').addEventListener('click',()=>runSharedHealth(true));
+scan();
+setTimeout(()=>runSharedHealth(false),500);
 })();

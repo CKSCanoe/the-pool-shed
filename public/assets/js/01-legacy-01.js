@@ -110,6 +110,7 @@ const seed = {
       window.__POOL_SHED_OPEN_TAB__ = function(tabId){ if(!tabs.some(function(t){return t.id===tabId;})) return false; if(!canAccessTab(tabId)) return false; active=tabId; render(); return true; };
       window.__POOL_SHED_ACTIVE_SUBPAGE__ = function(tabId){ return activeSubPage[tabId] || ""; };
       window.__POOL_SHED_WORKSPACE_ID__ = function(){ return WORKSPACE_ID; };
+      window.__POOL_SHED_WORKSPACE_READY__ = function(){ return sharedWorkspaceReady; };
       window.__POOL_SHED_AUTH_TOKEN__ = async function(){
         try{
           if(!supabaseClient || !supabaseClient.auth) return "";
@@ -314,6 +315,7 @@ const seed = {
       let workspaceSyncConflict = false;
       let workspaceLocalSaveFailed = false;
       let workspaceSaveInFlight = false;
+      let sharedWorkspaceReady = false;
       let remoteSaveTimer = null;
       let workspaceRealtimeChannel = null;
       let workspacePollTimer = null;
@@ -748,8 +750,14 @@ const seed = {
         try {
           const response = await supabaseClient.from("user_profiles").select("*").order("full_name");
           if (response.error) throw response.error;
-          const users = loadUsers();
-          (response.data || []).forEach(function(profile) {
+          const profiles = response.data || [];
+          const authoritativeIds = new Set(profiles.map(function(profile){ return String(profile.id || ""); }));
+          const authoritativeEmails = new Set(profiles.map(function(profile){ return String(profile.email || "").trim().toLowerCase(); }).filter(Boolean));
+          const users = loadUsers().filter(function(user) {
+            const email = String(user.email || "").trim().toLowerCase();
+            return !email || !authoritativeEmails.has(email) || authoritativeIds.has(String(user.id || ""));
+          });
+          profiles.forEach(function(profile) {
             const mapped = {
               id: profile.id,
               name: profile.full_name || profile.email || "User",
@@ -825,9 +833,17 @@ const seed = {
           password: "", resetCode: "", passwordSet: true,
           permissions: (profile && profile.permissions) || {}
         };
-        const index = users.findIndex(function(item) { return item.id === nextUser.id; });
+        let index = users.findIndex(function(item) { return item.id === nextUser.id; });
+        if (index < 0 && nextUser.email) index = users.findIndex(function(item) { return String(item.email || "").trim().toLowerCase() === String(nextUser.email || "").trim().toLowerCase(); });
         if (index >= 0) users[index] = Object.assign({}, users[index], nextUser); else users.push(nextUser);
-        saveUsers(users);
+        const seenEmails = new Set();
+        saveUsers(users.filter(function(item) {
+          const email = String(item.email || "").trim().toLowerCase();
+          if (!email) return true;
+          if (seenEmails.has(email)) return item.id === nextUser.id;
+          seenEmails.add(email);
+          return true;
+        }));
         activeUserId = nextUser.id;
         isAuthenticated = true;
         localStorage.setItem("poolshed:v169:activeUserId", activeUserId);
@@ -873,11 +889,31 @@ const seed = {
         }
       }
 
+      async function resolveSharedWorkspaceConflict() {
+        const recoveryKey = preserveUnsyncedWorkspaceRecovery("multi-user-save-conflict");
+        try {
+          const response = await supabaseClient.from("workspace_snapshots").select("data,updated_at").eq("workspace_id", WORKSPACE_ID).maybeSingle();
+          if (response.error) throw response.error;
+          if (!response.data || !response.data.data) throw new Error("Shared workspace master is unavailable.");
+          localStorage.removeItem("poolshed:v172:pendingSync");
+          workspaceSyncConflict = false;
+          await applyRemoteWorkspaceSnapshot(response.data, true);
+          toast("Another user saved first. Their latest shared data is now loaded; your unsynced change was kept safely in Recovery" + (recoveryKey ? "." : " if browser storage allowed it."));
+          return true;
+        } catch (error) {
+          workspaceSyncConflict = true;
+          updateOfflineStatus();
+          console.warn("Shared workspace conflict recovery failed", error);
+          return false;
+        }
+      }
+
       async function applyRemoteWorkspaceSnapshot(row, shouldRender) {
         if (!row || !row.data) return false;
         data = normalizeAppData(row.data);
         remoteWorkspaceUpdatedAt = row.updated_at || null;
         workspaceSyncConflict = false;
+        sharedWorkspaceReady = true;
         try {
           localStorage.setItem("poolshed:v172:remoteRevision", remoteWorkspaceUpdatedAt || "");
           localStorage.setItem("poolshed:v172:appData", JSON.stringify(data));
@@ -939,12 +975,15 @@ const seed = {
           if (!response.error && !response.data) {
             workspaceSyncConflict = true;
             updateOfflineStatus();
-            toast("Another user saved Pool Shed first. Your changes are still safe locally and have not overwritten theirs.");
-            render();
+            if (!await resolveSharedWorkspaceConflict()) {
+              toast("Another user saved Pool Shed first. Your changes are still safe locally and have not overwritten theirs.");
+              render();
+            }
             return false;
           }
           if (response.error) throw response.error;
           remoteWorkspaceUpdatedAt = response.data.updated_at;
+          sharedWorkspaceReady = true;
           localStorage.setItem("poolshed:v172:remoteRevision", remoteWorkspaceUpdatedAt);
           if (localStorage.getItem("poolshed:v172:appData") === savedJson) localStorage.removeItem("poolshed:v172:pendingSync");
           else queueRemoteWorkspaceSave();
@@ -1015,7 +1054,7 @@ const seed = {
         }
         workspacePollTimer = setInterval(function() {
           refreshSharedWorkspaceFromRemote({ silent: true });
-        }, 8000);
+        }, 5000);
       }
 
       function queueRemoteWorkspaceSave() {
@@ -2298,7 +2337,16 @@ const seed = {
         }
         const applied = await applySupabaseSession(session);
         if (!applied) return false;
-        await loadRemoteWorkspace();
+        const sharedLoaded = await loadRemoteWorkspace();
+        if (!sharedLoaded) {
+          sharedWorkspaceReady = false;
+          stopSharedWorkspaceLiveSync();
+          isAuthenticated = false;
+          showLogin("denied", isAdminUser()
+            ? "The shared Pool Shed master could not be loaded. Your browser data has NOT been overwritten. Open /recovery.html as Admin to audit or publish the verified master before anyone continues working."
+            : "The shared Pool Shed master could not be loaded, so Pool Shed has not opened a separate browser copy. Please ask an Admin to check the shared workspace.");
+          return false;
+        }
         startSharedWorkspaceLiveSync();
         showApp();
         return true;
@@ -2356,7 +2404,15 @@ const seed = {
               loginMfaFactorId = "";
               const applied = await applySupabaseSession(current.data && current.data.session);
               if (!applied) return;
-              await loadRemoteWorkspace();
+              const sharedLoaded = await loadRemoteWorkspace();
+              if (!sharedLoaded) {
+                sharedWorkspaceReady = false;
+                stopSharedWorkspaceLiveSync();
+                isAuthenticated = false;
+                return showLogin("denied", isAdminUser()
+                  ? "The shared Pool Shed master could not be loaded. Your browser data has NOT been overwritten. Open /recovery.html as Admin to audit or publish the verified master."
+                  : "The shared Pool Shed master could not be loaded. Please ask an Admin to check the shared workspace.");
+              }
               startSharedWorkspaceLiveSync();
               return showApp();
             }
@@ -15636,6 +15692,12 @@ const seed = {
         });
       });
       window.addEventListener("offline", updateOfflineStatus);
+      window.addEventListener("focus", function() {
+        if (isAuthenticated) refreshSharedWorkspaceFromRemote({ silent: true });
+      });
+      document.addEventListener("visibilitychange", function() {
+        if (!document.hidden && isAuthenticated) refreshSharedWorkspaceFromRemote({ silent: true });
+      });
       window.addEventListener("load", function() {
         updateOfflineStatus();
         restoreOfflineSnapshotIfNeeded();

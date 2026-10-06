@@ -4,7 +4,9 @@ import {appOriginAllowed} from '../server/origin-policy.js';
 
 const send=(res,status,value)=>res.status(status).json(value);
 const WORKSPACE_ID='pool-bros-main';
-const REQUIRED_ARRAYS=['jobs','salesOrders','purchaseOrders','stock','receiptEvents','putawayTransfers'];
+const REQUIRED_ARRAYS=['jobs','salesOrders','purchaseOrders','customers','products','suppliers','stock','receiptEvents','putawayTransfers'];
+const STAFF_ROLES=new Set(['Admin','Management','Accounts','Sales','Purchasing','Warehouse','Engineer','Office']);
+const workspaceRoleFor=role=>role==='Admin'?'admin':'operator';
 
 function requestBody(req){
   if(req.body&&typeof req.body==='object')return req.body;
@@ -37,6 +39,20 @@ async function authenticatedAdmin(req){
   if(!profile||profile.active!==true||profile.role!=='Admin')throw Object.assign(new Error('Admin access is required to publish a recovered workspace'),{statusCode:403});
   return {user,authorization};
 }
+async function syncActiveStaffMemberships(){
+  const profiles=await db('user_profiles?select=id,role,active');
+  const active=profiles.filter(profile=>profile.active===true&&STAFF_ROLES.has(profile.role));
+  if(active.length){
+    await db('ps_workspace_members',{method:'POST',prefer:'resolution=merge-duplicates,return=representation',body:active.map(profile=>({workspace_id:WORKSPACE_ID,user_id:profile.id,role:workspaceRoleFor(profile.role)}))});
+  }
+  const activeIds=new Set(active.map(profile=>String(profile.id)));
+  const members=await db('ps_workspace_members?workspace_id=eq.'+eq(WORKSPACE_ID)+'&select=user_id,role');
+  const stale=members.filter(member=>!activeIds.has(String(member.user_id)));
+  for(const member of stale){
+    await db('ps_workspace_members?workspace_id=eq.'+eq(WORKSPACE_ID)+'&user_id=eq.'+eq(member.user_id),{method:'DELETE',prefer:'return=minimal'});
+  }
+  return {active:active.length,removed:stale.length};
+}
 async function secureSave(authorization,expected,snapshot){
   const apiKey=supabasePublicKey(process.env)||supabaseServerKey(process.env);
   const response=await fetch(process.env.SUPABASE_URL+'/rest/v1/rpc/ps_workspace_save',{
@@ -68,8 +84,9 @@ export default async function handler(req,res){
     merged.receiptEvents=mergeImmutableLedger(current?.data,recovered,'receiptEvents');
     merged.putawayTransfers=mergeImmutableLedger(current?.data,recovered,'putawayTransfers');
     await db('ps_workspace_members',{method:'POST',prefer:'resolution=merge-duplicates,return=representation',body:{workspace_id:WORKSPACE_ID,user_id:user.id,role:'admin'}});
+    const teamSync=await syncActiveStaffMemberships();
     const result=await secureSave(authorization,current?.updated_at||null,merged);
-    return send(res,200,{ok:true,workspaceId:WORKSPACE_ID,updatedAt:result.updated_at||null,before:counts(current?.data||{}),after:counts(merged),preservedLedger:{receiptEvents:merged.receiptEvents.length,putawayTransfers:merged.putawayTransfers.length}});
+    return send(res,200,{ok:true,workspaceId:WORKSPACE_ID,updatedAt:result.updated_at||null,before:counts(current?.data||{}),after:counts(merged),preservedLedger:{receiptEvents:merged.receiptEvents.length,putawayTransfers:merged.putawayTransfers.length},teamSync});
   }catch(error){
     return send(res,error.statusCode||500,{error:error.message||'Could not publish recovered workspace'});
   }
