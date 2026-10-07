@@ -189,7 +189,7 @@
         const aStock = stockInfo(a).available;
         const bStock = stockInfo(b).available;
         return bStock - aStock || text(a.name).localeCompare(text(b.name));
-      }).slice(0, 14);
+      }).slice(0, 8);
     }
     return products.map(function (productRecord) {
       return { product: productRecord, score: scoreProduct(productRecord, query) };
@@ -200,7 +200,7 @@
       const aStock = stockInfo(a.product).available;
       const bStock = stockInfo(b.product).available;
       return bStock - aStock || text(a.product.name).localeCompare(text(b.product.name));
-    }).slice(0, 30).map(function (row) { return row.product; });
+    }).slice(0, 10).map(function (row) { return row.product; });
   }
 
   function stockInfo(productRecord) {
@@ -334,7 +334,7 @@
     if (!activeBox || activeBox.hidden || !activeInput || !activeInput.isConnected) return;
     const rect = activeInput.getBoundingClientRect();
     const margin = 12;
-    const width = Math.min(Math.max(rect.width + 320, 720), window.innerWidth - margin * 2);
+    const width = Math.min(Math.max(rect.width, 480), Math.min(680, window.innerWidth - margin * 2));
     const left = Math.min(Math.max(margin, rect.left), window.innerWidth - width - margin);
     activeBox.style.width = width + 'px';
     activeBox.style.left = left + 'px';

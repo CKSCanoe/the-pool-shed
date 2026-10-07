@@ -6945,6 +6945,8 @@ const seed = {
 
       function bindSalesOrderList() {
         document.querySelectorAll("body > #salesOrderProductResults").forEach(function(node){ node.remove(); });
+        document.querySelectorAll("body > [data-so-batch-drawer], body > [data-so-batch-backdrop]").forEach(function(node){ node.remove(); });
+        document.body.classList.remove("so-batch-open");
         document.querySelectorAll("[data-sales-subview]").forEach(function(button) {
           button.addEventListener("click", function() {
             salesOrderView = button.dataset.salesSubview;
@@ -7590,12 +7592,13 @@ const seed = {
           const value = selected.reduce(function(sum,item){return sum+item.qty*item.price;},0);
           const summary = els.drawer.querySelector("[data-so-batch-summary]");
           const valueEl = els.drawer.querySelector("[data-so-batch-value]");
-          const count = els.drawer.querySelector("[data-so-batch-selected-count]");
-          const commit = els.drawer.querySelector("[data-commit-so-batch]");
           if (summary) summary.textContent = selected.length + " line" + (selected.length===1?"":"s") + " · " + units + " unit" + (units===1?"":"s");
           if (valueEl) valueEl.textContent = money(value) + " net before VAT";
-          if (count) count.textContent = selected.length;
-          if (commit) commit.disabled = !selected.length;
+          els.drawer.querySelectorAll("[data-so-batch-selected-count]").forEach(function(count){ count.textContent = selected.length; });
+          els.drawer.querySelectorAll("[data-commit-so-batch]").forEach(function(commit){
+            commit.disabled = !selected.length;
+            if (commit.classList.contains("so-batch-top-commit")) commit.textContent = selected.length ? ("Add " + selected.length + " selected to order") : "Add selected to order";
+          });
           els.drawer.querySelectorAll("[data-so-batch-product]").forEach(function(row){
             const input = row.querySelector("[data-so-batch-qty]");
             row.classList.toggle("selected", Number(input && input.value || 0) > 0);
@@ -7634,6 +7637,10 @@ const seed = {
         function setSalesBatchOpen(orderId, open) {
           const els = batchElements(orderId);
           if (!els.drawer || !els.backdrop) return;
+          if (open) {
+            if (els.backdrop.parentElement !== document.body) document.body.appendChild(els.backdrop);
+            if (els.drawer.parentElement !== document.body) document.body.appendChild(els.drawer);
+          }
           els.drawer.classList.toggle("open", open);
           els.backdrop.hidden = !open;
           els.backdrop.classList.toggle("open", open);
@@ -8242,6 +8249,11 @@ const seed = {
           addSalesOrderNotification(order, "Line added", p.sku + " added to sales order", "Internal note");
         }
         order.status = "Needs Review";
+        order.updatedAt = new Date().toISOString();
+        if (saveAppData() === false) {
+          toast("The item was added on screen but could not be saved. Keep this page open and try again.");
+          return;
+        }
         toast(p.sku + " added to " + order.id + ".");
         render();
       }
@@ -8366,7 +8378,7 @@ const seed = {
           '<aside class="so-batch-drawer" data-so-batch-drawer="' + order.id + '" aria-label="Add multiple items" aria-hidden="true">' +
             '<div class="so-batch-head"><div><span>PRODUCT CATALOGUE</span><strong>Add multiple items</strong><p>Search once, set quantities, then add everything to ' + order.id + ' together.</p></div><button type="button" class="secondary" data-close-so-batch="' + order.id + '">Close</button></div>' +
             '<div class="so-batch-tools"><div class="so-batch-search-row"><input type="search" data-so-batch-search="' + order.id + '" placeholder="Search product, variant, SKU, barcode or description"><select data-so-batch-stock-filter="' + order.id + '"><option value="all">All stock</option><option value="in">In stock</option><option value="low">Low stock</option><option value="out">Out of stock</option></select></div>' +
-              '<div class="so-batch-tabs"><button type="button" class="active" data-so-batch-tab="all">All products</button><button type="button" data-so-batch-tab="frequent">Frequently ordered</button><button type="button" data-so-batch-tab="history">Customer history</button><button type="button" data-so-batch-tab="selected">Selected <span data-so-batch-selected-count>0</span></button></div></div>' +
+              '<div class="so-batch-tabs"><button type="button" class="active" data-so-batch-tab="all">All products</button><button type="button" data-so-batch-tab="frequent">Frequently ordered</button><button type="button" data-so-batch-tab="history">Customer history</button><button type="button" data-so-batch-tab="selected">Selected <span data-so-batch-selected-count>0</span></button><button type="button" class="primary-action so-batch-top-commit" data-commit-so-batch="' + order.id + '" disabled>Add selected to order</button></div></div>' +
             '<div class="so-batch-body"><div class="so-batch-hint"><strong>Fast entry</strong><span>Type to bring the best matches to the top. Use quantity controls to build the order. Stock is not allocated until you use the Sales Order allocation action.</span></div><div data-so-batch-results="' + order.id + '"></div></div>' +
             '<div class="so-batch-footer"><div><strong data-so-batch-summary>0 lines · 0 units</strong><small data-so-batch-value>£0.00 net before VAT</small></div><button type="button" class="primary-action" data-commit-so-batch="' + order.id + '" disabled>Add items to order</button></div>' +
           '</aside>';
@@ -8437,24 +8449,36 @@ const seed = {
 
       function addBatchProductsToSalesOrder(orderId, selections) {
         const order = salesOrder(orderId);
-        if (!order || !Array.isArray(selections) || !selections.length) return;
+        if (!order || !Array.isArray(selections) || !selections.length) {
+          toast("Select at least one catalogue item before adding it to the order.");
+          return false;
+        }
+        if (!Array.isArray(order.lines)) order.lines = [];
         let addedLines = 0, addedUnits = 0;
         selections.forEach(function(selection){
           const p = product(selection.productId);
           const qty = Math.max(0, Math.floor(Number(selection.qty) || 0));
           if (!p || !qty) return;
-          const existing = order.lines.find(function(line){ return line.productId === p.id; });
-          if (existing) existing.qty += qty;
+          const existing = order.lines.find(function(line){ return line.productId === p.id && !isNonStockSalesLine(line); });
+          if (existing) existing.qty = Number(existing.qty || 0) + qty;
           else order.lines.push({ productId:p.id, qty:qty, allocated:0, picked:0, packed:0 });
           addedLines += 1;
           addedUnits += qty;
         });
-        if (!addedUnits) return;
+        if (!addedUnits) {
+          toast("The selected catalogue rows have no quantity to add.");
+          return false;
+        }
         addSalesOrderNotification(order, "Multiple lines added", addedLines + " product lines · " + addedUnits + " units added to sales order", "Internal note");
         order.status = "Needs Review";
-        saveAppData();
+        order.updatedAt = new Date().toISOString();
+        if (saveAppData() === false) {
+          toast("The selected items could not be saved. Keep this page open and try again.");
+          return false;
+        }
         toast(addedLines + " item" + (addedLines===1?"":"s") + " added to " + order.id + ".");
         render();
+        return true;
       }
 
       function salesOrderDetail(order) {

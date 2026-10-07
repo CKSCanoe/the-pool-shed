@@ -459,3 +459,108 @@ body .so2-line-menu .danger{color:var(--color-status-danger-text)!important}
   #screen-salesorders .so-funding-row>div:last-child{grid-column:auto}
 }
 
+
+/* Sales Order catalogue usability and chemical part-use charging. */
+.so-batch-tabs{align-items:center;flex-wrap:wrap}
+.so-batch-tabs button.so-batch-top-commit{
+  margin-left:auto;min-height:30px;padding:5px 10px;border:1px solid var(--color-action-primary);
+  border-radius:5px;background:var(--color-action-primary);color:var(--color-action-contrast);font-weight:900
+}
+.so-batch-tabs button.so-batch-top-commit:disabled{opacity:.45;cursor:not-allowed}
+.so-batch-tabs button.so-batch-top-commit:not(:disabled):hover{background:var(--color-action-primary-hover)}
+body>.so-batch-drawer{top:0!important;bottom:0!important;height:100dvh!important;max-height:100dvh!important}
+body>.so-batch-backdrop{position:fixed!important;inset:0!important}
+
+#screen-salesorders .so4-secondary-tools{
+  grid-template-columns:repeat(2,minmax(0,1fr))!important;
+}
+#screen-salesorders .so4-selected-product{
+  margin-top:8px;padding:8px 10px;border:1px solid var(--color-status-success-line);border-radius:6px;
+  background:var(--color-status-success-bg)
+}
+#screen-salesorders .so4-selected-product[hidden]{display:none!important}
+#screen-salesorders .so4-chemical-tool{grid-column:1/-1}
+#screen-salesorders .so4-chemical-body{display:grid!important;gap:10px!important}
+#screen-salesorders .so4-chemical-search{position:relative}
+#screen-salesorders .so4-chemical-search label>span,
+#screen-salesorders .so4-chemical-grid label>span{
+  display:block;margin-bottom:5px;color:var(--color-text-secondary);font-size:8px;font-weight:900;
+  letter-spacing:.05em;text-transform:uppercase
+}
+#screen-salesorders .so4-chemical-search input{
+  width:100%;height:38px;min-height:38px;padding:0 10px;border:1px solid var(--color-border-default);
+  border-radius:5px;background:var(--color-surface-default);color:var(--color-text-primary);font-size:10px
+}
+#screen-salesorders .so4-chemical-search input:focus{outline:0;border-color:var(--color-action-ink);box-shadow:var(--focus-ring)}
+#screen-salesorders .so4-chemical-results{
+  position:absolute;z-index:2147481000;left:0;right:0;top:calc(100% + 5px);max-height:280px;overflow:auto;
+  border:1px solid var(--color-border-default);border-radius:6px;background:var(--color-surface-default);
+  box-shadow:0 12px 28px var(--shadow-color)
+}
+#screen-salesorders .so4-chemical-results[hidden]{display:none!important}
+#screen-salesorders .so4-chemical-results button{
+  width:100%;min-height:46px;display:flex;align-items:center;gap:10px;padding:8px 10px;border:0;
+  border-bottom:1px solid var(--color-border-default);border-radius:0;background:var(--color-surface-default);
+  color:var(--color-text-primary);text-align:left;box-shadow:none
+}
+#screen-salesorders .so4-chemical-results button:last-child{border-bottom:0}
+#screen-salesorders .so4-chemical-results button:hover,
+#screen-salesorders .so4-chemical-results button:focus{background:var(--color-action-soft);outline:0}
+#screen-salesorders .so4-chemical-results button>span{display:grid;gap:2px;min-width:0}
+#screen-salesorders .so4-chemical-results button strong{font-size:10px}
+#screen-salesorders .so4-chemical-results button small{color:var(--color-text-secondary);font-size:8px}
+#screen-salesorders .so4-chemical-results button>b{margin-left:auto;white-space:nowrap;font-size:9px}
+#screen-salesorders .so4-chemical-empty{display:grid;gap:3px;padding:12px;color:var(--color-text-secondary);font-size:9px}
+#screen-salesorders .so4-chemical-selected{
+  display:flex;align-items:center;gap:10px;padding:8px 10px;border:1px solid var(--color-status-info-line);
+  border-radius:6px;background:var(--color-status-info-bg)
+}
+#screen-salesorders .so4-chemical-selected[hidden]{display:none!important}
+#screen-salesorders .so4-chemical-selected>div{display:grid;gap:2px;min-width:0}
+#screen-salesorders .so4-chemical-selected strong{font-size:10px}
+#screen-salesorders .so4-chemical-selected span{color:var(--color-text-secondary);font-size:8px}
+#screen-salesorders .so4-chemical-selected>b{margin-left:auto;white-space:nowrap;font-size:10px}
+#screen-salesorders .so4-chemical-grid{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:8px}
+#screen-salesorders .so4-measure,
+#screen-salesorders .so4-money-input,
+#screen-salesorders .so4-percent-input{display:grid;grid-template-columns:minmax(0,1fr) auto;align-items:center}
+#screen-salesorders .so4-chemical-grid input,
+#screen-salesorders .so4-chemical-grid select{
+  width:100%;height:36px;min-height:36px;border:1px solid var(--color-border-default);
+  background:var(--color-surface-default);color:var(--color-text-primary);font-size:10px
+}
+#screen-salesorders .so4-measure input{border-radius:5px 0 0 5px}
+#screen-salesorders .so4-measure select{width:64px;border-left:0;border-radius:0 5px 5px 0}
+#screen-salesorders .so4-money-input span,
+#screen-salesorders .so4-percent-input span{
+  display:grid;place-items:center;height:36px;padding:0 9px;border:1px solid var(--color-border-default);
+  background:var(--color-surface-subtle);color:var(--color-text-secondary);font-size:9px;font-weight:800
+}
+#screen-salesorders .so4-money-input span{border-radius:5px 0 0 5px;border-right:0;grid-column:1;grid-row:1}
+#screen-salesorders .so4-money-input input{grid-column:2;grid-row:1;border-radius:0 5px 5px 0}
+#screen-salesorders .so4-money-input{grid-template-columns:auto minmax(0,1fr)}
+#screen-salesorders .so4-percent-input input{border-radius:5px 0 0 5px}
+#screen-salesorders .so4-percent-input span{border-left:0;border-radius:0 5px 5px 0}
+#screen-salesorders .so4-chemical-preview{
+  display:flex;align-items:center;gap:12px;padding:10px;border:1px solid var(--color-border-default);
+  border-radius:6px;background:var(--color-surface-subtle)
+}
+#screen-salesorders .so4-chemical-preview>div{display:grid;gap:2px;min-width:0}
+#screen-salesorders .so4-chemical-preview span{color:var(--color-text-secondary);font-size:8px;font-weight:900;text-transform:uppercase;letter-spacing:.04em}
+#screen-salesorders .so4-chemical-preview strong{font-size:15px}
+#screen-salesorders .so4-chemical-preview small{color:var(--color-text-secondary);font-size:8px;line-height:1.45}
+#screen-salesorders .so4-chemical-preview button{margin-left:auto;white-space:nowrap}
+#screen-salesorders .so4-chemical-assurance{
+  padding:7px 9px;border-left:3px solid var(--color-status-info);background:var(--color-status-info-bg);
+  color:var(--color-text-secondary);font-size:8px;line-height:1.45
+}
+@media(max-width:900px){
+  #screen-salesorders .so4-secondary-tools{grid-template-columns:1fr!important}
+  #screen-salesorders .so4-chemical-grid{grid-template-columns:1fr 1fr}
+}
+@media(max-width:620px){
+  .so-batch-tabs button.so-batch-top-commit{width:100%;margin-left:0}
+  #screen-salesorders .so4-chemical-grid{grid-template-columns:1fr}
+  #screen-salesorders .so4-chemical-preview{align-items:flex-start;flex-direction:column}
+  #screen-salesorders .so4-chemical-preview button{margin-left:0;width:100%}
+}

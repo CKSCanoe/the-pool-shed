@@ -72,19 +72,34 @@
   };
 
   salesOrderAddRow = function(order) {
-    return '<div class="so4-finder-shell">' +
+    return '<div class="so4-finder-shell so-catalogue-picker">' +
       '<div class="so4-finder-copy"><div><span class="so2-kicker">Connected product catalogue</span><strong>Add a stock-controlled item</strong><small>Start typing and useful products appear immediately. Search family, exact variant, SKU, barcode, size or common trade wording.</small></div>' +
         '<span class="so4-catalogue-ready">● Catalogue ready · ' + (data.products || []).filter(function(p){return p && p.active !== false && !p.deleted && !p.archived && !p.hiddenFromCatalogue;}).length + ' items</span></div>' +
       '<div class="so4-finder-controls">' +
-        '<div class="so4-search-field"><label for="salesOrderProductSearch">Find product, variant, SKU, barcode or keyword</label><div class="so4-search-wrap"><span aria-hidden="true">⌕</span><input id="salesOrderProductSearch" data-order-id="' + escapeHtml(order.id) + '" autocomplete="off" placeholder="Try product name, SKU, barcode, size or keyword"><button type="button" class="secondary so4-clear-search" data-so-clear-search>Clear</button><div id="salesOrderProductResults" class="po-product-results so-product-results" hidden></div></div></div>' +
+        '<div class="so4-search-field"><label for="salesOrderProductSearch">Find product, variant, SKU, barcode or keyword</label><div class="so4-search-wrap"><span aria-hidden="true">⌕</span><input id="salesOrderProductSearch" data-order-id="' + escapeHtml(order.id) + '" autocomplete="off" spellcheck="true" aria-autocomplete="list" aria-controls="salesOrderProductResults" aria-expanded="false" placeholder="Try product name, SKU, barcode, size or keyword"><button type="button" class="secondary so4-clear-search" data-so-clear-search>Clear</button><div id="salesOrderProductResults" class="po-product-results so-product-results so-search-popover" role="listbox" hidden></div></div></div>' +
         '<label class="so4-qty-field"><span>Quantity</span><input id="salesOrderProductQty" type="number" min="1" value="1"></label>' +
-        '<button type="button" class="primary-action so4-add-selected" data-add-line-order="' + escapeHtml(order.id) + '">Add selected item</button>' +
+        '<button type="button" id="salesOrderAddStockButton" class="primary-action so4-add-selected" data-add-line-order="' + escapeHtml(order.id) + '" disabled>Add selected item</button>' +
         '<button type="button" class="secondary so4-add-multiple" data-open-so-batch="' + escapeHtml(order.id) + '">Add multiple items</button>' +
       '</div>' +
       '<div class="so-smart-search-hints"><span>Try:</span><button type="button" data-so-inline-search-fill="chlorine">chlorine</button><button type="button" data-so-inline-search-fill="shock">shock</button><button type="button" data-so-inline-search-fill="hypo">hypo</button><button type="button" data-so-inline-search-fill="20 litre">20 litre</button><button type="button" data-so-inline-search-fill="pH minus">pH minus</button><small>Typos, word order and common trade terms are supported.</small></div>' +
+      '<div id="salesOrderSelectedProduct" class="so-selected-product so4-selected-product" hidden></div>' +
     '</div>' +
     salesOrderBatchPicker(order) +
     '<div class="so4-secondary-tools">' +
+      '<details class="so4-tool-card so4-chemical-tool"><summary><span><small>Chemical part-use charge</small><strong>Charge only what the customer used</strong><em>Select the catalogue chemical, enter the pack size and amount used, and Pool Shed calculates the customer charge.</em></span><b>Open</b></summary>' +
+        '<div class="so4-tool-body so4-chemical-body">' +
+          '<div class="so4-chemical-search"><label><span>Catalogue chemical</span><input id="chemicalUsageSearch" data-order-id="' + escapeHtml(order.id) + '" autocomplete="off" placeholder="Search chemical name, SKU, barcode or pack size"></label><div id="chemicalUsageResults" class="so4-chemical-results" hidden></div></div>' +
+          '<div id="chemicalUsageSelected" class="so4-chemical-selected" hidden></div>' +
+          '<div class="so4-chemical-grid">' +
+            '<label><span>Full pack size</span><div class="so4-measure"><input id="chemicalPackAmount" type="number" min="0" step="0.01" placeholder="1"><select id="chemicalPackUnit"><option value="kg">kg</option><option value="g">g</option><option value="l">L</option><option value="ml">ml</option></select></div></label>' +
+            '<label><span>Amount used</span><div class="so4-measure"><input id="chemicalUsedAmount" type="number" min="0" step="0.01" placeholder="500"><select id="chemicalUsedUnit"><option value="g">g</option><option value="kg">kg</option><option value="ml">ml</option><option value="l">L</option></select></div></label>' +
+            '<label><span>Minimum charge net</span><div class="so4-money-input"><span>£</span><input id="chemicalMinimumCharge" type="number" min="0" step="0.01" value="10.00"></div></label>' +
+            '<label><span>Charge full pack at</span><div class="so4-percent-input"><input id="chemicalFullThreshold" type="number" min="50" max="100" step="1" value="90"><span>% used</span></div></label>' +
+          '</div>' +
+          '<div id="chemicalUsagePreview" class="so4-chemical-preview"><div><span>Calculated customer charge</span><strong>Choose a catalogue chemical</strong><small>Pool Shed uses the customer price list, with a £10 minimum part-use charge and full-pack pricing from 90% usage.</small></div><button type="button" class="primary-action" data-add-chemical-usage="' + escapeHtml(order.id) + '" disabled>Add chemical charge</button></div>' +
+          '<div class="so4-chemical-assurance"><strong>Billing only:</strong> this adds a linked non-stock charge to the Sales Order and does not allocate a whole bucket or container from inventory.</div>' +
+        '</div>' +
+      '</details>' +
       '<details class="so4-tool-card"><summary><span><small>Non-stock & custom</small><strong>Add a custom sales line</strong><em>Labour, call-out, discounts and other non-stock charges.</em></span><b>Open</b></summary>' +
         '<div class="so4-tool-body so-line-form" data-line-composer-panel="custom"><label class="so-line-description"><span>Product / service name</span><input id="customLineProductName" placeholder="Example: One-piece pool shell" required></label><label class="so-line-description"><span>Variant / specification</span><input id="customLineVariant" placeholder="Example: Light Grey · 10m × 3.7m × 1.5m"></label><label><span>Quantity</span><input id="customLineQty" type="number" min="1" step="1" value="1"></label><label><span>Unit price net</span><input id="customLinePrice" type="number" min="0" step="0.01" value="0.00"></label><label><span>Unit cost</span><input id="customLineCost" type="number" min="0" step="0.01" value="0.00"></label><label><span>Tax</span><select id="customLineTax">' + optionList(["20% VAT","Zero rated","Not rated"],"20% VAT") + '</select></label><label><span>Sales account</span><select id="customLineAccount">' + optionList(["4010 Service Upsell","4030 Labour Income","4050 Call-out Charges","4060 Miscellaneous Sales"],"4010 Service Upsell") + '</select></label><label class="so-line-note"><span>Internal note (optional)</span><textarea id="customLineNote" placeholder="Reason, engineer detail or approval note"></textarea></label><button type="button" class="primary-action" data-add-custom-line="' + escapeHtml(order.id) + '">Add custom line</button></div>' +
       '</details>' +
@@ -94,6 +109,223 @@
       '<section class="so4-tool-card so4-commercial-check"><div><small>Commercial check</small><strong>Ready to progress?</strong><em>Save the order independently of allocation and fulfilment. Adding an item never allocates stock automatically.</em></div><span>✓ Stock and finance remain separate</span></section>' +
     '</div>';
   };
+
+
+  function so4ChemicalUnit(unit) {
+    const value = String(unit || '').trim().toLowerCase();
+    if (value === 'kg' || value === 'kgs' || value.indexOf('kilogram') === 0) return 'kg';
+    if (value === 'g' || value === 'gram' || value === 'grams') return 'g';
+    if (value === 'l' || value === 'ltr' || value === 'litre' || value === 'litres' || value === 'liter' || value === 'liters') return 'l';
+    if (value === 'ml' || value === 'millilitre' || value === 'millilitres' || value === 'milliliter' || value === 'milliliters') return 'ml';
+    return '';
+  }
+
+  function so4ChemicalBase(value, unit) {
+    const amount = Number(value || 0);
+    const cleanUnit = so4ChemicalUnit(unit);
+    if (!(amount > 0) || !cleanUnit) return null;
+    if (cleanUnit === 'kg') return { dimension:'mass', value:amount * 1000 };
+    if (cleanUnit === 'g') return { dimension:'mass', value:amount };
+    if (cleanUnit === 'l') return { dimension:'volume', value:amount * 1000 };
+    if (cleanUnit === 'ml') return { dimension:'volume', value:amount };
+    return null;
+  }
+
+  function so4ChemicalPackFromProduct(productRecord) {
+    if (!productRecord) return null;
+    const explicit = [
+      productRecord.packSize, productRecord.pack_size, productRecord.size,
+      productRecord.variantValue, productRecord.variant_value,
+      productRecord.variantLabel, productRecord.variant_label, productRecord.variant
+    ].filter(Boolean);
+    const fallback = [
+      productRecord.name, productRecord.parentName, productRecord.parent_name,
+      productRecord.description, productRecord.mainDescription, productRecord.main_description
+    ].filter(Boolean);
+    function findIn(values) {
+      const matches = [];
+      values.forEach(function(value) {
+        const text = String(value || '');
+        const pattern = /(\d+(?:\.\d+)?)\s*(kg|kgs?|kilograms?|g|grams?|l|ltr|litres?|liters?|ml|millilitres?|milliliters?)\b/ig;
+        let match;
+        while ((match = pattern.exec(text))) {
+          const unit = so4ChemicalUnit(match[2]);
+          const base = so4ChemicalBase(match[1], unit);
+          if (base) matches.push({ amount:Number(match[1]), unit:unit, base:base.value, dimension:base.dimension });
+        }
+      });
+      if (!matches.length) return null;
+      matches.sort(function(a,b){ return b.base - a.base; });
+      return matches[0];
+    }
+    return findIn(explicit) || findIn(fallback);
+  }
+
+  function so4ChemicalProducts(query) {
+    const clean = String(query || '').trim();
+    if (!clean) return [];
+    const products = typeof salesOrderCatalogueProducts === 'function' ? salesOrderCatalogueProducts() : (data.products || []);
+    if (window.PoolShedSalesSearch && typeof window.PoolShedSalesSearch.rankProducts === 'function') {
+      return window.PoolShedSalesSearch.rankProducts(products, clean).slice(0,8).map(function(row){ return row.product; });
+    }
+    const q = clean.toLowerCase();
+    return products.filter(function(p){
+      return [p.name,p.parentName,p.sku,p.code,p.barcode,p.supplierSku,p.category].filter(Boolean).join(' ').toLowerCase().indexOf(q) !== -1;
+    }).slice(0,8);
+  }
+
+  function so4ChemicalSearchResults(input) {
+    const box = document.getElementById('chemicalUsageResults');
+    if (!input || !box) return;
+    const order = salesOrder(input.dataset.orderId);
+    const rows = so4ChemicalProducts(input.value);
+    if (!String(input.value || '').trim()) {
+      box.hidden = true;
+      box.innerHTML = '';
+      return;
+    }
+    box.innerHTML = rows.length ? rows.map(function(p){
+      const pack = so4ChemicalPackFromProduct(p);
+      const price = order ? salesOrderLinePrice(order,{productId:p.id,qty:1}) : Number(p.rrp || 0);
+      const meta = [p.sku || p.code, pack ? (pack.amount + ' ' + pack.unit) : '', p.category || ''].filter(Boolean).join(' · ');
+      return '<button type="button" data-so-chemical-product="' + escapeHtml(p.id) + '"><span><strong>' + escapeHtml(p.name || p.parentName || 'Catalogue product') + '</strong><small>' + escapeHtml(meta) + '</small></span><b>' + money(price) + ' net</b></button>';
+    }).join('') : '<div class="so4-chemical-empty"><strong>No matching catalogue product</strong><span>Try the chemical name, SKU, barcode or pack size.</span></div>';
+    box.hidden = false;
+  }
+
+  function so4SelectChemicalProduct(productId) {
+    const input = document.getElementById('chemicalUsageSearch');
+    const box = document.getElementById('chemicalUsageResults');
+    const selected = document.getElementById('chemicalUsageSelected');
+    const p = product(productId);
+    if (!input || !p) return;
+    input.dataset.selectedProductId = p.id;
+    input.value = [p.name || p.parentName, p.sku || p.code].filter(Boolean).join(' · ');
+    if (box) box.hidden = true;
+    const pack = so4ChemicalPackFromProduct(p);
+    const packAmount = document.getElementById('chemicalPackAmount');
+    const packUnit = document.getElementById('chemicalPackUnit');
+    const usedUnit = document.getElementById('chemicalUsedUnit');
+    if (pack && packAmount && packUnit) {
+      packAmount.value = String(pack.amount);
+      packUnit.value = pack.unit;
+      if (usedUnit) usedUnit.value = pack.dimension === 'volume' ? 'ml' : 'g';
+    }
+    if (selected) {
+      const order = salesOrder(input.dataset.orderId);
+      const price = order ? salesOrderLinePrice(order,{productId:p.id,qty:1}) : Number(p.rrp || 0);
+      selected.innerHTML = '<div><strong>' + escapeHtml(p.name || p.parentName || 'Catalogue product') + '</strong><span>' + escapeHtml([p.sku || p.code, p.category, pack ? ('Detected pack ' + pack.amount + ' ' + pack.unit) : 'Pack size needs confirming'].filter(Boolean).join(' · ')) + '</span></div><b>' + money(price) + ' net / full pack</b>';
+      selected.hidden = false;
+    }
+    so4UpdateChemicalPreview();
+  }
+
+  function so4ChemicalCalculation() {
+    const input = document.getElementById('chemicalUsageSearch');
+    if (!input || !input.dataset.selectedProductId) return { valid:false, message:'Choose a catalogue chemical' };
+    const order = salesOrder(input.dataset.orderId);
+    const p = product(input.dataset.selectedProductId);
+    if (!order || !p) return { valid:false, message:'Catalogue product is unavailable' };
+    const packAmount = Number((document.getElementById('chemicalPackAmount') || {}).value || 0);
+    const packUnit = (document.getElementById('chemicalPackUnit') || {}).value || '';
+    const usedAmount = Number((document.getElementById('chemicalUsedAmount') || {}).value || 0);
+    const usedUnit = (document.getElementById('chemicalUsedUnit') || {}).value || '';
+    const minimum = Math.max(0,Number((document.getElementById('chemicalMinimumCharge') || {}).value || 10));
+    const threshold = Math.max(50,Math.min(100,Number((document.getElementById('chemicalFullThreshold') || {}).value || 90)));
+    const packBase = so4ChemicalBase(packAmount,packUnit);
+    const usedBase = so4ChemicalBase(usedAmount,usedUnit);
+    if (!packBase || !usedBase) return { valid:false, message:'Enter the full pack size and amount used' };
+    if (packBase.dimension !== usedBase.dimension) return { valid:false, message:'Pack size and amount used must use the same measurement type' };
+    const fullPrice = Math.max(0,Number(salesOrderLinePrice(order,{productId:p.id,qty:1}) || 0));
+    if (!(fullPrice > 0)) return { valid:false, message:'This catalogue item has no customer selling price' };
+
+    const ratio = usedBase.value / packBase.value;
+    if (!(ratio > 0)) return { valid:false, message:'Enter an amount used greater than zero' };
+    const wholePacks = Math.floor(ratio + 1e-9);
+    const remainder = Math.max(0,ratio - wholePacks);
+    let charge = wholePacks * fullPrice;
+    let rule = wholePacks ? (wholePacks + ' full pack' + (wholePacks === 1 ? '' : 's')) : '';
+    if (remainder > 1e-9) {
+      if ((remainder * 100) >= threshold) {
+        charge += fullPrice;
+        rule = (rule ? rule + ' + ' : '') + Math.round(remainder * 100) + '% of next pack, charged as full pack';
+      } else {
+        const proportional = fullPrice * remainder;
+        const partial = Math.min(fullPrice,Math.max(minimum,proportional));
+        charge += partial;
+        rule = (rule ? rule + ' + ' : '') + (proportional < minimum ? ('minimum ' + money(Math.min(fullPrice,minimum)) + ' part-use charge') : (Math.round(remainder * 100) + '% proportional charge'));
+      }
+    }
+    charge = Math.round((charge + Number.EPSILON) * 100) / 100;
+    const sourceCost = Math.max(0,Number(p.cost || 0));
+    const cost = Math.round((sourceCost * ratio + Number.EPSILON) * 100) / 100;
+    return {
+      valid:true, order:order, product:p, charge:charge, cost:cost, ratio:ratio, rule:rule || 'Calculated from catalogue price',
+      packAmount:packAmount, packUnit:so4ChemicalUnit(packUnit), usedAmount:usedAmount, usedUnit:so4ChemicalUnit(usedUnit),
+      minimum:minimum, threshold:threshold, fullPrice:fullPrice
+    };
+  }
+
+  function so4UpdateChemicalPreview() {
+    const preview = document.getElementById('chemicalUsagePreview');
+    if (!preview) return;
+    const button = preview.querySelector('[data-add-chemical-usage]');
+    const title = preview.querySelector('strong');
+    const small = preview.querySelector('small');
+    const calc = so4ChemicalCalculation();
+    if (!calc.valid) {
+      if (title) title.textContent = calc.message || 'Complete the usage details';
+      if (small) small.textContent = 'Pool Shed will calculate the charge from the selected catalogue price.';
+      if (button) button.disabled = true;
+      return;
+    }
+    if (title) title.textContent = money(calc.charge) + ' net';
+    if (small) small.textContent = calc.rule + ' · Full pack ' + money(calc.fullPrice) + ' · Used ' + calc.usedAmount + ' ' + calc.usedUnit + ' from ' + calc.packAmount + ' ' + calc.packUnit;
+    if (button) button.disabled = false;
+  }
+
+  function so4AddChemicalUsageCharge(orderId) {
+    const calc = so4ChemicalCalculation();
+    if (!calc.valid || !calc.order || calc.order.id !== orderId) {
+      if (typeof toast === 'function') toast(calc.message || 'Complete the chemical usage calculator first.');
+      return;
+    }
+    const p = calc.product;
+    const usageText = calc.usedAmount + ' ' + calc.usedUnit + ' used from ' + calc.packAmount + ' ' + calc.packUnit + ' pack';
+    const variantText = usageText + ' · ' + (p.sku || p.code || p.id);
+    const chargeProduct = createNonStockProduct('custom',p.name || 'Chemical usage charge',calc.charge,calc.cost,variantText);
+    calc.order.lines.push({
+      productId:chargeProduct.id,
+      lineType:'custom',
+      chargeType:'chemicalUsage',
+      sourceProductId:p.id,
+      sourceSku:p.sku || p.code || '',
+      customProductName:p.name || 'Chemical usage charge',
+      customVariant:variantText,
+      variantDescription:variantText,
+      description:variantText,
+      note:'Catalogue-linked chemical part-use charge. ' + calc.rule + '. Minimum charge ' + money(calc.minimum) + ' net; full-pack threshold ' + calc.threshold + '%.',
+      qty:1, allocated:1, picked:0, packed:0,
+      unitPrice:calc.charge, unitCost:calc.cost, specialPrice:calc.charge,
+      accountCode:'4000 Merchandise Sales',
+      taxCode:p.taxCode || '20% VAT',
+      chemicalUsage:{
+        sourceProductId:p.id, packAmount:calc.packAmount, packUnit:calc.packUnit,
+        usedAmount:calc.usedAmount, usedUnit:calc.usedUnit,
+        usageRatio:calc.ratio, minimumCharge:calc.minimum, fullPackThreshold:calc.threshold,
+        catalogueFullPrice:calc.fullPrice, calculatedCharge:calc.charge
+      }
+    });
+    addSalesOrderNotification(calc.order,'Chemical usage charge added',(p.name || p.sku || 'Chemical') + ' · ' + usageText + ' · ' + money(calc.charge) + ' net','Internal note');
+    calc.order.status='Needs Review';
+    calc.order.updatedAt=new Date().toISOString();
+    if (saveAppData() === false) {
+      if (typeof toast === 'function') toast('The chemical charge could not be saved. Keep this page open and try again.');
+      return;
+    }
+    if (typeof toast === 'function') toast('Chemical usage charge added to ' + calc.order.id + '.');
+    render();
+  }
 
   function so2FamilyKey(p) {
     return String((p && (p.parentSku || p.parent_sku || p.parentName || p.parent_name || p.familyName || p.family_name)) || (p && p.name) || '').trim().toLowerCase();
@@ -536,6 +768,49 @@
     menu.style.top = top + 'px';
     button.setAttribute('aria-expanded','true');
   }
+
+
+  document.addEventListener('input', function(event) {
+    const search = event.target.closest && event.target.closest('#chemicalUsageSearch');
+    if (search) {
+      search.dataset.selectedProductId = '';
+      const selected = document.getElementById('chemicalUsageSelected');
+      if (selected) selected.hidden = true;
+      so4ChemicalSearchResults(search);
+      so4UpdateChemicalPreview();
+      return;
+    }
+    if (event.target && ['chemicalPackAmount','chemicalUsedAmount','chemicalMinimumCharge','chemicalFullThreshold'].includes(event.target.id)) {
+      so4UpdateChemicalPreview();
+    }
+  });
+
+  document.addEventListener('focusin', function(event) {
+    const search = event.target.closest && event.target.closest('#chemicalUsageSearch');
+    if (search && String(search.value || '').trim()) so4ChemicalSearchResults(search);
+  });
+
+  document.addEventListener('change', function(event) {
+    if (event.target && ['chemicalPackUnit','chemicalUsedUnit'].includes(event.target.id)) so4UpdateChemicalPreview();
+  });
+
+  document.addEventListener('click', function(event) {
+    const productButton = event.target.closest && event.target.closest('[data-so-chemical-product]');
+    if (productButton) {
+      event.preventDefault();
+      so4SelectChemicalProduct(productButton.dataset.soChemicalProduct);
+      return;
+    }
+    const addCharge = event.target.closest && event.target.closest('[data-add-chemical-usage]');
+    if (addCharge) {
+      event.preventDefault();
+      if (!addCharge.disabled) so4AddChemicalUsageCharge(addCharge.dataset.addChemicalUsage);
+      return;
+    }
+    const results = document.getElementById('chemicalUsageResults');
+    const search = document.getElementById('chemicalUsageSearch');
+    if (results && !results.hidden && event.target !== search && !results.contains(event.target)) results.hidden = true;
+  });
 
   document.addEventListener('change',function(event){
     const checkbox=event.target.closest('[data-sales-line-select]');
