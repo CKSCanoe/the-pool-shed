@@ -1653,8 +1653,11 @@ const seed = {
 
       function salesOrderLinePrice(order, line) {
         const p = product(line.productId) || {};
-        if (typeof line.unitPrice === "number") return line.unitPrice;
+        // A deliberately applied Sales Order override must win over the original
+        // line/unit price. This is especially important for custom/non-stock lines:
+        // they are created with unitPrice and can later be repriced from Cost & Margin.
         if (typeof line.specialPrice === "number" && line.specialPrice >= 0) return line.specialPrice;
+        if (typeof line.unitPrice === "number") return line.unitPrice;
         return Number(p[orderPriceList(order)] || p.rrp || 0);
       }
 
@@ -8161,13 +8164,21 @@ const seed = {
 
       function applyMarginPriceToSalesOrder(orderId, productId) {
         const order = salesOrder(orderId);
+        if (!order) return;
         const line = order.lines.find(function(item) { return item.productId === productId; });
         if (!line) return;
         const referencePrice = marginCheckLinePrice(order, line);
-        line.specialPrice = Math.round(referencePrice * 100) / 100;
-        line.priceNote = "Applied from margin check";
-        addSalesOrderNotification(order, "Price applied", product(productId).sku + " sell price changed to " + money(line.specialPrice) + " net from margin check", "Internal note");
-        toast("Reference price applied to " + order.id + ".");
+        const appliedPrice = Math.round(Math.max(0, Number(referencePrice) || 0) * 100) / 100;
+        line.specialPrice = appliedPrice;
+        // Keep custom/non-stock lines internally consistent because other operational
+        // views may legitimately read their stored unitPrice directly.
+        if (isNonStockSalesLine(line)) line.unitPrice = appliedPrice;
+        delete line.marginCheckPrice;
+        line.priceNote = "Applied from Cost & Margin";
+        order.updatedAt = new Date().toISOString();
+        addSalesOrderNotification(order, "Price applied", (product(productId)?.sku || productId) + " sell price changed to " + money(appliedPrice) + " net from Cost & Margin", "Internal note");
+        saveAppData();
+        toast("Price applied to " + order.id + ".");
         render();
       }
 
