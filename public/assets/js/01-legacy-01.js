@@ -7444,7 +7444,7 @@ const seed = {
         const addLineResults = document.getElementById("salesOrderProductResults");
         let salesOrderSearchTimer = 0;
         function scheduleSalesOrderProductSearch(immediate) {
-          if (!addLineInput) return;
+          if (!addLineInput || addLineInput.dataset.soNativeStockSearch === "true") return;
           window.clearTimeout(salesOrderSearchTimer);
           const run=function(){ renderSalesOrderProductResults(addLineInput.dataset.orderId, addLineInput.value); };
           if (immediate) run();

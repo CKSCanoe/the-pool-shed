@@ -480,7 +480,7 @@
   if (typeof renderSalesOrderProductResults === 'function') {
     renderSalesOrderProductResults = function (orderId, query) {
       const input = document.getElementById('salesOrderProductSearch');
-      if (!input || input.dataset.orderId !== orderId) return;
+      if (!input || input.dataset.orderId !== orderId || input.dataset.soNativeStockSearch === 'true') return;
       renderResults(input, query);
     };
   }
@@ -548,20 +548,26 @@
       return;
     }
     const clear = event.target.closest && event.target.closest('[data-so-clear-search]');
-    if (clear) { event.preventDefault(); clearSelection(true); return; }
+    if (clear) {
+      const nativeInput = document.getElementById('salesOrderProductSearch');
+      if (nativeInput && nativeInput.dataset.soNativeStockSearch === 'true') return;
+      event.preventDefault(); clearSelection(true); return;
+    }
     const change = event.target.closest && event.target.closest('[data-so-clear-selection]');
     if (change) { event.preventDefault(); clearSelection(true); return; }
     const example = event.target.closest && event.target.closest('[data-so-search-example]');
     if (example) {
-      event.preventDefault();
       const input = document.getElementById('salesOrderProductSearch');
+      if (input && input.dataset.soNativeStockSearch === 'true') return;
+      event.preventDefault();
       if (input) { clearSelection(true); input.value = example.dataset.soSearchExample; renderResults(input, input.value); }
       return;
     }
     const recent = event.target.closest && event.target.closest('[data-so-show-recent]');
     if (recent) {
-      event.preventDefault();
       const input = document.getElementById('salesOrderProductSearch');
+      if (input && input.dataset.soNativeStockSearch === 'true') return;
+      event.preventDefault();
       if (input) { clearSelection(true); renderResults(input, ''); }
       return;
     }

@@ -175,8 +175,33 @@
   }
 
 
+  function so4StockResultsBox(input) {
+    if (!input) return null;
+    const wrap = input.closest('.so4-search-wrap');
+    const finder = input.closest('.so4-finder-shell');
+    let box = wrap ? wrap.querySelector('#salesOrderProductResults') : null;
+    if (!box && finder) box = finder.querySelector('#salesOrderProductResults');
+    if (!box) {
+      const portal = document.querySelector('body > #salesOrderProductResults');
+      if (portal && wrap) {
+        portal.className = 'so4-chemical-results so4-stock-results';
+        portal.removeAttribute('style');
+        portal.removeAttribute('data-portal');
+        wrap.appendChild(portal);
+        box = portal;
+      }
+    }
+    if (box && wrap && box.parentElement !== wrap) {
+      box.className = 'so4-chemical-results so4-stock-results';
+      box.removeAttribute('style');
+      box.removeAttribute('data-portal');
+      wrap.appendChild(box);
+    }
+    return box;
+  }
+
   function so4StockSearchResults(input) {
-    const box = document.getElementById('salesOrderProductResults');
+    const box = so4StockResultsBox(input);
     if (!input || !box) return;
     const order = salesOrder(input.dataset.orderId);
     const query = String(input.value || '').trim();
@@ -205,7 +230,7 @@
 
   function so4SelectStockProduct(productId) {
     const input = document.getElementById('salesOrderProductSearch');
-    const box = document.getElementById('salesOrderProductResults');
+    const box = so4StockResultsBox(input);
     const selected = document.getElementById('salesOrderSelectedProduct');
     const addButton = document.getElementById('salesOrderAddStockButton');
     const p = product(productId);
@@ -237,7 +262,7 @@
     const input = document.getElementById('salesOrderProductSearch');
     const selected = document.getElementById('salesOrderSelectedProduct');
     const addButton = document.getElementById('salesOrderAddStockButton');
-    const box = document.getElementById('salesOrderProductResults');
+    const box = so4StockResultsBox(input);
     if (!input) return;
     input.dataset.selectedProductId = '';
     input.classList.remove('has-selection');
@@ -853,6 +878,13 @@
     so4StockSearchResults(search);
   }, true);
 
+  document.addEventListener('focus', function(event) {
+    const search = event.target.closest && event.target.closest('#salesOrderProductSearch[data-so-native-stock-search="true"]');
+    if (!search) return;
+    event.stopImmediatePropagation();
+    if (String(search.value || '').trim() && !search.dataset.selectedProductId) so4StockSearchResults(search);
+  }, true);
+
   document.addEventListener('focusin', function(event) {
     const search = event.target.closest && event.target.closest('#salesOrderProductSearch[data-so-native-stock-search="true"]');
     if (!search) return;
@@ -919,8 +951,8 @@
       if (input) input.focus();
       return;
     }
-    const box = document.getElementById('salesOrderProductResults');
     const search = document.getElementById('salesOrderProductSearch');
+    const box = so4StockResultsBox(search);
     if (box && !box.hidden && event.target !== search && !box.contains(event.target)) {
       box.hidden = true;
       if (search) search.setAttribute('aria-expanded','false');

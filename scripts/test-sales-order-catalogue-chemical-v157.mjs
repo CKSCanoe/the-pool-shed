@@ -16,6 +16,10 @@ assert.match(workspace,/id="salesOrderProductResults" class="so4-chemical-result
 assert.match(workspace,/so4-finder-shell so-catalogue-picker/,'production Sales Order finder must be discoverable by the popup search engine');
 assert.match(workspace,/data-so-native-stock-search="true"/,'main Sales Order search must use the native reliable dropdown path');
 assert.match(workspace,/function so4StockSearchResults\(/,'main Sales Order live search renderer missing');
+assert.match(workspace,/function so4StockResultsBox\(/,'native Sales Order search must own an in-place result box');
+assert.match(workspace,/body > #salesOrderProductResults/,'native Sales Order search must recover a stale portal back into the finder');
+assert.match(legacy,/if \(!addLineInput \|\| addLineInput\.dataset\.soNativeStockSearch === "true"\) return;/,'legacy Sales Order search must not render recent products for the native picker');
+assert.match(search,/input\.dataset\.soNativeStockSearch === 'true'\) return;\n      renderResults\(input, query\);/,'compatibility search renderer must yield to native picker');
 assert.match(workspace,/data-so-stock-product=/,'main Sales Order search results must be selectable');
 assert.match(search,/input\.dataset\.soNativeStockSearch === 'true'/,'legacy search engine must yield to the native Sales Order dropdown');
 assert.match(search,/slice\(0, 10\)\.map/,'typed product search should stay compact and show only the best matches');
