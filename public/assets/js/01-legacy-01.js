@@ -905,19 +905,24 @@ const seed = {
 
       async function ensureSharedWorkspaceAccess() {
         if (!supabaseSession || !supabaseSession.access_token) return false;
-        try {
-          const response = await fetch("/api/workspace-access?workspace=" + encodeURIComponent(WORKSPACE_ID), {
-            method: "POST",
-            credentials: "same-origin",
-            headers: { Authorization: "Bearer " + supabaseSession.access_token }
-          });
-          const result = await response.json().catch(function(){ return {}; });
-          if (!response.ok) throw new Error(result.error || "Shared workspace access could not be verified.");
-          return true;
-        } catch (error) {
-          console.warn("Shared workspace enrolment failed", error);
-          return false;
+        let lastError = null;
+        for (let attempt = 0; attempt < 3; attempt += 1) {
+          try {
+            const response = await fetch("/api/workspace-access?workspace=" + encodeURIComponent(WORKSPACE_ID), {
+              method: "POST",
+              credentials: "same-origin",
+              headers: { Authorization: "Bearer " + supabaseSession.access_token }
+            });
+            const result = await response.json().catch(function(){ return {}; });
+            if (!response.ok) throw new Error(result.error || "Shared workspace access could not be verified.");
+            return true;
+          } catch (error) {
+            lastError = error;
+            if (attempt < 2) await new Promise(function(resolve){ setTimeout(resolve, 350 * (attempt + 1)); });
+          }
         }
+        console.warn("Shared workspace enrolment failed", lastError);
+        return false;
       }
 
       function preserveUnsyncedWorkspaceRecovery(reason) {
@@ -976,38 +981,61 @@ const seed = {
       async function loadRemoteWorkspace() {
         if (localStorage.getItem("poolshed:v172:recoveryHold") === "1") return true;
         if (!supabaseClient || !supabaseSession) return false;
-        try {
-          const response = await supabaseClient.from("workspace_snapshots").select("data,updated_at").eq("workspace_id", WORKSPACE_ID).maybeSingle();
-          if (response.error) throw response.error;
-          if (!response.data || !response.data.data) {
-            console.warn("Shared workspace is not initialised. Local data was not uploaded automatically.");
-            return false;
-          }
 
-          const pending = localStorage.getItem("poolshed:v172:pendingSync") === "1";
-          const localBaseRevision = localStorage.getItem("poolshed:v172:remoteRevision") || null;
-          const remoteRevision = response.data.updated_at || null;
+        // Reconfirm server-side membership before reading. This is deliberately
+        // idempotent and prevents a refresh from racing workspace enrolment.
+        const accessReady = await ensureSharedWorkspaceAccess();
+        if (!accessReady) return false;
 
-          // Pending edits are allowed to upload only when they were made from
-          // exactly the same server revision. Unknown or stale browser state
-          // is preserved as recovery instead of overwriting the shared master.
-          if (pending && localBaseRevision && localBaseRevision === remoteRevision) {
-            remoteWorkspaceUpdatedAt = remoteRevision;
-            if (await saveRemoteWorkspace(true)) return true;
-            return false;
+        let response = null;
+        let lastError = null;
+        for (let attempt = 0; attempt < 3; attempt += 1) {
+          try {
+            response = await supabaseClient.from("workspace_snapshots").select("data,updated_at").eq("workspace_id", WORKSPACE_ID).maybeSingle();
+            if (response.error) throw response.error;
+            if (response.data && response.data.data) break;
+            throw new Error("Shared workspace master is unavailable.");
+          } catch (error) {
+            lastError = error;
+            response = null;
+            if (attempt < 2) await new Promise(function(resolve){ setTimeout(resolve, 400 * (attempt + 1)); });
           }
+        }
 
-          if (pending) {
-            let recoveryKey = preserveUnsyncedWorkspaceRecovery("stale-local-workspace-on-sign-in");
-            if (!recoveryKey) recoveryKey = await preserveLargeWorkspaceRecovery("stale-local-workspace-on-sign-in");
-            localStorage.removeItem("poolshed:v172:pendingSync");
-            if (recoveryKey) toast("Shared workspace loaded. Unsynced browser changes were kept in Recovery.");
-          }
-          return applyRemoteWorkspaceSnapshot(response.data, false);
-        } catch (error) {
-          console.warn("Remote workspace load failed", error);
+        if (!response || !response.data || !response.data.data) {
+          console.warn("Remote workspace load failed", lastError || new Error("Shared workspace master is unavailable."));
           return false;
         }
+
+        const pending = localStorage.getItem("poolshed:v172:pendingSync") === "1";
+        const localBaseRevision = localStorage.getItem("poolshed:v172:remoteRevision") || null;
+        const remoteRevision = response.data.updated_at || null;
+
+        // If local work was based on this exact master, try to publish it first.
+        // A failed upload must NOT masquerade as an account-permission failure.
+        // Preserve the local work in Recovery, then open the verified server master.
+        if (pending && localBaseRevision && localBaseRevision === remoteRevision) {
+          remoteWorkspaceUpdatedAt = remoteRevision;
+          if (await saveRemoteWorkspace(true)) return true;
+
+          let recoveryKey = preserveUnsyncedWorkspaceRecovery("shared-upload-incomplete-on-sign-in");
+          if (!recoveryKey) recoveryKey = await preserveLargeWorkspaceRecovery("shared-upload-incomplete-on-sign-in");
+          localStorage.removeItem("poolshed:v172:pendingSync");
+          workspaceSyncConflict = false;
+          await applyRemoteWorkspaceSnapshot(response.data, false);
+          if (recoveryKey) toast("Shared master loaded. Your unsynced browser changes were kept safely in Recovery.");
+          return true;
+        }
+
+        // Stale or unknown pending work is never allowed to overwrite a newer server master.
+        if (pending) {
+          let recoveryKey = preserveUnsyncedWorkspaceRecovery("stale-local-workspace-on-sign-in");
+          if (!recoveryKey) recoveryKey = await preserveLargeWorkspaceRecovery("stale-local-workspace-on-sign-in");
+          localStorage.removeItem("poolshed:v172:pendingSync");
+          if (recoveryKey) toast("Shared workspace loaded. Unsynced browser changes were kept in Recovery.");
+        }
+
+        return applyRemoteWorkspaceSnapshot(response.data, false);
       }
 
       async function saveRemoteWorkspace(force) {
@@ -2351,7 +2379,8 @@ const seed = {
           update: { eyebrow: "Account recovery", heading: "Choose a new password", intro: "Create a new password for your Pool Shed account." },
           mfa: { eyebrow: "Extra verification", heading: "Enter your security code", intro: "Open your authenticator app and enter the 6-digit code to finish signing in." },
           session: { eyebrow: "Session ended", heading: "Sign in again", intro: "Your previous session has ended. Sign in again to continue securely." },
-          denied: { eyebrow: "Access unavailable", heading: "You cannot access this workspace", intro: "Your identity was verified, but this account is not currently permitted to enter Pool Shed." }
+          denied: { eyebrow: "Access unavailable", heading: "You cannot access this workspace", intro: "Your identity was verified, but this account is not currently permitted to enter Pool Shed." },
+          workspace: { eyebrow: "Workspace protection", heading: "Pool Shed could not confirm the shared master", intro: "Your identity is valid. Pool Shed has paused opening the workspace rather than risk loading or overwriting the wrong copy." }
         };
         const meta = modeMeta[effectiveMode] || modeMeta.login;
         let fields = "";
@@ -2365,6 +2394,8 @@ const seed = {
           fields = '<label class="ps-login-label">Authenticator code<input id="loginMfaCode" class="ps-login-code" inputmode="numeric" autocomplete="one-time-code" pattern="[0-9]{6}" maxlength="6" required placeholder="000000"></label><button class="ps-login-primary" type="submit">Verify and continue</button>';
         } else if (effectiveMode === "denied") {
           fields = '<div class="ps-login-denied"><strong>Access has not been granted.</strong><span>Contact your Pool Shed administrator if you believe this is incorrect.</span></div><button class="ps-login-primary" type="button" data-login-mode="login">Return to sign in</button>';
+        } else if (effectiveMode === "workspace") {
+          fields = '<div class="ps-login-denied"><strong>The shared workspace is temporarily unavailable.</strong><span>Your browser data has not been overwritten. Pool Shed will retry the verified shared master before allowing work to continue.</span></div><button class="ps-login-primary" type="button" data-workspace-retry>Retry shared workspace</button><button class="ps-login-secondary" type="button" data-login-mode="login">Return to sign in</button>';
         } else {
           fields = '<label class="ps-login-label">Work email<input id="loginEmail" type="email" autocomplete="email" required placeholder="name@poolbros.co.uk" value="' + escapeHtml(loginSelectedEmail || "") + '"></label><label class="ps-login-label">Password<div class="ps-login-input-wrap"><input id="loginPassword" type="password" autocomplete="current-password" required placeholder="Enter your password"><button class="ps-login-password-toggle" type="button" data-login-password-toggle aria-label="Show password">Show</button></div></label><button class="ps-login-primary" type="submit">Sign in</button>';
         }
@@ -2372,7 +2403,7 @@ const seed = {
           ? '<span>Pool Bros staff only</span><button class="ps-login-link" type="button" data-login-mode="forgot">Forgot password?</button>'
           : effectiveMode === "mfa"
             ? '<button class="ps-login-link" type="button" data-login-cancel-mfa>Use a different account</button><span>Authenticator verification</span>'
-            : effectiveMode === "denied" ? '<span></span>' : '<button class="ps-login-link" type="button" data-login-mode="login">Back to sign in</button><span></span>';
+            : effectiveMode === "denied" || effectiveMode === "workspace" ? '<span></span>' : '<button class="ps-login-link" type="button" data-login-mode="login">Back to sign in</button><span></span>';
         screen.innerHTML = '<main class="ps-login-stage"><section class="ps-login-shell"><aside class="ps-login-brand"><div><div class="ps-login-lockup"><span class="ps-login-logo"><img src="' + DEFAULT_POOL_BROS_LOGO + '" alt="Pool Bros logo"></span><div><span class="ps-login-kicker">Pool Bros</span><strong>THE POOL SHED</strong></div></div><div class="ps-login-hero"><span class="ps-login-kicker">Operations Command System</span><h1>One secure place to <span>run the operation.</span></h1><p>Secure access to the Pool Bros operations workspace. Sign in to continue to your authorised tools, tasks and information.</p></div></div><div class="ps-login-staff-note"><strong>Pool Bros staff access</strong><span>Your workspace and available tools are tailored to your account after sign-in.</span></div></aside><section class="ps-login-auth"><div class="ps-login-card"><div class="ps-login-card-head"><span class="ps-login-kicker">' + escapeHtml(meta.eyebrow) + '</span><h2>' + escapeHtml(meta.heading) + '</h2><p>' + escapeHtml(meta.intro) + '</p></div><form id="loginForm">' + fields + '<div id="loginMessage" class="ps-login-message' + (good ? ' good' : '') + '">' + escapeHtml(message || '') + '</div></form><div class="ps-login-helper">' + helper + '</div></div></section></section><footer class="ps-login-footer">Pool Shed v1.45.1 · Pool Bros Ltd</footer></main>';
         bindLoginScreen(effectiveMode);
       }
@@ -2419,10 +2450,9 @@ const seed = {
         if (!sharedLoaded) {
           sharedWorkspaceReady = false;
           stopSharedWorkspaceLiveSync();
-          isAuthenticated = false;
-          showLogin("denied", isAdminUser()
-            ? "The shared Pool Shed master could not be loaded. Your browser data has NOT been overwritten. Open /recovery.html as Admin to audit or publish the verified master before anyone continues working."
-            : "The shared Pool Shed master could not be loaded, so Pool Shed has not opened a separate browser copy. Please ask an Admin to check the shared workspace.");
+          showLogin("workspace", isAdminUser()
+            ? "The shared Pool Shed master could not be loaded after retrying. Your browser data has NOT been overwritten."
+            : "The shared Pool Shed master could not be loaded after retrying. No separate browser copy has been opened.");
           return false;
         }
         startSharedWorkspaceLiveSync();
@@ -2432,6 +2462,20 @@ const seed = {
 
       function bindLoginScreen(mode) {
         document.querySelectorAll("[data-login-mode]").forEach(function(button) { button.addEventListener("click", function() { showLogin(button.dataset.loginMode); }); });
+        const workspaceRetry = document.querySelector("[data-workspace-retry]");
+        if (workspaceRetry) workspaceRetry.addEventListener("click", async function() {
+          workspaceRetry.disabled = true;
+          const messageEl = document.getElementById("loginMessage");
+          if (messageEl) messageEl.textContent = "Checking the verified shared workspace…";
+          try {
+            const sharedLoaded = await loadRemoteWorkspace();
+            if (!sharedLoaded) return showLogin("workspace", "The shared master is still unavailable. Nothing in this browser has been overwritten.");
+            startSharedWorkspaceLiveSync();
+            showApp();
+          } catch (error) {
+            showLogin("workspace", "The shared master is still unavailable. Nothing in this browser has been overwritten.");
+          }
+        });
         const cancelMfa = document.querySelector("[data-login-cancel-mfa]");
         if (cancelMfa) cancelMfa.addEventListener("click", async function() {
           loginMfaFactorId = "";
@@ -2486,10 +2530,9 @@ const seed = {
               if (!sharedLoaded) {
                 sharedWorkspaceReady = false;
                 stopSharedWorkspaceLiveSync();
-                isAuthenticated = false;
-                return showLogin("denied", isAdminUser()
-                  ? "The shared Pool Shed master could not be loaded. Your browser data has NOT been overwritten. Open /recovery.html as Admin to audit or publish the verified master."
-                  : "The shared Pool Shed master could not be loaded. Please ask an Admin to check the shared workspace.");
+                return showLogin("workspace", isAdminUser()
+                  ? "The shared Pool Shed master could not be loaded after retrying. Your browser data has NOT been overwritten."
+                  : "The shared Pool Shed master could not be loaded after retrying. No separate browser copy has been opened.");
               }
               startSharedWorkspaceLiveSync();
               return showApp();
