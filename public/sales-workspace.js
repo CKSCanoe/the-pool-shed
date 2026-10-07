@@ -76,7 +76,7 @@
       '<div class="so4-finder-copy"><div><span class="so2-kicker">Connected product catalogue</span><strong>Add a stock-controlled item</strong><small>Start typing and useful products appear immediately. Search family, exact variant, SKU, barcode, size or common trade wording.</small></div>' +
         '<span class="so4-catalogue-ready">● Catalogue ready · ' + (data.products || []).filter(function(p){return p && p.active !== false && !p.deleted && !p.archived && !p.hiddenFromCatalogue;}).length + ' items</span></div>' +
       '<div class="so4-finder-controls">' +
-        '<div class="so4-search-field"><label for="salesOrderProductSearch">Find product, variant, SKU, barcode or keyword</label><div class="so4-search-wrap"><span aria-hidden="true">⌕</span><input id="salesOrderProductSearch" data-order-id="' + escapeHtml(order.id) + '" data-so-native-stock-search="true" autocomplete="off" spellcheck="true" aria-autocomplete="list" aria-controls="salesOrderProductResults" aria-expanded="false" placeholder="Try product name, SKU, barcode, size or keyword"><button type="button" class="secondary so4-clear-search" data-so-clear-search>Clear</button><div id="salesOrderProductResults" class="so4-stock-results" role="listbox" hidden></div></div></div>' +
+        '<div class="so4-search-field"><label for="salesOrderProductSearch">Find product, variant, SKU, barcode or keyword</label><div class="so4-search-wrap"><span aria-hidden="true">⌕</span><input id="salesOrderProductSearch" data-order-id="' + escapeHtml(order.id) + '" data-so-native-stock-search="true" autocomplete="off" spellcheck="true" aria-autocomplete="list" aria-controls="salesOrderProductResults" aria-expanded="false" placeholder="Try product name, SKU, barcode, size or keyword"><button type="button" class="secondary so4-clear-search" data-so-clear-search>Clear</button><div id="salesOrderProductResults" class="so4-chemical-results so4-stock-results" role="listbox" hidden></div></div></div>' +
         '<label class="so4-qty-field"><span>Quantity</span><input id="salesOrderProductQty" type="number" min="1" value="1"></label>' +
         '<button type="button" id="salesOrderAddStockButton" class="primary-action so4-add-selected" data-add-line-order="' + escapeHtml(order.id) + '" disabled>Add selected item</button>' +
         '<button type="button" class="secondary so4-add-multiple" data-open-so-batch="' + escapeHtml(order.id) + '">Add multiple items</button>' +
@@ -191,16 +191,14 @@
       const price = order ? salesOrderLinePrice(order,{productId:p.id,qty:1}) : Number(p.rrp || 0);
       const stock = typeof salesOrderProductStockInfo === 'function'
         ? salesOrderProductStockInfo(p)
-        : { available:0, onHand:0, cls:'bad' };
+        : { available:0, onHand:0 };
       const variant = typeof salesOrderVariantMeta === 'function' ? salesOrderVariantMeta(p) : '';
-      const meta = [p.sku || p.code, variant, p.category || ''].filter(Boolean).join(' · ');
-      const stockText = Number(stock.available || 0) + ' free' + (stock.onHand != null ? ' · ' + Number(stock.onHand || 0) + ' on hand' : '');
-      return '<button type="button" role="option" data-so-stock-product="' + escapeHtml(p.id) + '">' +
-        '<span class="so4-stock-result-copy"><strong>' + escapeHtml(p.name || p.parentName || 'Catalogue product') + '</strong><small>' + escapeHtml(meta) + '</small></span>' +
-        '<span class="so4-stock-result-stock ' + escapeHtml(stock.cls || '') + '"><strong>' + escapeHtml(stockText) + '</strong><small>' + escapeHtml(p.supplier || p.brand || 'Catalogue item') + '</small></span>' +
-        '<b>' + money(price) + '<small> net</small></b>' +
-      '</button>';
-    }).join('') : '<div class="so4-stock-empty"><strong>No matching catalogue product</strong><span>Try the product name, SKU, barcode, variant or pack size.</span></div>';
+      const stockText = Number(stock.available || 0) + ' free';
+      const meta = [p.sku || p.code, variant, p.category || '', stockText].filter(Boolean).join(' · ');
+      return '<button type="button" role="option" data-so-stock-product="' + escapeHtml(p.id) + '"><span><strong>' +
+        escapeHtml(p.name || p.parentName || 'Catalogue product') + '</strong><small>' + escapeHtml(meta) +
+        '</small></span><b>' + money(price) + ' net</b></button>';
+    }).join('') : '<div class="so4-chemical-empty so4-stock-empty"><strong>No matching catalogue product</strong><span>Try the product name, SKU, barcode, variant or pack size.</span></div>';
     box.hidden = false;
     input.setAttribute('aria-expanded','true');
   }

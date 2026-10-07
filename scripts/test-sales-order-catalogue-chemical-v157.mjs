@@ -12,7 +12,7 @@ assert.match(legacy,/so-batch-top-commit/,'multi-item picker must expose an alwa
 assert.match(legacy,/order\.updatedAt = new Date\(\)\.toISOString\(\);\n        if \(saveAppData\(\) === false\)/,'single catalogue item must persist before render');
 assert.match(legacy,/function addBatchProductsToSalesOrder[\s\S]*if \(saveAppData\(\) === false\)/,'bulk catalogue additions must persist before render');
 
-assert.match(workspace,/id="salesOrderProductResults" class="so4-stock-results"/,'Sales Order search must render a live dropdown while typing');
+assert.match(workspace,/id="salesOrderProductResults" class="so4-chemical-results so4-stock-results"/,'Sales Order search must reuse the Chemical Part-Use dropdown presentation');
 assert.match(workspace,/so4-finder-shell so-catalogue-picker/,'production Sales Order finder must be discoverable by the popup search engine');
 assert.match(workspace,/data-so-native-stock-search="true"/,'main Sales Order search must use the native reliable dropdown path');
 assert.match(workspace,/function so4StockSearchResults\(/,'main Sales Order live search renderer missing');
@@ -26,7 +26,8 @@ assert.match(workspace,/id="chemicalFullThreshold"[^>]*value="90"/,'full-pack th
 assert.match(workspace,/chargeType:'chemicalUsage'/,'chemical usage must remain identifiable on the sales line');
 assert.match(css,/body>\.so-batch-drawer/,'portalised multi-item picker viewport guard missing');
 assert.match(css,/\.so4-chemical-results/,'chemical suggestion popup styling missing');
-assert.match(css,/\.so4-stock-results/,'main Sales Order live suggestion dropdown styling missing');
+assert.match(css,/stock search deliberately reuses the Chemical Part-Use/,'main Sales Order search must intentionally inherit Chemical Part-Use styling');
+assert.doesNotMatch(css,/so4-stock-results button\s*\{[\s\S]*grid-template-columns/,'main Sales Order search must not have a separate multi-column result design');
 
 const start=workspace.indexOf('  function so4ChemicalUnit(');
 const end=workspace.indexOf('  function so4UpdateChemicalPreview()',start);
