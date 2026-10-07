@@ -513,3 +513,145 @@ body #salesOrderProductResults .is-selected{
 #screen-salesorders .so2-line-row.line-row-bad td{background:var(--color-status-danger-bg)!important}
 #screen-salesorders .so2-line-row.line-row-warn td:first-child{box-shadow:inset 3px 0 0 var(--shadow-color)!important}
 #screen-salesorders .so2-line-row.line-row-bad td:first-child{box-shadow:inset 3px 0 0 var(--shadow-color)!important}
+
+/* Sales Order line table: all commercial columns stay visible.
+   The previous compact rule hid Qty / Allocated / Line Total / Actions, which
+   made multi-quantity orders impossible to read correctly. */
+#screen-salesorders .sales-workspace .so2-lines-table :is(th,td):nth-child(5),
+#screen-salesorders .sales-workspace .so2-lines-table :is(th,td):nth-child(6),
+#screen-salesorders .sales-workspace .so2-lines-table :is(th,td):nth-child(9),
+#screen-salesorders .sales-workspace .so2-lines-table :is(th,td):nth-child(10){
+  display:table-cell!important
+}
+#screen-salesorders .sales-workspace .so2-table-scroll{
+  overflow-x:auto!important;
+  overflow-y:visible!important;
+  scrollbar-gutter:stable;
+}
+#screen-salesorders .sales-workspace .so2-lines-table{
+  width:100%!important;
+  min-width:1260px!important;
+  table-layout:fixed!important;
+}
+#screen-salesorders .sales-workspace .so2-lines-table :is(th,td):nth-child(1){width:42px!important}
+#screen-salesorders .sales-workspace .so2-lines-table :is(th,td):nth-child(2){width:245px!important}
+#screen-salesorders .sales-workspace .so2-lines-table :is(th,td):nth-child(3){width:285px!important}
+#screen-salesorders .sales-workspace .so2-lines-table :is(th,td):nth-child(4){width:170px!important}
+#screen-salesorders .sales-workspace .so2-lines-table :is(th,td):nth-child(5){width:82px!important;text-align:center!important}
+#screen-salesorders .sales-workspace .so2-lines-table :is(th,td):nth-child(6){width:92px!important;text-align:center!important}
+#screen-salesorders .sales-workspace .so2-lines-table :is(th,td):nth-child(7){width:92px!important}
+#screen-salesorders .sales-workspace .so2-lines-table :is(th,td):nth-child(8){width:62px!important;text-align:center!important}
+#screen-salesorders .sales-workspace .so2-lines-table :is(th,td):nth-child(9){width:108px!important}
+#screen-salesorders .sales-workspace .so2-lines-table :is(th,td):nth-child(10){width:60px!important;text-align:center!important}
+
+#screen-salesorders .sales-workspace .so2-lines-table thead th{
+  height:38px!important;
+  padding:0 9px!important;
+  vertical-align:middle!important;
+}
+#screen-salesorders .sales-workspace .so2-lines-table td{
+  padding:10px 9px!important;
+  vertical-align:middle!important;
+}
+#screen-salesorders .sales-workspace .so5-line-product{
+  grid-template-columns:46px minmax(0,1fr)!important;
+  gap:10px!important;
+}
+#screen-salesorders .sales-workspace .so5-line-product-copy>strong{
+  font-size:11px!important;
+  line-height:1.3!important;
+}
+#screen-salesorders .sales-workspace .so5-line-product-copy>small{
+  margin-top:3px!important;
+  line-height:1.3!important;
+}
+#screen-salesorders .sales-workspace .so2-variant-cell{
+  min-width:0!important;
+}
+#screen-salesorders .sales-workspace .so2-variant-static strong,
+#screen-salesorders .sales-workspace .so2-variant-control select{
+  overflow:hidden!important;
+  text-overflow:ellipsis!important;
+  white-space:nowrap!important;
+}
+#screen-salesorders .sales-workspace .so2-stock-cell{
+  line-height:1.3!important;
+}
+#screen-salesorders .sales-workspace .so2-stock-cell>strong{
+  display:block!important;
+  font-size:10px!important;
+}
+#screen-salesorders .sales-workspace .so2-stock-cell>small{
+  display:block!important;
+  margin-top:3px!important;
+  white-space:normal!important;
+  line-height:1.3!important;
+}
+#screen-salesorders .sales-workspace .so2-qty-cell{
+  background:var(--color-surface-default)!important;
+}
+#screen-salesorders .sales-workspace .so2-qty-editor{
+  display:grid!important;
+  justify-items:center!important;
+  gap:4px!important;
+  margin:0!important;
+}
+#screen-salesorders .sales-workspace .so2-qty{
+  width:62px!important;
+  height:36px!important;
+  min-height:36px!important;
+  padding:0 6px!important;
+  border:1px solid var(--color-border-default)!important;
+  border-radius:6px!important;
+  background:var(--color-surface-default)!important;
+  color:var(--color-text-primary)!important;
+  font-size:12px!important;
+  font-weight:900!important;
+  text-align:center!important;
+}
+#screen-salesorders .sales-workspace .so2-qty:hover{
+  border-color:var(--color-text-secondary)!important;
+}
+#screen-salesorders .sales-workspace .so2-qty:focus{
+  border-color:var(--color-action-ink)!important;
+  box-shadow:var(--focus-ring)!important;
+  outline:0!important;
+}
+#screen-salesorders .sales-workspace .so2-qty-editor>small,
+#screen-salesorders .sales-workspace .so2-allocated>small,
+#screen-salesorders .sales-workspace .so2-unit-net>small,
+#screen-salesorders .sales-workspace .so2-vat>small,
+#screen-salesorders .sales-workspace .so5-line-total>small{
+  display:block!important;
+  margin-top:3px!important;
+  color:var(--color-text-secondary)!important;
+  font-size:8px!important;
+  font-weight:700!important;
+  line-height:1.2!important;
+  white-space:nowrap!important;
+}
+#screen-salesorders .sales-workspace .so2-allocated>strong,
+#screen-salesorders .sales-workspace .so2-unit-net>strong,
+#screen-salesorders .sales-workspace .so2-vat>strong,
+#screen-salesorders .sales-workspace .so5-line-total>strong{
+  display:block!important;
+  font-size:11px!important;
+  line-height:1.2!important;
+}
+#screen-salesorders .sales-workspace .so5-line-total>strong{
+  font-size:12px!important;
+}
+#screen-salesorders .sales-workspace .so2-actions-cell{
+  width:60px!important;
+}
+#screen-salesorders .sales-workspace .so2-menu-button{
+  width:38px!important;
+  height:32px!important;
+  min-height:32px!important;
+}
+
+@media(max-width:1180px){
+  #screen-salesorders .sales-workspace .so2-lines-table{
+    min-width:1260px!important;
+  }
+}

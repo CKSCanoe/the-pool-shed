@@ -23,6 +23,7 @@ run_node_stage "workspace and sales safety" \
   test-large-workspace-persistence-v1452.mjs \
   test-sales-order-safety-hotfix.mjs \
   test-sales-order-catalogue-chemical-v157.mjs \
+  test-sales-order-quantity-layout-v158.mjs \
   test-sales-order-line-delete-v147.mjs \
   test-sales-order-entry-cards-v147.mjs \
   test-sales-order-unification-v149.mjs \

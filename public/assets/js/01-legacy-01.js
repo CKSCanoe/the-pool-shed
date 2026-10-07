@@ -7808,22 +7808,30 @@ const seed = {
 
       function updateSalesOrderLineNumber(orderId, productId, field, value) {
         const order = salesOrder(orderId);
+        if (!order) return;
         const line = order.lines.find(function(item) { return item.productId === productId; });
+        if (!line) return;
         const numericValue = Math.max(0, Number(value) || 0);
         const next = Math.floor(numericValue);
         if (field === "unitSell") {
           line.marginCheckPrice = Math.round(numericValue * 100) / 100;
+          order.updatedAt = new Date().toISOString();
+          saveAppData();
           toast("Reference margin price updated on " + order.id + ".");
           render();
           return;
         }
         if (field === "qty") {
+          const previousQty = Number(line.qty || 0);
           line.qty = next;
           if (isNonStockSalesLine(line)) line.allocated = next;
           else if (line.allocated > next) releaseAllocatedStockForLine(order, line, line.allocated - next, "Allocation Release");
           if (line.picked > next) line.picked = next;
           if (line.packed > next) line.packed = next;
           syncSalesOrderStatusFromGoodsNotes(order);
+          order.updatedAt = new Date().toISOString();
+          addSalesOrderNotification(order, "Quantity updated", (product(productId)?.sku || productId) + " changed from " + previousQty + " to " + next + " unit" + (next === 1 ? "" : "s"), "Internal note");
+          saveAppData();
           toast("Qty updated on " + order.id + ".");
           render();
           return;
@@ -7847,6 +7855,8 @@ const seed = {
             releaseAllocatedStockForLine(order, line, Math.abs(diff), "Unallocation");
           }
           syncSalesOrderStatusFromGoodsNotes(order);
+          order.updatedAt = new Date().toISOString();
+          saveAppData();
           toast("Allocation updated on " + order.id + ".");
           render();
         }

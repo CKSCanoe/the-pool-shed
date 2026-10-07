@@ -489,7 +489,8 @@
       const stockInfo = nonStock ? null : salesOrderProductStockInfo(p);
       const unitNet = salesOrderLinePrice(order, line);
       const vatRate = vatRateForLine(line);
-      const lineGross = (unitNet * Number(line.qty || 0)) * (1 + vatRate);
+      const lineNet = unitNet * Number(line.qty || 0);
+      const lineGross = lineNet * (1 + vatRate);
       const family = nonStock ? so2CustomProductName(line,p) : salesOrderProductFamily(p);
       const locked = Number(line.allocated||0) > 0 || Number(line.picked||0) > 0 || Number(line.packed||0) > 0 || Number(line.shipped||0) > 0 ||
         goodsNotesForOrder(order.id).some(function(note){ return note.lines.some(function(nl){ return nl.productId === line.productId; }); });
@@ -501,11 +502,11 @@
         '<td class="so2-product-cell"><div class="so5-line-product">' + so5ProductThumb(p) + '<div class="so5-line-product-copy"><strong>' + escapeHtml(family) + '</strong><small>' + escapeHtml(nonStock ? (line.lineType === 'shipping' ? 'Non-stock delivery charge' : 'Custom / non-stock') : (p.name || p.brand || p.category || 'Catalogue product')) + '</small>' + (!nonStock ? '<button type="button" class="link-button" data-open-product="' + escapeHtml(p.id) + '">View product</button>' : '') + '</div></div></td>' +
         '<td class="so2-variant-cell">' + so2VariantSelect(order,line,p,locked) + '</td>' +
         '<td class="so2-stock-cell">' + (nonStock ? '<span class="muted">Not stock controlled</span>' : '<strong class="' + (coverage.free > 0 ? 'so2-stock-good' : 'so2-stock-warn') + '">' + coverage.free + ' free</strong><small>' + escapeHtml(stockInfo ? stockInfo.location : allocationSourceLabel(order.id)) + ' · ' + (stockInfo ? stockInfo.onHand : 0) + ' physical' + (coverage.onPo ? ' · ' + coverage.onPo + ' on PO' : '') + '</small>') + '</td>' +
-        '<td><input class="qty-input so2-qty" data-line-field="' + order.id + '|' + line.productId + '|qty" type="number" min="0" value="' + Number(line.qty||0) + '"></td>' +
-        '<td class="so2-allocated"><strong>' + (nonStock ? '—' : Number(line.allocated||0) + ' / ' + Number(line.qty||0)) + '</strong><small>' + (nonStock ? 'Not required' : (Number(line.allocated||0) ? 'Allocated' : 'Not allocated')) + '</small></td>' +
-        '<td class="right so2-money"><strong>' + so2Money(unitNet) + '</strong><small>net unit</small></td>' +
-        '<td class="so2-vat">' + Math.round(vatRate*100) + '%</td>' +
-        '<td class="right so2-money so5-line-total"><strong>' + so2Money(lineGross) + '</strong><small>inc VAT</small></td>' +
+        '<td class="so2-qty-cell"><label class="so2-qty-editor"><span class="sr-only">Quantity for ' + escapeHtml(family) + '</span><input class="qty-input so2-qty" data-line-field="' + order.id + '|' + line.productId + '|qty" type="number" min="0" step="1" inputmode="numeric" value="' + Number(line.qty||0) + '"><small>' + (Number(line.qty||0) === 1 ? 'unit' : 'units') + '</small></label></td>' +
+        '<td class="so2-allocated"><strong>' + (nonStock ? '—' : Number(line.allocated||0) + ' / ' + Number(line.qty||0)) + '</strong><small>' + (nonStock ? 'Not required' : (Number(line.allocated||0) ? 'allocated' : 'not allocated')) + '</small></td>' +
+        '<td class="right so2-money so2-unit-net"><strong>' + so2Money(unitNet) + '</strong><small>net each</small></td>' +
+        '<td class="so2-vat"><strong>' + Math.round(vatRate*100) + '%</strong><small>VAT</small></td>' +
+        '<td class="right so2-money so5-line-total"><strong>' + so2Money(lineGross) + '</strong><small>' + so2Money(lineNet) + ' net</small></td>' +
         '<td class="so2-actions-cell"><button type="button" class="secondary so2-menu-button" data-so2-line-menu="' + menuId + '" aria-haspopup="menu" aria-expanded="false">•••</button>' +
           '<div id="' + menuId + '" class="so2-line-menu" data-so2-menu role="menu" hidden>' +
             (!nonStock ? '<button type="button" role="menuitem" data-allocate-line="' + order.id + '|' + line.productId + '">Allocate</button><button type="button" role="menuitem" data-unallocate-line="' + order.id + '|' + line.productId + '">Unallocate</button><button type="button" role="menuitem" data-open-product="' + escapeHtml(p.id) + '">View product</button><button type="button" role="menuitem" data-so-tab="fulfilment">Fulfilment details</button><div class="so2-menu-separator"></div>' : '') +
