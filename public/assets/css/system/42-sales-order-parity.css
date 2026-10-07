@@ -574,3 +574,30 @@ body>.so-batch-backdrop{position:fixed!important;inset:0!important}
 #screen-salesorders .so4-selected-product strong{font-size:10px}
 #screen-salesorders .so4-selected-product span{color:var(--color-text-secondary);font-size:8px}
 #screen-salesorders .so4-selected-product button{margin-left:auto}
+/* CRM customer discount visibility on Sales Orders. */
+#screen-salesorders .so2-customer-badges{
+  display:flex;
+  align-items:center;
+  gap:6px;
+  flex-wrap:wrap;
+  margin-left:auto;
+}
+#screen-salesorders .so2-totals-body .so2-subtotal-before-discount{
+  color:var(--color-text-secondary)!important;
+}
+#screen-salesorders .so2-totals-body .so2-discount-row{
+  margin:2px -6px;
+  padding:7px 6px!important;
+  border:1px solid var(--color-status-success-line)!important;
+  border-radius:5px;
+  background:var(--color-status-success-bg)!important;
+}
+#screen-salesorders .so2-totals-body .so2-discount-row span,
+#screen-salesorders .so2-totals-body .so2-discount-row strong{
+  color:var(--color-status-success-text)!important;
+  font-weight:900!important;
+}
+#screen-salesorders .so2-unit-net small{
+  white-space:normal!important;
+  line-height:1.25!important;
+}

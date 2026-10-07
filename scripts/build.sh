@@ -25,6 +25,7 @@ run_node_stage "workspace and sales safety" \
   test-sales-order-catalogue-chemical-v157.mjs \
   test-sales-order-quantity-layout-v158.mjs \
   test-sales-order-custom-price-apply-v159.mjs \
+  test-sales-order-customer-discount-v160.mjs \
   test-sales-order-line-delete-v147.mjs \
   test-sales-order-entry-cards-v147.mjs \
   test-sales-order-unification-v149.mjs \

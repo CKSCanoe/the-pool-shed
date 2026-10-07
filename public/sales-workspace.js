@@ -27,14 +27,15 @@
     const onHold = String(c.status || 'Active').toLowerCase() !== 'active' || (creditLimit > 0 && balance > creditLimit);
     const terms = Number(c.creditDays || 0) > 0 ? ((c.creditTermType || 'Net') + ' ' + Number(c.creditDays) + ' days') : 'Standard terms';
     const priceList = String(c.priceList || orderPriceList(order) || 'RRP').toUpperCase();
-    const identityMeta = [contact !== company ? contact : '', c.code || c.id, priceList, terms].filter(Boolean).join(' · ');
+    const discountRate = typeof salesOrderCustomerDiscountRate === 'function' ? salesOrderCustomerDiscountRate(order) : Number(c.discount || 0);
+    const identityMeta = [contact !== company ? contact : '', c.code || c.id, priceList, discountRate ? (discountRate + '% CRM discount') : '', terms].filter(Boolean).join(' · ');
     const contactMeta = [c.email || '', c.phone || c.mobile || ''].filter(Boolean).join(' · ') || 'Contact details not recorded';
 
     return '<section class="so2-summary-card so2-customer-card">' +
       '<div class="so2-card-body">' +
         '<div class="so2-kicker">Customer</div>' +
         '<div class="so2-customer-title"><span class="so2-avatar">' + escapeHtml(initials) + '</span><div class="so2-customer-title-copy"><h3>' + escapeHtml(company) + '</h3><p>' + escapeHtml(identityMeta) + '</p><small class="so2-customer-contact">' + escapeHtml(contactMeta) + '</small></div>' +
-          '<span class="pill ' + (onHold ? 'warn' : 'good') + '">' + (onHold ? 'Needs attention' : 'CRM linked') + '</span></div>' +
+          '<div class="so2-customer-badges"><span class="pill ' + (onHold ? 'warn' : 'good') + '">' + (onHold ? 'Needs attention' : 'CRM linked') + '</span>' + (discountRate ? '<span class="pill blue">' + Number(discountRate).toFixed(discountRate % 1 ? 1 : 0) + '% discount</span>' : '') + '</div></div>' +
         '<div class="smart-customer-select so2-customer-search"><label><span class="sr-only">Select customer</span><input list="salesOrderCustomerOptions" data-customer-smart-input="' + order.id + '" value="' + escapeHtml(customerSmartValue(c)) + '" placeholder="Change customer — search name, email, postcode or customer code"></label><button class="secondary" data-apply-order-customer="' + order.id + '">Change</button><button type="button" class="secondary" data-sales-edit-customer="' + escapeHtml(c.id) + '">Open CRM</button></div>' + customerSmartOptions(order.customerId) +
       '</div>' +
     '</section>';
@@ -60,8 +61,14 @@
   salesOrderTotalsBox = function(order) {
     const totals = salesOrderTotals(order);
     const balance = Math.max(0, totals.gross - totals.paid);
+    const discountRate = Number(totals.discountRate || (typeof salesOrderCustomerDiscountRate === 'function' ? salesOrderCustomerDiscountRate(order) : 0));
+    const discountRows = discountRate > 0
+      ? '<div class="order-total-row so2-subtotal-before-discount"><span>Price list subtotal</span><strong>' + so2Money(totals.subtotal) + '</strong></div>' +
+        '<div class="order-total-row so2-discount-row"><span>CRM discount (' + discountRate.toFixed(discountRate % 1 ? 1 : 0) + '%)</span><strong>−' + so2Money(totals.discount) + '</strong></div>' +
+        '<div class="order-total-row"><span>Net after discount</span><strong>' + so2Money(totals.net) + '</strong></div>'
+      : '<div class="order-total-row"><span>Net</span><strong>' + so2Money(totals.net) + '</strong></div>';
     return '<div class="so2-totals-body">' +
-      '<div class="order-total-row"><span>Net</span><strong>' + so2Money(totals.net) + '</strong></div>' +
+      discountRows +
       '<div class="order-total-row"><span>VAT</span><strong>' + so2Money(totals.vat) + '</strong></div>' +
       '<div class="order-total-row grand"><span>Total inc VAT</span><strong>' + so2Money(totals.gross) + '</strong></div>' +
       '<div class="order-total-row"><span>Paid</span><strong>' + so2Money(totals.paid) + '</strong></div>' +
@@ -488,6 +495,8 @@
       const health = salesLineHealth(line, order.id);
       const stockInfo = nonStock ? null : salesOrderProductStockInfo(p);
       const unitNet = salesOrderLinePrice(order, line);
+      const baseUnitNet = typeof salesOrderLineBasePrice === 'function' ? salesOrderLineBasePrice(order, line) : unitNet;
+      const lineDiscountRate = typeof salesOrderLineDiscountRate === 'function' ? salesOrderLineDiscountRate(order, line) : 0;
       const vatRate = vatRateForLine(line);
       const lineNet = unitNet * Number(line.qty || 0);
       const lineGross = lineNet * (1 + vatRate);
@@ -504,7 +513,7 @@
         '<td class="so2-stock-cell">' + (nonStock ? '<span class="muted">Not stock controlled</span>' : '<strong class="' + (coverage.free > 0 ? 'so2-stock-good' : 'so2-stock-warn') + '">' + coverage.free + ' free</strong><small>' + escapeHtml(stockInfo ? stockInfo.location : allocationSourceLabel(order.id)) + ' · ' + (stockInfo ? stockInfo.onHand : 0) + ' physical' + (coverage.onPo ? ' · ' + coverage.onPo + ' on PO' : '') + '</small>') + '</td>' +
         '<td class="so2-qty-cell"><label class="so2-qty-editor"><span class="sr-only">Quantity for ' + escapeHtml(family) + '</span><input class="qty-input so2-qty" data-line-field="' + order.id + '|' + line.productId + '|qty" type="number" min="0" step="1" inputmode="numeric" value="' + Number(line.qty||0) + '"><small>' + (Number(line.qty||0) === 1 ? 'unit' : 'units') + '</small></label></td>' +
         '<td class="so2-allocated"><strong>' + (nonStock ? '—' : Number(line.allocated||0) + ' / ' + Number(line.qty||0)) + '</strong><small>' + (nonStock ? 'Not required' : (Number(line.allocated||0) ? 'allocated' : 'not allocated')) + '</small></td>' +
-        '<td class="right so2-money so2-unit-net"><strong>' + so2Money(unitNet) + '</strong><small>net each</small></td>' +
+        '<td class="right so2-money so2-unit-net"><strong>' + so2Money(unitNet) + '</strong><small>' + (lineDiscountRate > 0 ? (so2Money(baseUnitNet) + ' before · ' + Number(lineDiscountRate).toFixed(lineDiscountRate % 1 ? 1 : 0) + '% CRM') : 'net each') + '</small></td>' +
         '<td class="so2-vat"><strong>' + Math.round(vatRate*100) + '%</strong><small>VAT</small></td>' +
         '<td class="right so2-money so5-line-total"><strong>' + so2Money(lineGross) + '</strong><small>' + so2Money(lineNet) + ' net</small></td>' +
         '<td class="so2-actions-cell"><button type="button" class="secondary so2-menu-button" data-so2-line-menu="' + menuId + '" aria-haspopup="menu" aria-expanded="false">•••</button>' +
@@ -721,7 +730,7 @@
         '<div class="so2-toolbar-actions"><span class="so2-selected-count" data-selected-sales-line-count="' + order.id + '"></span><button type="button" class="danger-button so2-delete-selected" data-delete-selected-sales-lines="' + order.id + '" disabled aria-disabled="true">Delete selected</button><button class="secondary" data-allocate-order="' + order.id + '">Allocate all</button><button class="secondary" data-selected-line-action="purchaseOrder" data-order-id="' + order.id + '">Raise PO</button><button class="secondary" data-selected-line-action="backOrder" data-order-id="' + order.id + '">Back order</button></div></div>' +
       '<div class="sales-table-scroll so2-table-scroll"><table class="order-lines-table so2-lines-table"><thead><tr><th></th><th>Product</th><th class="so2-variant-head">Variant</th><th>Stock</th><th>Qty</th><th>Allocated</th><th class="right">Unit net</th><th>VAT</th><th class="right">Line total</th><th>Actions</th></tr></thead><tbody>' + so2LineRows(order) + '</tbody></table></div>' +
       '<div class="so2-entry-grid"><section class="so2-catalogue-card" aria-label="Add products"><div class="so2-catalogue-body">' + salesOrderAddRow(order) + '</div></section>' +
-        '<aside class="so2-totals-card"><div class="so2-section-head"><div><span class="so2-kicker">Order value</span><strong>Live totals</strong><small>Net, VAT, payments and balance.</small></div></div>' + salesOrderTotalsBox(order) + '</aside></div>' +
+        '<aside class="so2-totals-card"><div class="so2-section-head"><div><span class="so2-kicker">Order value</span><strong>Live totals</strong><small>Price list, CRM discount, VAT, payments and balance.</small></div></div>' + salesOrderTotalsBox(order) + '</aside></div>' +
     '</section>';
   }
 

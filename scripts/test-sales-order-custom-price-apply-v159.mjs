@@ -4,7 +4,7 @@ import assert from 'node:assert/strict';
 
 const src=fs.readFileSync('public/assets/js/01-legacy-01.js','utf8');
 
-const priceStart=src.indexOf('      function salesOrderLinePrice(');
+const priceStart=src.indexOf('      function salesOrderLineBasePrice(');
 const marginStart=src.indexOf('      function marginCheckLinePrice(',priceStart);
 const marginEnd=src.indexOf('      function vatRateForLine(',marginStart);
 const priceEnd=marginStart;
@@ -31,6 +31,7 @@ let saves=0,notifications=0,renders=0;
 const context={
   product:id=>id==='CUSTOM-1'?productRecord:null,
   orderPriceList:()=> 'wholesale',
+  salesOrderLineDiscountRate:()=>0,
   salesOrder:id=>id==='SO-1'?order:null,
   isNonStockSalesLine:line=>line.lineType==='custom',
   money:value=>'£'+Number(value).toFixed(2),

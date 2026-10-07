@@ -1549,22 +1549,44 @@ const seed = {
         const colour = normaliseStatusColour(meta.color); return '<span class="pill" style="background:' + colour + ';color:' + textColourFor(colour) + '">' + name + '</span>';
       }
 
-      function salesOrderValue(order) {
+      function normaliseSalesOrderDiscountRate(value) {
+        const rate = Number(value || 0);
+        if (!Number.isFinite(rate)) return 0;
+        return Math.max(0, Math.min(100, rate));
+      }
+
+      function salesOrderCustomerDiscountRate(order) {
+        if (!order) return 0;
+        // Accepted Quote pricing is already a frozen customer-agreed snapshot.
+        if (String(order.priceList || "").toLowerCase() === "accepted quote snapshot") return 0;
+        if (typeof order.customerDiscountRate === "number") return normaliseSalesOrderDiscountRate(order.customerDiscountRate);
         const c = customer(order.customerId);
-        return order.lines.reduce(function(total, line) {
-          return total + line.qty * salesOrderLinePrice(order, line);
-        }, 0);
+        return normaliseSalesOrderDiscountRate(c && c.discount);
+      }
+
+      function salesOrderLineDiscountRate(order, line) {
+        if (!order || !line || line.customerDiscountExempt === true) return 0;
+        if (String(line.lineType || "").toLowerCase() === "shipping") return 0;
+        return salesOrderCustomerDiscountRate(order);
+      }
+
+      function salesOrderValue(order) {
+        return salesOrderTotals(order).net;
       }
 
       function salesOrderTotals(order) {
         return order.lines.reduce(function(summary, line) {
-          const net = salesOrderLinePrice(order, line) * line.qty;
+          const qty = Number(line.qty || 0);
+          const baseNet = salesOrderLineBasePrice(order, line) * qty;
+          const net = salesOrderLinePrice(order, line) * qty;
           const vat = vatAmount(net, line);
+          summary.subtotal += baseNet;
+          summary.discount += Math.max(0, baseNet - net);
           summary.net += net;
           summary.vat += vat;
           summary.gross += net + vat;
           return summary;
-        }, { net: 0, vat: 0, gross: 0, paid: salesOrderPaidTotal(order) });
+        }, { subtotal: 0, discount: 0, net: 0, vat: 0, gross: 0, paid: salesOrderPaidTotal(order), discountRate: salesOrderCustomerDiscountRate(order) });
       }
 
       function salesOrderPaidTotal(order) {
@@ -1651,14 +1673,19 @@ const seed = {
         return "This item is not allocated and can be safely removed.";
       }
 
-      function salesOrderLinePrice(order, line) {
+      function salesOrderLineBasePrice(order, line) {
         const p = product(line.productId) || {};
-        // A deliberately applied Sales Order override must win over the original
-        // line/unit price. This is especially important for custom/non-stock lines:
-        // they are created with unitPrice and can later be repriced from Cost & Margin.
+        // A deliberately applied Sales Order override wins over the original line price.
         if (typeof line.specialPrice === "number" && line.specialPrice >= 0) return line.specialPrice;
         if (typeof line.unitPrice === "number") return line.unitPrice;
         return Number(p[orderPriceList(order)] || p.rrp || 0);
+      }
+
+      function salesOrderLinePrice(order, line) {
+        const basePrice = Math.max(0, Number(salesOrderLineBasePrice(order, line)) || 0);
+        const discountRate = salesOrderLineDiscountRate(order, line);
+        if (!discountRate) return basePrice;
+        return Math.round((basePrice * (1 - discountRate / 100) + Number.EPSILON) * 100) / 100;
       }
 
       function marginCheckLinePrice(order, line) {
@@ -6954,7 +6981,8 @@ const seed = {
           tags: ["Manual"],
           channel: "Phone Order",
           priceList: c.priceList || "rrp",
-          priceOverrideReason: "Manual sales order created in Pool Bros",
+          customerDiscountRate: normaliseSalesOrderDiscountRate(c.discount),
+          priceOverrideReason: "Manual sales order created in Pool Bros using " + String(c.priceList || "rrp").toUpperCase() + " pricing and " + normaliseSalesOrderDiscountRate(c.discount) + "% CRM discount",
           shipTo: addressText(c, "delivery"),
           created: today.toISOString().slice(0, 10),
           due: due.toISOString().slice(0, 10),
@@ -7997,6 +8025,7 @@ const seed = {
           tags: ["Cloned"],
           channel: order.channel,
           priceList: orderPriceList(order),
+          customerDiscountRate: salesOrderCustomerDiscountRate(order),
           priceOverrideReason: "Selected lines cloned from " + order.id,
           shipTo: order.shipTo,
           created: new Date().toISOString().slice(0, 10),
@@ -8086,6 +8115,7 @@ const seed = {
           tags: ["Backorder"],
           channel: order.channel,
           priceList: orderPriceList(order),
+          customerDiscountRate: salesOrderCustomerDiscountRate(order),
           priceOverrideReason: "Selected lines split from " + order.id + " into backorder",
           shipTo: order.shipTo,
           created: new Date().toISOString().slice(0, 10),
@@ -10669,6 +10699,8 @@ const seed = {
       function saveCrmCustomer(customerId) {
         const c = customer(customerId);
         if (!c) return toast("Customer record not found.");
+        const previousPriceList = String(c.priceList || "rrp");
+        const previousDiscount = normaliseSalesOrderDiscountRate(c.discount);
         const scope = document.querySelector(".crm-edit-drawer") || document;
         const candidate = Object.assign({}, c, {
           addresses: JSON.parse(JSON.stringify(c.addresses || {})),
@@ -10706,8 +10738,30 @@ const seed = {
         Object.keys(c).forEach(function(key) { if (!(key in candidate)) delete c[key]; });
         Object.assign(c, candidate);
         syncCustomerMasterAddressToOrders(c.id);
+
+        const nextPriceList = String(c.priceList || "rrp");
+        const nextDiscount = normaliseSalesOrderDiscountRate(c.discount);
+        const commercialChanged = previousPriceList !== nextPriceList || previousDiscount !== nextDiscount;
+        let updatedOrders = 0;
+        if (commercialChanged) {
+          (data.salesOrders || []).forEach(function(order) {
+            if (!order || order.customerId !== c.id) return;
+            if (String(order.priceList || "").toLowerCase() === "accepted quote snapshot") return;
+            const accountingLocked = (order.payments || []).length > 0 ||
+              (order.xeroRef && order.xeroRef !== "Draft") ||
+              ["Invoice Ready", "Invoiced", "Completed"].includes(order.status);
+            if (accountingLocked) return;
+            order.priceList = nextPriceList;
+            order.customerDiscountRate = nextDiscount;
+            order.priceOverrideReason = "CRM commercial profile synced: " + nextPriceList.toUpperCase() + " pricing and " + nextDiscount + "% customer discount.";
+            order.updatedAt = new Date().toISOString();
+            addSalesOrderNotification(order, "CRM pricing synced", nextPriceList.toUpperCase() + " price list · " + nextDiscount + "% customer discount", "Internal note");
+            updatedOrders += 1;
+          });
+        }
+
         saveAppData();
-        toast(c.name + " profile saved and linked order addresses refreshed.");
+        toast(c.name + " profile saved" + (updatedOrders ? " and " + updatedOrders + " open Sales Order" + (updatedOrders === 1 ? "" : "s") + " repriced from the CRM profile." : " and linked order addresses refreshed."));
         render();
       }
 
@@ -10724,8 +10778,9 @@ const seed = {
         const previousCustomer = customer(order.customerId);
         order.customerId = nextCustomer.id;
         order.priceList = nextCustomer.priceList || order.priceList || "rrp";
+        order.customerDiscountRate = normaliseSalesOrderDiscountRate(nextCustomer.discount);
         populateSalesOrderAddressesFromCustomer(order, nextCustomer, true);
-        order.priceOverrideReason = "Customer profile selected from CRM. Order uses " + (order.priceList || "rrp").toUpperCase() + " pricing and master delivery address.";
+        order.priceOverrideReason = "Customer profile selected from CRM. Order uses " + (order.priceList || "rrp").toUpperCase() + " pricing, " + order.customerDiscountRate + "% CRM discount and master delivery address.";
         if (!order.tags.includes(nextCustomer.customerType || "Customer")) order.tags.push(nextCustomer.customerType || "Customer");
         linkedPurchaseOrders(order.id).forEach(function(po) {
           po.customerShipTo = order.shipTo;
