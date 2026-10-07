@@ -497,7 +497,7 @@
 
   document.addEventListener('input', function (event) {
     const input = event.target.closest && event.target.closest('#salesOrderProductSearch');
-    if (!input) return;
+    if (!input || input.dataset.soNativeStockSearch === 'true') return;
     event.stopImmediatePropagation();
     input.dataset.selectedProductId = '';
     input.classList.remove('has-selection');
@@ -510,14 +510,14 @@
 
   document.addEventListener('focus', function (event) {
     const input = event.target.closest && event.target.closest('#salesOrderProductSearch');
-    if (!input) return;
+    if (!input || input.dataset.soNativeStockSearch === 'true') return;
     event.stopImmediatePropagation();
     renderResults(input, input.value);
   }, true);
 
   document.addEventListener('keydown', function (event) {
     const input = event.target.closest && event.target.closest('#salesOrderProductSearch');
-    if (!input) return;
+    if (!input || input.dataset.soNativeStockSearch === 'true') return;
     if (event.key === 'ArrowDown' || event.key === 'ArrowUp' || event.key === 'Enter' || event.key === 'Escape') {
       event.preventDefault();
       event.stopImmediatePropagation();

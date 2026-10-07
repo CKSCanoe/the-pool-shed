@@ -76,7 +76,7 @@
       '<div class="so4-finder-copy"><div><span class="so2-kicker">Connected product catalogue</span><strong>Add a stock-controlled item</strong><small>Start typing and useful products appear immediately. Search family, exact variant, SKU, barcode, size or common trade wording.</small></div>' +
         '<span class="so4-catalogue-ready">● Catalogue ready · ' + (data.products || []).filter(function(p){return p && p.active !== false && !p.deleted && !p.archived && !p.hiddenFromCatalogue;}).length + ' items</span></div>' +
       '<div class="so4-finder-controls">' +
-        '<div class="so4-search-field"><label for="salesOrderProductSearch">Find product, variant, SKU, barcode or keyword</label><div class="so4-search-wrap"><span aria-hidden="true">⌕</span><input id="salesOrderProductSearch" data-order-id="' + escapeHtml(order.id) + '" autocomplete="off" spellcheck="true" aria-autocomplete="list" aria-controls="salesOrderProductResults" aria-expanded="false" placeholder="Try product name, SKU, barcode, size or keyword"><button type="button" class="secondary so4-clear-search" data-so-clear-search>Clear</button><div id="salesOrderProductResults" class="po-product-results so-product-results so-search-popover" role="listbox" hidden></div></div></div>' +
+        '<div class="so4-search-field"><label for="salesOrderProductSearch">Find product, variant, SKU, barcode or keyword</label><div class="so4-search-wrap"><span aria-hidden="true">⌕</span><input id="salesOrderProductSearch" data-order-id="' + escapeHtml(order.id) + '" data-so-native-stock-search="true" autocomplete="off" spellcheck="true" aria-autocomplete="list" aria-controls="salesOrderProductResults" aria-expanded="false" placeholder="Try product name, SKU, barcode, size or keyword"><button type="button" class="secondary so4-clear-search" data-so-clear-search>Clear</button><div id="salesOrderProductResults" class="so4-stock-results" role="listbox" hidden></div></div></div>' +
         '<label class="so4-qty-field"><span>Quantity</span><input id="salesOrderProductQty" type="number" min="1" value="1"></label>' +
         '<button type="button" id="salesOrderAddStockButton" class="primary-action so4-add-selected" data-add-line-order="' + escapeHtml(order.id) + '" disabled>Add selected item</button>' +
         '<button type="button" class="secondary so4-add-multiple" data-open-so-batch="' + escapeHtml(order.id) + '">Add multiple items</button>' +
@@ -172,6 +172,82 @@
     return products.filter(function(p){
       return [p.name,p.parentName,p.sku,p.code,p.barcode,p.supplierSku,p.category].filter(Boolean).join(' ').toLowerCase().indexOf(q) !== -1;
     }).slice(0,8);
+  }
+
+
+  function so4StockSearchResults(input) {
+    const box = document.getElementById('salesOrderProductResults');
+    if (!input || !box) return;
+    const order = salesOrder(input.dataset.orderId);
+    const query = String(input.value || '').trim();
+    if (!query) {
+      box.hidden = true;
+      box.innerHTML = '';
+      input.setAttribute('aria-expanded','false');
+      return;
+    }
+    const rows = so4ChemicalProducts(query);
+    box.innerHTML = rows.length ? rows.map(function(p){
+      const price = order ? salesOrderLinePrice(order,{productId:p.id,qty:1}) : Number(p.rrp || 0);
+      const stock = typeof salesOrderProductStockInfo === 'function'
+        ? salesOrderProductStockInfo(p)
+        : { available:0, onHand:0, cls:'bad' };
+      const variant = typeof salesOrderVariantMeta === 'function' ? salesOrderVariantMeta(p) : '';
+      const meta = [p.sku || p.code, variant, p.category || ''].filter(Boolean).join(' · ');
+      const stockText = Number(stock.available || 0) + ' free' + (stock.onHand != null ? ' · ' + Number(stock.onHand || 0) + ' on hand' : '');
+      return '<button type="button" role="option" data-so-stock-product="' + escapeHtml(p.id) + '">' +
+        '<span class="so4-stock-result-copy"><strong>' + escapeHtml(p.name || p.parentName || 'Catalogue product') + '</strong><small>' + escapeHtml(meta) + '</small></span>' +
+        '<span class="so4-stock-result-stock ' + escapeHtml(stock.cls || '') + '"><strong>' + escapeHtml(stockText) + '</strong><small>' + escapeHtml(p.supplier || p.brand || 'Catalogue item') + '</small></span>' +
+        '<b>' + money(price) + '<small> net</small></b>' +
+      '</button>';
+    }).join('') : '<div class="so4-stock-empty"><strong>No matching catalogue product</strong><span>Try the product name, SKU, barcode, variant or pack size.</span></div>';
+    box.hidden = false;
+    input.setAttribute('aria-expanded','true');
+  }
+
+  function so4SelectStockProduct(productId) {
+    const input = document.getElementById('salesOrderProductSearch');
+    const box = document.getElementById('salesOrderProductResults');
+    const selected = document.getElementById('salesOrderSelectedProduct');
+    const addButton = document.getElementById('salesOrderAddStockButton');
+    const p = product(productId);
+    if (!input || !p) return;
+    const order = salesOrder(input.dataset.orderId);
+    input.dataset.selectedProductId = p.id;
+    input.value = [p.name || p.parentName, salesOrderVariantMeta(p), p.sku || p.code].filter(Boolean).join(' · ');
+    input.classList.add('has-selection');
+    input.setAttribute('aria-expanded','false');
+    if (box) box.hidden = true;
+    if (addButton) addButton.disabled = false;
+    if (selected) {
+      const price = order ? salesOrderLinePrice(order,{productId:p.id,qty:1}) : Number(p.rrp || 0);
+      const stock = typeof salesOrderProductStockInfo === 'function'
+        ? salesOrderProductStockInfo(p)
+        : { available:0, onHand:0 };
+      const detail = [
+        p.sku || p.code,
+        salesOrderVariantMeta(p),
+        Number(stock.available || 0) + ' free',
+        money(price) + ' net'
+      ].filter(Boolean).join(' · ');
+      selected.innerHTML = '<div><strong>' + escapeHtml(p.name || p.parentName || 'Catalogue product') + '</strong><span>' + escapeHtml(detail) + '</span></div><button type="button" class="secondary" data-so-change-stock-product="true">Change</button>';
+      selected.hidden = false;
+    }
+  }
+
+  function so4ClearStockSelection(keepText) {
+    const input = document.getElementById('salesOrderProductSearch');
+    const selected = document.getElementById('salesOrderSelectedProduct');
+    const addButton = document.getElementById('salesOrderAddStockButton');
+    const box = document.getElementById('salesOrderProductResults');
+    if (!input) return;
+    input.dataset.selectedProductId = '';
+    input.classList.remove('has-selection');
+    if (!keepText) input.value = '';
+    if (selected) { selected.hidden = true; selected.innerHTML = ''; }
+    if (addButton) addButton.disabled = true;
+    if (box) { box.hidden = true; if (!keepText) box.innerHTML = ''; }
+    input.setAttribute('aria-expanded','false');
   }
 
   function so4ChemicalSearchResults(input) {
@@ -769,6 +845,89 @@
     button.setAttribute('aria-expanded','true');
   }
 
+
+
+  document.addEventListener('input', function(event) {
+    const search = event.target.closest && event.target.closest('#salesOrderProductSearch[data-so-native-stock-search="true"]');
+    if (!search) return;
+    event.stopImmediatePropagation();
+    so4ClearStockSelection(true);
+    so4StockSearchResults(search);
+  }, true);
+
+  document.addEventListener('focusin', function(event) {
+    const search = event.target.closest && event.target.closest('#salesOrderProductSearch[data-so-native-stock-search="true"]');
+    if (!search) return;
+    if (String(search.value || '').trim() && !search.dataset.selectedProductId) so4StockSearchResults(search);
+  });
+
+  document.addEventListener('keydown', function(event) {
+    const search = event.target.closest && event.target.closest('#salesOrderProductSearch[data-so-native-stock-search="true"]');
+    if (!search) return;
+    const box = document.getElementById('salesOrderProductResults');
+    const buttons = box && !box.hidden ? Array.from(box.querySelectorAll('[data-so-stock-product]')) : [];
+    if (event.key === 'Escape') {
+      if (box) box.hidden = true;
+      search.setAttribute('aria-expanded','false');
+      return;
+    }
+    if (event.key === 'ArrowDown' && buttons.length) {
+      event.preventDefault();
+      buttons[0].focus();
+      return;
+    }
+    if (event.key === 'Enter' && search.dataset.selectedProductId) {
+      event.preventDefault();
+      addProductToSalesOrder(search.dataset.orderId);
+    }
+  }, true);
+
+  document.addEventListener('keydown', function(event) {
+    const button = event.target.closest && event.target.closest('[data-so-stock-product]');
+    if (!button) return;
+    const box = document.getElementById('salesOrderProductResults');
+    const buttons = box ? Array.from(box.querySelectorAll('[data-so-stock-product]')) : [];
+    const index = buttons.indexOf(button);
+    if (event.key === 'ArrowDown' || event.key === 'ArrowUp') {
+      event.preventDefault();
+      const next = event.key === 'ArrowDown'
+        ? buttons[Math.min(buttons.length - 1,index + 1)]
+        : buttons[Math.max(0,index - 1)];
+      if (next) next.focus();
+    }
+    if (event.key === 'Enter' || event.key === ' ') {
+      event.preventDefault();
+      so4SelectStockProduct(button.dataset.soStockProduct);
+      const input = document.getElementById('salesOrderProductSearch');
+      if (input) input.focus();
+    }
+  }, true);
+
+  document.addEventListener('click', function(event) {
+    const productButton = event.target.closest && event.target.closest('[data-so-stock-product]');
+    if (productButton) {
+      event.preventDefault();
+      event.stopImmediatePropagation();
+      so4SelectStockProduct(productButton.dataset.soStockProduct);
+      const input = document.getElementById('salesOrderProductSearch');
+      if (input) input.focus();
+      return;
+    }
+    const change = event.target.closest && event.target.closest('[data-so-change-stock-product]');
+    if (change) {
+      event.preventDefault();
+      so4ClearStockSelection(false);
+      const input = document.getElementById('salesOrderProductSearch');
+      if (input) input.focus();
+      return;
+    }
+    const box = document.getElementById('salesOrderProductResults');
+    const search = document.getElementById('salesOrderProductSearch');
+    if (box && !box.hidden && event.target !== search && !box.contains(event.target)) {
+      box.hidden = true;
+      if (search) search.setAttribute('aria-expanded','false');
+    }
+  }, true);
 
   document.addEventListener('input', function(event) {
     const search = event.target.closest && event.target.closest('#chemicalUsageSearch');

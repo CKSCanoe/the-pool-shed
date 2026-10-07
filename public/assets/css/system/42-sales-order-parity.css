@@ -564,3 +564,50 @@ body>.so-batch-backdrop{position:fixed!important;inset:0!important}
   #screen-salesorders .so4-chemical-preview{align-items:flex-start;flex-direction:column}
   #screen-salesorders .so4-chemical-preview button{margin-left:0;width:100%}
 }
+/* Main Sales Order stock search now uses the same reliable in-place dropdown
+   interaction as the Chemical Part-Use catalogue search. */
+#screen-salesorders .so4-search-wrap{overflow:visible!important}
+#screen-salesorders .so4-stock-results{
+  position:absolute;z-index:2147481200;left:0;right:0;top:calc(100% + 5px);max-height:330px;overflow:auto;
+  border:1px solid var(--color-border-default);border-radius:6px;background:var(--color-surface-default);
+  box-shadow:0 12px 28px var(--shadow-color)
+}
+#screen-salesorders .so4-stock-results[hidden]{display:none!important}
+#screen-salesorders .so4-stock-results button{
+  width:100%;min-height:52px;display:grid;grid-template-columns:minmax(0,1fr) 155px 92px;
+  align-items:center;gap:10px;padding:8px 10px;border:0;border-bottom:1px solid var(--color-border-default);
+  border-radius:0;background:var(--color-surface-default);color:var(--color-text-primary);text-align:left;box-shadow:none
+}
+#screen-salesorders .so4-stock-results button:last-child{border-bottom:0}
+#screen-salesorders .so4-stock-results button:hover,
+#screen-salesorders .so4-stock-results button:focus{
+  background:var(--color-action-soft);outline:0
+}
+#screen-salesorders .so4-stock-result-copy,
+#screen-salesorders .so4-stock-result-stock{display:grid;gap:2px;min-width:0}
+#screen-salesorders .so4-stock-result-copy strong{
+  overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:10px
+}
+#screen-salesorders .so4-stock-result-copy small,
+#screen-salesorders .so4-stock-result-stock small{
+  overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:var(--color-text-secondary);font-size:8px
+}
+#screen-salesorders .so4-stock-result-stock strong{font-size:9px}
+#screen-salesorders .so4-stock-result-stock.good strong{color:var(--color-status-success-text)}
+#screen-salesorders .so4-stock-result-stock.warn strong{color:var(--color-status-attention-text)}
+#screen-salesorders .so4-stock-result-stock.bad strong{color:var(--color-status-danger-text)}
+#screen-salesorders .so4-stock-results button>b{justify-self:end;white-space:nowrap;font-size:10px}
+#screen-salesorders .so4-stock-results button>b small{color:var(--color-text-secondary);font-size:8px;font-weight:700}
+#screen-salesorders .so4-stock-empty{display:grid;gap:3px;padding:12px;color:var(--color-text-secondary);font-size:9px}
+#screen-salesorders .so4-stock-empty strong{color:var(--color-text-primary);font-size:10px}
+#screen-salesorders .so4-selected-product{
+  display:flex;align-items:center;gap:10px
+}
+#screen-salesorders .so4-selected-product>div{display:grid;gap:2px;min-width:0}
+#screen-salesorders .so4-selected-product strong{font-size:10px}
+#screen-salesorders .so4-selected-product span{color:var(--color-text-secondary);font-size:8px}
+#screen-salesorders .so4-selected-product button{margin-left:auto}
+@media(max-width:760px){
+  #screen-salesorders .so4-stock-results button{grid-template-columns:minmax(0,1fr) 84px}
+  #screen-salesorders .so4-stock-result-stock{display:none}
+}
