@@ -1,0 +1,17 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Sales Order Recovery · The Pool Shed</title>
+<style>
+:root{font-family:Inter,ui-sans-serif,system-ui;color:#18222b;background:#eef3f6}*{box-sizing:border-box}body{margin:0;padding:28px 18px}main{max-width:1050px;margin:auto}.card{background:#fff;border:1px solid #d9e2e8;border-radius:16px;padding:20px;margin-bottom:14px;box-shadow:0 8px 24px rgba(15,27,36,.06)}h1,h2{margin:0 0 8px}p{line-height:1.45}.row{display:flex;gap:10px;align-items:center;flex-wrap:wrap}input{flex:1;min-width:280px;padding:12px;border:1px solid #b9c8d2;border-radius:10px;font:inherit}button,a{border:0;border-radius:10px;padding:11px 14px;font-weight:800;cursor:pointer;text-decoration:none}.primary{background:#173e57;color:#fff}.secondary{background:#e8eef2;color:#173e57}.muted{color:#63717d;font-size:13px}.badge{display:inline-block;padding:4px 9px;border-radius:999px;background:#e9f6ef;color:#16623f;font-size:12px;font-weight:800}.result{border-top:1px solid #e2e8ec;padding:14px 0}.result:first-child{border-top:0}.labels{font-size:12px;color:#63717d;margin:7px 0;line-height:1.45}#status{font-weight:700;margin-top:10px}
+</style>
+</head>
+<body><main>
+<section class="card"><h1>Sales Order Line Recovery</h1><p>Restore only missing lines from a retained shared-workspace revision. Existing Sales Order lines and every other current Pool Shed record stay unchanged.</p><div class="row"><input id="q" type="search" placeholder="Customer or Sales Order, e.g. Regency High School"><button id="scan" class="primary">Find earlier versions</button><a class="secondary" href="./">Back to Pool Shed</a></div><div id="status" class="muted">Sign in as Admin in Pool Shed first.</div></section>
+<section class="card"><h2>Retained versions</h2><div id="results" class="muted">Search for a customer or Sales Order.</div></section>
+</main>
+<script src="./config.js?v=1.45.1" defer></script>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2" defer></script>
+<script src="./order-recovery.js?v=1" defer></script>
+</body></html>
