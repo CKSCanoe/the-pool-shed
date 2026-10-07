@@ -4813,7 +4813,7 @@ const seed = {
           if (!/\.csv$/i.test(file.name) && file.type !== "text/csv") return toast("Choose a CSV file exported from Catalogue Health.");
           const reader = new FileReader();
           reader.onerror = function() { toast("The correction file could not be read."); };
-          reader.onload = function() {
+          reader.onload = async function() {
             const validation = validateCatalogueHealthImport(String(reader.result || ""));
             if (validation.errors.length) {
               console.warn("Catalogue Health import validation", validation.errors);
@@ -4838,7 +4838,14 @@ const seed = {
               p.updatedAt = new Date().toISOString();
             });
             saveAppData();
-            toast(changedFields + " catalogue field(s) corrected across " + validation.updates.length + " product(s).");
+            const changedProducts = validation.updates.map(function(update) { return clone(update.product); });
+            let sharedSaved = false;
+            if (window.PoolShedProductImportPersistence && typeof window.PoolShedProductImportPersistence.persistProducts === "function") {
+              toast("Saving catalogue corrections to the shared workspace…");
+              sharedSaved = await window.PoolShedProductImportPersistence.persistProducts(changedProducts, file.name || "Catalogue Health correction CSV");
+            }
+            if (sharedSaved) toast(changedFields + " catalogue field(s) corrected across " + validation.updates.length + " product(s). Shared workspace save confirmed.");
+            else toast(changedFields + " catalogue field(s) corrected locally. Shared save is still pending, so keep Pool Shed open and retry before refreshing.");
             render();
           };
           reader.readAsText(file);
@@ -14915,11 +14922,12 @@ const seed = {
           const file = input.files && input.files[0];
           if (!file) return;
           const reader = new FileReader();
-          reader.onload = function() {
+          reader.onload = async function() {
             const lines = String(reader.result || "").split(/\r?\n/).filter(Boolean);
             if (lines.length < 2) return toast("CSV has no product rows.");
             const headers = parseCsvLine(lines[0]);
             let imported = 0;
+            const changedProducts = [];
             lines.slice(1).forEach(function(line) {
               const row = parseCsvLine(line);
               const values = {};
@@ -14937,9 +14945,16 @@ const seed = {
                 }
               });
               imported += 1;
+              changedProducts.push(clone(p));
             });
             saveAppData();
-            toast(imported + " product row(s) imported.");
+            let sharedSaved = false;
+            if (window.PoolShedProductImportPersistence && typeof window.PoolShedProductImportPersistence.persistProducts === "function") {
+              toast("Saving " + imported + " imported product row(s) to the shared workspace…");
+              sharedSaved = await window.PoolShedProductImportPersistence.persistProducts(changedProducts, file.name || "Product CSV import");
+            }
+            if (sharedSaved) toast(imported + " product row(s) imported. Shared workspace save confirmed.");
+            else toast(imported + " product row(s) imported locally. Shared save is still pending, so keep Pool Shed open and retry before refreshing.");
             render();
           };
           reader.readAsText(file);

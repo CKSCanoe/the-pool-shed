@@ -3,7 +3,7 @@
   function adminAllowed(){try{return typeof isAdminUser==='function'&&isAdminUser()}catch(e){return false}}
   function imports(){if(!Array.isArray(data.productImportBatches))data.productImportBatches=[];return data.productImportBatches}
   function cloneValue(v){return JSON.parse(JSON.stringify(v))}
-  function importStatusClass(status){return status==='Completed'?'good':status==='Undone'?'warn':status==='Failed'?'bad':'blue'}
+  function importStatusClass(status){return status==='Completed'?'good':status==='Pending sync'?'warn':status==='Undone'?'warn':status==='Failed'?'bad':'blue'}
   function fmtDate(v){try{return new Date(v).toLocaleString('en-GB',{dateStyle:'medium',timeStyle:'short'})}catch(e){return v||''}}
   function batchById(id){return imports().find(function(b){return b.id===id})}
   function operationalReferences(productId){
@@ -16,7 +16,8 @@
     if(!rows.length)return '<div class="notice-item"><strong>No catalogue uploads yet</strong><p class="muted">Completed imports will appear here with the uploader, source file, result and rollback controls.</p></div>';
     return '<div class="import-history">'+rows.map(function(b){
       const canUndo=b.status==='Completed'&&Array.isArray(b.changes)&&b.changes.length;
-      return '<article class="import-history-card"><div class="import-history-top"><div><strong>'+escapeHtml(b.fileName||'Pasted catalogue')+'</strong><div class="muted">'+escapeHtml(fmtDate(b.createdAt))+' by '+escapeHtml(b.user||'Unknown user')+'</div></div><span class="pill '+importStatusClass(b.status)+'">'+escapeHtml(b.status||'Completed')+'</span></div><div class="import-history-meta"><span class="pill good">'+Number(b.created||0)+' created</span><span class="pill blue">'+Number(b.updated||0)+' updated</span><span class="pill warn">'+Number(b.failed||0)+' failed</span><span class="pill">'+Number(b.total||0)+' rows</span></div>'+(b.reason?'<p class="muted">'+escapeHtml(b.reason)+'</p>':'')+'<div class="import-history-actions"><button class="secondary" data-import-details="'+b.id+'">View details</button>'+(canUndo?'<button class="warning-button" data-undo-import="'+b.id+'">Undo import</button>':'')+'<button class="secondary" data-export-import-errors="'+b.id+'">Error report</button><button class="danger-button" data-delete-import-log="'+b.id+'">Delete log</button></div></article>'
+      const canRetry=b.status==='Pending sync';
+      return '<article class="import-history-card"><div class="import-history-top"><div><strong>'+escapeHtml(b.fileName||'Pasted catalogue')+'</strong><div class="muted">'+escapeHtml(fmtDate(b.createdAt))+' by '+escapeHtml(b.user||'Unknown user')+'</div></div><span class="pill '+importStatusClass(b.status)+'">'+escapeHtml(b.status||'Completed')+'</span></div><div class="import-history-meta"><span class="pill good">'+Number(b.created||0)+' created</span><span class="pill blue">'+Number(b.updated||0)+' updated</span><span class="pill warn">'+Number(b.failed||0)+' failed</span><span class="pill">'+Number(b.total||0)+' rows</span></div>'+(b.reason?'<p class="muted">'+escapeHtml(b.reason)+'</p>':'')+'<div class="import-history-actions"><button class="secondary" data-import-details="'+b.id+'">View details</button>'+(canRetry?'<button data-retry-import-sync="'+b.id+'">Retry shared save</button>':'')+(canUndo?'<button class="warning-button" data-undo-import="'+b.id+'">Undo import</button>':'')+'<button class="secondary" data-export-import-errors="'+b.id+'">Error report</button><button class="danger-button" data-delete-import-log="'+b.id+'">Delete log</button></div></article>'
     }).join('')+'</div>';
   }
   const originalBulkPage=bulkProductCreatePage;
@@ -57,26 +58,121 @@
   applyBulkProductCsv=function(text){
     const validation=window.poolShedImportValidation||validateImport(text);
     if(!validation.total||validation.failed){return {total:validation.total,created:0,updated:0,skipped:0,failed:validation.failed,blocked:true}}
-    const beforeMap={};validation.rows.forEach(function(x){const sku=String(x.data.sku||'').trim().toLowerCase();const found=data.products.find(function(p){return String(p.sku||'').toLowerCase()===sku});if(found)beforeMap[sku]=cloneValue(found)});
-    const result=baseApply(text);const changes=[];
-    validation.rows.filter(function(x){return !x.errors.length}).forEach(function(x){const sku=String(x.data.sku||'').trim().toLowerCase();const after=data.products.find(function(p){return String(p.sku||'').toLowerCase()===sku});if(after)changes.push({productId:after.id,sku:after.sku,changeType:beforeMap[sku]?'updated':'created',before:beforeMap[sku]||null,after:cloneValue(after)})});
-    const now=new Date().toISOString(),batch={id:'IMP-'+Date.now(),createdAt:now,fileName:window.poolShedImportFileName||'Pasted catalogue',source:window.poolShedImportFileName?'CSV upload':'Pasted CSV',user:(typeof currentUser==='function'&&currentUser().name)||'Current user',userId:(typeof currentUser==='function'&&currentUser().id)||'',status:'Completed',total:validation.total,created:result.created||0,updated:result.updated||0,failed:result.failed||0,changes:changes,errors:cloneValue(window.poolShedGroupedImportErrors||[]),version:VERSION};imports().push(batch);window.poolShedLastImportBatch=batch;
+    const importedFields=new Set(parseBulkProductCsv(text).headers.filter(function(key){return productExportHeaders().includes(key)}));
+    const beforeMap={};validation.rows.forEach(function(x){const sku=String(x.data.sku||'').trim().toLowerCase();const found=data.products.find(function(p){return String(p.sku||'').toLowerCase()===sku});if(found){const fields={},present=[];importedFields.forEach(function(key){if(Object.prototype.hasOwnProperty.call(found,key)){fields[key]=cloneValue(found[key]);present.push(key)}});beforeMap[sku]={delta:true,fields:fields,present:present,keys:Array.from(importedFields)}}});
+    const result=baseApply(text);const changes=[],commitProducts=[];
+    validation.rows.filter(function(x){return !x.errors.length}).forEach(function(x){const sku=String(x.data.sku||'').trim().toLowerCase();const after=data.products.find(function(p){return String(p.sku||'').toLowerCase()===sku});if(after){commitProducts.push(cloneValue(after));changes.push({productId:after.id,sku:after.sku,changeType:beforeMap[sku]?'updated':'created',before:beforeMap[sku]||null})}});
+    const now=new Date().toISOString(),batch={id:'IMP-'+Date.now(),createdAt:now,fileName:window.poolShedImportFileName||'Pasted catalogue',source:window.poolShedImportFileName?'CSV upload':'Pasted CSV',user:(typeof currentUser==='function'&&currentUser().name)||'Current user',userId:(typeof currentUser==='function'&&currentUser().id)||'',status:'Saving',total:validation.total,created:result.created||0,updated:result.updated||0,failed:result.failed||0,changes:changes,errors:cloneValue(window.poolShedGroupedImportErrors||[]),version:VERSION};imports().push(batch);window.poolShedLastImportBatch=batch;window.poolShedLastImportProducts=commitProducts;
     return result;
   };
+  function waitForWorkspaceSaveIdle(timeoutMs){
+    const started=Date.now(),limit=Math.max(1500,Number(timeoutMs||12000));
+    return new Promise(function(resolve){
+      (function check(){
+        if(typeof workspaceSaveInFlight==='undefined'||!workspaceSaveInFlight)return resolve(true);
+        if(Date.now()-started>=limit)return resolve(false);
+        setTimeout(check,120);
+      })();
+    });
+  }
+  function importProductSnapshots(batch){
+    const wanted=new Set((batch&&batch.changes||[]).map(function(c){return String(c.sku||'').trim().toLowerCase()}).filter(Boolean));
+    return (data.products||[]).filter(function(p){return wanted.has(String(p.sku||'').trim().toLowerCase())}).map(cloneValue);
+  }
+  function reapplyImportToCurrentWorkspace(batch,snapshots){
+    if(!batch||!Array.isArray(snapshots)||!snapshots.length)return false;
+    if(!Array.isArray(data.products))data.products=[];
+    const changeBySku=new Map((batch.changes||[]).map(function(c){return [String(c.sku||'').trim().toLowerCase(),c]}));
+    snapshots.forEach(function(snapshot,index){
+      const sku=String(snapshot.sku||'').trim().toLowerCase();if(!sku)return;
+      const existing=data.products.find(function(p){return String(p.sku||'').trim().toLowerCase()===sku});
+      if(existing){
+        const keepId=existing.id;
+        Object.keys(existing).forEach(function(key){if(!(key in snapshot))delete existing[key]});
+        Object.assign(existing,cloneValue(snapshot));
+        existing.id=keepId||snapshot.id;
+        const change=changeBySku.get(sku);if(change)change.productId=existing.id;
+        return;
+      }
+      const idCollision=data.products.some(function(p){return String(p.id||'')===String(snapshot.id||'')});
+      const copy=cloneValue(snapshot);
+      if(idCollision)copy.id='P-IMP-'+Date.now()+'-'+index;
+      data.products.push(copy);
+      const change=changeBySku.get(sku);if(change)change.productId=copy.id;
+    });
+    if(!batch.transient){
+      const list=imports();
+      const existingBatch=list.find(function(item){return item.id===batch.id});
+      if(existingBatch&&existingBatch!==batch)Object.assign(existingBatch,cloneValue(batch));
+      else if(!existingBatch)list.push(batch);
+    }
+    return true;
+  }
+  async function persistImportBatchToSharedWorkspace(batch,snapshots){
+    if(!batch)return false;
+    snapshots=Array.isArray(snapshots)&&snapshots.length?snapshots:importProductSnapshots(batch);
+    if(!snapshots.length){batch.status='Pending sync';batch.reason='Imported products are not available in the current workspace. Restore the browser Recovery copy before retrying.';saveAppData();return false}
+    if(typeof navigator!=='undefined'&&!navigator.onLine){batch.status='Pending sync';batch.reason='Shared save is waiting for an internet connection. The import remains protected in this browser.';saveAppData();return false}
+    if(typeof supabaseClient==='undefined'||!supabaseClient||typeof supabaseSession==='undefined'||!supabaseSession){
+      batch.status='Pending sync';batch.reason='Shared save is waiting for an authenticated Pool Shed session. The import remains protected in this browser.';saveAppData();return false
+    }
+
+    batch.status='Completed';batch.reason='';
+    for(let attempt=0;attempt<4;attempt+=1){
+      reapplyImportToCurrentWorkspace(batch,snapshots);
+      saveAppData();
+      try{if(typeof remoteSaveTimer!=='undefined'){clearTimeout(remoteSaveTimer);remoteSaveTimer=null}}catch(_){}
+      if(typeof writeOfflineSnapshot==='function')await writeOfflineSnapshot(true);
+      const idle=await waitForWorkspaceSaveIdle(12000);
+      if(!idle)continue;
+      const saved=typeof saveRemoteWorkspace==='function'?await saveRemoteWorkspace(true):false;
+      if(saved){
+        batch.status='Completed';batch.reason='';
+        window.poolShedLastImportProducts=null;
+        return true;
+      }
+      // A concurrent user may have won the revision race. The core saver safely
+      // reloads their newer master; reapply this import to that master and retry.
+      await new Promise(function(resolve){setTimeout(resolve,250*(attempt+1))});
+    }
+    reapplyImportToCurrentWorkspace(batch,snapshots);
+    batch.status='Pending sync';
+    batch.reason='Products are protected locally, but the shared workspace did not confirm the save. Use Retry shared save before refreshing or closing Pool Shed.';
+    saveAppData();
+    return false;
+  }
+  async function persistProductSnapshotsToSharedWorkspace(snapshots,label){
+    const rows=Array.isArray(snapshots)?snapshots.filter(Boolean):[];
+    if(!rows.length)return false;
+    const batch={
+      id:'DIRECT-'+Date.now(),
+      transient:true,
+      status:'Completed',
+      fileName:label||'Product catalogue update',
+      changes:rows.map(function(p){return {productId:p.id,sku:p.sku,changeType:'updated',before:null}})
+    };
+    return persistImportBatchToSharedWorkspace(batch,rows);
+  }
+  window.PoolShedProductImportPersistence={
+    persist:persistImportBatchToSharedWorkspace,
+    persistProducts:persistProductSnapshotsToSharedWorkspace
+  };
+
   bindBulkProductCreate=function(){
     const csvBox=document.getElementById('bulkProductCsv');if(!csvBox)return;
     document.querySelectorAll('[data-product-template]').forEach(function(btn){btn.addEventListener('click',function(){downloadCsv('pool-shed-branded-product-import-v1.9.csv',productExportHeaders(),[]);toast('Branded product import template downloaded.')})});
     document.querySelectorAll('[data-product-bulk-upload]').forEach(function(btn){btn.addEventListener('click',function(){const input=document.createElement('input');input.type='file';input.accept='.csv,text/csv';input.addEventListener('change',function(){const f=input.files&&input.files[0];if(!f)return;window.poolShedImportFileName=f.name;const label=document.getElementById('selectedImportFile');if(label)label.textContent=f.name+' selected';const reader=new FileReader();reader.onload=function(){csvBox.value=String(reader.result||'');previewBulkProductCsv()};reader.readAsText(f)});input.click()})});
     document.querySelectorAll('[data-product-bulk-preview]').forEach(function(btn){btn.addEventListener('click',previewBulkProductCsv)});
-    document.querySelectorAll('[data-product-bulk-create]').forEach(function(btn){btn.addEventListener('click',function(){if(btn.disabled)return;if(!adminAllowed())return toast('Only an administrator can commit a bulk product import.');const v=window.poolShedImportValidation||validateImport(csvBox.value);const confirmation=v.updated?'This will create '+v.created+' and update '+v.updated+' existing products. Continue?':'This will create '+v.created+' new products. Continue?';if(!confirm(confirmation))return;const result=applyBulkProductCsv(csvBox.value);if(result.blocked)return toast('Import blocked. Correct validation errors first.');saveAppData();document.querySelectorAll('[data-import-step]').forEach(function(el){el.classList.toggle('done',Number(el.dataset.importStep)<=4);el.classList.toggle('active',Number(el.dataset.importStep)===4)});toast(result.created+' created, '+result.updated+' updated. Import recovery point saved.');productView='bulk';render()})});
+    document.querySelectorAll('[data-product-bulk-create]').forEach(function(btn){btn.addEventListener('click',async function(){if(btn.disabled)return;if(!adminAllowed())return toast('Only an administrator can commit a bulk product import.');const csvText=csvBox.value;const v=window.poolShedImportValidation||validateImport(csvText);const confirmation=v.updated?'This will create '+v.created+' and update '+v.updated+' existing products, then save them to the shared Pool Shed workspace. Continue?':'This will create '+v.created+' new products and save them to the shared Pool Shed workspace. Continue?';if(!confirm(confirmation))return;btn.disabled=true;const originalText=btn.textContent;btn.textContent='Saving to shared workspace…';const result=applyBulkProductCsv(csvText);if(result.blocked){btn.disabled=false;btn.textContent=originalText;return toast('Import blocked. Correct validation errors first.')}const batch=window.poolShedLastImportBatch,snapshots=window.poolShedLastImportProducts||[];saveAppData();const sharedSaved=await persistImportBatchToSharedWorkspace(batch,snapshots);document.querySelectorAll('[data-import-step]').forEach(function(el){el.classList.toggle('done',sharedSaved&&Number(el.dataset.importStep)<=4);el.classList.toggle('active',!sharedSaved&&Number(el.dataset.importStep)===4)});if(sharedSaved)toast(result.created+' created, '+result.updated+' updated. Shared workspace save confirmed.');else toast('Import is protected locally but is still waiting for the shared workspace. Use Retry shared save before refreshing.');productView='bulk';render()})});
   };
   function undoBatch(id){
     if(!adminAllowed())return toast('Only an administrator can undo an import.');const b=batchById(id);if(!b||b.status!=='Completed')return toast('This import is not available to undo.');
     const reason=prompt('Reason for undoing this import (required)');if(!reason||!reason.trim())return toast('A reason is required.');if(!confirm('Undo '+(b.fileName||'this import')+'? Updated products will be restored. Newly created products will be archived safely.'))return;
-    let restored=0,archived=0;b.changes.slice().reverse().forEach(function(c){const idx=data.products.findIndex(function(p){return p.id===c.productId||String(p.sku).toLowerCase()===String(c.sku).toLowerCase()});if(c.changeType==='updated'&&c.before){if(idx>=0)data.products[idx]=cloneValue(c.before);else data.products.push(cloneValue(c.before));restored++}else if(c.changeType==='created'&&idx>=0){data.products[idx].deleted=true;data.products[idx].active=false;data.products[idx].archivedAt=new Date().toISOString();data.products[idx].archiveReason='Bulk import rollback: '+reason;archived++}});
+    let restored=0,archived=0;b.changes.slice().reverse().forEach(function(c){const idx=data.products.findIndex(function(p){return p.id===c.productId||String(p.sku).toLowerCase()===String(c.sku).toLowerCase()});if(c.changeType==='updated'&&c.before){if(c.before.delta){if(idx>=0){const target=data.products[idx],present=new Set(c.before.present||[]);(c.before.keys||Object.keys(c.before.fields||{})).forEach(function(key){if(present.has(key))target[key]=cloneValue(c.before.fields[key]);else delete target[key]})}restored++}else{if(idx>=0)data.products[idx]=cloneValue(c.before);else data.products.push(cloneValue(c.before));restored++}}else if(c.changeType==='created'&&idx>=0){data.products[idx].deleted=true;data.products[idx].active=false;data.products[idx].archivedAt=new Date().toISOString();data.products[idx].archiveReason='Bulk import rollback: '+reason;archived++}});
     b.status='Undone';b.undoneAt=new Date().toISOString();b.undoneBy=(typeof currentUser==='function'&&currentUser().name)||'Current user';b.reason=reason;b.rollbackSummary=restored+' restored; '+archived+' archived';if(!Array.isArray(data.auditLog))data.auditLog=[];data.auditLog.push({id:'AUD-'+Date.now(),date:b.undoneAt,user:b.undoneBy,action:'Product import undone',product:'Catalogue',variant:'',previousValue:b.id,newValue:b.rollbackSummary,reason:reason});saveAppData();toast('Import undone: '+b.rollbackSummary);render();
   }
   document.addEventListener('click',function(e){
+    const retry=e.target.closest('[data-retry-import-sync]');if(retry){const b=batchById(retry.dataset.retryImportSync);if(!b)return;retry.disabled=true;retry.textContent='Saving…';persistImportBatchToSharedWorkspace(b,importProductSnapshots(b)).then(function(ok){toast(ok?'Shared workspace save confirmed.':'Shared save is still pending. Keep Pool Shed open and try again.');render()});return}
     const undo=e.target.closest('[data-undo-import]');if(undo){undoBatch(undo.dataset.undoImport);return}
     const del=e.target.closest('[data-delete-import-log]');if(del){if(!adminAllowed())return toast('Admin access required.');const b=batchById(del.dataset.deleteImportLog);if(!b)return;if(b.status==='Completed')return toast('Undo a completed import before deleting its audit log.');const reason=prompt('Reason for deleting this import log (required)');if(!reason||!reason.trim())return;if(!confirm('Delete this import history entry? Product data will not be changed.'))return;data.productImportBatches=imports().filter(function(x){return x.id!==b.id});if(!Array.isArray(data.auditLog))data.auditLog=[];data.auditLog.push({id:'AUD-'+Date.now(),date:new Date().toISOString(),user:(typeof currentUser==='function'&&currentUser().name)||'Current user',action:'Import log deleted',product:'Catalogue',previousValue:b.id,newValue:'Deleted log',reason:reason});saveAppData();render();return}
     const det=e.target.closest('[data-import-details]');if(det){const b=batchById(det.dataset.importDetails);if(!b)return;alert((b.fileName||'Import')+'\nStatus: '+b.status+'\nCreated: '+b.created+'\nUpdated: '+b.updated+'\nFailed: '+b.failed+'\nUploader: '+b.user+'\nDate: '+fmtDate(b.createdAt)+(b.rollbackSummary?'\nRollback: '+b.rollbackSummary:''));return}
