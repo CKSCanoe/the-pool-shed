@@ -45,5 +45,3 @@ html[data-theme="dark"] .settings-superadmin-links em,body[data-theme="dark"] .s
 .status-live-preview>span{display:inline-flex;align-items:center;min-height:32px;padding:6px 12px;border-radius:999px;font-size:11px;font-weight:900}
 .status-live-preview small{color:var(--color-text-secondary)}
 @media(max-width:760px){.status-manager-form{grid-template-columns:1fr}.status-manager-visibility,.status-manager-key,.status-live-preview{grid-column:1}.status-manager-actions{flex-wrap:wrap}}
-
-[executed on device: Mac (ec904dd1-f8aa-4e0b-a3e1-d58dac693c34)]
