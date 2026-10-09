@@ -30,7 +30,7 @@ async function revisionData(id){
   return rows[0]||null;
 }
 async function audit(body){
-  const currentRows=await db('workspace_snapshots?workspace_id=eq.'+eq(WORKSPACE_ID)+'&select=data,updated_at,updated_by&limit=1');
+  const currentRows=await db('workspace_snapshots?workspace_id=eq.'+eq(WORKSPACE_ID)+'&select=data,updated_at,updated_by&limit=1',{timeout:60000});
   const currentRow=currentRows[0];
   if(!currentRow||!currentRow.data)throw Object.assign(new Error('Current shared master unavailable'),{statusCode:409});
   const meta=await db('ps_workspace_revisions?workspace_id=eq.'+eq(WORKSPACE_ID)+'&select=id,updated_at,updated_by&order=updated_at.desc&limit=40');
@@ -94,9 +94,8 @@ async function restoreMissingOrder(user,body){
   incoming.recoveredAt=new Date().toISOString();
   incoming.recoverySource=String(body.recoverySource||'browser-recovery');
   snapshot.salesOrders.push(incoming);
-  await db('ps_workspace_revisions',{method:'POST',prefer:'return=minimal',body:{workspace_id:WORKSPACE_ID,data:row.data,updated_by:row.updated_by||null,updated_at:row.updated_at}});
   const stamp=new Date().toISOString();
-  const updated=await db('workspace_snapshots?workspace_id=eq.'+eq(WORKSPACE_ID)+'&updated_at=eq.'+eq(row.updated_at),{method:'PATCH',prefer:'return=representation',body:{data:snapshot,updated_by:user.id,updated_at:stamp}});
+  const updated=await db('workspace_snapshots?workspace_id=eq.'+eq(WORKSPACE_ID)+'&updated_at=eq.'+eq(row.updated_at),{method:'PATCH',prefer:'return=representation',body:{data:snapshot,updated_by:user.id,updated_at:stamp},timeout:60000});
   if(!updated.length)throw Object.assign(new Error('Another user saved first. Retry so their changes are preserved.'),{statusCode:409});
   return {ok:true,restored:true,order:orderSummary(snapshot,incoming),updatedAt:updated[0].updated_at||stamp};
 }
