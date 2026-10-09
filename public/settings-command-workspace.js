@@ -1,5 +1,3 @@
-[Reading 125 lines from start (total: 125 lines, 0 remaining)]
-
 (function(global){
 'use strict';
 const sec=global.PoolShedSettingsPermissions;if(!sec)return;
