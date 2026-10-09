@@ -317,6 +317,8 @@ const seed = {
       let workspaceLocalRevisionCounter = Number(localStorage.getItem("poolshed:v172:localRevision") || 0);
       let workspaceSaveInFlight = false;
       let sharedWorkspaceReady = false;
+      let workspaceBaseSnapshot = null;
+      let workspaceLastLocalPayload = "";
       let remoteSaveTimer = null;
       const WORKSPACE_LOCALSTORAGE_SAFE_CHARS = 1750000;
       let workspaceRealtimeChannel = null;
@@ -329,6 +331,114 @@ const seed = {
 
       function clone(value) {
         return JSON.parse(JSON.stringify(value));
+      }
+
+      function workspaceJsonEqual(a, b) {
+        if (a === b) return true;
+        try { return JSON.stringify(a) === JSON.stringify(b); } catch (error) { return false; }
+      }
+
+      function workspaceStableArrayKey(item) {
+        if (!item || typeof item !== "object" || Array.isArray(item)) return "";
+        const candidates = ["id", "productId", "salesOrderId", "purchaseOrderId", "goodsNoteId", "sku", "code", "name"];
+        for (let i = 0; i < candidates.length; i += 1) {
+          const key = candidates[i];
+          if (typeof item[key] !== "undefined" && item[key] !== null && String(item[key]) !== "") {
+            return key + ":" + String(item[key]);
+          }
+        }
+        return "";
+      }
+
+      function workspaceArrayCanMergeByKey(values) {
+        const arrays = values.filter(Array.isArray);
+        if (!arrays.length) return false;
+        return arrays.every(function(list) {
+          if (!list.length) return true;
+          const keys = list.map(workspaceStableArrayKey);
+          return keys.every(Boolean) && new Set(keys).size === keys.length;
+        });
+      }
+
+      function workspaceMergeValue(base, local, remote, path, conflicts) {
+        if (workspaceJsonEqual(local, base)) return clone(remote);
+        if (workspaceJsonEqual(remote, base)) return clone(local);
+        if (workspaceJsonEqual(local, remote)) return clone(local);
+
+        const localIsObject = local && typeof local === "object" && !Array.isArray(local);
+        const remoteIsObject = remote && typeof remote === "object" && !Array.isArray(remote);
+        const baseIsObject = base && typeof base === "object" && !Array.isArray(base);
+
+        if (Array.isArray(local) && Array.isArray(remote) && Array.isArray(base) && workspaceArrayCanMergeByKey([base, local, remote])) {
+          const baseMap = new Map(base.map(function(item) { return [workspaceStableArrayKey(item), item]; }));
+          const localMap = new Map(local.map(function(item) { return [workspaceStableArrayKey(item), item]; }));
+          const remoteMap = new Map(remote.map(function(item) { return [workspaceStableArrayKey(item), item]; }));
+          const order = [];
+          remote.forEach(function(item) { const key = workspaceStableArrayKey(item); if (key && !order.includes(key)) order.push(key); });
+          local.forEach(function(item) { const key = workspaceStableArrayKey(item); if (key && !order.includes(key)) order.push(key); });
+
+          const merged = [];
+          order.forEach(function(key) {
+            const hasBase = baseMap.has(key), hasLocal = localMap.has(key), hasRemote = remoteMap.has(key);
+            const b = baseMap.get(key), l = localMap.get(key), r = remoteMap.get(key);
+            const itemPath = (path || "workspace") + "[" + key + "]";
+
+            if (!hasBase) {
+              if (hasLocal && hasRemote) merged.push(workspaceMergeValue({}, l, r, itemPath, conflicts));
+              else if (hasLocal) merged.push(clone(l));
+              else if (hasRemote) merged.push(clone(r));
+              return;
+            }
+
+            if (!hasLocal && !hasRemote) return;
+            if (!hasLocal && hasRemote) {
+              if (!workspaceJsonEqual(r, b)) conflicts.push(itemPath + " deleted locally / changed remotely");
+              return; // local deletion is the latest local intent
+            }
+            if (hasLocal && !hasRemote) {
+              if (workspaceJsonEqual(l, b)) return; // remote deletion wins if local did not edit it
+              conflicts.push(itemPath + " changed locally / deleted remotely");
+              merged.push(clone(l)); // preserve intentional local edit
+              return;
+            }
+            merged.push(workspaceMergeValue(b, l, r, itemPath, conflicts));
+          });
+          return merged;
+        }
+
+        if (localIsObject && remoteIsObject && baseIsObject) {
+          const result = {};
+          const keys = new Set(Object.keys(base).concat(Object.keys(local), Object.keys(remote)));
+          keys.forEach(function(key) {
+            const hasBase = Object.prototype.hasOwnProperty.call(base, key);
+            const hasLocal = Object.prototype.hasOwnProperty.call(local, key);
+            const hasRemote = Object.prototype.hasOwnProperty.call(remote, key);
+            const fieldPath = (path ? path + "." : "") + key;
+
+            if (!hasBase) {
+              if (hasLocal && hasRemote) result[key] = workspaceMergeValue({}, local[key], remote[key], fieldPath, conflicts);
+              else if (hasLocal) result[key] = clone(local[key]);
+              else if (hasRemote) result[key] = clone(remote[key]);
+              return;
+            }
+            if (!hasLocal && !hasRemote) return;
+            if (!hasLocal && hasRemote) {
+              if (!workspaceJsonEqual(remote[key], base[key])) conflicts.push(fieldPath + " deleted locally / changed remotely");
+              return;
+            }
+            if (hasLocal && !hasRemote) {
+              if (workspaceJsonEqual(local[key], base[key])) return;
+              conflicts.push(fieldPath + " changed locally / deleted remotely");
+              result[key] = clone(local[key]);
+              return;
+            }
+            result[key] = workspaceMergeValue(base[key], local[key], remote[key], fieldPath, conflicts);
+          });
+          return result;
+        }
+
+        conflicts.push(path || "workspace");
+        return clone(local); // last intentional local edit wins on the same scalar field
       }
 
       function loadUsers() {
@@ -944,17 +1054,46 @@ const seed = {
         }
       }
 
-      async function resolveSharedWorkspaceConflict() {
+      async function resolveSharedWorkspaceConflict(localSnapshot, baseSnapshot) {
         let recoveryKey = preserveUnsyncedWorkspaceRecovery("multi-user-save-conflict");
         if (!recoveryKey) recoveryKey = await preserveLargeWorkspaceRecovery("multi-user-save-conflict");
         try {
           const response = await supabaseClient.from("workspace_snapshots").select("data,updated_at").eq("workspace_id", WORKSPACE_ID).maybeSingle();
           if (response.error) throw response.error;
           if (!response.data || !response.data.data) throw new Error("Shared workspace master is unavailable.");
-          localStorage.removeItem("poolshed:v172:pendingSync");
+
+          const remoteSnapshot = normalizeAppData(clone(response.data.data));
+          const knownBase = baseSnapshot || workspaceBaseSnapshot;
+          if (!knownBase) {
+            localStorage.removeItem("poolshed:v172:pendingSync");
+            workspaceSyncConflict = false;
+            await applyRemoteWorkspaceSnapshot(response.data, true);
+            toast("Another user saved first. Pool Shed kept your unsynced browser copy in Recovery and loaded the verified shared master because there was no safe merge base.");
+            return false;
+          }
+          const base = normalizeAppData(clone(knownBase));
+          const local = localSnapshot ? normalizeAppData(clone(localSnapshot)) : normalizeAppData(clone(data));
+          const conflicts = [];
+          const merged = workspaceMergeValue(base, local, remoteSnapshot, "", conflicts);
+
+          data = normalizeAppData(merged);
+          remoteWorkspaceUpdatedAt = response.data.updated_at || null;
+          workspaceBaseSnapshot = clone(remoteSnapshot);
           workspaceSyncConflict = false;
-          await applyRemoteWorkspaceSnapshot(response.data, true);
-          toast("Another user saved first. Their latest shared data is now loaded; your unsynced change was kept safely in Recovery" + (recoveryKey ? "." : " if browser storage allowed it."));
+          sharedWorkspaceReady = true;
+          try {
+            localStorage.setItem("poolshed:v172:remoteRevision", remoteWorkspaceUpdatedAt || "");
+            localStorage.setItem("poolshed:v172:pendingSync", "1");
+          } catch (error) { void error; }
+          const mergedPayload = JSON.stringify(data);
+          workspaceLastLocalPayload = mergedPayload;
+          cacheWorkspaceLocally(mergedPayload, true);
+          await writeOfflineSnapshot(true);
+          updateOfflineStatus();
+
+          toast(conflicts.length
+            ? "Another user saved first. Pool Shed merged both users’ changes and will save your latest field changes next."
+            : "Another user saved first. Pool Shed merged both workspace changes and is saving the combined master.");
           return true;
         } catch (error) {
           workspaceSyncConflict = true;
@@ -968,6 +1107,8 @@ const seed = {
         if (!row || !row.data) return false;
         data = normalizeAppData(row.data);
         remoteWorkspaceUpdatedAt = row.updated_at || null;
+        workspaceBaseSnapshot = clone(data);
+        workspaceLastLocalPayload = JSON.stringify(data);
         workspaceSyncConflict = false;
         sharedWorkspaceReady = true;
         try { localStorage.setItem("poolshed:v172:remoteRevision", remoteWorkspaceUpdatedAt || ""); } catch (error) { void error; }
@@ -1016,6 +1157,7 @@ const seed = {
         // Preserve the local work in Recovery, then open the verified server master.
         if (pending && localBaseRevision && localBaseRevision === remoteRevision) {
           remoteWorkspaceUpdatedAt = remoteRevision;
+          workspaceBaseSnapshot = normalizeAppData(clone(response.data.data));
           if (await saveRemoteWorkspace(true)) return true;
 
           let recoveryKey = preserveUnsyncedWorkspaceRecovery("shared-upload-incomplete-on-sign-in");
@@ -1038,32 +1180,44 @@ const seed = {
         return applyRemoteWorkspaceSnapshot(response.data, false);
       }
 
-      async function saveRemoteWorkspace(force) {
+      async function saveRemoteWorkspace(force, conflictAttempt) {
         if (localStorage.getItem("poolshed:v172:recoveryHold") === "1") return false;
         if (!supabaseClient || !supabaseSession || !navigator.onLine || workspaceSaveInFlight || workspaceSyncConflict) return false;
         workspaceSaveInFlight = true;
+        const attempt = Number(conflictAttempt || 0);
         const savingLocalRevision = typeof workspaceLocalRevisionCounter === "number"
           ? workspaceLocalRevisionCounter
           : Number(localStorage.getItem("poolshed:v172:localRevision") || 0);
+        const baseForAttempt = workspaceBaseSnapshot ? clone(workspaceBaseSnapshot) : null;
         try {
           const savedJson = JSON.stringify(normalizeAppData(data));
+          const localSnapshot = JSON.parse(savedJson);
           const response = await supabaseClient.rpc("ps_workspace_save", {
             w: WORKSPACE_ID,
             expected: remoteWorkspaceUpdatedAt || null,
-            snapshot: JSON.parse(savedJson)
+            snapshot: localSnapshot
           });
           if (!response.error && !response.data) {
             workspaceSyncConflict = true;
             updateOfflineStatus();
-            if (!await resolveSharedWorkspaceConflict()) {
+            const rebased = await resolveSharedWorkspaceConflict(localSnapshot, baseForAttempt);
+            if (!rebased) {
               toast("Another user saved Pool Shed first. Your changes are still safe locally and have not overwritten theirs.");
               render();
+              return false;
             }
-            return false;
+            if (attempt >= 2) {
+              toast("Pool Shed merged simultaneous changes but could not confirm the combined shared save yet. Keep this page open.");
+              return false;
+            }
+            workspaceSaveInFlight = false;
+            return saveRemoteWorkspace(force, attempt + 1);
           }
           if (response.error) throw response.error;
           remoteWorkspaceUpdatedAt = response.data.updated_at;
           sharedWorkspaceReady = true;
+          workspaceBaseSnapshot = clone(localSnapshot);
+          workspaceLastLocalPayload = savedJson;
           localStorage.setItem("poolshed:v172:remoteRevision", remoteWorkspaceUpdatedAt);
           const currentLocalRevision = typeof workspaceLocalRevisionCounter === "number"
             ? workspaceLocalRevisionCounter
@@ -1152,9 +1306,21 @@ const seed = {
         remoteSaveTimer = setTimeout(function() { saveRemoteWorkspace(false); }, 650);
       }
 
+      async function flushSharedWorkspaceSave(label) {
+        clearTimeout(remoteSaveTimer);
+        remoteSaveTimer = null;
+        for (let i = 0; i < 80 && workspaceSaveInFlight; i += 1) {
+          await new Promise(function(resolve) { setTimeout(resolve, 50); });
+        }
+        const saved = await saveRemoteWorkspace(true);
+        if (saved && label) toast(label + " · shared workspace saved for all users.");
+        return saved;
+      }
+
       function saveAppData() {
         data = normalizeAppData(data);
         const payload = JSON.stringify(data);
+        workspaceLastLocalPayload = payload;
         workspaceLocalRevisionCounter += 1;
         try { localStorage.setItem("poolshed:v172:localRevision", String(workspaceLocalRevisionCounter)); } catch (error) { void error; }
         const storedInLocalStorage = cacheWorkspaceLocally(payload, true);
@@ -1181,6 +1347,7 @@ const seed = {
         try { saved = JSON.parse(localStorage.getItem("poolshed:v172:appData") || "null"); } catch (error) { saved = null; }
         if (!saved) saved = readPreference("appData", null);
         data = normalizeAppData(saved || data);
+        workspaceLastLocalPayload = JSON.stringify(data);
         ensureCustomerNotificationRules();
         ensureAutomationRules();
         ensureCustomerProfileFields();
@@ -2726,6 +2893,17 @@ const seed = {
           renderGoodsNoteDeleteModal();
         } catch (error) {
           renderPageError(error);
+        }
+        if (isAuthenticated && sharedWorkspaceReady && localStorage.getItem("poolshed:v172:recoveryHold") !== "1") {
+          try {
+            const currentPayload = JSON.stringify(data);
+            if (workspaceLastLocalPayload && currentPayload !== workspaceLastLocalPayload) {
+              console.warn("Pool Shed caught an unsaved workspace mutation during render and queued it for the shared master.");
+              saveAppData();
+            }
+          } catch (error) {
+            console.warn("Workspace dirty-check failed", error);
+          }
         }
       }
 
@@ -7284,15 +7462,24 @@ const seed = {
         });
 
         document.querySelectorAll("[data-order-field]").forEach(function(field) {
-          field.addEventListener("change", function() {
+          field.addEventListener("change", async function() {
             const order = salesOrder(field.dataset.orderField);
+            if (!order) return;
             const previous = order[field.dataset.field];
             order[field.dataset.field] = field.value;
+            order.updatedAt = new Date().toISOString();
             if (field.dataset.field === "status" && previous !== field.value) {
-              addSalesOrderNotification(order, "Status changed", "Sales order moved from " + previous + " to " + field.value, "Internal note");
+              const user = typeof currentUser === "function" ? currentUser() : null;
+              order.statusUpdatedAt = order.updatedAt;
+              order.statusUpdatedBy = user ? (user.name || user.email || user.id) : "Pool Shed user";
+              addSalesOrderNotification(order, "Status changed", "Sales order moved from " + previous + " to " + field.value + " by " + order.statusUpdatedBy, "Internal note");
             }
-            toast(order.id + " updated.");
+            saveAppData();
             render();
+            const label = field.dataset.field === "status" ? (order.id + " status " + field.value) : (order.id + " update");
+            if (!await flushSharedWorkspaceSave(label)) {
+              toast(label + " is saved locally and still waiting for the shared workspace.");
+            }
           });
         });
 
@@ -15485,16 +15672,24 @@ const seed = {
           const bulkStatus = document.querySelector("[data-so-list-bulk-status]");
           const nextStatus = bulkStatus ? bulkStatus.value : "";
           if (!nextStatus) return toast("Choose a status for the selected sales orders.");
+          const user = typeof currentUser === "function" ? currentUser() : null;
+          const changedBy = user ? (user.name || user.email || user.id) : "Pool Shed user";
           ids.forEach(function(id) {
             const order = salesOrder(id);
             if (!order) return;
             const previous = order.status;
             order.status = nextStatus;
-            addSalesOrderNotification(order, "Status changed", "Sales order moved from " + previous + " to " + nextStatus, "Internal note");
+            order.updatedAt = new Date().toISOString();
+            order.statusUpdatedAt = order.updatedAt;
+            order.statusUpdatedBy = changedBy;
+            addSalesOrderNotification(order, "Status changed", "Sales order moved from " + previous + " to " + nextStatus + " by " + changedBy, "Internal note");
           });
           saveAppData();
-          toast(ids.length + " order status update(s) saved.");
-          return render();
+          render();
+          flushSharedWorkspaceSave(ids.length + " Sales Order status update" + (ids.length === 1 ? "" : "s")).then(function(saved) {
+            if (!saved) toast(ids.length + " status update(s) are saved locally and still waiting for the shared workspace.");
+          });
+          return;
         }
         if (action === "delete") {
           return deleteSelectedSalesOrders(ids);

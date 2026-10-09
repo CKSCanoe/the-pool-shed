@@ -27,6 +27,7 @@ run_node_stage "workspace and sales safety" \
   test-sales-order-custom-price-apply-v159.mjs \
   test-sales-order-customer-discount-v160.mjs \
   test-product-import-shared-persistence-v161.mjs \
+  test-shared-one-truth-v162.mjs \
   test-sales-order-line-delete-v147.mjs \
   test-sales-order-entry-cards-v147.mjs \
   test-sales-order-unification-v149.mjs \
