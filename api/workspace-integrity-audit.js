@@ -1,5 +1,5 @@
 import {db,eq} from '../server/accounting.js';
-import {supabaseServerKey} from '../server/supabase-keys.js';
+import {supabaseServerKey,elevatedSupabaseHeaders} from '../server/supabase-keys.js';
 import {appOriginAllowed} from '../server/origin-policy.js';
 
 const WORKSPACE_ID='pool-bros-main';
@@ -98,12 +98,18 @@ async function restoreMissingOrder(user,body){
   // Avoid returning the multi-megabyte workspace after the PATCH. On large masters,
   // return=representation can exceed the database/function execution window even
   // when the targeted update itself is valid.
-  await db('workspace_snapshots?workspace_id=eq.'+eq(WORKSPACE_ID)+'&updated_at=eq.'+eq(row.updated_at),{
+  const patchUrl=process.env.SUPABASE_URL+'/rest/v1/workspace_snapshots?workspace_id=eq.'+eq(WORKSPACE_ID)+'&updated_at=eq.'+eq(row.updated_at);
+  const patchResponse=await fetch(patchUrl,{
     method:'PATCH',
-    prefer:'return=minimal',
-    body:{data:snapshot,updated_by:user.id,updated_at:stamp},
-    timeout:55000
+    signal:AbortSignal.timeout(55000),
+    headers:elevatedSupabaseHeaders(process.env,{'Content-Type':'application/json',Prefer:'return=minimal'}),
+    body:JSON.stringify({data:snapshot,updated_by:user.id,updated_at:stamp})
   });
+  if(!patchResponse.ok){
+    const detail=(await patchResponse.text()).slice(0,1200);
+    const error=Object.assign(new Error('Targeted restore database update failed ('+patchResponse.status+'): '+detail),{statusCode:500});
+    throw error;
+  }
   // Confirm the shared master independently, and only fetch the small Sales Order
   // and customer slices instead of the whole workspace.
   const verifyRows=await db(
