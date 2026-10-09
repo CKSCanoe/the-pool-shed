@@ -7,6 +7,25 @@ async function post(url,body){const t=await token();const r=await fetch(url,{met
 function render(){const root=$('results');if(!versions.length){root.innerHTML='<div class="muted">No retained version matched this search.</div>';return}root.innerHTML=versions.map((v,i)=>'<div class="result"><div class="row"><strong>'+esc(v.orderId)+' · '+esc(v.customerName)+'</strong><span class="badge">'+Number(v.lineCount||0)+' lines · '+Number(v.units||0)+' units</span></div><div class="muted">'+esc(v.updatedAt||'')+' · revision '+esc(v.revisionId)+'</div><div class="labels">'+esc((v.labels||[]).join(' | '))+'</div><button class="primary" data-restore="'+i+'">Restore missing lines from this version</button></div>').join('')}
 async function scan(){const q=$('q').value.trim();if(!q){$('status').textContent='Enter a customer or Sales Order first.';return}$('status').textContent='Searching retained server revisions…';$('results').textContent='Searching…';try{const j=await post('/api/workspace-order-recovery?action=scan&query='+encodeURIComponent(q));versions=j.versions||[];$('status').textContent='Found '+versions.length+' retained version'+(versions.length===1?'':'s')+'. Choose the version with the lines you need.';render()}catch(e){$('status').textContent=e.message;$('results').textContent='Search failed.'}}
 async function restore(i){const v=versions[i];if(!v)return;if(!confirm('Restore only missing lines from '+v.orderId+' revision '+v.updatedAt+'?\n\nCurrent lines will not be replaced.'))return;$('status').textContent='Restoring missing lines and saving the shared workspace…';try{const j=await post('/api/workspace-order-recovery?action=restore',{revisionId:v.revisionId,orderId:v.orderId});$('status').textContent=j.restored?('Recovered '+j.restored+' missing line'+(j.restored===1?'':'s')+' and saved the shared workspace.'):('No lines were missing from that version.');alert($('status').textContent)}catch(e){$('status').textContent='Nothing was overwritten. '+e.message}}
-const initialQuery=new URLSearchParams(location.search).get('q')||'';if(initialQuery){$('q').value=initialQuery;setTimeout(scan,500)}
+const params=new URLSearchParams(location.search);
+const initialQuery=params.get('q')||'';
+const auditMode=params.get('audit')==='1';
+const auditDate=params.get('date')||'2026-10-08';
+async function runAudit(){
+  const q=initialQuery||'Sam Williams';
+  $('q').value=q;
+  $('status').textContent='Auditing shared Sales Order history…';
+  $('results').textContent='Loading audit…';
+  try{
+    const j=await post('/api/workspace-sales-audit?q='+encodeURIComponent(q)+'&date='+encodeURIComponent(auditDate));
+    $('status').textContent='Shared Sales Order audit complete.';
+    $('results').textContent=JSON.stringify(j);
+  }catch(e){
+    $('status').textContent='Audit failed: '+e.message;
+    $('results').textContent='AUDIT_ERROR:'+e.message;
+  }
+}
+if(auditMode)setTimeout(runAudit,500);
+else if(initialQuery){$('q').value=initialQuery;setTimeout(scan,500)}
 $('scan').onclick=scan;$('q').addEventListener('keydown',e=>{if(e.key==='Enter'){e.preventDefault();scan()}});$('results').addEventListener('click',e=>{const b=e.target.closest('[data-restore]');if(b)restore(Number(b.dataset.restore))});
 })();
