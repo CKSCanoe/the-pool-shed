@@ -1162,6 +1162,3 @@
   globalThis.changePurchaseOrderSupplier = changePurchaseOrderSupplier;
   globalThis.bindPurchaseCommand = bindPurchaseCommand;
 })();
-
-
-[executed on device: Mac (ec904dd1-f8aa-4e0b-a3e1-d58dac693c34)]
