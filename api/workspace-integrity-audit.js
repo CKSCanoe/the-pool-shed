@@ -20,6 +20,18 @@ async function admin(req){
   return user;
 }
 function orderId(o){return String(o&&((o.id||o.orderNumber))||'')}
+function compactRedundantImportAfterSnapshots(snapshot){
+  let removed=0;
+  for(const batch of arr(snapshot&&snapshot.productImportBatches)){
+    for(const change of arr(batch&&batch.changes)){
+      if(change&&Object.prototype.hasOwnProperty.call(change,'after')){
+        delete change.after;
+        removed++;
+      }
+    }
+  }
+  return removed;
+}
 function customerMap(data){return new Map(arr(data&&data.customers).map(c=>[String(c.id),c]))}
 function customerName(data,o){const c=customerMap(data).get(String(o&&o.customerId))||{};return String(c.name||c.companyName||c.company||c.fullName||c.email||o.customerName||'Unknown customer')}
 function orderSummary(data,o){return {id:orderId(o),customer:customerName(data,o),status:String(o.status||''),lineCount:arr(o.lines).length,units:arr(o.lines).reduce((n,l)=>n+Number(l.qty||0),0),updatedAt:o.updatedAt||o.updated||'',statusUpdatedAt:o.statusUpdatedAt||'',statusUpdatedBy:o.statusUpdatedBy||''}}
@@ -94,6 +106,11 @@ async function restoreMissingOrder(user,body){
   incoming.recoveredAt=new Date().toISOString();
   incoming.recoverySource=String(body.recoverySource||'browser-recovery');
   snapshot.salesOrders.push(incoming);
+  // Product import rollback only reads change.before/changeType/productId/sku.
+  // The historical change.after copies duplicate the live catalogue thousands of
+  // times and had inflated this workspace above 10 MB, causing targeted restores
+  // to hit the database statement timeout. Remove only those redundant copies.
+  const compactedImportAfterSnapshots=compactRedundantImportAfterSnapshots(snapshot);
   const stamp=new Date().toISOString();
   // Avoid returning the multi-megabyte workspace after the PATCH. On large masters,
   // return=representation can exceed the database/function execution window even
@@ -123,7 +140,7 @@ async function restoreMissingOrder(user,body){
     ? arr(verify.customers).find(c=>String(c.id)===String(incomingCustomer.id))
     : null;
   if(incomingCustomer&&incomingCustomer.id&&!verifiedCustomer)throw Object.assign(new Error('SO-2042 was written but its customer record did not verify. Review is required before continuing.'),{statusCode:409});
-  return {ok:true,restored:true,order:orderSummary({customers:arr(verify.customers)},verifiedOrder),updatedAt:verify.updated_at||stamp,confirmed:true};
+  return {ok:true,restored:true,order:orderSummary({customers:arr(verify.customers)},verifiedOrder),updatedAt:verify.updated_at||stamp,confirmed:true,compactedImportAfterSnapshots};
 }
 export default async function handler(req,res){
   res.setHeader('Cache-Control','no-store');
