@@ -25,52 +25,57 @@ function customerName(data,o){const c=customerMap(data).get(String(o&&o.customer
 function orderSummary(data,o){return {id:orderId(o),customer:customerName(data,o),status:String(o.status||''),lineCount:arr(o.lines).length,units:arr(o.lines).reduce((n,l)=>n+Number(l.qty||0),0),updatedAt:o.updatedAt||o.updated||'',statusUpdatedAt:o.statusUpdatedAt||'',statusUpdatedBy:o.statusUpdatedBy||''}}
 function matchOrder(data,o,q){q=String(q||'').toLowerCase();const c=customerMap(data).get(String(o&&o.customerId))||{};return [orderId(o),customerName(data,o),o.reference,o.customerPo,c.email,c.phone,c.mobile].filter(Boolean).join(' ').toLowerCase().includes(q)}
 function isoDay(v){return String(v||'').slice(0,10)}
+async function revisionData(id){
+  const rows=await db('ps_workspace_revisions?id=eq.'+eq(id)+'&workspace_id=eq.'+eq(WORKSPACE_ID)+'&select=id,data,updated_at,updated_by&limit=1');
+  return rows[0]||null;
+}
 async function audit(body){
   const currentRows=await db('workspace_snapshots?workspace_id=eq.'+eq(WORKSPACE_ID)+'&select=data,updated_at,updated_by&limit=1');
   const currentRow=currentRows[0];
   if(!currentRow||!currentRow.data)throw Object.assign(new Error('Current shared master unavailable'),{statusCode:409});
-  const revisions=await db('ps_workspace_revisions?workspace_id=eq.'+eq(WORKSPACE_ID)+'&select=id,data,updated_at,updated_by&order=updated_at.desc&limit=80');
+  const meta=await db('ps_workspace_revisions?workspace_id=eq.'+eq(WORKSPACE_ID)+'&select=id,updated_at,updated_by&order=updated_at.desc&limit=40');
   const profiles=await db('user_profiles?select=id,email,full_name,role,active');
   const profileMap=new Map(profiles.map(p=>[String(p.id),p]));
-  const current=currentRow.data;
-  const currentOrders=arr(current.salesOrders);
-  const currentIds=new Set(currentOrders.map(orderId));
-  const missingMap=new Map();
-  for(const rev of revisions){
-    for(const o of arr(rev.data&&rev.data.salesOrders)){
-      const id=orderId(o); if(!id||currentIds.has(id)||missingMap.has(id))continue;
-      missingMap.set(id,{...orderSummary(rev.data,o),lastSeenRevision:rev.updated_at,lastSeenRevisionId:rev.id,updatedBy:rev.updated_by||''});
-    }
-  }
-  const date=String(body.date||'').slice(0,10);
-  const statusChanges=[];
-  const ascending=revisions.slice().sort((a,b)=>String(a.updated_at).localeCompare(String(b.updated_at)));
-  for(let i=1;i<ascending.length;i++){
-    const prev=ascending[i-1],next=ascending[i];
-    if(date && isoDay(next.updated_at)!==date)continue;
-    const pm=new Map(arr(prev.data&&prev.data.salesOrders).map(o=>[orderId(o),o]));
-    for(const n of arr(next.data&&next.data.salesOrders)){
-      const id=orderId(n),p=pm.get(id); if(!p)continue;
-      if(String(p.status||'')===String(n.status||''))continue;
-      const prof=profileMap.get(String(next.updated_by||''))||{};
-      statusChanges.push({at:next.updated_at,orderId:id,customer:customerName(next.data,n),from:String(p.status||''),to:String(n.status||''),updatedById:next.updated_by||'',updatedBy:prof.full_name||prof.email||next.updated_by||'Unknown'});
-    }
-  }
+  const current=currentRow.data,currentOrders=arr(current.salesOrders),currentIds=new Set(currentOrders.map(orderId));
   const q=String(body.query||'').trim().toLowerCase();
   const currentMatches=q?currentOrders.filter(o=>matchOrder(current,o,q)).map(o=>orderSummary(current,o)):[];
-  const historyMatches=[];
-  if(q){
-    const seen=new Set();
-    for(const rev of revisions){
-      for(const o of arr(rev.data&&rev.data.salesOrders)){
+  const historyMatches=[],missingMap=new Map(),loaded=[];
+  for(const m of meta.slice(0,12)){
+    const rev=await revisionData(m.id); if(!rev||!rev.data)continue; loaded.push(rev);
+    if(q){
+      for(const o of arr(rev.data.salesOrders)){
         if(!matchOrder(rev.data,o,q))continue;
-        const key=rev.id+'|'+orderId(o); if(seen.has(key))continue;seen.add(key);
         historyMatches.push({...orderSummary(rev.data,o),revisionAt:rev.updated_at,revisionId:rev.id,revisionUpdatedBy:rev.updated_by||''});
       }
     }
+    for(const o of arr(rev.data.salesOrders)){
+      const id=orderId(o); if(!id||currentIds.has(id)||missingMap.has(id))continue;
+      missingMap.set(id,{...orderSummary(rev.data,o),lastSeenRevision:rev.updated_at,lastSeenRevisionId:rev.id,updatedBy:rev.updated_by||''});
+    }
+    if(historyMatches.length>=8 && loaded.length>=4)break;
   }
-  const revisionCounts=revisions.slice(0,20).map(r=>({at:r.updated_at,count:arr(r.data&&r.data.salesOrders).length,updatedBy:r.updated_by||''}));
-  return {ok:true,current:{updatedAt:currentRow.updated_at,updatedBy:currentRow.updated_by||'',salesOrderCount:currentOrders.length},currentMatches,historyMatches:historyMatches.slice(0,80),missingOrders:Array.from(missingMap.values()).slice(0,100),statusChanges,revisionCounts};
+  const date=String(body.date||'').slice(0,10);
+  const statusChanges=[];
+  const dayMeta=meta.filter(m=>!date||isoDay(m.updated_at)===date).slice().sort((a,b)=>String(a.updated_at).localeCompare(String(b.updated_at)));
+  const rachIds=new Set(profiles.filter(p=>/\brach|rachel/i.test(String(p.full_name||'')+' '+String(p.email||''))).map(p=>String(p.id)));
+  const candidates=dayMeta.filter(m=>!rachIds.size||rachIds.has(String(m.updated_by||''))).slice(-8);
+  for(const m of candidates){
+    const idx=meta.findIndex(x=>String(x.id)===String(m.id));
+    const newerMeta=idx>0?meta[idx-1]:null;
+    const before=await revisionData(m.id);
+    let after=null;
+    if(newerMeta)after=await revisionData(newerMeta.id);
+    else after={data:current,updated_at:currentRow.updated_at,updated_by:currentRow.updated_by};
+    if(!before||!before.data||!after||!after.data)continue;
+    const bm=new Map(arr(before.data.salesOrders).map(o=>[orderId(o),o]));
+    for(const n of arr(after.data.salesOrders)){
+      const id=orderId(n),p=bm.get(id); if(!p)continue;
+      if(String(p.status||'')===String(n.status||''))continue;
+      const prof=profileMap.get(String(after.updated_by||''))||profileMap.get(String(m.updated_by||''))||{};
+      statusChanges.push({at:after.updated_at,orderId:id,customer:customerName(after.data,n),from:String(p.status||''),to:String(n.status||''),updatedById:after.updated_by||m.updated_by||'',updatedBy:prof.full_name||prof.email||after.updated_by||m.updated_by||'Unknown'});
+    }
+  }
+  return {ok:true,current:{updatedAt:currentRow.updated_at,updatedBy:currentRow.updated_by||'',salesOrderCount:currentOrders.length},profiles:profiles.map(p=>({id:p.id,name:p.full_name,email:p.email})),currentMatches,historyMatches:historyMatches.slice(0,40),missingOrders:Array.from(missingMap.values()).slice(0,50),statusChanges,revisionCounts:meta.slice(0,20).map(r=>({at:r.updated_at,updatedBy:r.updated_by||''}))};
 }
 export default async function handler(req,res){
   res.setHeader('Cache-Control','no-store');
