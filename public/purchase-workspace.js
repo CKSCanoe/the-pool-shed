@@ -1,4 +1,4 @@
-[Reading 1000 lines from start (total: 1165 lines, 165 remaining)]
+[Reading 1165 lines from start (total: 1165 lines, 0 remaining)]
 
 /* Pool Shed Purchase Order Supplier Command authority layer.
    Supplier Order Command with Sales Order layout parity.
@@ -1000,5 +1000,170 @@
     return legacyDefaultSubPage ? legacyDefaultSubPage(tabId) : '';
   };
   openSidebarSubGroup = function(tabId,subgroup){
+    if(tabId!=='purchase') return legacyOpenSidebarSubGroup ? legacyOpenSidebarSubGroup(tabId,subgroup) : undefined;
+    active='purchase'; activeSubPage.purchase=subgroup;
+    if(subgroup==='Purchase Orders') purchaseOrderView='list';
+    if(subgroup==='Suppliers') purchaseOrderView='suppliers';
+    if(typeof render==='function') render();
+  };
+
+  renderPurchase = function(){
+    const sub=typeof selectedSubPage==='function'?selectedSubPage('purchase'):(activeSubPage.purchase||'Purchase Orders');
+    const selectedPo=typeof purchaseOrderById==='function'?purchaseOrderById(selectedPurchaseOrderId):(data.purchaseOrders||[])[0];
+    let content;
+    if(purchaseOrderView==='detail' && selectedPo) content=purchaseOrderDetailPage(selectedPo);
+    else if(purchaseOrderView==='supplier-profile' && typeof supplierProfilePage==='function') content=supplierProfilePage(selectedSupplierName);
+    else if(purchaseOrderView==='supplier-catalogue' && typeof supplierCataloguePage==='function') content=supplierCataloguePage(selectedSupplierName);
+    else if(sub==='Procurement Demand') content=purchaseProcurementDemandPage();
+    else if(sub==='Supplier Returns & Credits') content=purchaseReturnsOverviewPage();
+    else if(sub==='Invoice Matching') content=purchaseInvoiceMatchingPage();
+    else if(sub==='Suppliers' || purchaseOrderView==='suppliers') content=typeof supplierManagementPage==='function'?supplierManagementPage():purchaseOrderListPage();
+    else content=purchaseOrderListPage();
+    const screen=document.getElementById('screen-purchase'); if(screen) screen.innerHTML=content;
+    bindPurchase();
+  };
+
+  globalThis.openPurchaseOrderTab = function(poId, tab){
+    selectedPurchaseOrderId=poId;
+    purchaseOrderView='detail';
+    purchaseCommandTab=tab||'items';
+    active='purchase';
+    activeSubPage.purchase='Purchase Orders';
+    if(typeof render==='function') render();
+  };
+  globalThis.purchaseCreateOrMergeDemandPo = purchaseCreateOrMergeDemandPo;
+  globalThis.purchaseAddCustomPoLine = purchaseAddCustomPoLine;
+
+  function bindPurchaseCommand() {
+    document.querySelectorAll('[data-po-list-filter]').forEach(function(select){select.addEventListener('change',function(){const key=select.dataset.poListFilter;if(Object.prototype.hasOwnProperty.call(poListFilters,key)){poListFilters[key]=select.value;if(typeof render==='function')render();}});});
+    document.querySelectorAll('[data-po-apply-filter-search]').forEach(function(button){button.addEventListener('click',function(){const input=document.getElementById('poListFilterSearch');poListFilters.search=input?input.value:'';if(typeof render==='function')render();});});
+    const poSearch=document.getElementById('poListFilterSearch');if(poSearch)poSearch.addEventListener('keydown',function(event){if(event.key!=='Enter')return;event.preventDefault();poListFilters.search=poSearch.value;if(typeof render==='function')render();});
+    document.querySelectorAll('[data-po-clear-filters]').forEach(function(button){button.addEventListener('click',function(){Object.assign(poListFilters,{search:'',supplier:'all',status:'all',payment:'all',receiving:'all',health:'all',expected:'all',link:'all'});if(typeof render==='function')render();});});
+    document.querySelectorAll('[data-po-quick-filter]').forEach(function(button){button.addEventListener('click',function(){const key=button.dataset.poQuickFilter;if(key==='open'){poListFilters.status='all';poListFilters.receiving='outstanding';}else if(key==='attention'){poListFilters.health='warn';}else if(key==='unpaid'){poListFilters.payment='Unpaid';}else if(key==='overdue'){poListFilters.expected='overdue';}if(typeof render==='function')render();});});
+    document.querySelectorAll('[data-po-add-custom-line]').forEach(function(button){button.addEventListener('click',function(){
+      const form=button.closest('[data-po-custom-line-form]');if(!form)return;
+      const value=function(selector){const el=form.querySelector(selector);return el?el.value:'';};
+      const result=purchaseAddCustomPoLine(button.dataset.poAddCustomLine,{
+        name:value('[data-po-custom-name]'),
+        description:value('[data-po-custom-description]'),
+        supplierSku:value('[data-po-custom-sku]'),
+        purchaseCategory:value('[data-po-custom-category]'),
+        qty:value('[data-po-custom-qty]'),
+        uom:value('[data-po-custom-uom]'),
+        unitCost:value('[data-po-custom-cost]'),
+        taxCode:value('[data-po-custom-vat]'),
+        projectId:value('[data-po-custom-project]'),
+        dueDate:value('[data-po-custom-date]'),
+        note:value('[data-po-custom-note]')
+      });
+      if(!result.ok)return typeof toast==='function'?toast(result.error):undefined;
+      if(typeof toast==='function')toast((result.line.customProductName||'Custom line')+' added to '+result.po.id+'. No Sales Order link required.');
+      if(typeof render==='function')render();
+    });});
+    document.querySelectorAll('[data-po-create-demand]').forEach(function(button){button.addEventListener('click',function(){const parts=button.dataset.poCreateDemand.split('|');const result=purchaseCreateOrMergeDemandPo(parts[0],parts[1],button.dataset.poCreateDemandQty);if(!result.ok)return typeof toast==='function'?toast(result.error):undefined;selectedPurchaseOrderId=result.po.id;purchaseOrderView='detail';activeSubPage.purchase='Purchase Orders';if(typeof saveAppData==='function')saveAppData();if(typeof toast==='function')toast('Demand added to ' + result.po.id + '.');if(typeof render==='function')render();});});
+    document.querySelectorAll('[data-po-command-tab]').forEach(function(button){button.addEventListener('click',function(){purchaseCommandTab=button.dataset.poCommandTab.split('|')[0];if(typeof render==='function')render();});});
+    document.querySelectorAll('[data-po-open-receiving]').forEach(function(button){button.addEventListener('click',function(){selectedGoodsInPoId=button.dataset.poOpenReceiving;warehousePoView='list';active='warehouse';activeSubPage.warehouse='Inbound';if(typeof toast==='function')toast('Opened easy booking-in for ' + selectedGoodsInPoId + '.');if(typeof render==='function')render();});});
+    document.querySelectorAll('[data-po-supplier-change]').forEach(function(select){select.addEventListener('change',function(){changePurchaseOrderSupplier(select.dataset.poSupplierChange,select.value);});});
+    document.querySelectorAll('[data-po-line-cost]').forEach(function(input){input.addEventListener('change',function(){saveLineField(input.dataset.poLineCost,'unitCost',Math.max(0,Number(input.value||0)));if(typeof render==='function')render();});});
+    document.querySelectorAll('[data-po-open-sales-order]').forEach(function(button){button.addEventListener('click',function(){selectedSalesOrderId=button.dataset.poOpenSalesOrder;salesOrderView='detail';if(typeof salesOrderTab!=='undefined')salesOrderTab='connections';activeSubPage.salesorders='Sales Orders';active='salesorders';if(typeof render==='function')render();});});
+    document.querySelectorAll('[data-po-open-supplier-funding]').forEach(function(button){button.addEventListener('click',function(){const supplier=button.dataset.poOpenSupplierFunding||'';if(typeof globalThis.openSupplierCommand==='function'){globalThis.openSupplierCommand(supplier,'Overview');return;}selectedSupplierName=supplier;purchaseOrderView='supplier-profile';activeSubPage.purchase='Suppliers';active='purchase';if(typeof render==='function')render();});});
+    document.querySelectorAll('[data-po-confirmed-qty]').forEach(function(input){input.addEventListener('change',function(){saveLineField(input.dataset.poConfirmedQty,'confirmedQty',Math.max(0,Math.floor(Number(input.value||0))));});});
+    document.querySelectorAll('[data-po-confirmed-cost]').forEach(function(input){input.addEventListener('change',function(){saveLineField(input.dataset.poConfirmedCost,'confirmedUnitCost',Math.max(0,Number(input.value||0)));});});
+    document.querySelectorAll('[data-po-confirmed-eta]').forEach(function(input){input.addEventListener('change',function(){saveLineField(input.dataset.poConfirmedEta,'confirmedEta',input.value);});});
+    document.querySelectorAll('[data-po-confirmation-note]').forEach(function(input){input.addEventListener('change',function(){saveLineField(input.dataset.poConfirmationNote,'supplierConfirmationNote',input.value);});});
+    document.querySelectorAll('[data-po-mark-confirmed]').forEach(function(button){button.addEventListener('click',function(){const po=typeof purchaseOrderById==='function'?purchaseOrderById(button.dataset.poMarkConfirmed):null;if(!po)return;const fundingState=poSupplierFundingState(po),funding=fundingState&&fundingState.funding,row=fundingState&&fundingState.row;if(funding&&funding.proForma&&row&&row.linkedRequirement>0&&row.customerShortfall>0){purchaseCommandTab='connections';if(typeof toast==='function')toast('Pro Forma funding shortfall: '+poMoney(row.customerShortfall)+' still needs customer funding before supplier release / confirmation.');if(typeof render==='function')render();return;}po.status='Supplier Confirmed';po.supplierConfirmedAt=new Date().toISOString();po.lines.forEach(function(line){if(line.confirmedQty==null)line.confirmedQty=Number(line.qty||0);if(line.confirmedUnitCost==null)line.confirmedUnitCost=poLineCost(line);if(!line.confirmedEta)line.confirmedEta=po.due||'';});if(typeof saveAppData==='function')saveAppData();if(typeof toast==='function')toast(po.id + ' marked Supplier Confirmed.');if(typeof render==='function')render();});});
+    document.querySelectorAll('[data-po-create-return]').forEach(function(button){button.addEventListener('click',function(){const form=button.closest('[data-po-return-form]');if(!form)return;const result=purchaseCreateSupplierReturn({poId:button.dataset.poCreateReturn,productId:form.querySelector('[data-po-return-product]').value,qty:form.querySelector('[data-po-return-qty]').value,reason:form.querySelector('[data-po-return-reason]').value,locationId:form.querySelector('[data-po-return-location]').value,receiptId:form.querySelector('[data-po-return-receipt]').value});if(!result.ok)return typeof toast==='function'?toast(result.error):undefined;if(typeof saveAppData==='function')saveAppData();if(typeof toast==='function')toast(result.return.id + (result.return.stockHeld?' created and moved to Supplier Returns Hold.':' created for credit / correction.'));if(typeof render==='function')render();});});
+    document.querySelectorAll('[data-po-return-action]').forEach(function(button){button.addEventListener('click',function(){const parts=String(button.dataset.poReturnAction||'').split('|'),action=parts[0],returnId=parts[1];let result=null;if(action==='authorise'){const rma=String(prompt('Supplier authorisation / RMA reference (optional)')||'').trim();result=purchaseAuthoriseSupplierReturn(returnId,{rma:rma});}else if(action==='dispatch'){if(!confirm('Confirm this return has physically left Pool Bros / site and has been sent back to the supplier?'))return;result=purchaseDispatchSupplierReturn(returnId);}else if(action==='credit'){const row=(data.purchaseReturns||[]).find(function(item){return item.id===returnId;});const ref=String(prompt('Supplier credit note / reference (required)')||'').trim();if(!ref)return typeof toast==='function'?toast('Enter the supplier credit note / reference.'):undefined;const amountText=prompt('Credit value net (£)',Number(row&&row.expectedCredit||0).toFixed(2));if(amountText===null)return;const amount=Number(amountText);if(!confirm('Apply '+poMoney(amount)+' net credit back to the original PO and linked Project cost?'))return;result=purchaseCompleteSupplierReturn(returnId,{resolutionType:'supplier-credit',creditReference:ref,creditNet:amount,creditDate:poToday()});}else if(action==='correct'){const reason=String(prompt('Internal correction reason (required)','Duplicate cost / entered in error')||'').trim();if(!reason)return typeof toast==='function'?toast('Enter a correction reason.'):undefined;const row=(data.purchaseReturns||[]).find(function(item){return item.id===returnId;});if(!confirm('Remove '+poMoney(Number(row&&row.expectedCredit||0))+' net from the effective PO and linked Project cost while keeping the original audit history?'))return;result=purchaseCompleteSupplierReturn(returnId,{resolutionType:'internal-correction',creditNet:Number(row&&row.expectedCredit||0),creditDate:poToday(),note:reason});}else if(action==='cancel'){const reason=String(prompt('Reason for cancelling this return / credit case (required)')||'').trim();if(!reason)return;result=purchaseCancelSupplierReturn(returnId,reason);}if(result&&!result.ok)return typeof toast==='function'?toast(result.error):undefined;if(result&&result.ok){if(typeof saveAppData==='function')saveAppData();if(typeof toast==='function')toast(result.return.id+' updated: '+result.return.status+'.');if(typeof render==='function')render();}});});
+    document.querySelectorAll('[data-po-line-menu]').forEach(function(button){button.addEventListener('click',function(event){event.stopPropagation();const menu=document.getElementById(button.dataset.poLineMenu);document.querySelectorAll('.po-line-menu').forEach(function(other){if(other!==menu)other.hidden=true;});if(menu){menu.hidden=!menu.hidden;button.setAttribute('aria-expanded',String(!menu.hidden));}});});
+    document.querySelectorAll('[data-po-remove-line]').forEach(function(button){button.addEventListener('click',function(){const parts=String(button.dataset.poRemoveLine||'').split('|');removePurchaseOrderLine(parts[0],parts[1]);});});
+    document.querySelectorAll('[data-po-line-credit]').forEach(function(button){button.addEventListener('click',function(){purchaseCommandTab='connections';if(typeof toast==='function')toast('Received PO lines stay in history. Use Supplier Returns & Credits to correct them.');if(typeof render==='function')render();});});
+  }
+
+  function poProFormaFundingGap(po) {
+    const state=poSupplierFundingState(po),funding=state&&state.funding,row=state&&state.row;
+    if(!funding||!funding.proForma||!row||Number(row.linkedRequirement||0)<=0||Number(row.customerShortfall||0)<=0)return null;
+    return {funding:funding,row:row,shortfall:Number(row.customerShortfall||0)};
+  }
+
+  function poBlockUnfundedProFormaRelease(po,actionLabel) {
+    const gap=poProFormaFundingGap(po);
+    if(!gap)return false;
+    purchaseCommandTab='connections';
+    if(typeof toast==='function')toast('Pro Forma funding shortfall: '+poMoney(gap.shortfall)+' still needs customer funding before '+actionLabel+'.');
+    if(typeof render==='function')render();
+    return true;
+  }
+
+  if(typeof document!=='undefined' && typeof document.addEventListener==='function'){
+    document.addEventListener('click',function(event){
+      const button=event.target.closest('[data-po-save-action],[data-prepare-po-email],[data-send-po-email]');
+      if(!button)return;
+      let poId='',release=false,label='supplier release';
+      if(button.dataset.poSaveAction!==undefined){
+        const parts=String(button.dataset.poSaveAction||'').split('|');
+        poId=parts[1]||'';
+        release=parts[0]==='email';
+        label='supplier email preparation';
+      }else if(button.dataset.preparePoEmail!==undefined){
+        poId=button.dataset.preparePoEmail;release=true;label='supplier email preparation';
+      }else if(button.dataset.sendPoEmail!==undefined){
+        poId=button.dataset.sendPoEmail;release=true;label='marking the supplier PO sent';
+      }
+      if(!release)return;
+      const po=typeof purchaseOrderById==='function'?purchaseOrderById(poId):(data.purchaseOrders||[]).find(function(row){return String(row.id)===String(poId);});
+      if(po&&poBlockUnfundedProFormaRelease(po,label)){
+        event.preventDefault();
+        event.stopImmediatePropagation();
+      }
+    },true);
+
+    document.addEventListener('change',function(event){
+      const select=event.target.closest('[data-po-status]');
+      if(!select||!['Ready To Email','Sent','Ordered'].includes(String(select.value||'')))return;
+      const po=typeof purchaseOrderById==='function'?purchaseOrderById(select.dataset.poStatus):(data.purchaseOrders||[]).find(function(row){return String(row.id)===String(select.dataset.poStatus);});
+      if(po&&poBlockUnfundedProFormaRelease(po,'moving the PO to '+select.value)){
+        event.preventDefault();
+        event.stopImmediatePropagation();
+      }
+    },true);
+
+    document.addEventListener('submit',function(event){
+      const form=event.target.closest('[data-po-payment-form]');
+      if(!form)return;
+      const poId=form.dataset.poPaymentForm,po=typeof purchaseOrderById==='function'?purchaseOrderById(poId):(data.purchaseOrders||[]).find(function(row){return String(row.id)===String(poId);});
+      const gap=po&&poProFormaFundingGap(po);
+      if(!gap)return;
+      const ok=confirm('This is a Pro Forma supplier and linked customer cash is '+poMoney(gap.shortfall)+' short. Record this supplier payment using internal business funds anyway?');
+      if(!ok){
+        event.preventDefault();
+        event.stopImmediatePropagation();
+        purchaseCommandTab='connections';
+        if(typeof toast==='function')toast('Supplier payment not recorded. Review the linked Sales Order customer funding first.');
+        if(typeof render==='function')render();
+      }
+    },true);
+
+  }
+
+  bindPurchase = function () {
+    if (legacyBindPurchase) legacyBindPurchase();
+    bindPurchaseCommand();
+  };
+
+  globalThis.purchaseOrderHealth = purchaseOrderHealth;
+  globalThis.purchaseDemandSources = purchaseDemandSources;
+  globalThis.purchaseCreateSupplierReturn = purchaseCreateSupplierReturn;
+  globalThis.purchaseAuthoriseSupplierReturn = purchaseAuthoriseSupplierReturn;
+  globalThis.purchaseDispatchSupplierReturn = purchaseDispatchSupplierReturn;
+  globalThis.purchaseCompleteSupplierReturn = purchaseCompleteSupplierReturn;
+  globalThis.purchaseCancelSupplierReturn = purchaseCancelSupplierReturn;
+  globalThis.purchaseReturnStatusSummary = purchaseReturnStatusSummary;
+  globalThis.purchaseResolvedCreditTotals = poResolvedCreditTotals;
+  globalThis.purchaseOrderLineDeleteAssessment = poLineDeleteAssessment;
+  globalThis.removePurchaseOrderLine = removePurchaseOrderLine;
+  globalThis.changePurchaseOrderSupplier = changePurchaseOrderSupplier;
+  globalThis.bindPurchaseCommand = bindPurchaseCommand;
+})();
+
 
 [executed on device: Mac (ec904dd1-f8aa-4e0b-a3e1-d58dac693c34)]
