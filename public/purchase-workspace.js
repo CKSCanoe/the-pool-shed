@@ -1,5 +1,3 @@
-[Reading 1165 lines from start (total: 1165 lines, 0 remaining)]
-
 /* Pool Shed Purchase Order Supplier Command authority layer.
    Supplier Order Command with Sales Order layout parity.
    Legacy command labels retained for compatibility: Items & Costing, Demand Sources, Supplier Confirmation, Deliveries & Receipts, Costs & Invoice Match, Returns & Credits, Activity.
