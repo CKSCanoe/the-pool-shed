@@ -95,9 +95,29 @@ async function restoreMissingOrder(user,body){
   incoming.recoverySource=String(body.recoverySource||'browser-recovery');
   snapshot.salesOrders.push(incoming);
   const stamp=new Date().toISOString();
-  const updated=await db('workspace_snapshots?workspace_id=eq.'+eq(WORKSPACE_ID)+'&updated_at=eq.'+eq(row.updated_at),{method:'PATCH',prefer:'return=representation',body:{data:snapshot,updated_by:user.id,updated_at:stamp},timeout:60000});
-  if(!updated.length)throw Object.assign(new Error('Another user saved first. Retry so their changes are preserved.'),{statusCode:409});
-  return {ok:true,restored:true,order:orderSummary(snapshot,incoming),updatedAt:updated[0].updated_at||stamp};
+  // Avoid returning the multi-megabyte workspace after the PATCH. On large masters,
+  // return=representation can exceed the database/function execution window even
+  // when the targeted update itself is valid.
+  await db('workspace_snapshots?workspace_id=eq.'+eq(WORKSPACE_ID)+'&updated_at=eq.'+eq(row.updated_at),{
+    method:'PATCH',
+    prefer:'return=minimal',
+    body:{data:snapshot,updated_by:user.id,updated_at:stamp},
+    timeout:55000
+  });
+  // Confirm the shared master independently, and only fetch the small Sales Order
+  // and customer slices instead of the whole workspace.
+  const verifyRows=await db(
+    'workspace_snapshots?workspace_id=eq.'+eq(WORKSPACE_ID)+'&select=updated_at,salesOrders:data->salesOrders,customers:data->customers&limit=1',
+    {timeout:20000}
+  );
+  const verify=verifyRows[0]||{};
+  const verifiedOrder=arr(verify.salesOrders).find(o=>orderId(o)===id);
+  if(!verifiedOrder)throw Object.assign(new Error('The shared master did not confirm SO-2042. Nothing was reported as restored.'),{statusCode:409});
+  const verifiedCustomer=incomingCustomer&&incomingCustomer.id
+    ? arr(verify.customers).find(c=>String(c.id)===String(incomingCustomer.id))
+    : null;
+  if(incomingCustomer&&incomingCustomer.id&&!verifiedCustomer)throw Object.assign(new Error('SO-2042 was written but its customer record did not verify. Review is required before continuing.'),{statusCode:409});
+  return {ok:true,restored:true,order:orderSummary({customers:arr(verify.customers)},verifiedOrder),updatedAt:verify.updated_at||stamp,confirmed:true};
 }
 export default async function handler(req,res){
   res.setHeader('Cache-Control','no-store');
