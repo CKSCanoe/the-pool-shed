@@ -77,13 +77,38 @@ async function audit(body){
   }
   return {ok:true,current:{updatedAt:currentRow.updated_at,updatedBy:currentRow.updated_by||'',salesOrderCount:currentOrders.length},profiles:profiles.map(p=>({id:p.id,name:p.full_name,email:p.email})),currentMatches,historyMatches:historyMatches.slice(0,40),missingOrders:Array.from(missingMap.values()).slice(0,50),statusChanges,revisionCounts:meta.slice(0,20).map(r=>({at:r.updated_at,updatedBy:r.updated_by||''}))};
 }
+async function restoreMissingOrder(user,body){
+  const incoming=body&&body.order&&typeof body.order==='object'?clone(body.order):null;
+  const incomingCustomer=body&&body.customer&&typeof body.customer==='object'?clone(body.customer):null;
+  if(!incoming||!orderId(incoming))throw Object.assign(new Error('A Sales Order is required'),{statusCode:400});
+  const currentRows=await db('workspace_snapshots?workspace_id=eq.'+eq(WORKSPACE_ID)+'&select=data,updated_at,updated_by&limit=1');
+  const row=currentRows[0];
+  if(!row||!row.data)throw Object.assign(new Error('Current shared master unavailable'),{statusCode:409});
+  const snapshot=clone(row.data);
+  snapshot.salesOrders=arr(snapshot.salesOrders);
+  snapshot.customers=arr(snapshot.customers);
+  const id=orderId(incoming);
+  const existing=snapshot.salesOrders.find(o=>orderId(o)===id);
+  if(existing)return {ok:true,restored:false,reason:'already-present',order:orderSummary(snapshot,existing),updatedAt:row.updated_at};
+  if(incomingCustomer&&incomingCustomer.id&&!snapshot.customers.some(c=>String(c.id)===String(incomingCustomer.id)))snapshot.customers.push(incomingCustomer);
+  incoming.recoveredAt=new Date().toISOString();
+  incoming.recoverySource=String(body.recoverySource||'browser-recovery');
+  snapshot.salesOrders.push(incoming);
+  await db('ps_workspace_revisions',{method:'POST',prefer:'return=minimal',body:{workspace_id:WORKSPACE_ID,data:row.data,updated_by:row.updated_by||null,updated_at:row.updated_at}});
+  const stamp=new Date().toISOString();
+  const updated=await db('workspace_snapshots?workspace_id=eq.'+eq(WORKSPACE_ID)+'&updated_at=eq.'+eq(row.updated_at),{method:'PATCH',prefer:'return=representation',body:{data:snapshot,updated_by:user.id,updated_at:stamp}});
+  if(!updated.length)throw Object.assign(new Error('Another user saved first. Retry so their changes are preserved.'),{statusCode:409});
+  return {ok:true,restored:true,order:orderSummary(snapshot,incoming),updatedAt:updated[0].updated_at||stamp};
+}
 export default async function handler(req,res){
   res.setHeader('Cache-Control','no-store');
   try{
     if(req.method!=='POST')return send(res,405,{error:'POST required'});
     if(!appOriginAllowed(req,process.env))return send(res,403,{error:'Invalid origin'});
-    await admin(req);
+    const user=await admin(req);
     const body=typeof req.body==='object'&&req.body?req.body:{};
+    const action=String(body.action||'audit');
+    if(action==='restore-missing-order')return send(res,200,await restoreMissingOrder(user,body));
     return send(res,200,await audit(body));
   }catch(error){return send(res,error.statusCode||500,{error:error.message||'Workspace audit failed'});}
 }
