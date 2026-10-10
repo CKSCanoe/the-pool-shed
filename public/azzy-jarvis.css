@@ -23,18 +23,12 @@
 
 @media(max-width:900px){.sidebar{display:none}.app-shell{display:block}.metrics{grid-template-columns:repeat(2,1fr)}.grid-two{grid-template-columns:1fr}.search{min-width:260px}.content{padding:20px}.tr{grid-template-columns:1.5fr 1fr 1fr}.tr>*:nth-child(4),.tr>*:nth-child(5){display:none}}
 
-/* Desktop: Azzy is a real sidebar footer item, never an overlay on work content. */
+/* Desktop: Azzy occupies a reserved visual dock inside the permanent sidebar. */
 @media(min-width:901px){
-  :host{display:block;width:100%;flex:0 0 auto;margin:0;padding:10px 0 2px;border-top:1px solid rgba(255,255,255,.10)}
-  .azzy-launcher{position:relative;left:auto;right:auto;bottom:auto;margin:0 auto;width:72px;height:72px;display:block}
-  .azzy-nudge{left:244px;right:auto;bottom:42px}
-  .azzy-panel{left:250px;right:auto;bottom:20px}
+  .azzy-launcher{position:fixed;left:var(--azzy-launcher-left,74px);right:auto;bottom:22px;width:72px;height:72px;margin:0}
+  .azzy-nudge{position:fixed;left:var(--azzy-nudge-left,244px);right:auto;bottom:38px}
+  .azzy-panel{position:fixed;left:var(--azzy-panel-left,248px);right:auto;bottom:20px}
 }
-@media(max-width:1100px) and (min-width:901px){
-  .azzy-nudge{left:222px}
-  .azzy-panel{left:228px}
-}
-
 @media(max-width:900px) and (min-width:621px){.azzy-launcher{left:18px}.azzy-nudge{left:108px}.azzy-panel{left:18px}}
 @media(max-width:620px){.topbar,.content{display:none}.app-shell{min-height:100vh;background:#f5f7fa}.azzy-launcher{left:17px;right:auto;bottom:17px;width:70px;height:70px}.azzy-nudge{left:98px;right:auto;bottom:33px}.azzy-panel{inset:0;width:100%;height:100%;border-radius:0;border:0;grid-template-rows:auto auto auto 1fr auto}.azzy-backdrop{display:none!important}.azzy-header{padding-top:max(14px,env(safe-area-inset-top));}.working-context{padding-left:11px;padding-right:11px}.context-menu{left:10px;right:10px}.message-body{max-width:88%}.composer{padding-bottom:max(12px,env(safe-area-inset-bottom))}.modal-wrap{padding:10px}.modal{max-height:calc(100vh - 20px);border-radius:17px}.record-fields{grid-template-columns:1fr}}
 
