@@ -14523,3 +14523,36 @@ body[data-theme="dark"] .ps-history-marker>span,body.dark .ps-history-marker>spa
   .ps-history-main{padding-right:10px}
   .ps-history-top{align-items:flex-start;flex-direction:column;gap:4px}
 }
+
+/* Shared Sales Order / Purchase Order status manager */
+.status-manager-panel{margin-top:0}
+.status-manager-table th,.status-manager-table td{vertical-align:middle}
+.status-order-cell{width:88px;white-space:nowrap}
+.status-order-number{display:inline-grid;place-items:center;width:28px;height:28px;border-radius:7px;background:var(--color-surface-subtle);color:var(--color-text-secondary);font-size:10px;font-weight:900;margin-right:5px}
+.status-order-actions{display:inline-flex;gap:3px;vertical-align:middle}
+.status-arrow{width:28px;height:28px;border:1px solid var(--color-border-default);border-radius:7px;background:var(--color-surface-default);color:var(--color-text-primary);font-weight:900;cursor:pointer}
+.status-arrow:hover:not(:disabled){border-color:var(--color-selected-edge);background:var(--color-hover-surface)}
+.status-arrow:disabled{opacity:.3;cursor:not-allowed}
+.status-manager-name{display:flex;align-items:center;gap:9px;min-width:190px}
+.status-manager-name>span:last-child{min-width:0}
+.status-manager-name strong,.status-manager-name small{display:block}
+.status-manager-name small{margin-top:2px;color:var(--color-text-secondary);font-size:9px}
+.status-manager-swatch{width:34px;height:34px;flex:0 0 34px;border-radius:9px;display:grid;place-items:center;font-size:12px;font-weight:900;box-shadow:inset 0 0 0 1px color-mix(in srgb,var(--color-shell) 12%,transparent)}
+.status-colour-code{display:inline-flex;align-items:center;gap:6px;font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:10px;font-weight:800}
+.status-colour-code i{width:18px;height:18px;border-radius:5px;box-shadow:inset 0 0 0 1px color-mix(in srgb,var(--color-shell) 15%,transparent)}
+.status-manager-actions{display:flex;gap:5px;white-space:nowrap}
+.status-manager-form{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-top:12px}
+.status-manager-form>label{display:grid;gap:5px;color:var(--color-text-secondary);font-size:10px;font-weight:800}
+.status-manager-form input,.status-manager-form select{min-height:38px;border:1px solid var(--color-border-default);border-radius:8px;background:var(--color-surface-subtle);color:var(--color-text-primary);padding:8px 10px;font:inherit}
+.status-colour-input{display:flex;align-items:center;gap:10px;min-height:38px}
+.status-colour-input input[type="color"]{width:64px;padding:3px;cursor:pointer}
+.status-colour-input strong{font-family:ui-monospace,SFMono-Regular,Menlo,monospace}
+.status-manager-visibility{grid-column:1/-1;display:flex!important;grid-template-columns:auto 1fr!important;align-items:center;justify-content:flex-start;gap:8px!important;padding:10px 12px;border:1px solid var(--color-border-default);border-radius:8px;background:var(--color-surface-subtle)}
+.status-manager-visibility input{min-height:auto;width:16px;height:16px}
+.status-manager-key{grid-column:1/-1;padding:10px 12px;border-radius:8px;background:var(--color-surface-subtle);border:1px solid var(--color-border-default)}
+.status-manager-key span,.status-manager-key small{display:block;color:var(--color-text-secondary);font-size:9px}
+.status-manager-key strong{display:block;margin:3px 0;font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:11px}
+.status-live-preview{grid-column:1/-1;display:flex;align-items:center;gap:10px;padding:11px 12px;border:1px solid var(--color-border-default);border-radius:8px}
+.status-live-preview>span{display:inline-flex;align-items:center;min-height:32px;padding:6px 12px;border-radius:999px;font-size:11px;font-weight:900}
+.status-live-preview small{color:var(--color-text-secondary)}
+@media(max-width:760px){.status-manager-form{grid-template-columns:1fr}.status-manager-visibility,.status-manager-key,.status-live-preview{grid-column:1}.status-manager-actions{flex-wrap:wrap}}
