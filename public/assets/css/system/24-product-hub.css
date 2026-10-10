@@ -86,6 +86,7 @@
   pointer-events: none;
 }
 .status-picker-chevron {
+  display:block;
   width: 8px;
   height: 8px;
   border-right: 2px solid currentColor;
@@ -93,6 +94,29 @@
   transform: rotate(45deg) translateY(-2px);
   opacity: .78;
   pointer-events: none;
+}
+.status-picker-chevron-button {
+  position:relative;
+  z-index:4;
+  display:grid;
+  place-items:center;
+  width:30px;
+  height:100%;
+  min-height:30px;
+  margin:0 -10px 0 0;
+  padding:0;
+  border:0;
+  border-radius:0 var(--ps-radius-control) var(--ps-radius-control) 0;
+  background:transparent;
+  color:inherit;
+  cursor:pointer;
+}
+.status-picker-chevron-button:hover {
+  background:color-mix(in srgb, var(--status-fg), transparent 88%);
+}
+.status-picker-chevron-button:focus-visible {
+  outline:2px solid currentColor;
+  outline-offset:-4px;
 }
 .status-picker-native {
   position: absolute;
