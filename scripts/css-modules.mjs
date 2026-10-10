@@ -45,4 +45,5 @@ export const CSS_MODULES = Object.freeze([
   "system/63-workspace-compatibility.css",
   "system/64-project-reporting.css",
   "system/65-order-status-control.css",
+  "system/66-customer-essentials.css",
 ]);
