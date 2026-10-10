@@ -97,13 +97,20 @@ function ensureAzzyDockStyle(){
 function updateAzzyDock(){
   if(!host)return;
   const desktop=global.matchMedia&&global.matchMedia('(min-width: 901px)').matches;
-  const sidebar=desktop?document.querySelector('.sidebar'):null;
+  const candidate=desktop?document.querySelector('.sidebar'):null;
+  const rect=candidate?candidate.getBoundingClientRect():null;
+  const style=candidate?getComputedStyle(candidate):null;
+  const sidebar=candidate&&rect&&rect.width>=160&&style.display!=='none'&&style.visibility!=='hidden'?candidate:null;
   document.body.classList.toggle('azzy-sidebar-docked',!!sidebar);
   if(sidebar){
-    const rect=sidebar.getBoundingClientRect(),launcherSize=72;
+    const launcherSize=72;
     host.style.setProperty('--azzy-launcher-left',Math.max(8,rect.left+(rect.width-launcherSize)/2)+'px');
     host.style.setProperty('--azzy-panel-left',(rect.right+16)+'px');
     host.style.setProperty('--azzy-nudge-left',(rect.right+12)+'px');
+  }else if(desktop){
+    host.style.setProperty('--azzy-launcher-left','18px');
+    host.style.setProperty('--azzy-panel-left','18px');
+    host.style.setProperty('--azzy-nudge-left','108px');
   }else{
     host.style.removeProperty('--azzy-launcher-left');
     host.style.removeProperty('--azzy-panel-left');
