@@ -142,6 +142,114 @@ async function restoreMissingOrder(user,body){
   if(incomingCustomer&&incomingCustomer.id&&!verifiedCustomer)throw Object.assign(new Error('SO-2042 was written but its customer record did not verify. Review is required before continuing.'),{statusCode:409});
   return {ok:true,restored:true,order:orderSummary({customers:arr(verify.customers)},verifiedOrder),updatedAt:verify.updated_at||stamp,confirmed:true,compactedImportAfterSnapshots};
 }
+
+async function removeCorrectedPoLine(user,body){
+  const poId=String(body.poId||'').trim();
+  const productId=String(body.productId||'').trim();
+  if(!poId||!productId)throw Object.assign(new Error('poId and productId are required'),{statusCode:400});
+  for(let attempt=0;attempt<3;attempt+=1){
+    const currentRows=await db('workspace_snapshots?workspace_id=eq.'+eq(WORKSPACE_ID)+'&select=data,updated_at,updated_by&limit=1',{timeout:60000});
+    const row=currentRows[0];
+    if(!row||!row.data)throw Object.assign(new Error('Current shared master unavailable'),{statusCode:409});
+    const snapshot=clone(row.data);
+    snapshot.purchaseOrders=arr(snapshot.purchaseOrders);
+    snapshot.purchaseReturns=arr(snapshot.purchaseReturns);
+    snapshot.auditLog=arr(snapshot.auditLog);
+    const po=snapshot.purchaseOrders.find(x=>String(x&&x.id||'')===poId);
+    if(!po)throw Object.assign(new Error(poId+' was not found in the shared master'),{statusCode:404});
+    po.lines=arr(po.lines);
+    const lineIndex=po.lines.findIndex(l=>String(l&&l.productId||'')===productId);
+    const historicalReturns=snapshot.purchaseReturns.filter(r=>String(r&&r.poId||'')===poId&&String(r&&r.productId||'')===productId);
+    if(lineIndex<0){
+      const detached=historicalReturns.some(r=>!!r.detachedFromLivePoAt);
+      return {ok:true,removed:false,alreadyAbsent:true,poId,productId,lineCount:po.lines.length,returnHistoryRetained:historicalReturns.length,detached,updatedAt:row.updated_at};
+    }
+    const line=po.lines[lineIndex];
+    const lineQty=Math.max(0,Number(line.qty||0));
+    const lineNet=Math.round(Math.max(0,Number(line.unitCost!=null?line.unitCost:line.cost||0)*lineQty)*100)/100;
+    const closed=historicalReturns.filter(r=>r.status==='Closed'&&!r.voidedAt&&!r.detachedFromLivePoAt);
+    if(!closed.length)throw Object.assign(new Error('A completed return / correction is required before removing this received line'),{statusCode:409});
+    const coveredQty=closed.reduce((n,r)=>n+Number(r.qty||0),0);
+    const coveredNet=Math.round(closed.reduce((n,r)=>n+Number(r.creditNet!=null?r.creditNet:(r.creditAmount!=null?r.creditAmount:r.expectedCredit)||0),0)*100)/100;
+    if(coveredQty+0.0001<lineQty||coveredNet+0.01<lineNet)throw Object.assign(new Error('The completed correction does not fully cover the Crane Hire line'),{statusCode:409});
+    const open=historicalReturns.filter(r=>!['Closed','Cancelled'].includes(String(r.status||'')));
+    if(open.length)throw Object.assign(new Error('An open return / credit still exists for this line'),{statusCode:409});
+    const at=new Date().toISOString();
+    const reason=String(body.reason||'Corrected test line removed from live PO').trim();
+    const removed=clone(line);
+    closed.forEach(r=>{
+      r.detachedFromLivePoAt=at;
+      r.detachedFromLivePoBy=user.id;
+      r.detachedFromLivePoReason=reason;
+      r.detachedSourceLine=clone(removed);
+      r.history=arr(r.history);
+      r.history.push({at,status:'Closed',note:'Source PO line removed after completed correction · historical record retained'});
+    });
+    arr(po.returnCorrections).forEach(c=>{
+      if(closed.some(r=>String(r.id||'')===String(c.returnId||''))){
+        c.detachedFromLivePoAt=at;
+        c.detachedFromLivePoBy=user.id;
+      }
+    });
+    arr(snapshot.receiptEvents).forEach(event=>{
+      if(String(event.poId||'')!==poId)return;
+      const sameLine=String(event.lineId||'')===String(line.receiptLineId||'')||String(event.productId||'')===productId;
+      if(sameLine){event.sourceLineArchivedAt=at;event.sourceLineArchivedBy=user.id;}
+    });
+    po.lines.splice(lineIndex,1);
+    po.lineCorrections=arr(po.lineCorrections);
+    po.lineCorrections.push({
+      id:'POLINE-CORRECTED-'+Date.now(),
+      type:'Fully corrected line removed from live PO',
+      at,user:user.id,reason,line:removed,
+      sku:line.supplierSku||productId,name:String(body.name||'Crane Hire'),
+      completedReturns:closed.map(clone),
+      liveValueRemoved:lineNet
+    });
+    po.reviewStatus='Needs review';
+    po.supplierEmailStatus='Changes pending';
+    if(po.status!=='Cancelled')po.status='Draft - Review';
+    po.invoiceMatchStatus='Needs review';
+    snapshot.auditLog.push({
+      id:'AUD-'+Date.now(),
+      date:at,user:user.id,
+      action:'Fully corrected PO line removed from live order',
+      product:poId,
+      previousValue:{line:removed,completedReturns:closed.map(clone)},
+      newValue:'Removed from live PO; completed correction retained as history only',
+      reason
+    });
+    const compactedImportAfterSnapshots=compactRedundantImportAfterSnapshots(snapshot);
+    const stamp=new Date().toISOString();
+    const patchUrl=process.env.SUPABASE_URL+'/rest/v1/workspace_snapshots?workspace_id=eq.'+eq(WORKSPACE_ID)+'&updated_at=eq.'+eq(row.updated_at);
+    const patchResponse=await fetch(patchUrl,{
+      method:'PATCH',
+      signal:AbortSignal.timeout(55000),
+      headers:elevatedSupabaseHeaders(process.env,{'Content-Type':'application/json',Prefer:'return=minimal'}),
+      body:JSON.stringify({data:snapshot,updated_by:user.id,updated_at:stamp})
+    });
+    if(!patchResponse.ok){
+      const detail=(await patchResponse.text()).slice(0,1000);
+      throw Object.assign(new Error('Shared PO correction failed ('+patchResponse.status+'): '+detail),{statusCode:500});
+    }
+    const verifyRows=await db(
+      'workspace_snapshots?workspace_id=eq.'+eq(WORKSPACE_ID)+'&select=updated_at,purchaseOrders:data->purchaseOrders,purchaseReturns:data->purchaseReturns&limit=1',
+      {timeout:20000}
+    );
+    const verify=verifyRows[0]||{};
+    const verifiedPo=arr(verify.purchaseOrders).find(x=>String(x&&x.id||'')===poId);
+    const verifiedReturn=arr(verify.purchaseReturns).find(x=>String(x&&x.poId||'')===poId&&String(x&&x.productId||'')===productId&&x.status==='Closed');
+    const stillPresent=verifiedPo&&arr(verifiedPo.lines).some(l=>String(l&&l.productId||'')===productId);
+    if(!verifiedPo||stillPresent||!verifiedReturn||!verifiedReturn.detachedFromLivePoAt){
+      if(attempt<2)continue;
+      throw Object.assign(new Error('The shared master did not confirm the Crane Hire removal'),{statusCode:409});
+    }
+    const rawNet=arr(verifiedPo.lines).reduce((n,l)=>n+Number(l.qty||0)*Number(l.unitCost!=null?l.unitCost:l.cost||0),0);
+    const activeCredits=arr(verify.purchaseReturns).filter(r=>String(r&&r.poId||'')===poId&&r.status==='Closed'&&!r.voidedAt&&!r.detachedFromLivePoAt).reduce((n,r)=>n+Number(r.creditNet!=null?r.creditNet:(r.creditAmount!=null?r.creditAmount:r.expectedCredit)||0),0);
+    return {ok:true,removed:true,confirmed:true,poId,productId,lineCount:arr(verifiedPo.lines).length,status:verifiedPo.status,rawNet:Math.round(rawNet*100)/100,activeCredits:Math.round(activeCredits*100)/100,effectiveNet:Math.round((rawNet-activeCredits)*100)/100,returnId:verifiedReturn.id,returnHistoryRetained:true,detachedFromLivePoAt:verifiedReturn.detachedFromLivePoAt,updatedAt:verify.updated_at||stamp,compactedImportAfterSnapshots};
+  }
+  throw Object.assign(new Error('Could not apply the PO correction after concurrent updates'),{statusCode:409});
+}
 export default async function handler(req,res){
   res.setHeader('Cache-Control','no-store');
   try{
@@ -151,6 +259,7 @@ export default async function handler(req,res){
     const body=typeof req.body==='object'&&req.body?req.body:{};
     const action=String(body.action||'audit');
     if(action==='restore-missing-order')return send(res,200,await restoreMissingOrder(user,body));
+    if(action==='remove-corrected-po-line')return send(res,200,await removeCorrectedPoLine(user,body));
     return send(res,200,await audit(body));
   }catch(error){return send(res,error.statusCode||500,{error:error.message||'Workspace audit failed'});}
 }
