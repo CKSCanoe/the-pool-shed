@@ -88,11 +88,23 @@ function markup(){return `
 <div id="modal" class="modal-wrap" hidden><div class="modal" role="dialog" aria-modal="true" aria-label="Azzy details"><button id="modalClose" class="modal-close" type="button">×</button><div id="modalBody"></div></div></div>
 <div id="toast" class="toast" hidden></div>`;}
 
+function azzyDockTarget(){
+  const desktop=global.matchMedia&&global.matchMedia('(min-width: 901px)').matches;
+  if(desktop){const sidebar=document.querySelector('.sidebar');if(sidebar)return sidebar;}
+  return document.body;
+}
+function placeAzzyHost(){
+  if(!host)return;
+  const target=azzyDockTarget();
+  if(host.parentNode!==target)target.append(host);
+  host.classList.toggle('azzy-sidebar-docked',target!==document.body);
+}
 function mount(){
-  if(host)return;
+  if(host){placeAzzyHost();return;}
   host=document.createElement('div');host.id='azzyJarvisHost';root=host.attachShadow({mode:'open'});
-  const link=document.createElement('link');link.rel='stylesheet';link.href='./azzy-jarvis.css?v=1.45.1-jarvis-left';root.append(link);
-  const shell=document.createElement('div');shell.innerHTML=markup();root.append(shell);document.body.append(host);
+  const link=document.createElement('link');link.rel='stylesheet';link.href='./azzy-jarvis.css?v=1.45.1-jarvis-sidebar';root.append(link);
+  const shell=document.createElement('div');shell.innerHTML=markup();root.append(shell);placeAzzyHost();
+  global.addEventListener('resize',placeAzzyHost,{passive:true});
   bind();
 }
 function els(){return{launcher:$('#azzyLauncher'),launcherBadge:$('#launcherBadge'),nudge:$('#azzyNudge'),panel:$('#azzyPanel'),backdrop:$('#azzyBackdrop'),close:$('#closeBtn'),settings:$('#settingsBtn'),newChat:$('#newChatBtn'),historyNewChat:$('#historyNewChatBtn'),subtitle:$('#azzySubtitle'),readyDot:$('#readyDot'),contextAdd:$('#contextAddBtn'),contextMenu:$('#contextMenu'),contextSearch:$('#contextSearch'),contextOptions:$('#contextOptions'),contextChips:$('#contextChips'),contextCount:$('#contextCount'),messages:$('#messages'),suggestions:$('#suggestions'),attentionList:$('#attentionList'),winsList:$('#winsList'),attentionBadge:$('#attentionBadge'),conversationList:$('#conversationList'),activityList:$('#activityList'),composer:$('#composer'),input:$('#messageInput'),mic:$('#micBtn'),modal:$('#modal'),modalBody:$('#modalBody'),modalClose:$('#modalClose'),toast:$('#toast')};}
