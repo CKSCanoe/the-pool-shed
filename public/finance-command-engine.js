@@ -23,7 +23,7 @@
     for(var key of ['totalIncVat','grandTotal','total','value','orderTotal'])if(Number.isFinite(Number(order[key])))return round(order[key]);
     return round(arr(order.lines).reduce(function(s,l){return s+productLineValue(l);},0));
   }
-  function resolvedReturnCredit(po){var out={net:0,vat:0,gross:0};arr(store().purchaseReturns).filter(function(r){return po&&r&&r.poId===po.id&&r.status==='Closed'&&!r.voidedAt;}).forEach(function(r){var net=num(r.creditNet!=null?r.creditNet:(r.creditAmount!=null?r.creditAmount:r.expectedCredit)),vat=num(r.creditVat),gross=r.creditGross!=null?num(r.creditGross):net+vat;out.net+=net;out.vat+=vat;out.gross+=gross;});out.net=round(out.net);out.vat=round(out.vat);out.gross=round(out.gross);return out;}
+  function resolvedReturnCredit(po){var out={net:0,vat:0,gross:0};arr(store().purchaseReturns).filter(function(r){return po&&r&&r.poId===po.id&&r.status==='Closed'&&!r.voidedAt&&!r.detachedFromLivePoAt;}).forEach(function(r){var net=num(r.creditNet!=null?r.creditNet:(r.creditAmount!=null?r.creditAmount:r.expectedCredit)),vat=num(r.creditVat),gross=r.creditGross!=null?num(r.creditGross):net+vat;out.net+=net;out.vat+=vat;out.gross+=gross;});out.net=round(out.net);out.vat=round(out.vat);out.gross=round(out.gross);return out;}
   function poValue(po){var raw=round(arr(po&&po.lines).reduce(function(s,l){return s+num(l.qty)*num(l.unitCost!=null?l.unitCost:l.cost);},0)),credit=resolvedReturnCredit(po).net;return Math.max(0,round(raw-credit));}
   function allDocuments(){return arr(finance().documents);}
   function documentForSource(sourceId,kind){return allDocuments().find(function(d){return d&&d.source_id===sourceId&&(!kind||d.kind===kind);})||null;}
