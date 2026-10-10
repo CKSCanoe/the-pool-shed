@@ -101,6 +101,106 @@
     } catch (_) { return false; }
   }
 
+  function poCompletedCorrectionRemovalAssessment(po,line) {
+    const result={allowed:false,reason:'A completed correction covering the whole line is required.',returns:[]};
+    if(!po||!line)return Object.assign(result,{reason:'Purchase Order line not found.'});
+    if(!poCanUseSuperadminCorrection())return Object.assign(result,{reason:'Superadmin correction access required.'});
+    const lineQty=Math.max(0,Number(line.qty||0));
+    const lineNet=Math.round(Math.max(0,poLineCost(line)*lineQty)*100)/100;
+    const rows=(data.purchaseReturns||[]).filter(function(row){
+      if(String(row.poId||'')!==String(po.id||''))return false;
+      if(row.status!=='Closed'||row.voidedAt||row.detachedFromLivePoAt)return false;
+      return poReturnMatchesLine(row,po,line);
+    });
+    if(!rows.length)return Object.assign(result,{reason:'No completed return / correction covers this line.'});
+    const coveredQty=rows.reduce(function(n,row){return n+Number(row.qty||0);},0);
+    const coveredNet=Math.round(rows.reduce(function(n,row){
+      return n+Number(row.creditNet!=null?row.creditNet:(row.creditAmount!=null?row.creditAmount:row.expectedCredit)||0);
+    },0)*100)/100;
+    if(coveredQty+0.0001<lineQty)return Object.assign(result,{reason:'The completed correction does not cover the full line quantity.',returns:rows});
+    if(coveredNet+0.01<lineNet)return Object.assign(result,{reason:'The completed correction does not cover the full line value.',returns:rows});
+    const openRows=(data.purchaseReturns||[]).filter(function(row){
+      return String(row.poId||'')===String(po.id||'') && poReturnMatchesLine(row,po,line) && !['Closed','Cancelled'].includes(String(row.status||''));
+    });
+    if(openRows.length)return Object.assign(result,{reason:'An open return / credit case still exists for this line.',returns:rows});
+    const allocations=(data.allocations||[]).filter(function(row){
+      return String(row.productId||'')===String(line.productId||'') && Number(row.qty||row.allocated||0)>0;
+    });
+    if(allocations.length)return Object.assign(result,{reason:'This item is still allocated to another order.',returns:rows});
+    result.allowed=true;
+    result.reason='The completed correction fully neutralises this line, so it can be removed from the live PO while history is retained.';
+    result.returns=rows;
+    result.lineNet=lineNet;
+    result.coveredNet=coveredNet;
+    return result;
+  }
+
+  function removeFullyCorrectedPurchaseOrderLine(poId,index,options) {
+    const po=typeof purchaseOrderById==='function'?purchaseOrderById(poId):(data.purchaseOrders||[]).find(function(row){return String(row.id)===String(poId);});
+    const line=po&&po.lines&&po.lines[Number(index)];
+    if(!po||!line)return {ok:false,error:'Purchase Order line not found.'};
+    const assessment=poCompletedCorrectionRemovalAssessment(po,line),p=poLineProduct(line);
+    if(!assessment.allowed)return {ok:false,error:assessment.reason};
+    options=options||{};
+    const reason=String(options.reason!=null?options.reason:(prompt('Reason for removing the fully corrected line from ' + po.id + ' (required)','Test line entered in error')||'')).trim();
+    if(!reason)return {ok:false,error:'A removal reason is required.'};
+    if(!options.confirmed){
+      const warning='Remove ' + (p.name||p.sku||'this corrected line') + ' from the live ' + po.id + '?\n\nIts completed return / correction will remain in permanent history, but will no longer reduce the live PO total because the source line will be gone.';
+      if(!confirm(warning))return {ok:false,cancelled:true,error:'Cancelled.'};
+    }
+    const at=new Date().toISOString();
+    const user=(typeof currentUser==='function'&&currentUser()&&(currentUser().name||currentUser().email))||'Superadmin';
+    const removed=JSON.parse(JSON.stringify(line));
+    const returnSnapshots=assessment.returns.map(function(row){return JSON.parse(JSON.stringify(row));});
+    assessment.returns.forEach(function(row){
+      row.detachedFromLivePoAt=at;
+      row.detachedFromLivePoBy=user;
+      row.detachedFromLivePoReason=reason;
+      row.detachedSourceLine=JSON.parse(JSON.stringify(removed));
+      row.history=Array.isArray(row.history)?row.history:[];
+      row.history.push({at:at,status:'Closed',note:'Source PO line removed after completed correction · historical record retained'});
+    });
+    (po.returnCorrections||[]).forEach(function(row){
+      if(assessment.returns.some(function(ret){return String(ret.id||'')===String(row.returnId||'');})){
+        row.detachedFromLivePoAt=at;
+        row.detachedFromLivePoBy=user;
+      }
+    });
+    (data.receiptEvents||[]).forEach(function(event){
+      if(String(event.poId||'')!==String(po.id||''))return;
+      const sameLine=String(event.lineId||'')===String(line.receiptLineId||'') || String(event.productId||'')===String(line.productId||'');
+      if(sameLine){event.sourceLineArchivedAt=at;event.sourceLineArchivedBy=user;}
+    });
+    po.lines.splice(Number(index),1);
+    po.lineCorrections=Array.isArray(po.lineCorrections)?po.lineCorrections:[];
+    po.lineCorrections.push({
+      id:'POLINE-CORRECTED-'+Date.now(),
+      type:'Fully corrected line removed from live PO',
+      at:at,user:user,reason:reason,line:removed,
+      sku:p.sku||line.productId,name:p.name||'',
+      completedReturns:returnSnapshots,
+      liveValueRemoved:assessment.lineNet
+    });
+    po.reviewStatus='Needs review';
+    po.supplierEmailStatus='Changes pending';
+    if(po.status!=='Cancelled')po.status='Draft - Review';
+    po.invoiceMatchStatus='Needs review';
+    data.auditLog=Array.isArray(data.auditLog)?data.auditLog:[];
+    data.auditLog.push({
+      id:'AUD-'+Date.now(),
+      date:at,user:user,
+      action:'Fully corrected PO line removed from live order',
+      product:po.id,
+      previousValue:{line:removed,completedReturns:returnSnapshots},
+      newValue:'Removed from live PO; completed correction retained as history only',
+      reason:reason
+    });
+    if(typeof saveAppData==='function')saveAppData();
+    if(typeof toast==='function')toast((p.name||p.sku||'Corrected PO line') + ' removed from ' + po.id + '. Historical correction retained.');
+    if(typeof render==='function')render();
+    return {ok:true,poId:po.id,productId:line.productId,removed:removed,returns:assessment.returns.map(function(row){return row.id;})};
+  }
+
   function poReceivedLineCorrectionAssessment(po,line) {
     const result={allowed:false,reason:'Received lines require the normal return / credit process.',receipts:[],nonStockReceipts:[],transfers:[],qcEvents:[],stockReversals:[]};
     if(!po||!line)return Object.assign(result,{reason:'Purchase Order line not found.'});
@@ -594,7 +694,8 @@
       const demand = line.salesOrderId ? line.salesOrderId : (line.projectId || po.projectId || po.jobId || (poIsCustomPurchaseLine(line)?'PO-only purchase':'General stock'));
       const cost = poLineCost(line),qty=Number(line.qty||0),lineNet=cost*qty,lineVat=poLineVat(line,p,lineNet),lineGross=lineNet+lineVat,vatPct=lineNet>0?Math.round(lineVat/lineNet*100):0;
       const check=poLineDeleteAssessment(po,line);
-      const correction=!check.allowed ? poReceivedLineCorrectionAssessment(po,line) : {allowed:false,reason:''};
+      const completedCorrection=!check.allowed ? poCompletedCorrectionRemovalAssessment(po,line) : {allowed:false,reason:''};
+      const correction=!check.allowed&&!completedCorrection.allowed ? poReceivedLineCorrectionAssessment(po,line) : {allowed:false,reason:''};
       const menuId='po-line-menu-' + String(po.id+'-'+index).replace(/[^a-z0-9_-]/gi,'-');
       const custom=poIsCustomPurchaseLine(line);
       return '<tr class="po-line-row' + (custom?' po-custom-line-row':'') + '"><td class="po-product-cell"><div class="po-line-product">' + (custom?'<span class="po-line-thumb po-custom-thumb">PO</span>':poProductThumb(p)) + '<div><strong>' + poEsc(p.name || p.sku || 'Product') + '</strong><small>' + (custom?'<span class="po-custom-line-badge">CUSTOM PO LINE</span> · '+poEsc(line.uom||'each')+(line.description?' · '+poEsc(line.description):''):poEsc(p.sku || line.productId || '')) + '</small></div></div></td>' +
@@ -608,9 +709,11 @@
         '<td class="po-line-actions"><button type="button" class="secondary po-line-menu-button" data-po-line-menu="' + menuId + '" aria-haspopup="menu" aria-expanded="false">•••</button><div id="' + menuId + '" class="po-line-menu" role="menu" hidden>' +
           (check.allowed
             ? '<button type="button" role="menuitem" class="danger-button" data-po-remove-line="' + poEsc(po.id) + '|' + index + '">Delete line</button><small>Allowed because nothing has been received.</small>'
-            : correction.allowed
-              ? '<button type="button" role="menuitem" class="danger-button" data-po-correct-received-line="' + poEsc(po.id) + '|' + index + '">Undo receipt & delete line</button><small>Superadmin correction: reverses this receipt safely and keeps an audit record.</small>'
-              : '<button type="button" role="menuitem" data-po-line-credit="' + poEsc(po.id) + '|' + index + '">Return / credit</button><small>' + poEsc(correction.reason || 'Receiving history is protected.') + '</small>') +
+            : completedCorrection.allowed
+              ? '<button type="button" role="menuitem" class="danger-button" data-po-remove-corrected-line="' + poEsc(po.id) + '|' + index + '">Remove corrected line</button><small>Completed return / correction retained in permanent history.</small>'
+              : correction.allowed
+                ? '<button type="button" role="menuitem" class="danger-button" data-po-correct-received-line="' + poEsc(po.id) + '|' + index + '">Undo receipt & delete line</button><small>Superadmin correction: reverses this receipt safely and keeps an audit record.</small>'
+                : '<button type="button" role="menuitem" data-po-line-credit="' + poEsc(po.id) + '|' + index + '">Return / credit</button><small>' + poEsc(correction.reason || completedCorrection.reason || 'Receiving history is protected.') + '</small>') +
         '</div></td></tr>';
     }).join('') || '<tr><td colspan="9" class="po-empty">No supplier lines yet. Select a supplier and add products.</td></tr>';
     return '<section class="po-work-card po-items-card"><div class="po-items-toolbar"><div><span>ORDER LINES</span><strong>' + (po.lines||[]).length + ' lines · ' + units + ' units</strong><small>' + receivedUnits + ' received</small></div><div class="po-line-add"><input id="poProductSearch" data-po-id="' + poEsc(po.id) + '" placeholder="Search supplier product, Pool Shed SKU, supplier SKU or barcode"><input id="poProductQty" type="number" min="1" value="1"><button type="button" class="primary" data-add-po-selected="' + poEsc(po.id) + '">Add line</button><div id="poProductResults" class="po-product-results" hidden></div></div></div>' +
@@ -713,7 +816,7 @@
 
   function poResolvedCreditTotals(po) {
     const totals={net:0,vat:0,gross:0,count:0};
-    (data.purchaseReturns||[]).filter(function(row){return String(row.poId||'')===String(po&&po.id||'')&&row.status==='Closed'&&!row.voidedAt;}).forEach(function(row){
+    (data.purchaseReturns||[]).filter(function(row){return String(row.poId||'')===String(po&&po.id||'')&&row.status==='Closed'&&!row.voidedAt&&!row.detachedFromLivePoAt;}).forEach(function(row){
       const line=poReturnLine(po,row),parts=poReturnCreditParts(line,row.creditNet!=null?row.creditNet:(row.creditAmount!=null?row.creditAmount:row.expectedCredit),row.creditVat);
       totals.net+=parts.net;totals.vat+=parts.vat;totals.gross+=row.creditGross!=null?Number(row.creditGross||0):parts.gross;totals.count++;
     });
@@ -1233,6 +1336,7 @@
     document.querySelectorAll('[data-po-return-action]').forEach(function(button){button.addEventListener('click',function(){const parts=String(button.dataset.poReturnAction||'').split('|'),action=parts[0],returnId=parts[1];let result=null;if(action==='authorise'){const rma=String(prompt('Supplier authorisation / RMA reference (optional)')||'').trim();result=purchaseAuthoriseSupplierReturn(returnId,{rma:rma});}else if(action==='dispatch'){if(!confirm('Confirm this return has physically left Pool Bros / site and has been sent back to the supplier?'))return;result=purchaseDispatchSupplierReturn(returnId);}else if(action==='credit'){const row=(data.purchaseReturns||[]).find(function(item){return item.id===returnId;});const ref=String(prompt('Supplier credit note / reference (required)')||'').trim();if(!ref)return typeof toast==='function'?toast('Enter the supplier credit note / reference.'):undefined;const amountText=prompt('Credit value net (£)',Number(row&&row.expectedCredit||0).toFixed(2));if(amountText===null)return;const amount=Number(amountText);if(!confirm('Apply '+poMoney(amount)+' net credit back to the original PO and linked Project cost?'))return;result=purchaseCompleteSupplierReturn(returnId,{resolutionType:'supplier-credit',creditReference:ref,creditNet:amount,creditDate:poToday()});}else if(action==='correct'){const reason=String(prompt('Internal correction reason (required)','Duplicate cost / entered in error')||'').trim();if(!reason)return typeof toast==='function'?toast('Enter a correction reason.'):undefined;const row=(data.purchaseReturns||[]).find(function(item){return item.id===returnId;});if(!confirm('Remove '+poMoney(Number(row&&row.expectedCredit||0))+' net from the effective PO and linked Project cost while keeping the original audit history?'))return;result=purchaseCompleteSupplierReturn(returnId,{resolutionType:'internal-correction',creditNet:Number(row&&row.expectedCredit||0),creditDate:poToday(),note:reason});}else if(action==='cancel'){const reason=String(prompt('Reason for cancelling this return / credit case (required)')||'').trim();if(!reason)return;result=purchaseCancelSupplierReturn(returnId,reason);}if(result&&!result.ok)return typeof toast==='function'?toast(result.error):undefined;if(result&&result.ok){if(typeof saveAppData==='function')saveAppData();if(typeof toast==='function')toast(result.return.id+' updated: '+result.return.status+'.');if(typeof render==='function')render();}});});
     document.querySelectorAll('[data-po-line-menu]').forEach(function(button){button.addEventListener('click',function(event){event.stopPropagation();const menu=document.getElementById(button.dataset.poLineMenu);document.querySelectorAll('.po-line-menu').forEach(function(other){if(other!==menu)other.hidden=true;});if(menu){menu.hidden=!menu.hidden;button.setAttribute('aria-expanded',String(!menu.hidden));}});});
     document.querySelectorAll('[data-po-remove-line]').forEach(function(button){button.addEventListener('click',function(){const parts=String(button.dataset.poRemoveLine||'').split('|');removePurchaseOrderLine(parts[0],parts[1]);});});
+    document.querySelectorAll('[data-po-remove-corrected-line]').forEach(function(button){button.addEventListener('click',function(){const parts=String(button.dataset.poRemoveCorrectedLine||'').split('|'),result=removeFullyCorrectedPurchaseOrderLine(parts[0],parts[1]);if(result&&!result.ok&&!result.cancelled&&typeof toast==='function')toast(result.error||'Corrected line could not be removed.');});});
     document.querySelectorAll('[data-po-correct-received-line]').forEach(function(button){button.addEventListener('click',function(){const parts=String(button.dataset.poCorrectReceivedLine||'').split('|');correctReceivedPurchaseOrderLine(parts[0],parts[1]);});});
     document.querySelectorAll('[data-po-line-credit]').forEach(function(button){button.addEventListener('click',function(){purchaseCommandTab='connections';if(typeof toast==='function')toast('Received PO lines stay in history. Use Supplier Returns & Credits to correct them.');if(typeof render==='function')render();});});
   }
@@ -1318,6 +1422,8 @@
   globalThis.purchaseReturnStatusSummary = purchaseReturnStatusSummary;
   globalThis.purchaseResolvedCreditTotals = poResolvedCreditTotals;
   globalThis.purchaseOrderLineDeleteAssessment = poLineDeleteAssessment;
+  globalThis.purchaseOrderCompletedCorrectionRemovalAssessment = poCompletedCorrectionRemovalAssessment;
+  globalThis.removeFullyCorrectedPurchaseOrderLine = removeFullyCorrectedPurchaseOrderLine;
   globalThis.purchaseOrderReceivedLineCorrectionAssessment = poReceivedLineCorrectionAssessment;
   globalThis.correctReceivedPurchaseOrderLine = correctReceivedPurchaseOrderLine;
   globalThis.removePurchaseOrderLine = removePurchaseOrderLine;
