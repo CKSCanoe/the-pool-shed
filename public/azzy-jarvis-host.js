@@ -91,7 +91,7 @@ function markup(){return `
 function mount(){
   if(host)return;
   host=document.createElement('div');host.id='azzyJarvisHost';root=host.attachShadow({mode:'open'});
-  const link=document.createElement('link');link.rel='stylesheet';link.href='./azzy-jarvis.css?v=1.45.1-jarvis-final';root.append(link);
+  const link=document.createElement('link');link.rel='stylesheet';link.href='./azzy-jarvis.css?v=1.45.1-jarvis-left';root.append(link);
   const shell=document.createElement('div');shell.innerHTML=markup();root.append(shell);document.body.append(host);
   bind();
 }
