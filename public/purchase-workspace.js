@@ -91,6 +91,160 @@
     return {allowed:received===0&&!receiptLinked,received,receiptLinked,accountingTouched,supplierCommitted};
   }
 
+  function poCanUseSuperadminCorrection() {
+    try {
+      if (globalThis.PoolShedSettingsCommand && typeof globalThis.PoolShedSettingsCommand.isSuperAdmin === 'function') return !!globalThis.PoolShedSettingsCommand.isSuperAdmin();
+    } catch (_) {}
+    try {
+      const user=typeof currentUser==='function'?currentUser():null;
+      return !!(user && String(user.role||'')==='Admin' && String(user.email||'').trim().toLowerCase()==='aaron@poolbros.co.uk');
+    } catch (_) { return false; }
+  }
+
+  function poReceivedLineCorrectionAssessment(po,line) {
+    const result={allowed:false,reason:'Received lines require the normal return / credit process.',receipts:[],nonStockReceipts:[],transfers:[],qcEvents:[],stockReversals:[]};
+    if(!po||!line)return Object.assign(result,{reason:'Purchase Order line not found.'});
+    if(!poCanUseSuperadminCorrection())return Object.assign(result,{reason:'Superadmin correction access required.'});
+    const accountingTouched=(po.payments||[]).length>0 || Number(po.supplierInvoiceTotal||0)>0 || !!po.supplierInvoiceRef;
+    if(accountingTouched)return Object.assign(result,{reason:'Supplier invoice or payment activity exists, so this line must use Returns & Credits.'});
+    const returnHistory=(data.purchaseReturns||[]).filter(function(row){
+      return String(row.poId||row.purchaseOrderId||row.originalPoId||'')===String(po.id||'') &&
+        String(row.productId||'')===String(line.productId||'');
+    });
+    if(returnHistory.length)return Object.assign(result,{reason:'Supplier return / credit history already exists for this line.'});
+    const lineId=String(line.receiptLineId||'');
+    const receipts=(data.receiptEvents||[]).filter(function(event){
+      if(String(event.poId||'')!==String(po.id||''))return false;
+      if(lineId && String(event.lineId||'')===lineId)return true;
+      return !lineId && String(event.productId||'')===String(line.productId||'');
+    });
+    const nonStockReceipts=(po.nonStockReceipts||[]).filter(function(event){
+      if(lineId && String(event.lineId||'')===lineId)return true;
+      return !lineId && String(event.productId||'')===String(line.productId||'');
+    });
+    result.receipts=receipts.slice();
+    result.nonStockReceipts=nonStockReceipts.slice();
+    const received=Number(line.received||0);
+    const ledgerQty=receipts.concat(nonStockReceipts).reduce(function(n,event){return n+Number(event.qty||0);},0);
+    if(received<=0 && ledgerQty<=0)return Object.assign(result,{reason:'Nothing has been received on this line.'});
+    if(received>0 && !receipts.length && !nonStockReceipts.length)return Object.assign(result,{reason:'The received quantity has no traceable receipt ledger, so it cannot be safely auto-reversed.'});
+    if(Math.abs(received-ledgerQty)>0.0001)return Object.assign(result,{reason:'The line receipt balance does not match its receipt ledger.'});
+    if(receipts.some(function(event){return !!event.legacy;}))return Object.assign(result,{reason:'Historical opening receipt balances cannot be auto-reversed.'});
+
+    const receiptIds=new Set(receipts.map(function(event){return String(event.id||'');}));
+    const transfers=(data.putawayTransfers||[]).filter(function(row){return receiptIds.has(String(row.receiptId||''));});
+    const qcEvents=(data.warehouseQcEvents||[]).filter(function(row){return receiptIds.has(String(row.receiptId||''));});
+    result.transfers=transfers.slice();
+    result.qcEvents=qcEvents.slice();
+    const unexpectedQc=qcEvents.filter(function(row){return !['RECEIVED','QC_RELEASE'].includes(String(row.type||''));});
+    if(unexpectedQc.length)return Object.assign(result,{reason:'Additional Warehouse QC history exists for this receipt.'});
+    const allocations=(data.allocations||[]).filter(function(row){return String(row.productId||'')===String(line.productId||'') && Number(row.qty||row.allocated||0)>0;});
+    if(allocations.length)return Object.assign(result,{reason:'Stock from this SKU is allocated to another order.'});
+
+    const earliest=receipts.map(function(event){return String(event.date||'').slice(0,10);}).filter(Boolean).sort()[0]||'';
+    const downstream=(data.movements||[]).filter(function(row){
+      if(String(row.productId||'')!==String(line.productId||''))return false;
+      if(earliest && String(row.date||'')<earliest)return false;
+      const type=String(row.type||'');
+      return !['Goods In','QC Release / Putaway','QC Quarantine','Receipt Correction Reversal'].includes(type);
+    });
+    if(downstream.length)return Object.assign(result,{reason:'Later stock movement exists for this item, so the receipt is no longer safely reversible.'});
+
+    const reversalMap=new Map();
+    receipts.forEach(function(event){
+      const eventTransfers=transfers.filter(function(row){return String(row.receiptId||'')===String(event.id||'');});
+      const transferred=eventTransfers.reduce(function(n,row){return n+Number(row.qty||0);},0);
+      if(transferred>Number(event.qty||0)+0.0001)return;
+      eventTransfers.forEach(function(row){
+        const key=String(event.productId||line.productId)+'|'+String(row.to||'');
+        const current=reversalMap.get(key)||{productId:event.productId||line.productId,locationId:row.to||'',qty:0};
+        current.qty+=Number(row.qty||0);reversalMap.set(key,current);
+      });
+      const receiving=Math.max(0,Number(event.qty||0)-transferred);
+      if(receiving){
+        const key=String(event.productId||line.productId)+'|L-RECEIVING';
+        const current=reversalMap.get(key)||{productId:event.productId||line.productId,locationId:'L-RECEIVING',qty:0};
+        current.qty+=receiving;reversalMap.set(key,current);
+      }
+    });
+    result.stockReversals=Array.from(reversalMap.values());
+    const stock=data.stock||[];
+    for(const reversal of result.stockReversals){
+      const row=stock.find(function(item){return String(item.productId||'')===String(reversal.productId||'') && String(item.locationId||'')===String(reversal.locationId||'');});
+      const free=Math.max(0,Number(row&&row.qty||0)-Number(row&&row.allocated||0));
+      if(free+0.0001<Number(reversal.qty||0))return Object.assign(result,{reason:'The received stock is no longer fully available in '+String(reversal.locationId||'its receipt location')+'.'});
+    }
+    result.allowed=true;
+    result.reason='Receipt stock and QC history can be safely reversed.';
+    return result;
+  }
+
+  function correctReceivedPurchaseOrderLine(poId,index) {
+    const po=typeof purchaseOrderById==='function'?purchaseOrderById(poId):(data.purchaseOrders||[]).find(function(row){return String(row.id)===String(poId);});
+    const line=po&&po.lines&&po.lines[Number(index)];
+    if(!po||!line)return typeof toast==='function'?toast('Purchase Order line not found.'):undefined;
+    const assessment=poReceivedLineCorrectionAssessment(po,line),p=poLineProduct(line);
+    if(!assessment.allowed)return typeof toast==='function'?toast(assessment.reason):undefined;
+    const reason=String(prompt('Superadmin correction reason for ' + (p.sku||p.name||'this line') + ' (required)','Test receipt entered in error')||'').trim();
+    if(!reason)return typeof toast==='function'?toast('A correction reason is required.'):undefined;
+    const receiptQty=assessment.receipts.concat(assessment.nonStockReceipts).reduce(function(n,event){return n+Number(event.qty||0);},0);
+    const warning='Undo ' + receiptQty + ' received unit' + (receiptQty===1?'':'s') + ' and delete this line from ' + po.id + '?\n\nThis will reverse only the stock/QC created by this receipt, retain a Superadmin correction record, and return the PO to review so you can add and receive the line again.';
+    if(!confirm(warning))return;
+
+    const removed=JSON.parse(JSON.stringify(line));
+    const reversedReceipts=JSON.parse(JSON.stringify(assessment.receipts));
+    const reversedNonStockReceipts=JSON.parse(JSON.stringify(assessment.nonStockReceipts));
+    const reversedTransfers=JSON.parse(JSON.stringify(assessment.transfers));
+    const reversedQcEvents=JSON.parse(JSON.stringify(assessment.qcEvents));
+    const at=new Date().toISOString();
+    const user=(typeof currentUser==='function'&&currentUser()&&(currentUser().name||currentUser().email))||'Superadmin';
+
+    for(const reversal of assessment.stockReversals){
+      if(typeof removeStock!=='function' || !removeStock(reversal.productId,reversal.locationId,Number(reversal.qty||0))){
+        if(typeof toast==='function')toast('Correction stopped because stock changed before the reversal could complete. Refresh and try again.');
+        return;
+      }
+      if(typeof addMovement==='function')addMovement('Receipt Correction Reversal',reversal.productId,Number(reversal.qty||0),reversal.locationId,'CORRECTION',po.id,user,reason);
+    }
+
+    const receiptIds=new Set(assessment.receipts.map(function(event){return String(event.id||'');}));
+    data.receiptEvents=(data.receiptEvents||[]).filter(function(event){return !receiptIds.has(String(event.id||''));});
+    data.putawayTransfers=(data.putawayTransfers||[]).filter(function(row){return !receiptIds.has(String(row.receiptId||''));});
+    data.warehouseQcEvents=(data.warehouseQcEvents||[]).filter(function(row){return !receiptIds.has(String(row.receiptId||''));});
+    const nonStockIds=new Set(assessment.nonStockReceipts.map(function(event){return String(event.id||'');}));
+    po.nonStockReceipts=(po.nonStockReceipts||[]).filter(function(event){return !nonStockIds.has(String(event.id||''));});
+    po.lines.splice(Number(index),1);
+
+    po.lineCorrections=Array.isArray(po.lineCorrections)?po.lineCorrections:[];
+    po.lineCorrections.push({
+      id:'POLINE-CORRECTION-'+Date.now(),
+      type:'Superadmin receipt correction and line removal',
+      at:at,user:user,reason:reason,line:removed,
+      sku:p.sku||line.productId,name:p.name||'',
+      reversedReceipts:reversedReceipts,
+      reversedNonStockReceipts:reversedNonStockReceipts,
+      reversedTransfers:reversedTransfers,
+      reversedQcEvents:reversedQcEvents,
+      stockReversals:JSON.parse(JSON.stringify(assessment.stockReversals))
+    });
+    po.reviewStatus='Needs review';
+    po.supplierEmailStatus='Changes pending';
+    if(po.status!=='Cancelled')po.status='Draft - Review';
+    data.auditLog=Array.isArray(data.auditLog)?data.auditLog:[];
+    data.auditLog.push({
+      id:'AUD-'+Date.now(),
+      date:at,user:user,
+      action:'Superadmin PO received-line correction',
+      product:po.id,
+      previousValue:{line:removed,received:receiptQty},
+      newValue:'Receipt reversed and PO line removed',
+      reason:reason
+    });
+    if(typeof saveAppData==='function')saveAppData();
+    if(typeof toast==='function')toast((p.sku||p.name||'PO line') + ' receipt reversed and line removed. Add it again to retest receiving.');
+    if(typeof render==='function')render();
+  }
+
   function removePurchaseOrderLine(poId,index) {
     const po=typeof purchaseOrderById==='function'?purchaseOrderById(poId):(data.purchaseOrders||[]).find(function(row){return row.id===poId;});
     const line=po&&po.lines&&po.lines[Number(index)];
@@ -440,6 +594,7 @@
       const demand = line.salesOrderId ? line.salesOrderId : (line.projectId || po.projectId || po.jobId || (poIsCustomPurchaseLine(line)?'PO-only purchase':'General stock'));
       const cost = poLineCost(line),qty=Number(line.qty||0),lineNet=cost*qty,lineVat=poLineVat(line,p,lineNet),lineGross=lineNet+lineVat,vatPct=lineNet>0?Math.round(lineVat/lineNet*100):0;
       const check=poLineDeleteAssessment(po,line);
+      const correction=!check.allowed ? poReceivedLineCorrectionAssessment(po,line) : {allowed:false,reason:''};
       const menuId='po-line-menu-' + String(po.id+'-'+index).replace(/[^a-z0-9_-]/gi,'-');
       const custom=poIsCustomPurchaseLine(line);
       return '<tr class="po-line-row' + (custom?' po-custom-line-row':'') + '"><td class="po-product-cell"><div class="po-line-product">' + (custom?'<span class="po-line-thumb po-custom-thumb">PO</span>':poProductThumb(p)) + '<div><strong>' + poEsc(p.name || p.sku || 'Product') + '</strong><small>' + (custom?'<span class="po-custom-line-badge">CUSTOM PO LINE</span> · '+poEsc(line.uom||'each')+(line.description?' · '+poEsc(line.description):''):poEsc(p.sku || line.productId || '')) + '</small></div></div></td>' +
@@ -451,7 +606,11 @@
         '<td class="po-vat">' + vatPct + '%</td>' +
         '<td class="right po-line-total"><strong>' + poMoney(lineGross) + '</strong><small>inc VAT</small></td>' +
         '<td class="po-line-actions"><button type="button" class="secondary po-line-menu-button" data-po-line-menu="' + menuId + '" aria-haspopup="menu" aria-expanded="false">•••</button><div id="' + menuId + '" class="po-line-menu" role="menu" hidden>' +
-          (check.allowed ? '<button type="button" role="menuitem" class="danger-button" data-po-remove-line="' + poEsc(po.id) + '|' + index + '">Delete line</button><small>Allowed because nothing has been received.</small>' : '<button type="button" role="menuitem" data-po-line-credit="' + poEsc(po.id) + '|' + index + '">Return / credit</button><small>Receiving history is protected.</small>') +
+          (check.allowed
+            ? '<button type="button" role="menuitem" class="danger-button" data-po-remove-line="' + poEsc(po.id) + '|' + index + '">Delete line</button><small>Allowed because nothing has been received.</small>'
+            : correction.allowed
+              ? '<button type="button" role="menuitem" class="danger-button" data-po-correct-received-line="' + poEsc(po.id) + '|' + index + '">Undo receipt & delete line</button><small>Superadmin correction: reverses this receipt safely and keeps an audit record.</small>'
+              : '<button type="button" role="menuitem" data-po-line-credit="' + poEsc(po.id) + '|' + index + '">Return / credit</button><small>' + poEsc(correction.reason || 'Receiving history is protected.') + '</small>') +
         '</div></td></tr>';
     }).join('') || '<tr><td colspan="9" class="po-empty">No supplier lines yet. Select a supplier and add products.</td></tr>';
     return '<section class="po-work-card po-items-card"><div class="po-items-toolbar"><div><span>ORDER LINES</span><strong>' + (po.lines||[]).length + ' lines · ' + units + ' units</strong><small>' + receivedUnits + ' received</small></div><div class="po-line-add"><input id="poProductSearch" data-po-id="' + poEsc(po.id) + '" placeholder="Search supplier product, Pool Shed SKU, supplier SKU or barcode"><input id="poProductQty" type="number" min="1" value="1"><button type="button" class="primary" data-add-po-selected="' + poEsc(po.id) + '">Add line</button><div id="poProductResults" class="po-product-results" hidden></div></div></div>' +
@@ -1074,6 +1233,7 @@
     document.querySelectorAll('[data-po-return-action]').forEach(function(button){button.addEventListener('click',function(){const parts=String(button.dataset.poReturnAction||'').split('|'),action=parts[0],returnId=parts[1];let result=null;if(action==='authorise'){const rma=String(prompt('Supplier authorisation / RMA reference (optional)')||'').trim();result=purchaseAuthoriseSupplierReturn(returnId,{rma:rma});}else if(action==='dispatch'){if(!confirm('Confirm this return has physically left Pool Bros / site and has been sent back to the supplier?'))return;result=purchaseDispatchSupplierReturn(returnId);}else if(action==='credit'){const row=(data.purchaseReturns||[]).find(function(item){return item.id===returnId;});const ref=String(prompt('Supplier credit note / reference (required)')||'').trim();if(!ref)return typeof toast==='function'?toast('Enter the supplier credit note / reference.'):undefined;const amountText=prompt('Credit value net (£)',Number(row&&row.expectedCredit||0).toFixed(2));if(amountText===null)return;const amount=Number(amountText);if(!confirm('Apply '+poMoney(amount)+' net credit back to the original PO and linked Project cost?'))return;result=purchaseCompleteSupplierReturn(returnId,{resolutionType:'supplier-credit',creditReference:ref,creditNet:amount,creditDate:poToday()});}else if(action==='correct'){const reason=String(prompt('Internal correction reason (required)','Duplicate cost / entered in error')||'').trim();if(!reason)return typeof toast==='function'?toast('Enter a correction reason.'):undefined;const row=(data.purchaseReturns||[]).find(function(item){return item.id===returnId;});if(!confirm('Remove '+poMoney(Number(row&&row.expectedCredit||0))+' net from the effective PO and linked Project cost while keeping the original audit history?'))return;result=purchaseCompleteSupplierReturn(returnId,{resolutionType:'internal-correction',creditNet:Number(row&&row.expectedCredit||0),creditDate:poToday(),note:reason});}else if(action==='cancel'){const reason=String(prompt('Reason for cancelling this return / credit case (required)')||'').trim();if(!reason)return;result=purchaseCancelSupplierReturn(returnId,reason);}if(result&&!result.ok)return typeof toast==='function'?toast(result.error):undefined;if(result&&result.ok){if(typeof saveAppData==='function')saveAppData();if(typeof toast==='function')toast(result.return.id+' updated: '+result.return.status+'.');if(typeof render==='function')render();}});});
     document.querySelectorAll('[data-po-line-menu]').forEach(function(button){button.addEventListener('click',function(event){event.stopPropagation();const menu=document.getElementById(button.dataset.poLineMenu);document.querySelectorAll('.po-line-menu').forEach(function(other){if(other!==menu)other.hidden=true;});if(menu){menu.hidden=!menu.hidden;button.setAttribute('aria-expanded',String(!menu.hidden));}});});
     document.querySelectorAll('[data-po-remove-line]').forEach(function(button){button.addEventListener('click',function(){const parts=String(button.dataset.poRemoveLine||'').split('|');removePurchaseOrderLine(parts[0],parts[1]);});});
+    document.querySelectorAll('[data-po-correct-received-line]').forEach(function(button){button.addEventListener('click',function(){const parts=String(button.dataset.poCorrectReceivedLine||'').split('|');correctReceivedPurchaseOrderLine(parts[0],parts[1]);});});
     document.querySelectorAll('[data-po-line-credit]').forEach(function(button){button.addEventListener('click',function(){purchaseCommandTab='connections';if(typeof toast==='function')toast('Received PO lines stay in history. Use Supplier Returns & Credits to correct them.');if(typeof render==='function')render();});});
   }
 
@@ -1158,6 +1318,8 @@
   globalThis.purchaseReturnStatusSummary = purchaseReturnStatusSummary;
   globalThis.purchaseResolvedCreditTotals = poResolvedCreditTotals;
   globalThis.purchaseOrderLineDeleteAssessment = poLineDeleteAssessment;
+  globalThis.purchaseOrderReceivedLineCorrectionAssessment = poReceivedLineCorrectionAssessment;
+  globalThis.correctReceivedPurchaseOrderLine = correctReceivedPurchaseOrderLine;
   globalThis.removePurchaseOrderLine = removePurchaseOrderLine;
   globalThis.changePurchaseOrderSupplier = changePurchaseOrderSupplier;
   globalThis.bindPurchaseCommand = bindPurchaseCommand;
