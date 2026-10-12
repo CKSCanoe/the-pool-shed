@@ -19,7 +19,27 @@
 </head>
   <body>
     <a class="ps-skip-link" href="#mainContent">Skip to main content</a>
-    <div id="psBootScreen" role="status" aria-live="polite"><div class="ps-boot-card"><div class="ps-boot-brand"><div class="ps-boot-logo"><img src="./assets/img/pb-logo.png" alt="Pool Bros logo"></div><div><strong>The Pool Shed</strong><span>Loading your workspace securely</span></div></div><div class="ps-boot-line"><i></i></div></div></div>
+    <div id="psBootScreen" role="status" aria-live="polite"><div class="ps-boot-card"><div class="ps-boot-brand"><div class="ps-boot-logo"><img src="./assets/img/pb-logo.png" alt="Pool Bros logo"></div><div><strong>The Pool Shed</strong><span>Connecting to the live workspace</span></div></div><div class="ps-boot-line"><i></i></div></div></div>
+    <script>
+      (function(){
+        var finished=false;
+        function finishFastBoot(){
+          if(finished)return;
+          var app=document.getElementById('appShell');
+          if(!app||app.classList.contains('auth-hidden'))return;
+          finished=true;
+          var boot=document.getElementById('psBootScreen');
+          if(boot){boot.classList.add('is-ready');setTimeout(function(){if(boot&&boot.parentNode)boot.remove();},180);}
+          document.documentElement.classList.remove('ps-booting');
+          setTimeout(function(){
+            try{var sw=navigator.serviceWorker&&navigator.serviceWorker.controller;if(sw)sw.postMessage({type:'POOL_SHED_WARM_RUNTIME'});}catch(_){}
+          },1200);
+        }
+        window.addEventListener('pool-shed:app-visible',finishFastBoot);
+        window.addEventListener('pool-shed:workspace-ready',function(){setTimeout(finishFastBoot,0);});
+        document.addEventListener('DOMContentLoaded',function(){setTimeout(finishFastBoot,0);});
+      })();
+    </script>
     <section class="login-screen hidden" id="loginScreen"></section>
     <div class="app auth-hidden" id="appShell">
       <aside class="sidebar" aria-label="Application navigation">

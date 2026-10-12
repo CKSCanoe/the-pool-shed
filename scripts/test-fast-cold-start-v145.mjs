@@ -1,0 +1,15 @@
+import fs from 'node:fs';
+import assert from 'node:assert/strict';
+const sw=fs.readFileSync('public/service-worker.js','utf8');
+const html=fs.readFileSync('public/index.html','utf8');
+const parseArray=(src)=>Function(`return (${src})`)();
+const boot=parseArray(sw.match(/const BOOT_CORE = (\[[^;]+\]);/s)?.[1]||'[]');
+const core=parseArray(sw.match(/const CORE = (\[[^;]+\]);/s)?.[1]||'[]');
+assert(boot.length>0&&boot.length<=12,`Cold boot cache must stay small; got ${boot.length}`);
+assert(core.length>boot.length*3,'Full offline runtime manifest should remain separate from cold boot cache');
+for(const required of ['./index.html','./assets/css/app.css?v=1.45.1','./azzy-jarvis-host.js?v=1.45.1','./assets/img/azzy-jarvis-192.png']) assert(boot.includes(required),`Boot core missing ${required}`);
+assert(sw.includes("event.data.type !== 'POOL_SHED_WARM_RUNTIME'"));
+assert(sw.includes('const concurrency = 3'));
+assert(html.includes("window.addEventListener('pool-shed:app-visible',finishFastBoot)"));
+assert(html.includes("postMessage({type:'POOL_SHED_WARM_RUNTIME'})"));
+console.log(`PASS cold start uses ${boot.length} boot assets instead of pre-caching ${core.length} runtime assets, with deferred offline warming.`);
