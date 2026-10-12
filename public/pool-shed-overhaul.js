@@ -13,10 +13,15 @@
   }
   function esc(v){return String(v==null?'':v).replace(/[&<>"']/g,function(c){return({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'})[c]});}
 
-  function finishBoot(){
-    if(bootDone)return;bootDone=true;
+  function finishBoot(force){
+    if(bootDone)return;
+    var app=document.getElementById('appShell'),login=document.getElementById('loginScreen');
+    var appVisible=app&&!app.classList.contains('auth-hidden');
+    var loginVisible=login&&!login.classList.contains('hidden');
+    if(!force&&!appVisible&&!loginVisible)return;
+    bootDone=true;
     var boot=document.getElementById('psBootScreen');
-    if(boot){boot.classList.add('is-ready');setTimeout(function(){if(boot&&boot.parentNode)boot.parentNode.removeChild(boot);},260);}
+    if(boot){boot.classList.add('is-ready');setTimeout(function(){if(boot&&boot.parentNode)boot.parentNode.removeChild(boot);},180);}
     document.documentElement.classList.remove('ps-booting');
   }
 
@@ -175,8 +180,9 @@
   },true);
 
   var observer=new MutationObserver(schedule);observer.observe(document.documentElement,{childList:true,subtree:true});
-  document.addEventListener('DOMContentLoaded',function(){schedule();setTimeout(schedule,220);setTimeout(finishBoot,1800);});
-  window.addEventListener('load',function(){setTimeout(finishBoot,80);});
-  setTimeout(finishBoot,2600);
+  document.addEventListener('DOMContentLoaded',function(){schedule();setTimeout(schedule,220);});
+  window.addEventListener('pool-shed:app-visible',function(){finishBoot(true);});
+  window.addEventListener('pool-shed:auth-state',function(){setTimeout(function(){finishBoot(false);},0);});
+  setTimeout(function(){finishBoot(false);},2600);
   window.PoolShedProductionPolish={refresh:schedule,normaliseBundleCosts:normaliseBundleComponentCosts};
 })();

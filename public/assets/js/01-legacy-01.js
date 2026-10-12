@@ -1125,18 +1125,25 @@ const seed = {
         if (!row || !row.data) return false;
         data = normalizeAppData(row.data);
         remoteWorkspaceUpdatedAt = row.updated_at || null;
-        workspaceBaseSnapshot = clone(data);
+        // Serialize once: the same canonical JSON creates the immutable merge base
+        // and becomes the local payload fingerprint. This avoids stringifying the
+        // multi-megabyte workspace twice during the user-visible boot path.
         const payload = JSON.stringify(data);
+        workspaceBaseSnapshot = JSON.parse(payload);
         workspaceLastLocalPayload = payload;
         workspaceSyncConflict = false;
         sharedWorkspaceReady = true;
         window.__POOL_SHED_SHARED_READY__ = true;
         try { localStorage.setItem("poolshed:v172:remoteRevision", remoteWorkspaceUpdatedAt || ""); } catch (error) { void error; }
-        cacheWorkspaceLocally(payload, false);
         updateOfflineStatus();
         if (shouldRender) render();
-        queueOfflineSnapshot(workspaceBaseSnapshot, false, "verified-shared-master");
         try { window.dispatchEvent(new CustomEvent("pool-shed:workspace-ready", { detail:{ revision:remoteWorkspaceUpdatedAt || "" } })); } catch (error) { void error; }
+        // Browser recovery/offline copies are important, but writing a 5MB+ cache
+        // must not keep the verified shared workspace behind the loading screen.
+        setTimeout(function(){
+          try { cacheWorkspaceLocally(payload, false); } catch (error) { void error; }
+          queueOfflineSnapshot(workspaceBaseSnapshot, false, "verified-shared-master");
+        }, 0);
         return true;
       }
 
