@@ -1016,13 +1016,16 @@ const seed = {
         isAuthenticated = true;
         localStorage.setItem("poolshed:v169:activeUserId", activeUserId);
         localStorage.setItem("poolshed:v169:sessionUserId", activeUserId);
-        const accessReady = await ensureSharedWorkspaceAccess();
+        // Start membership reconciliation immediately, but do not serialize the
+        // verified RLS workspace read behind the server enrolment endpoint. Existing
+        // members can prove access by reading the protected shared snapshot itself.
+        ensureSharedWorkspaceAccess().catch(function(){});
         setTimeout(function(){
           loadSupabaseProfiles().then(function(){
             try { if (active === "settings") render(); } catch (error) { void error; }
           }).catch(function(){});
         }, 0);
-        return accessReady;
+        return true;
       }
 
       async function ensureSharedWorkspaceAccess() {
@@ -1141,23 +1144,44 @@ const seed = {
         if (localStorage.getItem("poolshed:v172:recoveryHold") === "1") return true;
         if (!supabaseClient || !supabaseSession) return false;
 
-        // Reconfirm server-side membership before reading. This is deliberately
-        // idempotent and prevents a refresh from racing workspace enrolment.
-        const accessReady = await ensureSharedWorkspaceAccess();
-        if (!accessReady) return false;
-
+        // Membership reconciliation and the RLS-protected master read run in
+        // parallel. For an existing member, a successful snapshot read is already
+        // authoritative proof of workspace access. If the read fails (for example
+        // a genuinely new user), wait for enrolment and retry before giving up.
+        const accessPromise = ensureSharedWorkspaceAccess();
         let response = null;
         let lastError = null;
-        for (let attempt = 0; attempt < 3; attempt += 1) {
-          try {
-            response = await supabaseClient.from("workspace_snapshots").select("data,updated_at").eq("workspace_id", WORKSPACE_ID).maybeSingle();
-            if (response.error) throw response.error;
-            if (response.data && response.data.data) break;
-            throw new Error("Shared workspace master is unavailable.");
-          } catch (error) {
-            lastError = error;
-            response = null;
-            if (attempt < 2) await new Promise(function(resolve){ setTimeout(resolve, 400 * (attempt + 1)); });
+
+        async function fetchSharedMaster() {
+          const result = await supabaseClient.from("workspace_snapshots").select("data,updated_at").eq("workspace_id", WORKSPACE_ID).maybeSingle();
+          if (result.error) throw result.error;
+          if (!result.data || !result.data.data) throw new Error("Shared workspace master is unavailable.");
+          return result;
+        }
+
+        try {
+          response = await fetchSharedMaster();
+          // RLS has authorised the master read. Do not hold the UI open while the
+          // idempotent membership endpoint finishes its housekeeping work.
+          const userId = String(supabaseSession.user && supabaseSession.user.id || "");
+          if (userId) sharedWorkspaceAccessConfirmedUserId = userId;
+          accessPromise.catch(function(error){ console.warn("Background workspace access reconciliation failed", error); });
+        } catch (error) {
+          lastError = error;
+          const accessReady = await accessPromise.catch(function(){ return false; });
+          if (!accessReady) {
+            console.warn("Remote workspace access/load failed", lastError);
+            return false;
+          }
+          for (let attempt = 0; attempt < 3; attempt += 1) {
+            try {
+              response = await fetchSharedMaster();
+              break;
+            } catch (retryError) {
+              lastError = retryError;
+              response = null;
+              if (attempt < 2) await new Promise(function(resolve){ setTimeout(resolve, 300 * (attempt + 1)); });
+            }
           }
         }
 
