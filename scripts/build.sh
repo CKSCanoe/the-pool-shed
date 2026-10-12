@@ -22,6 +22,7 @@ run_node_stage "workspace and sales safety" \
   test-workspace-audit-v1451.mjs \
   test-large-workspace-persistence-v1452.mjs \
   test-sales-order-safety-hotfix.mjs \
+  test-sales-order-xero-copy-v145.mjs \
   test-sales-order-catalogue-chemical-v157.mjs \
   test-sales-order-quantity-layout-v158.mjs \
   test-sales-order-custom-price-apply-v159.mjs \

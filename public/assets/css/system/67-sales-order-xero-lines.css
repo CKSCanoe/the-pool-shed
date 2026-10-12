@@ -1,0 +1,108 @@
+/* ========================================================================
+   Sales Order line description authority
+   Long descriptions remain fully visible and selectable for Accounts/Xero
+   without introducing another action button or mutating order data.
+   ======================================================================== */
+
+#screen-salesorders .so2-lines-table{
+  min-width:1440px!important;
+  table-layout:auto!important;
+}
+#screen-salesorders .so2-line-row td{
+  vertical-align:top!important;
+}
+#screen-salesorders .so2-product-cell{
+  width:420px!important;
+  min-width:420px!important;
+  max-width:560px!important;
+  padding-top:10px!important;
+  padding-bottom:10px!important;
+}
+#screen-salesorders .so5-line-product{
+  grid-template-columns:42px minmax(0,1fr)!important;
+  align-items:start!important;
+  gap:10px!important;
+}
+#screen-salesorders .so5-line-thumb{
+  margin-top:2px!important;
+}
+#screen-salesorders .so5-line-product-copy{
+  min-width:0!important;
+  display:block!important;
+}
+#screen-salesorders .so2-xero-description{
+  display:block!important;
+  width:100%!important;
+  min-width:0!important;
+  min-height:42px!important;
+  height:auto!important;
+  field-sizing:content;
+  margin:0!important;
+  padding:5px 7px!important;
+  resize:none!important;
+  overflow:hidden!important;
+  border:1px solid transparent!important;
+  border-radius:6px!important;
+  background:transparent!important;
+  color:var(--color-text-primary)!important;
+  box-shadow:none!important;
+  font:inherit!important;
+  font-family:inherit!important;
+  font-size:11px!important;
+  font-weight:760!important;
+  line-height:1.48!important;
+  letter-spacing:0!important;
+  white-space:pre-wrap!important;
+  overflow-wrap:anywhere!important;
+  word-break:normal!important;
+  cursor:text!important;
+  user-select:text!important;
+  -webkit-user-select:text!important;
+}
+#screen-salesorders .so2-xero-description:hover{
+  border-color:var(--color-border-default)!important;
+  background:var(--color-surface-default)!important;
+}
+#screen-salesorders .so2-xero-description:focus{
+  outline:0!important;
+  border-color:var(--color-action-focus)!important;
+  background:var(--color-surface-default)!important;
+  box-shadow:var(--focus-ring)!important;
+}
+#screen-salesorders .so5-line-product-copy>small{
+  margin:5px 7px 0!important;
+  white-space:normal!important;
+  overflow:visible!important;
+  text-overflow:clip!important;
+  font-size:8px!important;
+  line-height:1.35!important;
+}
+#screen-salesorders .so5-line-product-copy .link-button{
+  margin-left:4px!important;
+}
+#screen-salesorders .so2-variant-cell{
+  width:220px!important;
+  min-width:220px!important;
+  padding-top:12px!important;
+}
+#screen-salesorders .so2-stock-cell{
+  min-width:145px!important;
+  padding-top:14px!important;
+}
+#screen-salesorders .so2-qty-cell,
+#screen-salesorders .so2-allocated,
+#screen-salesorders .so2-unit-net,
+#screen-salesorders .so2-vat,
+#screen-salesorders .so5-line-total,
+#screen-salesorders .so2-actions-cell{
+  padding-top:12px!important;
+}
+#screen-salesorders .so2-table-scroll{
+  scrollbar-gutter:stable both-edges;
+}
+@media(max-width:1100px){
+  #screen-salesorders .so2-product-cell{
+    width:380px!important;
+    min-width:380px!important;
+  }
+}

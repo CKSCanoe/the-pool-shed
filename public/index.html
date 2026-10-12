@@ -10,6 +10,10 @@
     <meta name="theme-color" content="#0F1B24">
     <link rel="icon" type="image/png" href="./assets/img/pb-logo.png">
     <link rel="stylesheet" href="./assets/css/app.css?v=1.45.1">
+    <link rel="preload" href="./azzy-jarvis.css?v=1.45.1-startup-v1" as="style">
+    <link rel="preload" href="./assets/img/azzy-jarvis-192.png" as="image" type="image/png" fetchpriority="high">
+    <meta name="pool-shed-lazy-pdf-library" content="jspdf@2.5.2">
+    <meta name="pool-shed-lazy-excel-library" content="xlsx@0.18.5">
     <link rel="preconnect" href="https://cdn.jsdelivr.net" crossorigin>
     <link rel="dns-prefetch" href="https://cdn.jsdelivr.net">
 </head>
@@ -92,8 +96,10 @@
     <div class="modal-backdrop" id="statusEditorModal"></div>
 
     <script src="./config.js?v=1.45.1" defer></script>
-    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2" defer></script>
     <script src="./identity-authority.js?v=1.45.1" defer></script>
+    <script src="./settings-permissions-engine.js?v=1.45.1" defer></script>
+        <script src="./azzy-jarvis-host.js?v=1.45.1" defer></script>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2" defer></script>
     <script src="./audit-authority.js?v=1.45.1" defer></script>
     <script src="./assets/js/01-legacy-01.js?v=1.45.2" defer></script>
     <script src="./shared-one-truth-authority.js?v=1.45.1" defer></script>
@@ -135,7 +141,6 @@
 <script src="./finance-command-workspace.js?v=1.45.1" defer></script>
 <script src="./analytics-command-engine.js?v=1.45.1" defer></script>
 <script src="./analytics-command-workspace.js?v=1.45.1" defer></script>
-<script src="./settings-permissions-engine.js?v=1.45.1" defer></script>
 <script src="./record-router.js?v=1.45.1" defer></script>
 <script src="./notifications-command-engine.js?v=1.45.1" defer></script>
 <script src="./action-authority.js?v=1.45.1" defer></script>
@@ -146,7 +151,7 @@
 <script src="./notifications-command-workspace.js?v=1.45.1" defer></script>
 <script src="./automation-command-engine.js?v=1.45.1" defer></script>
 <script src="./automation-command-workspace.js?v=1.45.1" defer></script>
-<script src="./azzy-jarvis-host.js?v=1.45.1" defer></script>
+
 <script src="./production-readiness-engine.js?v=1.45.1" defer></script>
 <script src="./settings-command-workspace.js?v=1.45.1" defer></script>
 
@@ -154,9 +159,6 @@
 <script src="./project-documents.js?v=1.45.1" defer></script>
 <script src="./project-billing.js?v=1.45.1" defer></script>
 <script src="./project-workspace.js?v=1.45.3" defer></script>
-<script src="https://cdn.jsdelivr.net/npm/jspdf@2.5.2/dist/jspdf.umd.min.js" defer></script>
-<script src="https://cdn.jsdelivr.net/npm/jspdf-autotable@3.8.4/dist/jspdf.plugin.autotable.min.js" defer></script>
-<script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js" defer></script>
 <script src="./project-reporting.js?v=1.45.8" defer></script>
 <script src="./project-design-parity.js?v=1.45.3" defer></script>
 <script src="./project-setup-tools.js?v=1.45.1" defer></script>

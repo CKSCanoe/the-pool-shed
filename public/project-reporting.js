@@ -308,6 +308,34 @@ function psProjectReports(job,p,s){
  '</section>';
 }
 function psProjectReportFilename(model,ext){const safe=String(model.job.name||model.job.id).replace(/[^A-Za-z0-9_-]+/g,'-').replace(/^-+|-+$/g,'').slice(0,70)||model.job.id;return 'Pool-Bros-'+safe+'-Financial-Report-'+psProjectUKDate()+'.'+ext;}
+const PS_PROJECT_REPORT_EXPORT_LIBS={
+ pdf:'https://cdn.jsdelivr.net/npm/jspdf@2.5.2/dist/jspdf.umd.min.js',
+ table:'https://cdn.jsdelivr.net/npm/jspdf-autotable@3.8.4/dist/jspdf.plugin.autotable.min.js',
+ excel:'https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js'
+};
+const psProjectReportLibraryPromises=new Map();
+function psProjectReportLoadScript(src,ready){
+ if(ready())return Promise.resolve(true);
+ if(psProjectReportLibraryPromises.has(src))return psProjectReportLibraryPromises.get(src);
+ const task=new Promise((resolve,reject)=>{
+  const existing=[...document.scripts].find(x=>x.src===src);
+  const script=existing||document.createElement('script');
+  const done=()=>ready()?resolve(true):reject(new Error('Export library loaded but did not initialise.'));
+  script.addEventListener('load',done,{once:true});script.addEventListener('error',()=>reject(new Error('Export library could not be loaded.')),{once:true});
+  if(!existing){script.src=src;script.async=true;script.crossOrigin='anonymous';document.head.appendChild(script);}
+  else if(ready())resolve(true);
+ }).finally(()=>{if(!ready())psProjectReportLibraryPromises.delete(src);});
+ psProjectReportLibraryPromises.set(src,task);return task;
+}
+async function psProjectReportEnsurePdf(){
+ await psProjectReportLoadScript(PS_PROJECT_REPORT_EXPORT_LIBS.pdf,()=>!!window.jspdf?.jsPDF);
+ await psProjectReportLoadScript(PS_PROJECT_REPORT_EXPORT_LIBS.table,()=>!!window.jspdf?.jsPDF?.API?.autoTable);
+ return true;
+}
+async function psProjectReportEnsureExcel(){
+ await psProjectReportLoadScript(PS_PROJECT_REPORT_EXPORT_LIBS.excel,()=>!!window.XLSX?.utils);
+ return true;
+}
 function psProjectReportPdf(model){
  const C=window.jspdf;
  if(!C?.jsPDF||typeof C.jsPDF.API.autoTable!=='function'){psProjectReportPrint(model);return;}
@@ -743,8 +771,8 @@ function psProjectReportExcelFallback(model){
   try{
    if(b.hasAttribute('data-project-report-refresh')){const job=data.jobs.find(j=>j.id===psProjectSelected);if(!job)return;psProjectReportRecordSnapshot(job,psProjectSummary(job),'Manual report refresh');if(typeof psFinanceRefresh==='function')await psFinanceRefresh();render();return;}
    if(b.hasAttribute('data-project-report-chart')){psProjectReportChartMode=b.dataset.projectReportChart==='margin'?'margin':'profit';render();return;}
-   if(b.hasAttribute('data-project-report-pdf')){const job=data.jobs.find(j=>j.id===psProjectSelected);if(!job)return;b.disabled=true;psProjectReportRecordSnapshot(job,psProjectSummary(job),'PDF export');psProjectReportPdf(psProjectReportModel(job));b.disabled=false;return;}
-   if(b.hasAttribute('data-project-report-excel')){const job=data.jobs.find(j=>j.id===psProjectSelected);if(!job)return;b.disabled=true;psProjectReportRecordSnapshot(job,psProjectSummary(job),'Excel export');psProjectReportExcel(psProjectReportModel(job));b.disabled=false;return;}
+   if(b.hasAttribute('data-project-report-pdf')){const job=data.jobs.find(j=>j.id===psProjectSelected);if(!job)return;const label=b.textContent;b.disabled=true;b.textContent='Preparing PDF…';psProjectReportRecordSnapshot(job,psProjectSummary(job),'PDF export');try{await psProjectReportEnsurePdf();psProjectReportPdf(psProjectReportModel(job));}catch(error){toast('PDF library could not load, so the printable report was opened instead.');psProjectReportPrint(psProjectReportModel(job));}finally{b.textContent=label;b.disabled=false;}return;}
+   if(b.hasAttribute('data-project-report-excel')){const job=data.jobs.find(j=>j.id===psProjectSelected);if(!job)return;const label=b.textContent;b.disabled=true;b.textContent='Preparing Excel…';psProjectReportRecordSnapshot(job,psProjectSummary(job),'Excel export');try{await psProjectReportEnsureExcel();psProjectReportExcel(psProjectReportModel(job));}catch(error){psProjectReportExcelFallback(psProjectReportModel(job));}finally{b.textContent=label;b.disabled=false;}return;}
   }catch(error){b.disabled=false;toast(error.message||'Project report could not be generated.');}
  });
 })();

@@ -475,6 +475,18 @@
   }
 
 
+  function so2XeroDescription(line,p,family) {
+    if (line && line.lineType === 'shipping') return String(line.description || line.customProductName || family || 'Delivery charge').trim();
+    if (isNonStockSalesLine(line)) return String((line && (line.customProductName || line.description)) || family || (p && p.name) || 'Custom sales line').trim();
+    return String((p && p.name) || family || (line && line.description) || (p && p.sku) || 'Sales line').trim();
+  }
+
+  function so2XeroDescriptionRows(value) {
+    const text=String(value||'');
+    const rows=text.split(/\r?\n/).reduce(function(total,part){return total+Math.max(1,Math.ceil(Math.max(1,part.length)/58));},0);
+    return Math.max(2,rows);
+  }
+
   function so5ProductThumb(p) {
     if (!p || !p.id || String(p.id).indexOf('CUSTOM-')===0) return '<span class="so5-line-thumb"><span aria-hidden="true">PB</span></span>';
     let url='';
@@ -501,6 +513,8 @@
       const lineNet = unitNet * Number(line.qty || 0);
       const lineGross = lineNet * (1 + vatRate);
       const family = nonStock ? so2CustomProductName(line,p) : salesOrderProductFamily(p);
+      const xeroDescription = so2XeroDescription(line,p,family);
+      const xeroRows = so2XeroDescriptionRows(xeroDescription);
       const locked = Number(line.allocated||0) > 0 || Number(line.picked||0) > 0 || Number(line.packed||0) > 0 || Number(line.shipped||0) > 0 ||
         goodsNotesForOrder(order.id).some(function(note){ return note.lines.some(function(nl){ return nl.productId === line.productId; }); });
       const deleteCheck = so2SalesLineDeleteAssessment(order,line);
@@ -508,7 +522,7 @@
       const menuId = 'so2-menu-' + String(order.id + '-' + line.productId).replace(/[^a-z0-9_-]/gi,'-');
       return '<tr class="so2-line-row ' + health.className + '">' +
         '<td class="so2-check"><input type="checkbox" data-sales-line-select="' + order.id + '|' + line.productId + '" aria-label="Select ' + escapeHtml(p.sku || p.name) + '"></td>' +
-        '<td class="so2-product-cell"><div class="so5-line-product">' + so5ProductThumb(p) + '<div class="so5-line-product-copy"><strong>' + escapeHtml(family) + '</strong><small>' + escapeHtml(nonStock ? (line.lineType === 'shipping' ? 'Non-stock delivery charge' : 'Custom / non-stock') : (p.name || p.brand || p.category || 'Catalogue product')) + '</small>' + (!nonStock ? '<button type="button" class="link-button" data-open-product="' + escapeHtml(p.id) + '">View product</button>' : '') + '</div></div></td>' +
+        '<td class="so2-product-cell"><div class="so5-line-product">' + so5ProductThumb(p) + '<div class="so5-line-product-copy"><textarea class="so2-xero-description" readonly spellcheck="false" rows="' + xeroRows + '" aria-label="Product description. Select and copy this text into Xero." title="Select and copy into Xero">' + escapeHtml(xeroDescription) + '</textarea><small>' + escapeHtml(nonStock ? (line.lineType === 'shipping' ? 'Non-stock delivery charge' : 'Custom / non-stock') : (p.name || p.brand || p.category || 'Catalogue product')) + '</small>' + (!nonStock ? '<button type="button" class="link-button" data-open-product="' + escapeHtml(p.id) + '">View product</button>' : '') + '</div></div></td>' +
         '<td class="so2-variant-cell">' + so2VariantSelect(order,line,p,locked) + '</td>' +
         '<td class="so2-stock-cell">' + (nonStock ? '<span class="muted">Not stock controlled</span>' : '<strong class="' + (coverage.free > 0 ? 'so2-stock-good' : 'so2-stock-warn') + '">' + coverage.free + ' free</strong><small>' + escapeHtml(stockInfo ? stockInfo.location : allocationSourceLabel(order.id)) + ' · ' + (stockInfo ? stockInfo.onHand : 0) + ' physical' + (coverage.onPo ? ' · ' + coverage.onPo + ' on PO' : '') + '</small>') + '</td>' +
         '<td class="so2-qty-cell"><label class="so2-qty-editor"><span class="sr-only">Quantity for ' + escapeHtml(family) + '</span><input class="qty-input so2-qty" data-line-field="' + order.id + '|' + line.productId + '|qty" type="number" min="0" step="1" inputmode="numeric" value="' + Number(line.qty||0) + '"><small>' + (Number(line.qty||0) === 1 ? 'unit' : 'units') + '</small></label></td>' +
@@ -726,7 +740,7 @@
     const allocatedCount = stockLines.reduce(function(sum,line){ return sum + Number(line.allocated||0); },0);
     const shortageCount = stockLines.filter(function(line){ return salesLineCoverage(line,order.id).toRaise > 0; }).length;
     return '<section class="so2-items-workspace">' +
-      '<div class="so2-lines-toolbar"><div><span class="so2-kicker">Order lines</span><strong>' + order.lines.length + ' lines · ' + unitCount + ' units</strong><small>' + allocatedCount + ' allocated' + (shortageCount ? ' · ' + shortageCount + ' stock issue' + (shortageCount===1?'':'s') : '') + '</small></div>' +
+      '<div class="so2-lines-toolbar"><div><span class="so2-kicker">Order lines</span><strong>' + order.lines.length + ' lines · ' + unitCount + ' units</strong><small>' + allocatedCount + ' allocated' + (shortageCount ? ' · ' + shortageCount + ' stock issue' + (shortageCount===1?'':'s') : '') + ' · product descriptions are selectable for Xero</small></div>' +
         '<div class="so2-toolbar-actions"><span class="so2-selected-count" data-selected-sales-line-count="' + order.id + '"></span><button type="button" class="danger-button so2-delete-selected" data-delete-selected-sales-lines="' + order.id + '" disabled aria-disabled="true">Delete selected</button><button class="secondary" data-allocate-order="' + order.id + '">Allocate all</button><button class="secondary" data-selected-line-action="purchaseOrder" data-order-id="' + order.id + '">Raise PO</button><button class="secondary" data-selected-line-action="backOrder" data-order-id="' + order.id + '">Back order</button></div></div>' +
       '<div class="sales-table-scroll so2-table-scroll"><table class="order-lines-table so2-lines-table"><thead><tr><th></th><th>Product</th><th class="so2-variant-head">Variant</th><th>Stock</th><th>Qty</th><th>Allocated</th><th class="right">Unit net</th><th>VAT</th><th class="right">Line total</th><th>Actions</th></tr></thead><tbody>' + so2LineRows(order) + '</tbody></table></div>' +
       '<div class="so2-entry-grid"><section class="so2-catalogue-card" aria-label="Add products"><div class="so2-catalogue-body">' + salesOrderAddRow(order) + '</div></section>' +

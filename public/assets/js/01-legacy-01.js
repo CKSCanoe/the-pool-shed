@@ -324,6 +324,8 @@ const seed = {
       let workspaceRealtimeChannel = null;
       let workspacePollTimer = null;
       let supabaseSession = null;
+      let sharedWorkspaceAccessConfirmedUserId = "";
+      window.__POOL_SHED_SHARED_READY__ = false;
       let adminEditingUserId = "";
       const defaultUsers = [
         { id: "user-aaron", name: "Aaron Boyer", email: "aaron@poolbros.co.uk", jobTitle: "Administrator", role: "Admin", status: "Active", phone: "", avatar: "", notes: "System administrator.", password: "", resetCode: "", passwordSet: false }
@@ -597,7 +599,7 @@ const seed = {
         });
       }
 
-      async function writeOfflineSnapshot(pendingSync, snapshotKey, reason) {
+      async function writeOfflineSnapshot(pendingSync, snapshotKey, reason, snapshotData) {
         try {
           const db = await openOfflineDb();
           if (!db) return false;
@@ -607,7 +609,7 @@ const seed = {
             tx.objectStore(OFFLINE_STORE).put({
               key: key,
               savedAt: new Date().toISOString(),
-              data: clone(data),
+              data: snapshotData || clone(data),
               pendingSync: pendingSync !== false,
               reason: reason || ""
             });
@@ -619,6 +621,12 @@ const seed = {
           console.warn("Offline workspace snapshot failed", error);
           return false;
         }
+      }
+
+      function queueOfflineSnapshot(snapshot, pendingSync, reason) {
+        const task = function() { writeOfflineSnapshot(pendingSync, "latest", reason || "shared-master-cache", snapshot).catch(function(){}); };
+        if (typeof requestIdleCallback === "function") requestIdleCallback(task, { timeout: 1200 });
+        else setTimeout(task, 0);
       }
 
       async function readOfflineSnapshot() {
@@ -1008,13 +1016,19 @@ const seed = {
         isAuthenticated = true;
         localStorage.setItem("poolshed:v169:activeUserId", activeUserId);
         localStorage.setItem("poolshed:v169:sessionUserId", activeUserId);
-        await loadSupabaseProfiles();
-        await ensureSharedWorkspaceAccess();
-        return true;
+        const accessReady = await ensureSharedWorkspaceAccess();
+        setTimeout(function(){
+          loadSupabaseProfiles().then(function(){
+            try { if (active === "settings") render(); } catch (error) { void error; }
+          }).catch(function(){});
+        }, 0);
+        return accessReady;
       }
 
       async function ensureSharedWorkspaceAccess() {
         if (!supabaseSession || !supabaseSession.access_token) return false;
+        const userId = String(supabaseSession.user && supabaseSession.user.id || "");
+        if (userId && sharedWorkspaceAccessConfirmedUserId === userId) return true;
         let lastError = null;
         for (let attempt = 0; attempt < 3; attempt += 1) {
           try {
@@ -1025,6 +1039,7 @@ const seed = {
             });
             const result = await response.json().catch(function(){ return {}; });
             if (!response.ok) throw new Error(result.error || "Shared workspace access could not be verified.");
+            sharedWorkspaceAccessConfirmedUserId = userId;
             return true;
           } catch (error) {
             lastError = error;
@@ -1108,14 +1123,17 @@ const seed = {
         data = normalizeAppData(row.data);
         remoteWorkspaceUpdatedAt = row.updated_at || null;
         workspaceBaseSnapshot = clone(data);
-        workspaceLastLocalPayload = JSON.stringify(data);
+        const payload = JSON.stringify(data);
+        workspaceLastLocalPayload = payload;
         workspaceSyncConflict = false;
         sharedWorkspaceReady = true;
+        window.__POOL_SHED_SHARED_READY__ = true;
         try { localStorage.setItem("poolshed:v172:remoteRevision", remoteWorkspaceUpdatedAt || ""); } catch (error) { void error; }
-        cacheWorkspaceLocally(JSON.stringify(data), false);
-        await writeOfflineSnapshot(false);
+        cacheWorkspaceLocally(payload, false);
         updateOfflineStatus();
         if (shouldRender) render();
+        queueOfflineSnapshot(workspaceBaseSnapshot, false, "verified-shared-master");
+        try { window.dispatchEvent(new CustomEvent("pool-shed:workspace-ready", { detail:{ revision:remoteWorkspaceUpdatedAt || "" } })); } catch (error) { void error; }
         return true;
       }
 
@@ -1356,8 +1374,13 @@ const seed = {
       async function restoreOfflineSnapshotIfNeeded() {
         const localMode = localStorage.getItem("poolshed:v172:localSnapshotMode") || "";
         const pending = localStorage.getItem("poolshed:v172:pendingSync") === "1";
+        const recoveryHold = localStorage.getItem("poolshed:v172:recoveryHold") === "1";
         const hasLocalStorageSnapshot = !!localStorage.getItem("poolshed:v172:appData");
-        if (localMode !== "indexeddb" && hasLocalStorageSnapshot && !pending) return false;
+        // The shared master is authoritative. A clean online boot no longer parses
+        // the large IndexedDB snapshot only to replace it moments later. Offline,
+        // pending-sync and Recovery starts still restore the protected local copy.
+        if (navigator.onLine && !pending && !recoveryHold) return false;
+        if (localMode !== "indexeddb" && hasLocalStorageSnapshot && !pending && !recoveryHold) return false;
 
         const snapshot = await readOfflineSnapshot();
         if (snapshot && snapshot.data) {
@@ -2606,6 +2629,8 @@ const seed = {
       }
 
       function showLogin(mode, message, good) {
+        window.__POOL_SHED_SHARED_READY__ = false;
+        try { window.dispatchEvent(new CustomEvent("pool-shed:auth-state", { detail:{ authenticated:false, mode:mode || "login" } })); } catch (error) { void error; }
         const app = document.getElementById("appShell");
         const screen = document.getElementById("loginScreen");
         if (app) app.classList.add("auth-hidden");
@@ -2618,6 +2643,7 @@ const seed = {
         const screen = document.getElementById("loginScreen");
         if (app) app.classList.remove("auth-hidden");
         if (screen) screen.classList.add("hidden");
+        try { window.dispatchEvent(new CustomEvent("pool-shed:auth-state", { detail:{ authenticated:true } })); window.dispatchEvent(new Event("pool-shed:app-visible")); } catch (error) { void error; }
         render();
         setTimeout(function(){ try { if (window.PoolShedRouter && typeof window.PoolShedRouter.applyCurrent === "function") window.PoolShedRouter.applyCurrent(); } catch (error) { void error; } }, 0);
       }
@@ -2780,6 +2806,8 @@ const seed = {
           if (event === "SIGNED_OUT") {
             stopSharedWorkspaceLiveSync();
             supabaseSession = null;
+            sharedWorkspaceAccessConfirmedUserId = "";
+            window.__POOL_SHED_SHARED_READY__ = false;
             isAuthenticated = false;
             if (!document.getElementById("loginScreen")?.classList.contains("hidden")) return;
             return showLogin("session");
