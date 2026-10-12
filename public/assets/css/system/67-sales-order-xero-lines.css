@@ -106,3 +106,34 @@
     min-width:380px!important;
   }
 }
+
+/* Final column authority: override the earlier finder-polish fixed-width contract. */
+#screen-salesorders .sales-workspace .so2-lines-table{
+  width:100%!important;
+  min-width:1440px!important;
+  table-layout:fixed!important;
+}
+#screen-salesorders .sales-workspace .so2-lines-table :is(th,td):nth-child(1){width:42px!important}
+#screen-salesorders .sales-workspace .so2-lines-table :is(th,td):nth-child(2){width:460px!important}
+#screen-salesorders .sales-workspace .so2-lines-table :is(th,td):nth-child(3){width:220px!important}
+#screen-salesorders .sales-workspace .so2-lines-table :is(th,td):nth-child(4){width:145px!important}
+#screen-salesorders .sales-workspace .so2-lines-table :is(th,td):nth-child(5){width:82px!important}
+#screen-salesorders .sales-workspace .so2-lines-table :is(th,td):nth-child(6){width:92px!important}
+#screen-salesorders .sales-workspace .so2-lines-table :is(th,td):nth-child(7){width:92px!important}
+#screen-salesorders .sales-workspace .so2-lines-table :is(th,td):nth-child(8){width:62px!important}
+#screen-salesorders .sales-workspace .so2-lines-table :is(th,td):nth-child(9){width:108px!important}
+#screen-salesorders .sales-workspace .so2-lines-table :is(th,td):nth-child(10){width:60px!important}
+#screen-salesorders .sales-workspace .so2-product-cell,
+#screen-salesorders .sales-workspace .so2-variant-cell,
+#screen-salesorders .sales-workspace .so2-stock-cell{
+  vertical-align:top!important;
+}
+#screen-salesorders .sales-workspace .so2-product-cell{
+  min-width:460px!important;
+  max-width:460px!important;
+}
+#screen-salesorders .sales-workspace .so2-variant-cell{min-width:220px!important}
+#screen-salesorders .sales-workspace .so2-stock-cell{min-width:145px!important}
+@media(max-width:1180px){
+  #screen-salesorders .sales-workspace .so2-lines-table{min-width:1440px!important}
+}
