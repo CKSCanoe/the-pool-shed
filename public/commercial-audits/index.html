@@ -38,6 +38,7 @@
         const routeParams = new URLSearchParams(location.search);
         const linkedCustomerId = poolShedBridge ? (routeParams.get('customer') || '') : '';
         const linkedAuditId = poolShedBridge ? (routeParams.get('audit') || '') : '';
+        const startNewFromProfile = poolShedBridge && routeParams.has('new');
         let activeAuditCustomerId = '';
         let activeAuditId = '';
         const photoUrl = image => poolShedMedia && poolShedMedia.secureRef(image) ? poolShedMedia.url(image) : image;
@@ -672,15 +673,30 @@
                         let remembered = '';
                         try { remembered = localStorage.getItem('poolbros.activeAuditId') || ''; } catch {}
                         const customerForVisit = linkedCustomerId || selectedCustomerId;
-                        const selected = rows.find(item => item.id === linkedAuditId && item.customerId === customerForVisit) ||
+                        const selected = !startNewFromProfile && (rows.find(item => item.id === linkedAuditId && item.customerId === customerForVisit) ||
                             rows.find(item => item.id === remembered && item.customerId === customerForVisit) ||
-                            rows.find(item => item.customerId === customerForVisit);
+                            rows.find(item => item.customerId === customerForVisit));
                         if (selected) {
                             setSurveyData(selected);
                             activeAuditCustomerId = selected.customerId || ''; activeAuditId = selected.id;
                             if (poolShedMedia) poolShedMedia.ensureValue(selected).catch(() => {});
                             setHasActive(true);
                             setSavePhase('saved');
+                        } else if (startNewFromProfile) {
+                            const customer = poolShedBridge.getCustomers().find(item => item.id === linkedCustomerId);
+                            if (!customer) throw new Error('The selected customer is unavailable.');
+                            const now = new Date().toISOString();
+                            const record = auditModel.createAudit(makeId(), now);
+                            record.customerId = customer.id;
+                            record.createdBy = poolShedBridge.getUser();
+                            record.metadata = { 'org-name': customer.name, 'site-name': customer.name, 'visit-date': now.slice(0, 10), 'inspector': record.createdBy.name };
+                            setSurveyData(record);
+                            activeAuditCustomerId = customer.id;
+                            activeAuditId = record.id;
+                            setHasActive(true);
+                            rememberActive(record.id);
+                            setView('survey');
+                            setSavePhase('pending');
                         } else {
                             setSavePhase('idle');
                         }
@@ -813,6 +829,7 @@
                     if (poolShedBridge) {
                         const customer = poolShedBridge.getCustomers().find(c => c.id === selectedCustomerId);
                         if (!customer) throw new Error('Select a customer before restoring a backup.');
+                        if (restored.customerId && restored.customerId !== customer.id) throw new Error('This backup belongs to another customer. Select that customer before restoring it.');
                         restored.customerId = customer.id;
                         restored.createdBy = poolShedBridge.getUser();
                     }
@@ -820,6 +837,8 @@
                     await saveSurvey(restored);
                     upsertSurvey(restored);
                     setSurveyData(restored);
+                    activeAuditCustomerId = restored.customerId || '';
+                    activeAuditId = restored.id;
                     setHasActive(true);
                     rememberActive(restored.id);
                     setView('survey');

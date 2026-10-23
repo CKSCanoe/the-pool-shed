@@ -10378,7 +10378,7 @@ const seed = {
         return '<section class="crm-depth-card"><header><div><h3>Commercial pool audits</h3><p>Site visits, traffic-light findings, evidence, assets and customer reports remain linked to this customer profile.</p></div><button data-new-pool-audit="' + escapeHtml(c.id) + '">＋ New site audit</button></header><div class="crm-depth-body">' + rows + '</div></section>';
       }
 
-      let poolAuditRoute = { customerId: '', auditId: '' };
+      let poolAuditRoute = { customerId: '', auditId: '', newAudit: false };
       function requirePoolAuditSession() {
         if (!isAuthenticated) throw Error('Sign in to Pool Shed before opening customer audits.');
       }
@@ -10420,14 +10420,15 @@ const seed = {
         const params = new URLSearchParams();
         if (poolAuditRoute.customerId) params.set('customer', poolAuditRoute.customerId);
         if (poolAuditRoute.auditId) params.set('audit', poolAuditRoute.auditId);
+        if (poolAuditRoute.newAudit) params.set('new', poolAuditRoute.newAudit);
         const src = './commercial-audits/index.html' + (params.toString() ? '?' + params.toString() : '');
         const frame = screen.querySelector('iframe[data-commercial-audits]');
         if (frame && frame.getAttribute('src') === src) return;
         screen.innerHTML = '<div class="pool-audit-embed"><iframe data-commercial-audits title="Pool Bros commercial audit studio" src="' + escapeHtml(src) + '" loading="eager"></iframe></div>';
       }
-      function openCommercialAudit(customerId, auditId) {
+      function openCommercialAudit(customerId, auditId, newAudit) {
         if (!canAccessTab('audits')) return toast('You do not have permission to open Pool Audits.');
-        poolAuditRoute = { customerId: customerId || '', auditId: auditId || '' };
+        poolAuditRoute = { customerId: customerId || '', auditId: auditId || '', newAudit: newAudit ? (window.crypto && window.crypto.randomUUID ? window.crypto.randomUUID() : String(Date.now()) + '-' + Math.random()) : '' };
         active = 'audits';
         render();
       }
@@ -10751,7 +10752,7 @@ const seed = {
 
       function bindCrm() {
         document.querySelectorAll('[data-new-pool-audit]').forEach(function(button){
-          button.addEventListener('click', function(){ openCommercialAudit(button.dataset.newPoolAudit, ''); });
+          button.addEventListener('click', function(){ openCommercialAudit(button.dataset.newPoolAudit, '', true); });
         });
         document.querySelectorAll('[data-open-pool-audit]').forEach(function(button){
           button.addEventListener('click', function(){ openCommercialAudit(button.dataset.auditCustomer, button.dataset.openPoolAudit); });
