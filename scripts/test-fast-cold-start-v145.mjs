@@ -7,7 +7,7 @@ const boot=parseArray(sw.match(/const BOOT_CORE = (\[[^;]+\]);/s)?.[1]||'[]');
 const core=parseArray(sw.match(/const CORE = (\[[^;]+\]);/s)?.[1]||'[]');
 assert(boot.length>0&&boot.length<=12,`Cold boot cache must stay small; got ${boot.length}`);
 assert(core.length>boot.length*3,'Full offline runtime manifest should remain separate from cold boot cache');
-for(const required of ['./index.html','./assets/css/app.css?v=1.45.1','./azzy-jarvis-host.js?v=1.45.1','./assets/img/azzy-jarvis-192.png']) assert(boot.includes(required),`Boot core missing ${required}`);
+for(const required of ['./index.html','./assets/css/app.css?v=1.46.0','./azzy-jarvis-host.js?v=1.46.0','./assets/img/azzy-jarvis-192.png']) assert(boot.includes(required),`Boot core missing ${required}`);
 assert(sw.includes("event.data.type !== 'POOL_SHED_WARM_RUNTIME'"));
 assert(sw.includes('const concurrency = 3'));
 assert(html.includes("window.addEventListener('pool-shed:app-visible',finishFastBoot)"));

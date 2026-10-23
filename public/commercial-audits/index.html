@@ -1,0 +1,1399 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Pool Bros | Commercial Audit Studio</title>
+    <link rel="icon" type="image/png" href="./assets/pb-logo.png">
+    <script src="./vendor/react.production.min.js"></script>
+    <script src="./vendor/react-dom.production.min.js"></script>
+    <script src="./vendor/babel.min.js"></script>
+    <script src="./vendor/tailwindcss.js"></script>
+    <script src="./vendor/jspdf.umd.min.js"></script>
+    <script src="./vendor/jspdf.plugin.autotable.min.js"></script>
+    <script src="./src/report-guidance.cjs"></script>
+    <script src="./src/report-evidence.cjs"></script>
+    <script src="./src/asset-report.cjs"></script>
+    <script src="./src/brand.cjs"></script>
+    <script src="./src/audit-model.cjs"></script>
+    <style>
+        body { font-family: 'Inter', sans-serif; }
+        h1, h2, h3, .font-lexend { font-family: 'Lexend', sans-serif; }
+        .status-green { background-color: #dcfce7; color: #166534; border: 1px solid #bbf7d0; }
+        .status-amber { background-color: #fef9c3; color: #854d0e; border: 1px solid #fef08a; }
+        .status-red { background-color: #fee2e2; color: #991b1b; border: 1px solid #fecaca; }
+        .status-na { background-color: #f3f4f6; color: #374151; border: 1px solid #e5e7eb; }
+        .status-ni { background-color: #f3f4f6; color: #9ca3af; border: 1px solid #e5e7eb; }
+        .glass-panel { background: rgba(255, 255, 255, 0.8); backdrop-filter: blur(10px); }
+    </style>
+    <link rel="stylesheet" href="./src/theme.css">
+</head>
+<body class="bg-slate-100 text-slate-900">
+    <div id="root"></div>
+
+    <script type="text/babel">
+        const { useState, useEffect, useMemo, useRef } = React;
+        const poolShedBridge = (() => { try { return window.parent !== window && window.parent.__POOL_SHED_AUDIT_BRIDGE__ || null; } catch { return null; } })();
+        const poolShedMedia = (() => { try { return window.parent !== window && window.parent.PoolShedBusinessMedia || null; } catch { return null; } })();
+        const routeParams = new URLSearchParams(location.search);
+        const linkedCustomerId = poolShedBridge ? (routeParams.get('customer') || '') : '';
+        const linkedAuditId = poolShedBridge ? (routeParams.get('audit') || '') : '';
+        let activeAuditCustomerId = '';
+        let activeAuditId = '';
+        const photoUrl = image => poolShedMedia && poolShedMedia.secureRef(image) ? poolShedMedia.url(image) : image;
+        const prepareReportMedia = async audit => {
+            if (!poolShedMedia) return audit;
+            const copy = JSON.parse(JSON.stringify(audit));
+            const refs = poolShedMedia.refsFrom(copy);
+            if (!refs.length) return copy;
+            await poolShedMedia.ensure(refs);
+            const imageData = {};
+            for (const ref of refs) {
+                const url = poolShedMedia.url(ref);
+                if (!url) throw new Error('A linked photograph is unavailable. Reconnect and retry the report.');
+                const response = await fetch(url);
+                if (!response.ok) throw new Error('A linked photograph could not be loaded for the report.');
+                const blob = await response.blob();
+                imageData[ref] = await new Promise((resolve,reject) => { const reader = new FileReader(); reader.onload = () => resolve(reader.result); reader.onerror = reject; reader.readAsDataURL(blob); });
+            }
+            const walk = value => {
+                if (Array.isArray(value)) return value.forEach(walk);
+                if (value && typeof value === 'object') Object.keys(value).forEach(key => {
+                    if (key === 'image' && imageData[value[key]]) value[key] = imageData[value[key]];
+                    else walk(value[key]);
+                });
+            };
+            walk(copy);
+            return copy;
+        };
+
+        // The signed-in Pool Shed workspace owns audit persistence and customer links.
+        const saveSurvey = async survey => {
+            if (!poolShedBridge) throw new Error('Open Pool Audits from a signed-in Pool Shed workspace.');
+            return poolShedBridge.save(survey);
+        };
+        const getAllSurveys = async () => {
+            if (!poolShedBridge) throw new Error('Open Pool Audits from a signed-in Pool Shed workspace.');
+            const rows = poolShedBridge.getAll();
+            if (poolShedMedia) await poolShedMedia.ensureValue(rows).catch(() => {});
+            return rows;
+        };
+
+        const reportGuidance = window.PoolReportGuidance;
+        const reportEvidence = window.PoolReportEvidence;
+        const assetReport = window.PoolAssetReport;
+        const brand = window.PoolBrosBrand;
+        const auditModel = window.PoolAuditModel;
+
+        // --- Configuration ---
+        const checklistConfig = {
+            "sections": [
+                {
+                    "id": "site-metadata",
+                    "title": "Site Metadata & Operations",
+                    "items": [
+                        { "id": "org-name", "label": "Organisation Name", "type": "text", "required": true },
+                        { "id": "site-name", "label": "Site Name", "type": "text", "required": true },
+                        { "id": "visit-date", "label": "Visit Date", "type": "date", "required": true },
+                        { "id": "inspector", "label": "Lead Inspector", "type": "text", "required": true },
+                        { "id": "facility-type", "label": "Facility Type", "type": "select", "options": ["School", "Hotel", "Leisure Centre", "Spa", "Hydrotherapy", "Other"], "required": true },
+                        { "id": "occupancy-max", "label": "Maximum Occupancy", "type": "number", "unit": "people" },
+                        { "id": "operating-hours", "label": "Operating Hours", "type": "text" }
+                    ]
+                },
+                {
+                    "id": "mgmt-docs",
+                    "title": "Management Documentation & Staffing",
+                    "items": [
+                        { "id": "nop-present", "label": "Normal Operating Procedures (NOP) present and current", "type": "status", "guidance": "HSE/PWTAG" },
+                        { "id": "eap-present", "label": "Emergency Action Plan (EAP) present and current", "type": "status", "guidance": "HSE/PWTAG" },
+                        { "id": "psop-present", "label": "Pool Safety Operating Procedures (PSOP) present and current", "type": "status", "guidance": "HSE/PWTAG" },
+                        { "id": "staff-training", "label": "Staff training records up to date", "type": "status" },
+                        { "id": "emergency-drills", "label": "Emergency drills conducted and recorded", "type": "status" },
+                        { "id": "safeguarding", "label": "Safeguarding policies implemented", "type": "status" }
+                    ]
+                },
+                {
+                    "id": "facility-access",
+                    "title": "Access, Safety & Welfare",
+                    "items": [
+                        { "id": "signage-depth", "label": "Depth markings clear and accurate", "type": "status" },
+                        { "id": "supervision-zones", "label": "Supervision zones clearly defined", "type": "status" },
+                        { "id": "slip-trip-hazards", "label": "Flooring free of slip/trip hazards", "type": "status" },
+                        { "id": "changing-welfare", "label": "Changing rooms and welfare facilities condition", "type": "status" },
+                        { "id": "accessibility", "label": "Disabled access and hoist functionality", "type": "status" },
+                        { "id": "rescue-equipment", "label": "Rescue equipment available and accessible", "type": "status" },
+                        { "id": "emergency-comms", "label": "Emergency communications (Phones/Radios) functional", "type": "status" }
+                    ]
+                },
+                {
+                    "id": "fire-safety",
+                    "title": "Fire & Emergency Precautions",
+                    "items": [
+                        { "id": "fire-exits", "label": "Emergency exits unobstructed and operational (e.g. push bars)", "type": "status" },
+                        { "id": "fire-alarms", "label": "Fire alarms tested and operational", "type": "status" },
+                        { "id": "evacuation-plan", "label": "Evacuation plan displayed and known to staff", "type": "status" }
+                    ]
+                },
+                {
+                    "id": "water-chemistry",
+                    "title": "Water Chemistry & Testing",
+                    "items": [
+                        { "id": "testing-logs", "label": "Water testing logs maintained and current", "type": "status" },
+                        { "id": "ph-level", "label": "pH Level", "type": "numeric", "unit": "pH" },
+                        { "id": "free-chlorine", "label": "Free Chlorine", "type": "numeric", "unit": "mg/l" },
+                        { "id": "combined-chlorine", "label": "Combined Chlorine", "type": "numeric", "unit": "mg/l" },
+                        { "id": "temp-water", "label": "Water Temperature", "type": "numeric", "unit": "°C" },
+                        { "id": "testing-method", "label": "Testing method (e.g. Photometer)", "type": "select", "options": ["Manual/DPD", "Photometer", "Automated"] }
+                    ]
+                },
+                {
+                    "id": "chem-handling",
+                    "title": "Chemical Handling & Dosing",
+                    "items": [
+                        { "id": "dosing-automation", "label": "Dosing automation functional", "type": "status" },
+                        { "id": "coshh-sds", "label": "COSHH / SDS available and displayed", "type": "status" },
+                        { "id": "ppe-available", "label": "Correct PPE available and used", "type": "status" },
+                        { "id": "bunding", "label": "Chemicals stored in appropriate bunds", "type": "status" },
+                        { "id": "segregation", "label": "Acid and Chlorine stored separately", "type": "status", "guidance": "HSE" },
+                        { "id": "storage-sealed", "label": "Chemicals stored in sealed/overflow tanks", "type": "status" },
+                        { "id": "respirators", "label": "Suitable respirators available for plant room", "type": "status" }
+                    ]
+                },
+                {
+                    "id": "plant-mechanical",
+                    "title": "Plant Room & Mechanical",
+                    "items": [
+                        { "id": "circulation-flow", "label": "Circulation flow and turnover rates adequate", "type": "status" },
+                        { "id": "filtration-backwash", "label": "Filtration and backwash procedures correct", "type": "status" },
+                        { "id": "suction-entrapment", "label": "Suction entrapment protection in place", "type": "status", "guidance": "PWTAG" },
+                        { "id": "ahu-fans", "label": "AHU fans operational and noise levels acceptable", "type": "status" },
+                        { "id": "ahu-filters", "label": "AHU filters clean and recently changed", "type": "status" },
+                        { "id": "pressure-gauges", "label": "Filter pressure gauges functional and accurate", "type": "status" },
+                        { "id": "heating-system", "label": "Heating system functional and efficient", "type": "status" }
+                    ]
+                },
+                {
+                    "id": "structural-elec",
+                    "title": "Structural & Electrical",
+                    "items": [
+                        { "id": "shell-liner", "label": "Structural shell/liner/tiles condition", "type": "status" },
+                        { "id": "elec-safety", "label": "Plant electrical safety / RCDs operational", "type": "status" },
+                        { "id": "pool-lighting", "label": "Poolside and underwater lighting functional", "type": "status" }
+                    ]
+                },
+                {
+                    "id": "maintenance-records",
+                    "title": "Records & Maintenance",
+                    "items": [
+                        { "id": "ppm-records", "label": "Planned Preventative Maintenance (PPM) records current", "type": "status" },
+                        { "id": "calibration", "label": "Equipment calibration/verification records", "type": "status" }
+                    ]
+                }
+            ]
+        };
+
+        // --- Components ---
+
+        const AudioButton = ({ onTranscript }) => {
+            const [isListening, setIsListening] = useState(false);
+            const [status, setStatus] = useState('');
+            const recognitionRef = useRef(null);
+
+            const toggleListening = () => {
+                if (isListening) {
+                    recognitionRef.current?.stop();
+                    setIsListening(false);
+                    setStatus('');
+                    return;
+                }
+
+                const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+                if (!SpeechRecognition) {
+                    alert("Speech recognition not supported in this browser.");
+                    return;
+                }
+
+                const recognition = new SpeechRecognition();
+                recognitionRef.current = recognition;
+                recognition.lang = 'en-GB';
+                recognition.interimResults = false;
+
+                recognition.onstart = () => {
+                    setIsListening(true);
+                    setStatus('Listening...');
+                };
+
+                recognition.onresult = (event) => {
+                    const transcript = event.results[0][0].transcript;
+                    onTranscript(transcript);
+                    setIsListening(false);
+                    setStatus('');
+                };
+
+                recognition.onerror = (event) => {
+                    console.error(event.error);
+                    setIsListening(false);
+                    setStatus('Error occurred');
+                };
+
+                recognition.onend = () => {
+                    setIsListening(false);
+                    setStatus('');
+                    recognitionRef.current = null;
+                };
+
+                recognition.start();
+            };
+
+            return (
+                <button
+                    type="button"
+                    onClick={toggleListening}
+                    className={`p-2 rounded-full transition-all ${isListening ? 'bg-red-500 text-white animate-pulse' : 'bg-slate-200 text-slate-600 hover:bg-slate-300'}`}
+                    title="Dictate note"
+                >
+                    <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M12 2a3 3 0 0 0-3 3v7a3 3 0 0 0 6 0V5a3 3 0 0 0-3-3Z"/><path d="M19 10v2a7 7 0 0 1-14 0v-2"/><line x1="12" x2="12" y1="19" y2="22"/></svg>
+                    {status && <span className="ml-2 text-xs font-semibold">{status}</span>}
+                </button>
+            );
+        };
+
+        const ImageUpload = ({ photos, onChange, onBusyChange, sectionTitle, itemId, itemLabel }) => {
+            const fileInputRef = useRef(null);
+            const [error, setError] = useState('');
+            const [isReading, setIsReading] = useState(false);
+
+            const handleFile = async (e) => {
+                const files = Array.from(e.target.files || []);
+                e.target.value = '';
+                if (!files.length) return;
+                if (files.some(file => !['image/jpeg', 'image/png'].includes(file.type) || file.size > 6 * 1024 * 1024)) {
+                    setError('Choose JPEG or PNG photos smaller than 6 MB each.');
+                    return;
+                }
+                setError('');
+                setIsReading(true);
+                onBusyChange?.(true);
+                try {
+                    const additions = poolShedBridge ? await Promise.all(files.map(async file => {
+                        if (!activeAuditCustomerId || !activeAuditId || !poolShedMedia) throw new Error('Select a customer and connect before uploading photographs.');
+                        const media = await poolShedMedia.upload('customer', activeAuditCustomerId, 'site_photo', file, {
+                            title: itemLabel + ' evidence', notes: sectionTitle + ' / ' + itemLabel,
+                            siteKey: activeAuditId + ':' + itemId
+                        });
+                        return { image: media.ref, caption: '' };
+                    })) : await Promise.all(files.map(file => new Promise((resolve, reject) => {
+                        const reader = new FileReader();
+                        reader.onload = () => resolve({ image: reader.result, caption: '' });
+                        reader.onerror = () => reject(new Error('The photo could not be read.'));
+                        reader.readAsDataURL(file);
+                    })));
+                    onChange([...photos, ...additions]);
+                } catch (readError) {
+                    setError(readError.message);
+                } finally {
+                    setIsReading(false);
+                    onBusyChange?.(false);
+                }
+            };
+
+            return (
+                <div className="w-full space-y-2">
+                    <div className="text-[11px] font-semibold text-slate-600">Photos for {sectionTitle} / {itemLabel}</div>
+                    <button type="button" disabled={isReading} onClick={() => fileInputRef.current.click()} className="px-3 py-2 rounded-lg bg-blue-50 text-blue-700 hover:bg-blue-100 border border-blue-200 text-xs font-bold transition-colors disabled:opacity-50">{isReading ? 'Adding photos...' : '+ Add photos'}</button>
+                    <input
+                        type="file"
+                        ref={fileInputRef}
+                        className="hidden"
+                        accept="image/jpeg,image/png"
+                        multiple
+                        onChange={handleFile}
+                    />
+                    {error && <p role="alert" className="text-xs text-red-700">{error}</p>}
+                    {photos.map((photo, index) => (
+                        <div key={`${index}-${photo.image.slice(0, 40)}`} className="flex items-start gap-2 rounded-lg border border-slate-200 bg-white p-2">
+                            <img src={photoUrl(photo.image)} data-business-media-ref={poolShedMedia?.secureRef(photo.image) ? photo.image : undefined} alt={`Evidence ${index + 1} for ${itemLabel}`} className="w-14 h-14 object-cover rounded border border-slate-200 flex-none" />
+                            <div className="min-w-0 flex-1 space-y-1">
+                                <label className="block text-[10px] font-bold text-slate-500" htmlFor={`caption-${itemId}-${index}`}>Caption for photo {index + 1}</label>
+                                <input id={`caption-${itemId}-${index}`} type="text" disabled={isReading} maxLength="240" value={photo.caption || ''} onChange={e => onChange(photos.map((entry, i) => i === index ? { ...entry, caption: e.target.value } : entry))} placeholder="What does this show?" className="w-full px-2 py-1 text-xs border border-slate-200 rounded" />
+                                <button type="button" disabled={isReading} onClick={() => onChange(photos.filter((_, i) => i !== index))} className="text-[11px] font-semibold text-red-700 hover:underline">Remove photo</button>
+                            </div>
+                        </div>
+                    ))}
+                </div>
+            );
+        };
+
+        const SurveyItem = ({ sectionId, sectionTitle, item, value, linkedAssets = [], onChange }) => {
+            const isStatus = item.type === 'status';
+            const isNumeric = item.type === 'numeric';
+            const isSelect = item.type === 'select';
+
+            const currentVal = value || {};
+            const currentStatus = currentVal.status || 'ni';
+            const pendingTranscript = currentVal.transcriptDraft || '';
+            const currentPhotos = [
+                ...(currentVal.image ? [{ image: currentVal.image, caption: currentVal.imageCaption || '' }] : []),
+                ...(Array.isArray(currentVal.photos) ? currentVal.photos : [])
+            ];
+
+            const handleStatusChange = (status) => {
+                onChange({ ...currentVal, status });
+            };
+
+            return (
+                <div className="survey-item p-5 bg-white flex flex-col gap-4">
+                    <div className="flex justify-between items-start gap-4">
+                        <div className="flex-1">
+                            <label className="block text-sm font-bold text-slate-800 leading-tight">{item.label}</label>
+                            <div className="mt-1 flex flex-wrap gap-1">
+                                {reportGuidance.forItem(sectionId, item.id).sources.map(id => (
+                                    <a key={id} href={reportGuidance.sources[id].url} target="_blank" rel="noopener noreferrer" title={reportGuidance.sources[id].title} className="text-[10px] px-1.5 py-0.5 rounded bg-blue-50 text-blue-700 hover:bg-blue-100 font-semibold">{id}</a>
+                                ))}
+                            </div>
+                        </div>
+                        {(isStatus || isNumeric || isSelect) && (
+                            <div className="flex flex-col items-end gap-1"><div className="flex gap-1.5 p-1 bg-slate-100 rounded-full border border-slate-200">
+                                {['green', 'amber', 'red', 'na', 'ni'].map(s => (
+                                    <button
+                                        key={s}
+                                        type="button"
+                                        onClick={() => handleStatusChange(s)}
+                                        className={`w-7 h-7 rounded-full transition-all ${currentStatus === s ? `ring-2 ring-offset-2 ring-slate-400 ${s === 'green' ? 'bg-green-500' : s === 'amber' ? 'bg-yellow-500' : s === 'red' ? 'bg-red-500' : 'bg-slate-300'}` : 'bg-white border border-slate-200'}`}
+                                        title={reportGuidance.status(s).label}
+                                        aria-label={`${item.label}: ${reportGuidance.status(s).label}`}
+                                        aria-pressed={currentStatus === s}
+                                    />
+                                ))}
+                            </div><span className="text-[10px] font-bold text-slate-500">{reportGuidance.status(currentStatus).label}</span></div>
+                        )}
+                    </div>
+
+                    <div className="flex flex-col md:flex-row gap-4">
+                        <div className="flex-1 flex gap-3 items-start">
+                            {isNumeric && (
+                                <div className="flex items-center gap-2">
+                                    <input
+                                        type="number"
+                                        value={currentVal.value ?? ''}
+                                        onChange={e => onChange({ ...currentVal, value: e.target.value })}
+                                        className="px-3 py-2 text-sm border border-slate-200 rounded-lg w-24 focus:ring-2 focus:ring-blue-500 outline-none"
+                                        placeholder="Value"
+                                    />
+                                    <span className="text-xs font-medium text-slate-400">{item.unit}</span>
+                                </div>
+                            )}
+                            {isSelect && (
+                                <select
+                                    value={currentVal.value ?? ''}
+                                    onChange={e => onChange({ ...currentVal, value: e.target.value })}
+                                    className="px-3 py-2 text-sm border border-slate-200 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none"
+                                >
+                                    <option value="">Select...</option>
+                                    {item.options.map(o => <option key={o} value={o}>{o}</option>)}
+                                </select>
+                            )}
+                            {!isStatus && !isNumeric && !isSelect && (
+                                <input
+                                    type={item.type}
+                                    value={currentVal || ''}
+                                    onChange={e => onChange(e.target.value)}
+                                    className="px-3 py-2 text-sm border border-slate-200 rounded-lg flex-1 focus:ring-2 focus:ring-blue-500 outline-none"
+                                    placeholder="Enter details..."
+                                />
+                            )}
+
+                            {(isStatus || isNumeric || isSelect) && (
+                                <div className="flex-1 flex gap-2 items-start">
+                                    <textarea
+                                        value={currentVal.note || ''}
+                                        onChange={e => onChange({ ...currentVal, note: e.target.value })}
+                                        className="flex-1 px-3 py-2 text-sm border border-slate-200 rounded-lg h-12 resize-none focus:ring-2 focus:ring-blue-500 outline-none"
+                                        placeholder="Observed fact, measurement context or engineer judgement..."
+                                    />
+                                    <AudioButton onTranscript={text => onChange(previous => ({ ...previous, transcriptDraft: [previous.transcriptDraft, text].filter(Boolean).join(' ') }))} />
+                                </div>
+                            )}
+                        </div>
+
+                        {(isStatus || isNumeric || isSelect) && (
+                            <div className="flex flex-col border-t md:border-t-0 md:border-l border-slate-100 pt-3 md:pt-0 md:pl-4 gap-2 w-full md:w-72">
+                                <span className="text-[10px] font-bold text-slate-400 uppercase">Photo evidence</span>
+                                <ImageUpload
+                                    photos={currentPhotos}
+                                    sectionTitle={sectionTitle}
+                                    itemId={item.id}
+                                    itemLabel={item.label}
+                                    onChange={photos => onChange(previous => ({ ...previous, image: null, imageCaption: null, photos }))}
+                                />
+                            </div>
+                        )}
+                    </div>
+                    {pendingTranscript && <div className="transcript-review"><span className="eyebrow">DICTATION REQUIRES REVIEW</span><p>Check and edit the recognised words before adding them to this finding. The draft is saved but excluded from the report until reviewed. Speech recognition may use your browser provider's service.</p><textarea value={pendingTranscript} onChange={event => onChange(previous => ({ ...previous, transcriptDraft: event.target.value }))} /><div className="flex gap-2"><button type="button" onClick={() => onChange(previous => ({ ...previous, note: [previous.note, previous.transcriptDraft?.trim()].filter(Boolean).join(' '), transcriptDraft: '' }))}>Add reviewed text</button><button type="button" onClick={() => onChange(previous => ({ ...previous, transcriptDraft: '' }))}>Discard</button></div></div>}
+                    {linkedAssets.length > 0 && (
+                        <div className="rounded-lg bg-blue-50 border border-blue-100 px-3 py-2 text-xs text-blue-900">
+                            <span className="font-bold">Linked asset{linkedAssets.length > 1 ? 's' : ''}: </span>
+                            {linkedAssets.map(asset => `${asset.name} (last inspected: ${assetReport.formatAssetDate(asset, 'lastInspected')})`).join('; ')}
+                        </div>
+                    )}
+                </div>
+            );
+        };
+
+        const emptyAsset = () => ({ name: '', type: 'Pump', brand: '', model: '', serialNumber: '', location: '', linkedItemId: '', installDate: '', lastInspected: '', nextInspectionDue: '', lastService: '', nextServiceDue: '', mediaType: '', lastMediaChange: '', nextMediaChangeDue: '', dateStates: {}, condition: 'Not assessed', note: '', photos: [] });
+
+        const AssetRegistry = ({ assets, onAdd, onUpdate, onDelete, savedDraft, onDraftChange }) => {
+            const draft = savedDraft || emptyAsset();
+            const editingId = draft.editingId || null;
+            const setDraft = onDraftChange;
+            const [photoReading, setPhotoReading] = useState(false);
+            const setField = (field, value) => setDraft(previous => ({ ...previous, [field]: value }));
+            const fieldClass = 'w-full px-3 py-2 border border-slate-200 rounded-lg text-sm outline-none focus:ring-2 focus:ring-blue-500';
+            const field = (label, name, type = 'text', placeholder = '') => (
+                <label className="block space-y-1 text-xs font-bold text-slate-600" key={name}>
+                    <span>{label}</span>
+                    <input type={type} value={draft[name] || ''} onChange={e => setField(name, e.target.value)} placeholder={placeholder} className={fieldClass} required={name === 'name'} />
+                </label>
+            );
+            const dateField = (label, name) => {
+                const state = draft.dateStates?.[name] || 'date';
+                return (
+                    <div className="space-y-1" key={name}>
+                        <label className="block text-xs font-bold text-slate-600" htmlFor={`asset-date-state-${name}`}>{label}</label>
+                        <select id={`asset-date-state-${name}`} value={state} onChange={event => setDraft(previous => assetReport.withDateState(previous, name, event.target.value))} className={fieldClass} aria-label={`${label} availability`}>
+                            <option value="date">Enter date</option>
+                            <option value="unknown">Date unavailable</option>
+                            <option value="not-applicable">Not applicable</option>
+                        </select>
+                        {state === 'date' && <input type="date" value={draft[name] || ''} onChange={event => setField(name, event.target.value)} className={fieldClass} aria-label={label} />}
+                    </div>
+                );
+            };
+
+            const handleSubmit = (event) => {
+                event.preventDefault();
+                const asset = { ...draft, name: draft.name.trim() };
+                delete asset.editingId;
+                if (!asset.name) return;
+                if (editingId) onUpdate(editingId, asset);
+                else onAdd({ ...asset, id: window.crypto?.randomUUID?.() || `asset-${Date.now()}-${Math.random().toString(36).slice(2, 7)}` });
+                setDraft(null);
+            };
+
+            const edit = (asset) => {
+                setDraft({ ...emptyAsset(), ...asset, editingId: asset.id });
+            };
+
+            return (
+                <section className="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden" id="survey-assets">
+                    <div className="px-6 py-4 bg-slate-50 border-b border-slate-200">
+                        <h2 className="text-lg font-bold text-slate-800">Assets inspected on this visit</h2>
+                        <p className="text-xs text-slate-500 mt-1">Record identity, condition, dates and photographs alongside the survey. Draft entries save as you type. For any date you cannot supply, choose Date unavailable or Not applicable. Due dates should come from the site maintenance plan.</p>
+                    </div>
+                    <div className="p-5 md:p-6 space-y-6">
+                        <form onSubmit={handleSubmit} className="rounded-xl border border-blue-100 bg-blue-50/40 p-4 space-y-4">
+                            <h3 className="font-bold text-blue-950">{editingId ? 'Edit asset' : 'Add an asset'}</h3>
+                            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
+                                {field('Asset name', 'name', 'text', 'For example, main filter')}
+                                <label className="block space-y-1 text-xs font-bold text-slate-600"><span>Asset type</span><select value={draft.type} onChange={e => setField('type', e.target.value)} className={fieldClass}>{['Pump', 'Filter', 'Heater', 'Dosing System', 'AHU', 'UV System', 'Pool Cover', 'Alarm', 'Electrical Panel', 'Other'].map(type => <option key={type}>{type}</option>)}</select></label>
+                                {field('Location', 'location', 'text', 'Plant room, poolside...')}
+                                {field('Manufacturer', 'brand')}
+                                {field('Model', 'model')}
+                                {field('Serial number', 'serialNumber')}
+                                <label className="block space-y-1 text-xs font-bold text-slate-600 sm:col-span-2"><span>Related survey finding</span><select value={draft.linkedItemId} onChange={e => setField('linkedItemId', e.target.value)} className={fieldClass}><option value="">No finding linked</option>{checklistConfig.sections.slice(1).map(section => <optgroup key={section.id} label={section.title}>{section.items.map(item => <option key={item.id} value={item.id}>{item.label}</option>)}</optgroup>)}</select></label>
+                                <label className="block space-y-1 text-xs font-bold text-slate-600"><span>Condition at visit</span><select value={draft.condition} onChange={e => setField('condition', e.target.value)} className={fieldClass}>{['Not assessed', 'Good', 'Monitor', 'Requires action'].map(condition => <option key={condition}>{condition}</option>)}</select></label>
+                            </div>
+                            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 border-t border-blue-100 pt-4">
+                                {dateField('Installed', 'installDate')}
+                                {dateField('Last inspected', 'lastInspected')}
+                                {dateField('Next inspection due', 'nextInspectionDue')}
+                                {dateField('Last serviced', 'lastService')}
+                                {dateField('Next service due', 'nextServiceDue')}
+                                {draft.type === 'Filter' && field('Filter media type', 'mediaType', 'text', 'Sand, glass, AFM...')}
+                                {draft.type === 'Filter' && dateField('Last media change', 'lastMediaChange')}
+                                {draft.type === 'Filter' && dateField('Next media change due', 'nextMediaChangeDue')}
+                            </div>
+                            <label className="block space-y-1 text-xs font-bold text-slate-600"><span>Asset observation or record source</span><textarea value={draft.note || ''} onChange={e => setField('note', e.target.value)} placeholder="Condition observed, label checked, logbook date, or follow-up needed" className={`${fieldClass} min-h-20 resize-y`} /></label>
+                            <div className="rounded-lg border border-blue-100 bg-white p-3"><ImageUpload photos={assetReport.photosForAsset(draft)} onChange={photos => setDraft(previous => ({ ...previous, image: null, imageCaption: null, photos }))} onBusyChange={setPhotoReading} sectionTitle="Asset register" itemId={`asset-${editingId || 'new'}`} itemLabel={draft.name || 'new asset'} /></div>
+                            <div className="flex flex-wrap gap-2"><button type="submit" disabled={photoReading} className="px-4 py-2 rounded-lg bg-blue-900 text-white text-sm font-bold hover:bg-blue-800 disabled:opacity-50">{photoReading ? 'Adding photo...' : editingId ? 'Save asset changes' : 'Add asset to survey'}</button>{editingId && <button type="button" onClick={() => setDraft(null)} className="px-4 py-2 rounded-lg border border-slate-200 bg-white text-slate-700 text-sm font-semibold">Cancel editing</button>}</div>
+                        </form>
+                        <div className="space-y-3">
+                            <h3 className="font-bold text-slate-800">Recorded assets ({assets.length})</h3>
+                            {assets.length === 0 && <p className="rounded-lg border border-dashed border-slate-300 p-4 text-sm text-slate-500">No assets recorded for this survey yet.</p>}
+                            {assetReport.reportRows(assets, checklistConfig).map(asset => (
+                                <div key={asset.id} className="rounded-xl border border-slate-200 p-4 flex flex-col lg:flex-row lg:items-start lg:justify-between gap-3">
+                                    {asset.photoCount > 0 && <img src={photoUrl(assetReport.photosForAsset(assets.find(entry => entry.id === asset.id) || {})[0].image)} data-business-media-ref={poolShedMedia?.secureRef(assetReport.photosForAsset(assets.find(entry => entry.id === asset.id) || {})[0].image) ? assetReport.photosForAsset(assets.find(entry => entry.id === asset.id) || {})[0].image : undefined} alt={`Photo of ${asset.name}`} className="w-20 h-20 object-cover rounded-lg border border-slate-200 flex-none" />}
+                                    <div className="min-w-0 space-y-2 flex-1">
+                                        <div><span className="font-bold text-slate-900">{asset.name}</span><span className="ml-2 text-xs text-slate-500">{asset.type} · {asset.location}</span></div>
+                                        <p className="text-xs text-blue-800">Related check: {asset.linkedFinding}</p>
+                                        <div className="flex flex-wrap gap-x-5 gap-y-1 text-xs text-slate-600"><span>Last inspected: <strong>{asset.inspected}</strong></span><span>Next inspection: <strong>{asset.inspectionDue}</strong></span><span>Last service: <strong>{asset.serviced}</strong></span>{asset.type === 'Filter' && <span>Media changed: <strong>{asset.mediaChanged}</strong></span>}{asset.photoCount > 0 && <span>{asset.photoCount} photo{asset.photoCount > 1 ? 's' : ''} attached</span>}</div>
+                                    </div>
+                                    <div className="flex gap-3 text-xs font-bold flex-none"><button type="button" onClick={() => edit(assets.find(entry => entry.id === asset.id))} className="text-blue-700 hover:underline">Edit</button><button type="button" onClick={() => onDelete(asset.id)} className="text-red-700 hover:underline">Delete</button></div>
+                                </div>
+                            ))}
+                        </div>
+                    </div>
+                </section>
+            );
+        };
+
+        const UpgradeModule = ({ assets, upgrades, onAdd, onDelete }) => {
+            const [newUpgrade, setNewUpgrade] = useState({ assetId: '', proposal: '', benefit: '', urgency: 'Medium' });
+
+            const handleSubmit = (e) => {
+                e.preventDefault();
+                onAdd({ ...newUpgrade, id: 'upg-' + Date.now() });
+                setNewUpgrade({ assetId: '', proposal: '', benefit: '', urgency: 'Medium' });
+            };
+
+            return (
+                <div className="space-y-6">
+                    <div className="bg-white p-6 rounded-2xl border border-slate-200 shadow-sm">
+                        <h3 className="text-lg font-bold text-slate-800 mb-4">Propose Strategic Upgrade</h3>
+                        <form onSubmit={handleSubmit} className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                            <select
+                                value={newUpgrade.assetId}
+                                onChange={e => setNewUpgrade({...newUpgrade, assetId: e.target.value})}
+                                className="px-3 py-2 border border-slate-200 rounded-lg text-sm outline-none focus:ring-2 focus:ring-blue-500"
+                                required
+                            >
+                                <option value="">Select Asset to Upgrade...</option>
+                                {assets.map(a => <option key={a.id} value={a.id}>{a.name}</option>)}
+                            </select>
+                            <input
+                                placeholder="Proposed Upgrade (e.g. Variable Speed Pump)"
+                                value={newUpgrade.proposal}
+                                onChange={e => setNewUpgrade({...newUpgrade, proposal: e.target.value})}
+                                className="px-3 py-2 border border-slate-200 rounded-lg text-sm outline-none focus:ring-2 focus:ring-blue-500"
+                                required
+                            />
+                            <select
+                                value={newUpgrade.urgency}
+                                onChange={e => setNewUpgrade({...newUpgrade, urgency: e.target.value})}
+                                className="px-3 py-2 border border-slate-200 rounded-lg text-sm outline-none focus:ring-2 focus:ring-blue-500"
+                            >
+                                <option>Low</option>
+                                <option>Medium</option>
+                                <option>High</option>
+                            </select>
+                            <textarea
+                                placeholder="Benefit to Client (e.g. Energy saving, water quality improvement)"
+                                value={newUpgrade.benefit}
+                                onChange={e => setNewUpgrade({...newUpgrade, benefit: e.target.value})}
+                                className="px-3 py-2 border border-slate-200 rounded-lg text-sm outline-none focus:ring-2 focus:ring-blue-500 md:col-span-2 h-12 resize-none"
+                                required
+                            />
+                            <button type="submit" className="bg-blue-900 text-white font-bold py-2 rounded-lg hover:bg-blue-800 transition-all">Add Proposal</button>
+                        </form>
+                    </div>
+
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                        {upgrades.map(upg => {
+                            const asset = assets.find(a => a.id === upg.assetId);
+                            return (
+                                <div key={upg.id} className="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm flex justify-between items-start">
+                                    <div>
+                                        <div className="flex items-center gap-2 mb-1">
+                                            <span className="text-xs font-bold text-blue-600 uppercase">{asset?.name || 'Unknown Asset'}</span>
+                                            <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold uppercase ${upg.urgency === 'High' ? 'bg-red-100 text-red-700' : upg.urgency === 'Medium' ? 'bg-amber-100 text-amber-700' : 'bg-slate-100 text-slate-700'}`}>
+                                                {upg.urgency} Urgency
+                                            </span>
+                                        </div>
+                                        <div className="font-bold text-slate-800 mb-1">{upg.proposal}</div>
+                                        <div className="text-sm text-slate-500 leading-relaxed">{upg.benefit}</div>
+                                    </div>
+                                    <button onClick={() => onDelete(upg.id)} className="text-slate-300 hover:text-red-500 transition-colors">
+                                        <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M3 6h18"/><path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6"/><path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2"/></svg>
+                                    </button>
+                                </div>
+                            );
+                        })}
+                    </div>
+                </div>
+            );
+        };
+
+        const ActionRegister = ({ surveyData, onUpdate }) => {
+            const actions = useMemo(() => auditModel.actions(surveyData, checklistConfig), [surveyData]);
+            return (
+                <div className="space-y-5">
+                    <div className="section-intro">
+                        <span className="eyebrow">FOLLOW-UP CONTROL</span>
+                        <h2>Corrective actions</h2>
+                        <p>Amber and red findings appear here automatically. Record the recommendation, owner and due date. A status of Ready for review does not close a risk.</p>
+                    </div>
+                    {actions.length === 0 && <div className="empty-state">No amber or red findings are recorded for this audit. Uninspected checks remain unassessed.</div>}
+                    {actions.map((action, index) => (
+                        <article key={action.itemId} className="action-card">
+                            <div className="action-card-top">
+                                <div><span className="eyebrow">ACTION {String(index + 1).padStart(2, '0')} · {action.sectionTitle}</span><h3>{action.label}</h3><p>{action.finding}</p></div>
+                                <span className={`risk-chip ${action.severity}`}>{action.severity === 'red' ? 'Priority review' : 'Planned review'}</span>
+                            </div>
+                            <div className="action-fields">
+                                <label className="action-wide"><span>Recommended action</span><textarea value={action.recommendation} onChange={event => onUpdate(action.itemId, { recommendation: event.target.value })} placeholder="Describe the control or repair required" /></label>
+                                <label><span>Responsible party</span><input value={action.owner} onChange={event => onUpdate(action.itemId, { owner: event.target.value })} placeholder="Name or role" /></label>
+                                <label><span>Target date</span><input type="date" value={action.dueDate} onChange={event => onUpdate(action.itemId, { dueDate: event.target.value })} /></label>
+                                <label><span>Follow-up stage</span><select value={action.followUp} onChange={event => onUpdate(action.itemId, { followUp: event.target.value })}><option>Open</option><option>In progress</option><option>Ready for review</option></select></label>
+                                <label className="action-wide"><span>Follow-up evidence or reassessment note</span><textarea value={action.evidence} onChange={event => onUpdate(action.itemId, { evidence: event.target.value })} placeholder="Record what was checked after the action" /></label>
+                            </div>
+                        </article>
+                    ))}
+                </div>
+            );
+        };
+
+        const App = () => {
+            const [view, setView] = useState('dashboard');
+            const [selectedCustomerId, setSelectedCustomerId] = useState(linkedCustomerId || (poolShedBridge?.getCustomers()[0]?.id || ''));
+            const [surveyData, setSurveyData] = useState(() => auditModel.createAudit('not-started', new Date().toISOString()));
+            const [surveys, setSurveys] = useState([]);
+            const [hasActive, setHasActive] = useState(false);
+            const [hydrated, setHydrated] = useState(false);
+            const [savePhase, setSavePhase] = useState('loading');
+            const [saveError, setSaveError] = useState('');
+            const [storageError, setStorageError] = useState('');
+            const [backupMessage, setBackupMessage] = useState('');
+            const pendingTimer = useRef(null);
+            const saveRevision = useRef(0);
+            const importInput = useRef(null);
+            const makeId = () => window.crypto?.randomUUID?.() || `visit-${Date.now()}-${Math.random().toString(36).slice(2, 9)}`;
+            const rememberActive = id => { try { localStorage.setItem('poolbros.activeAuditId', id); } catch {} };
+            const sortSurveys = rows => rows.slice().sort((a, b) => String(b.updatedAt || b.createdAt || '').localeCompare(String(a.updatedAt || a.createdAt || '')));
+            const upsertSurvey = record => setSurveys(previous => sortSurveys([record, ...previous.filter(item => item.id !== record.id)]));
+
+            useEffect(() => {
+                let live = true;
+                async function load() {
+                    try {
+                        const rows = sortSurveys((await getAllSurveys()).map(auditModel.normalise));
+                        if (!live) return;
+                        setSurveys(rows);
+                        let remembered = '';
+                        try { remembered = localStorage.getItem('poolbros.activeAuditId') || ''; } catch {}
+                        const customerForVisit = linkedCustomerId || selectedCustomerId;
+                        const selected = rows.find(item => item.id === linkedAuditId && item.customerId === customerForVisit) ||
+                            rows.find(item => item.id === remembered && item.customerId === customerForVisit) ||
+                            rows.find(item => item.customerId === customerForVisit);
+                        if (selected) {
+                            setSurveyData(selected);
+                            activeAuditCustomerId = selected.customerId || ''; activeAuditId = selected.id;
+                            if (poolShedMedia) poolShedMedia.ensureValue(selected).catch(() => {});
+                            setHasActive(true);
+                            setSavePhase('saved');
+                        } else {
+                            setSavePhase('idle');
+                        }
+                    } catch (error) {
+                        if (!live) return;
+                        setStorageError('Local audit storage is unavailable in this browser. Do not start a site visit here.');
+                        setSavePhase('error');
+                    } finally {
+                        if (live) setHydrated(true);
+                    }
+                }
+                load();
+                return () => { live = false; };
+            }, []);
+
+            useEffect(() => {
+                if (!hydrated || !hasActive || storageError) return;
+                const revision = ++saveRevision.current;
+                setSavePhase('pending');
+                pendingTimer.current = setTimeout(async () => {
+                    setSavePhase('saving');
+                    const record = { ...surveyData, updatedAt: new Date().toISOString() };
+                    try {
+                        await saveSurvey(record);
+                        upsertSurvey(record);
+                        if (revision === saveRevision.current) {
+                            setSaveError('');
+                            setSavePhase('saved');
+                        }
+                    } catch (error) {
+                        if (revision === saveRevision.current) {
+                            setSaveError('This audit could not be saved on this device. Check available browser storage before continuing.');
+                            setSavePhase('error');
+                        }
+                    }
+                }, 350);
+                return () => clearTimeout(pendingTimer.current);
+            }, [surveyData, hydrated, hasActive, storageError]);
+
+            useEffect(() => {
+                if (!['pending', 'saving', 'error'].includes(savePhase)) return;
+                const warn = event => { event.preventDefault(); event.returnValue = ''; };
+                window.addEventListener('beforeunload', warn);
+                return () => window.removeEventListener('beforeunload', warn);
+            }, [savePhase]);
+
+            const saveNow = async () => {
+                if (!hasActive || storageError) return null;
+                clearTimeout(pendingTimer.current);
+                const revision = ++saveRevision.current;
+                const record = { ...surveyData, updatedAt: new Date().toISOString() };
+                setSavePhase('saving');
+                try {
+                    await saveSurvey(record);
+                    upsertSurvey(record);
+                    if (revision === saveRevision.current) { setSavePhase('saved'); setSaveError(''); }
+                    return record;
+                } catch (error) {
+                    setSavePhase('error');
+                    setSaveError('Save failed. Stay on this page and check available browser storage.');
+                    throw error;
+                }
+            };
+
+            const selectAudit = async next => {
+                if (storageError) return;
+                if (hasActive) {
+                    try { await saveNow(); } catch { return; }
+                }
+                setSurveyData(auditModel.normalise(next));
+                activeAuditCustomerId = next.customerId || ''; activeAuditId = next.id;
+                if (poolShedMedia) poolShedMedia.ensureValue(next).catch(() => {});
+                setHasActive(true);
+                setSaveError('');
+                setBackupMessage('');
+                rememberActive(next.id);
+                setView('survey');
+            };
+
+            const startNew = () => {
+                if (!poolShedBridge) return selectAudit(auditModel.createAudit(makeId(), new Date().toISOString()));
+                const customer = poolShedBridge.getCustomers().find(c => c.id === selectedCustomerId);
+                if (!customer) { setBackupMessage('Select a Pool Shed customer before starting a site audit.'); return; }
+                const now = new Date().toISOString();
+                const record = auditModel.createAudit(makeId(), now);
+                record.customerId = customer.id;
+                record.createdBy = poolShedBridge.getUser();
+                record.metadata = { 'org-name': customer.name, 'site-name': customer.name, 'visit-date': now.slice(0,10), 'inspector': poolShedBridge.getUser().name };
+                selectAudit(record);
+            };
+            const switchCustomer = async customerId => {
+                if (hasActive) { try { await saveNow(); } catch { return; } }
+                setSelectedCustomerId(customerId);
+                const next = surveys.find(item => item.customerId === customerId);
+                setHasActive(!!next);
+                if (next) {
+                    setSurveyData(next);
+                    activeAuditCustomerId = next.customerId; activeAuditId = next.id;
+                } else {
+                    activeAuditCustomerId = ''; activeAuditId = '';
+                }
+            };
+
+            const downloadBackup = async () => {
+                if (!hasActive) return;
+                try {
+                    const record = await saveNow();
+                    const body = auditModel.makeBackup(record, new Date().toISOString());
+                    const url = URL.createObjectURL(new Blob([body], { type: 'application/json' }));
+                    const anchor = document.createElement('a');
+                    const site = (record.metadata['site-name'] || 'Untitled-site').replace(/[^a-z0-9-]+/gi, '-');
+                    anchor.href = url;
+                    anchor.download = `PoolBros_Backup_${site}_${new Date().toISOString().slice(0, 10)}.json`;
+                    document.body.appendChild(anchor);
+                    anchor.click();
+                    anchor.remove();
+                    setTimeout(() => URL.revokeObjectURL(url), 1000);
+                    setBackupMessage('Backup download started. Confirm the file is in your Downloads folder.');
+                } catch {
+                    setBackupMessage('Backup was not created because the audit could not be saved.');
+                }
+            };
+
+            const restoreBackup = async event => {
+                const file = event.target.files?.[0];
+                event.target.value = '';
+                if (!file || storageError) return;
+                try {
+                    const restored = auditModel.restoreBackup(await file.text(), makeId(), new Date().toISOString());
+                    if (poolShedBridge) {
+                        const customer = poolShedBridge.getCustomers().find(c => c.id === selectedCustomerId);
+                        if (!customer) throw new Error('Select a customer before restoring a backup.');
+                        restored.customerId = customer.id;
+                        restored.createdBy = poolShedBridge.getUser();
+                    }
+                    if (hasActive) await saveNow();
+                    await saveSurvey(restored);
+                    upsertSurvey(restored);
+                    setSurveyData(restored);
+                    setHasActive(true);
+                    rememberActive(restored.id);
+                    setView('survey');
+                    setBackupMessage('Backup restored as a separate draft audit.');
+                } catch (error) {
+                    setBackupMessage(error.message || 'Backup could not be restored.');
+                }
+            };
+
+            const updateMetadata = (id, val) => setSurveyData(prev => ({ ...prev, metadata: { ...prev.metadata, [id]: val } }));
+            const updateResponse = (id, update) => setSurveyData(prev => ({ ...prev, responses: { ...prev.responses, [id]: typeof update === 'function' ? update(prev.responses[id] || {}) : update } }));
+            const addAsset = (asset) => setSurveyData(prev => ({ ...prev, assets: [...prev.assets, asset] }));
+            const updateAsset = (id, asset) => setSurveyData(prev => ({ ...prev, assets: prev.assets.map(existing => existing.id === id ? { ...asset, id } : existing) }));
+            const deleteAsset = (id) => setSurveyData(prev => ({ ...prev, assets: prev.assets.filter(a => a.id !== id) }));
+            const updateAssetDraft = update => setSurveyData(prev => ({ ...prev, assetDraft: typeof update === 'function' ? update(prev.assetDraft || emptyAsset()) : update }));
+            const addUpgrade = (upg) => setSurveyData(prev => ({ ...prev, upgrades: [...prev.upgrades, upg] }));
+            const deleteUpgrade = (id) => setSurveyData(prev => ({ ...prev, upgrades: prev.upgrades.filter(u => u.id !== id) }));
+            const updateAction = (itemId, patch) => setSurveyData(prev => ({ ...prev, actions: { ...(prev.actions || {}), [itemId]: { ...(prev.actions?.[itemId] || {}), ...patch } } }));
+
+            const generatePDF = async () => {
+                const reportData = await prepareReportMedia(surveyData);
+                const { jsPDF } = window.jspdf;
+                const doc = new jsPDF();
+                const evidencePhotos = reportEvidence.collect(checklistConfig, reportData);
+
+                // --- 1. COVER PAGE ---
+                doc.setFillColor(27, 37, 50);
+                doc.rect(0, 0, 210, 297, 'F');
+                doc.setFillColor(199, 42, 52);
+                doc.rect(0, 0, 6, 297, 'F');
+                doc.setFillColor(246, 199, 67);
+                doc.rect(18, 82, 28, 2, 'F');
+                doc.setFillColor(255, 255, 255);
+                doc.rect(18, 18, 38, 38, 'F');
+                doc.addImage(brand.logoData, 'PNG', 20, 20, 34, 34);
+                doc.setTextColor(255, 255, 255);
+                doc.setFontSize(10);
+                doc.setFont("helvetica", "bold");
+                doc.text('POOL BROS  /  COMMERCIAL AUDIT', 65, 40);
+                doc.setFontSize(31);
+                doc.text('SITE REVIEW', 18, 107);
+                doc.setFontSize(14);
+                doc.setFont('helvetica', 'normal');
+                doc.text('Swimming pool operations, plant and safety', 18, 120);
+                doc.setFillColor(255, 255, 255);
+                doc.rect(18, 145, 174, 86, 'F');
+                doc.setTextColor(127, 43, 52);
+                doc.setFontSize(9);
+                doc.setFont('helvetica', 'bold');
+                doc.text('SITE / CLIENT', 27, 159);
+                doc.setTextColor(27, 37, 50);
+                doc.setFontSize(18);
+                doc.text(doc.splitTextToSize(reportData.metadata['site-name'] || 'Unnamed site', 150), 27, 170);
+                doc.setFontSize(10);
+                doc.setFont('helvetica', 'normal');
+                doc.text(`Organisation: ${reportData.metadata['org-name'] || 'Not entered'}`, 27, 192);
+                doc.text(`Visit date: ${reportData.metadata['visit-date'] || 'Not entered'}`, 27, 204);
+                doc.text(`Lead inspector: ${reportData.metadata['inspector'] || 'Not entered'}`, 27, 216);
+                doc.setTextColor(221, 229, 237);
+                doc.setFontSize(9);
+                doc.text('DRAFT FOR MANAGER REVIEW  |  ISSUE ONLY AFTER CHECKING THE RECORDED EVIDENCE', 18, 272);
+                if (reportData.historicalExample) {
+                    doc.setFontSize(9);
+                    doc.text('HISTORICAL EXAMPLE  /  RECONSTRUCTED DATA  /  NOT A CURRENT INSPECTION', 18, 258);
+                }
+
+                // --- 2. EXECUTIVE SUMMARY ---
+                doc.addPage();
+                doc.setTextColor(0, 0, 0);
+                doc.setFontSize(22);
+                doc.text("Executive Summary", 15, 20);
+
+                const reportItems = checklistConfig.sections.slice(1).flatMap(section => section.items.map(item => [section.id, item]));
+                const stats = { green: 0, amber: 0, red: 0, na: 0, ni: 0 };
+                reportItems.forEach(([, item]) => {
+                    const selected = reportData.responses[item.id]?.status;
+                    stats[selected && Object.prototype.hasOwnProperty.call(stats, selected) ? selected : 'ni']++;
+                });
+
+                doc.autoTable({
+                    startY: 30,
+                    head: [['Metric', 'Count']],
+                    body: [
+                        ['Acceptable at visit', stats.green],
+                        ['Review planned', stats.amber],
+                        ['Priority review', stats.red],
+                        ['Not applicable', stats.na],
+                        ['Not inspected', stats.ni]
+                    ],
+                    theme: 'grid',
+                    headStyles: { fillColor: [27, 37, 50] }
+                });
+
+                let legendY = doc.lastAutoTable.finalY + 17;
+                doc.setTextColor(27, 37, 50);
+                doc.setFontSize(14);
+                doc.text("How to read the assessment", 15, legendY);
+                legendY += 11;
+                const legend = [
+                    ['green', 'Acceptable at visit. No issue recorded in the reviewed scope.'],
+                    ['amber', 'Review or planned improvement is recommended.'],
+                    ['red', 'Priority manager review and proportionate risk control are recommended.'],
+                    ['ni', 'Not inspected or no assessment recorded; no pass is implied.']
+                ];
+                legend.forEach(([key, description]) => {
+                    doc.setFillColor(...reportGuidance.status(key).colour);
+                    doc.circle(19, legendY - 1.5, 2.3, 'F');
+                    doc.setTextColor(40, 52, 72);
+                    doc.setFontSize(9);
+                    doc.text(doc.splitTextToSize(description, 168), 27, legendY);
+                    legendY += 12;
+                });
+                doc.setTextColor(75, 85, 101);
+                doc.setFontSize(9);
+                doc.text(doc.splitTextToSize("The colours are the inspector's recorded judgement. They are not a certificate of legal or PWTAG compliance, and a red finding does not itself authorise closure. The operator should assess immediate hazards under its own risk procedures.", 178), 15, legendY + 4);
+                if (reportData.historicalExample) {
+                    doc.setTextColor(145, 72, 29);
+                    doc.text(doc.splitTextToSize('Imported historical material is illustrative only. Reassess each item on site before using it as a current finding.', 178), 15, legendY + 27);
+                }
+                const priorityFindings = reportItems.map(([sectionId, item]) => ({
+                    sectionId, item, response: reportData.responses[item.id] || {}
+                })).filter(entry => entry.response.status === 'red' || entry.response.status === 'amber')
+                    .sort((a, b) => (a.response.status === 'red' ? 0 : 1) - (b.response.status === 'red' ? 0 : 1)).slice(0, 5);
+                if (priorityFindings.length) {
+                    const priorityY = legendY + (reportData.historicalExample ? 46 : 24);
+                    doc.setTextColor(27, 37, 50);
+                    doc.setFontSize(14);
+                    doc.text('Priority findings for manager review', 15, priorityY);
+                    doc.autoTable({
+                        startY: priorityY + 7,
+                        head: [['Light', 'Finding', 'Recorded evidence']],
+                        body: priorityFindings.map(({ item, response }) => [response.status.toUpperCase(), item.label, response.note || 'No observation recorded']),
+                        theme: 'grid',
+                        headStyles: { fillColor: [27, 37, 50] },
+                        styles: { fontSize: 8, cellPadding: 3, overflow: 'linebreak' },
+                        columnStyles: { 0: { cellWidth: 19 }, 1: { cellWidth: 63 }, 2: { cellWidth: 98 } },
+                        margin: { left: 15, right: 15, bottom: 23 },
+                        rowPageBreak: 'avoid',
+                        didParseCell: data => { if (data.section === 'body' && data.column.index === 0) data.cell.text = ['']; },
+                        didDrawCell: data => {
+                            if (data.section !== 'body' || data.column.index !== 0) return;
+                            const key = data.row.raw[0].toLowerCase();
+                            const x = data.cell.x + data.cell.width / 2;
+                            doc.setFillColor(...reportGuidance.status(key).colour);
+                            doc.circle(x, data.cell.y + 4.5, 2.3, 'F');
+                            doc.setTextColor(68, 76, 88);
+                            doc.setFontSize(6);
+                            doc.text(data.row.raw[0], x, data.cell.y + 9.2, { align: 'center' });
+                        }
+                    });
+                }
+
+                // --- 3. PROFESSIONAL CAVEATS ---
+                doc.addPage();
+                doc.setFontSize(18);
+                doc.setTextColor(27, 37, 50);
+                doc.text("Scope of Inspection & Caveats", 15, 20);
+                doc.setTextColor(100);
+                doc.setFontSize(10);
+                const caveats = "This document records the items selected and information entered for this visit. A blank or not-inspected item is not assessed. The report does not establish conformity with legislation, British Standards or PWTAG guidance. Measurements require date, method and instrument verification before use in a formal judgement. Structural, electrical, fire and chemical design conclusions require appropriate competent specialists and review of the site's records. The cited material is a basis for follow-up, not proof that every cited requirement applies to this facility. The pool operator remains responsible for its risk assessment, decisions and corrective actions.";
+                doc.text(caveats, 15, 30, { maxWidth: 180 });
+                doc.setTextColor(27, 37, 50);
+                doc.setFontSize(12);
+                doc.text("Reference hierarchy", 15, 75);
+                doc.setTextColor(65, 73, 89);
+                doc.setFontSize(9);
+                doc.text(doc.splitTextToSize("HSE explains general legal duties and pool safety management. PWTAG supplies detailed technical good practice for water treatment. The Home Office source concerns the responsible person's fire risk assessment in England. BS EN 15288-2 is a public-pool operation standard; only its published scope has been used here. Product instructions and the site's own risk assessment may change the appropriate control.", 180), 15, 83);
+                let methodY = 112;
+                [
+                    ['Observed and recorded', 'A finding is limited to the observation, record or value entered for that checklist point. Supporting photographs are listed against the relevant item and repeated in the appendix.'],
+                    ['Measurements and limits', 'A numeric entry is a recorded value, not a verified laboratory or calibrated result. The inspector should record the time, method, instrument and relevant site-specific operating target in the finding note.'],
+                    ['Engineer judgement', 'Traffic lights express the inspector\'s judgement at the visit. Red requires prompt manager assessment of the hazard and proportionate control; amber needs a planned review. Neither status alone determines whether a pool must close.'],
+                    ['Exclusions and follow-up', 'Concealed fabric, electrical design, structural integrity, fire-system certification and microbiological sampling are outside this visual checklist unless separately commissioned and evidenced. The corrective action register captures recommendations and owners, but closure remains a separate operator decision.']
+                ].forEach(([heading, copy]) => {
+                    doc.setFillColor(246, 199, 67);
+                    doc.rect(15, methodY - 3, 3, 11, 'F');
+                    doc.setTextColor(27, 37, 50);
+                    doc.setFont('helvetica', 'bold');
+                    doc.setFontSize(11);
+                    doc.text(heading, 23, methodY);
+                    const lines = doc.splitTextToSize(copy, 168);
+                    doc.setFont('helvetica', 'normal');
+                    doc.setFontSize(9);
+                    doc.setTextColor(71, 82, 95);
+                    doc.text(lines, 23, methodY + 8);
+                    methodY += 17 + lines.length * 4.5;
+                });
+
+                // --- 4. ASSET REGISTER ---
+                const assetRows = assetReport.reportRows(reportData.assets, checklistConfig);
+                if (assetRows.length) {
+                doc.addPage();
+                doc.setFontSize(18);
+                doc.setTextColor(27, 37, 50);
+                doc.text("Assets and Inspection History", 15, 20);
+                doc.setFontSize(9);
+                doc.setTextColor(75, 85, 101);
+                doc.text(doc.splitTextToSize('Dates are those entered for this visit. Not recorded means no date or explicit status was entered; Date unavailable and Not applicable are inspector selections. Next due dates are not calculated or verified by this report.', 180), 15, 28);
+                let assetY = 43;
+                assetRows.forEach((asset, index) => {
+                    if (assetY > 153) { doc.addPage(); assetY = 25; }
+                    doc.setFontSize(12);
+                    doc.setTextColor(27, 37, 50);
+                    doc.text(`${index + 1}. ${asset.name}`, 15, assetY);
+                    const details = [
+                        ['Type and identification', `${asset.type} | ${asset.identity}`],
+                        ['Location', asset.location],
+                        ['Related survey finding', asset.linkedFinding],
+                        ['Condition at visit', asset.condition],
+                        ['Installed', asset.installed],
+                        ['Last inspected', asset.inspected],
+                        ['Next inspection due', asset.inspectionDue],
+                        ['Last serviced', asset.serviced],
+                        ['Next service due', asset.serviceDue]
+                    ];
+                    if (asset.type === 'Filter') details.push(
+                        ['Filter media', asset.mediaType],
+                        ['Last media change', asset.mediaChanged],
+                        ['Next media change due', asset.mediaDue]
+                    );
+                    details.push(['Recorded observation', asset.note]);
+                    details.push(['Asset photographs', asset.photoCount ? `${asset.photoCount} attached below` : 'None recorded']);
+                    doc.autoTable({
+                        startY: assetY + 4,
+                        head: [['Record field', 'Entered detail']],
+                        body: details,
+                        theme: 'grid',
+                        headStyles: { fillColor: [27, 37, 50] },
+                        styles: { fontSize: 8, cellPadding: 2, overflow: 'linebreak' },
+                        columnStyles: { 0: { cellWidth: 52 }, 1: { cellWidth: 128 } },
+                        margin: { left: 15, right: 15, bottom: 24 }
+                    });
+                    assetY = doc.lastAutoTable.finalY + 12;
+                    const assetPhotos = assetReport.photosForAsset(reportData.assets[index]);
+                    assetPhotos.forEach((photo, photoIndex) => {
+                        const properties = doc.getImageProperties(photo.image);
+                        const photoWidth = Math.min(165, 65 * properties.width / properties.height);
+                        const photoHeight = photoWidth * properties.height / properties.width;
+                        doc.setFontSize(9);
+                        const titleLines = doc.splitTextToSize(`Asset photo ${index + 1}.${photoIndex + 1} | ${asset.name}`, 180);
+                        const captionLines = doc.splitTextToSize(photo.caption || 'No caption recorded.', 180);
+                        const blockHeight = titleLines.length * 4.5 + photoHeight + captionLines.length * 4.2 + 15;
+                        if (assetY + blockHeight > 274) {
+                            doc.addPage();
+                            doc.setFontSize(13);
+                            doc.setTextColor(27, 37, 50);
+                            doc.text(`Asset photographs | ${asset.name}`, 15, 20);
+                            assetY = 29;
+                        }
+                        doc.setFontSize(9);
+                        doc.setTextColor(28, 43, 64);
+                        doc.text(titleLines, 15, assetY);
+                        assetY += titleLines.length * 4.5 + 2;
+                        doc.addImage(photo.image, undefined, 15, assetY, photoWidth, photoHeight);
+                        assetY += photoHeight + 6;
+                        doc.setFontSize(8);
+                        doc.setTextColor(78, 88, 103);
+                        doc.text(captionLines, 15, assetY);
+                        assetY += captionLines.length * 4.2 + 8;
+                    });
+                });
+                } else {
+                    doc.setFontSize(9);
+                    doc.setTextColor(127, 43, 52);
+                    doc.text('No equipment assets were recorded for this survey.', 15, methodY + 8);
+                }
+
+                // --- 5. STRATEGIC UPGRADES ---
+                if (reportData.upgrades.length > 0) {
+                    doc.addPage();
+                    doc.setFontSize(18);
+                    doc.setTextColor(27, 37, 50);
+                    doc.text("Strategic Upgrade Recommendations", 15, 20);
+                    const upgTable = reportData.upgrades.map(u => {
+                        const asset = reportData.assets.find(a => a.id === u.assetId);
+                        return [asset?.name || 'General', u.proposal, u.benefit, u.urgency];
+                    });
+                    doc.autoTable({
+                        startY: 25,
+                        head: [['Asset', 'Proposed Upgrade', 'Expected Benefit', 'Urgency']],
+                        body: upgTable,
+                        headStyles: { fillColor: [27, 37, 50] },
+                        styles: { fontSize: 9 }
+                    });
+                }
+
+                // --- 6. CORRECTIVE ACTIONS ---
+                const reportActions = auditModel.actions(reportData, checklistConfig).sort((a, b) => (a.severity === 'red' ? 0 : 1) - (b.severity === 'red' ? 0 : 1));
+                if (reportActions.length) {
+                    doc.addPage();
+                    doc.setFontSize(18);
+                    doc.setTextColor(27, 37, 50);
+                    doc.text('Corrective Action Register', 15, 20);
+                    doc.setFontSize(9);
+                    doc.setTextColor(75, 85, 101);
+                    doc.text(doc.splitTextToSize('Actions remain open for operator review. Ready for review is a follow-up stage, not confirmation that a risk is closed.', 180), 15, 27);
+                    doc.autoTable({
+                        startY: 38,
+                        head: [['Priority', 'Recorded finding', 'Recommended action', 'Owner / target', 'Follow-up']],
+                        body: reportActions.map(action => [
+                            action.severity === 'red' ? 'RED' : 'AMBER',
+                            `${action.sectionTitle} / ${action.label}\n${action.finding}`,
+                            action.recommendation || 'Not entered',
+                            `${action.owner || 'Unassigned'}\n${action.dueDate ? assetReport.formatDate(action.dueDate) : 'Date not set'}`,
+                            `${action.followUp}\n${action.evidence || 'No reassessment evidence recorded'}`
+                        ]),
+                        theme: 'grid',
+                        headStyles: { fillColor: [27, 37, 50] },
+                        styles: { fontSize: 7.5, cellPadding: 2.5, overflow: 'linebreak' },
+                        columnStyles: { 0: { cellWidth: 20 }, 1: { cellWidth: 47 }, 2: { cellWidth: 43 }, 3: { cellWidth: 31 }, 4: { cellWidth: 39 } },
+                        margin: { left: 15, right: 15, bottom: 24 },
+                        rowPageBreak: 'avoid',
+                        didParseCell: data => { if (data.section === 'body' && data.column.index === 0) data.cell.text = ['']; },
+                        didDrawCell: data => {
+                            if (data.section !== 'body' || data.column.index !== 0) return;
+                            const key = data.row.raw[0].toLowerCase();
+                            const x = data.cell.x + data.cell.width / 2;
+                            doc.setFillColor(...reportGuidance.status(key).colour);
+                            doc.circle(x, data.cell.y + 5, 2.5, 'F');
+                            doc.setTextColor(68, 76, 88);
+                            doc.setFontSize(6);
+                            doc.text(data.row.raw[0], x, data.cell.y + 10, { align: 'center' });
+                        }
+                    });
+                }
+
+                // --- 7. DETAILED FINDINGS ---
+                checklistConfig.sections.forEach(section => {
+                    if (section.id === 'site-metadata') return;
+                    doc.addPage();
+                    doc.setFontSize(18);
+                    doc.setTextColor(27, 37, 50);
+                    doc.text(section.title, 15, 20);
+
+                    const tableData = section.items.map(item => {
+                        const res = reportData.responses[item.id] || {};
+                        const status = res.status || 'ni';
+                        const guidance = reportGuidance.forItem(section.id, item.id);
+                        const figures = reportEvidence.figuresForItem(evidencePhotos, item.id);
+                        const photoReference = figures.length ? `\nPhoto evidence: Figure${figures.length > 1 ? 's' : ''} ${figures.join(', ')}. See photographic appendix.` : '';
+                        const linkedAssets = assetReport.forFinding(reportData.assets, item.id);
+                        const assetReference = linkedAssets.length ? `\nLinked asset${linkedAssets.length > 1 ? 's' : ''}: ${linkedAssets.map(asset => asset.name).join(', ')}. See asset history.` : '';
+                        return [item.label, status, res.value || '', `${res.note || 'No observation recorded.'}${assetReference}${photoReference}`, `${guidance.text} [${guidance.sources.join(', ')}]`];
+                    });
+
+                    doc.autoTable({
+                        startY: 25,
+                        head: [['Item', 'Light', 'Value', 'Recorded finding', 'Reference context']],
+                        body: tableData,
+                        headStyles: { fillColor: [27, 37, 50] },
+                        styles: { fontSize: 8, cellPadding: 2.5, overflow: 'linebreak', minCellWidth: 0 },
+                        columnStyles: { 0: { cellWidth: 43 }, 1: { cellWidth: 17 }, 2: { cellWidth: 17 }, 3: { cellWidth: 45 }, 4: { cellWidth: 56 } },
+                        margin: { left: 15, right: 15, bottom: 24 },
+                        rowPageBreak: 'avoid',
+                        didParseCell: (data) => {
+                            if (data.section === 'body' && data.column.index === 1) data.cell.text = [''];
+                        },
+                        didDrawCell: (data) => {
+                            if (data.section === 'body' && data.column.index === 1) {
+                                const selected = data.row.raw[1];
+                                const x = data.cell.x + data.cell.width / 2;
+                                const y = data.cell.y + Math.min(data.cell.height / 2, 7);
+                                doc.setFillColor(...reportGuidance.status(selected).colour);
+                                doc.circle(x, y, 2.8, 'F');
+                                if (selected === 'ni' || selected === 'na') {
+                                    doc.setFontSize(6);
+                                    doc.setTextColor(80, 88, 98);
+                                    doc.text(selected === 'na' ? 'N/A' : 'N/I', x, y + 6, { align: 'center' });
+                                }
+                            }
+                        }
+                    });
+                });
+
+                // --- 7. IMAGE APPENDIX ---
+                if (evidencePhotos.length) {
+                    doc.addPage();
+                    doc.setFontSize(22);
+                    doc.setTextColor(27, 37, 50);
+                    doc.text("Photographic Appendix", 15, 20);
+                    doc.setFontSize(9);
+                    doc.setTextColor(75, 85, 101);
+                    doc.text("Each figure is linked to the numbered reference in its checklist finding.", 15, 27);
+                }
+                let imgY = 34;
+                let lastPhotoSection = null;
+                evidencePhotos.forEach(photo => {
+                    const properties = doc.getImageProperties(photo.image);
+                    const imageWidth = Math.min(165, 76 * properties.width / properties.height);
+                    const imageHeight = imageWidth * properties.height / properties.width;
+                    doc.setFontSize(9);
+                    const titleLines = doc.splitTextToSize(`Figure ${photo.figure} | ${photo.itemLabel}`, 180);
+                    const captionLines = doc.splitTextToSize(photo.caption || 'No caption recorded.', 180);
+                    const sectionSpace = 9;
+                    const blockHeight = sectionSpace + titleLines.length * 4.5 + imageHeight + captionLines.length * 4.2 + 17;
+                    if (imgY + blockHeight > 274) {
+                        doc.addPage();
+                        doc.setFontSize(16);
+                        doc.setTextColor(27, 37, 50);
+                        doc.text('Photographic Appendix (continued)', 15, 20);
+                        imgY = 30;
+                        lastPhotoSection = null;
+                    }
+                    if (lastPhotoSection !== photo.sectionId) {
+                        doc.setFontSize(11);
+                        doc.setTextColor(27, 37, 50);
+                        doc.text(photo.sectionTitle, 15, imgY);
+                        imgY += 9;
+                        lastPhotoSection = photo.sectionId;
+                    }
+                    doc.setFontSize(9);
+                    doc.setTextColor(28, 43, 64);
+                    doc.text(titleLines, 15, imgY);
+                    imgY += titleLines.length * 4.5 + 2;
+                    doc.addImage(photo.image, undefined, 15, imgY, imageWidth, imageHeight);
+                    imgY += imageHeight + 6;
+                    doc.setFontSize(8);
+                    doc.setTextColor(78, 88, 103);
+                    doc.text(captionLines, 15, imgY);
+                    imgY += captionLines.length * 4.2 + 7;
+                    doc.setDrawColor(223, 230, 237);
+                    doc.line(15, imgY - 3, 195, imgY - 3);
+                });
+
+                // A source register makes each reference on the finding pages traceable.
+                doc.addPage();
+                doc.setFontSize(20);
+                doc.setTextColor(27, 37, 50);
+                doc.text('References and applicability', 15, 20);
+                doc.setFontSize(9);
+                doc.setTextColor(70, 80, 94);
+                doc.text(doc.splitTextToSize('References were checked on 23 October 2026. Apply the relevant edition, the site risk assessment and specialist advice when planning work. A source citation does not certify an item as compliant.', 180), 15, 28);
+                let sourceY = 46;
+                const cited = reportGuidance.referenceIndex(reportItems.map(([sectionId, item]) => [sectionId, item.id]));
+                cited.forEach(ref => {
+                    const titleLines = doc.splitTextToSize(`${ref.id} | ${ref.title}`, 178);
+                    const urlLines = doc.splitTextToSize(ref.url, 178);
+                    const needed = titleLines.length * 4.2 + urlLines.length * 4 + 11;
+                    if (sourceY + needed > 274) { doc.addPage(); sourceY = 20; }
+                    doc.setFontSize(9);
+                    doc.setTextColor(27, 37, 50);
+                    doc.text(titleLines, 15, sourceY);
+                    sourceY += titleLines.length * 4.2 + 1;
+                    doc.setFontSize(8);
+                    doc.setTextColor(75, 85, 100);
+                    doc.text(ref.type, 15, sourceY);
+                    sourceY += 4.5;
+                    doc.setTextColor(22, 100, 155);
+                    urlLines.forEach(line => {
+                        doc.textWithLink(line, 15, sourceY, { url: ref.url });
+                        sourceY += 4;
+                    });
+                    sourceY += 5;
+                });
+
+                const pageCount = doc.getNumberOfPages();
+                for (let page = 2; page <= pageCount; page++) {
+                    doc.setPage(page);
+                    doc.setDrawColor(212, 220, 230);
+                    doc.line(15, 283, 195, 283);
+                    doc.addImage(brand.logoData, 'PNG', 15, 284, 8, 8);
+                    doc.setFontSize(8);
+                    doc.setTextColor(95, 105, 120);
+                    doc.text('POOL BROS  |  DRAFT SITE REVIEW', 27, 289);
+                    doc.text(`${page} / ${pageCount}`, 195, 289, { align: 'right' });
+                }
+                doc.save(`PoolBros_Site_Review_${reportData.metadata['site-name'] || 'Export'}.pdf`);
+            };
+
+            const currentStats = auditModel.stats(surveyData, checklistConfig);
+            const completionPercent = currentStats.total ? Math.round((currentStats.total - currentStats.ni) / currentStats.total * 100) : 0;
+            const exportReport = async () => {
+                if (!hasActive || storageError) return;
+                const missing = checklistConfig.sections[0].items.filter(item => item.required && !surveyData.metadata[item.id]);
+                if (missing.length) {
+                    setBackupMessage(`Complete the required site details before exporting: ${missing.map(item => item.label).join(', ')}.`);
+                    setView('survey');
+                    document.getElementById('site-details')?.scrollIntoView();
+                    return;
+                }
+                try {
+                    await saveNow();
+                    await generatePDF();
+                    setBackupMessage('Report download started. Review the PDF before issuing it to a client.');
+                } catch (error) {
+                    setBackupMessage(error.message || 'Report export failed.');
+                }
+            };
+
+            if (!poolShedBridge) return <div className="boot-screen"><div><img src="./assets/pb-logo.png" alt="Pool Bros" /><p>Open Pool Audits from a signed-in Pool Shed workspace.</p></div></div>;
+            if (!hydrated) return <div className="boot-screen"><div><img src="./assets/pb-logo.png" alt="Pool Bros" /><p>Opening your audit workspace…</p></div></div>;
+
+            return (
+                <div className="app-shell">
+                    <header className="app-header"><div className="header-inner">
+                        <div className="brand-lockup"><img className="brand-mark" src="./assets/pb-logo.png" alt="Pool Bros logo" /><div><strong>POOL BROS</strong><small>COMMERCIAL AUDIT STUDIO</small></div></div>
+                        <nav className="app-nav" aria-label="Main navigation">
+                            {[['dashboard','Overview'],['survey','Site survey'],['assets','Assets'],['upgrades','Upgrades'],['actions','Actions']].map(([key,label]) => <button key={key} className={`nav-button ${view === key ? 'active' : ''}`} onClick={() => setView(key)} disabled={key !== 'dashboard' && !hasActive}>{label}</button>)}
+                        </nav>
+                        <div className="header-actions"><button className="button soft hide-small" onClick={downloadBackup} disabled={!hasActive || !!storageError}>↓ Backup</button><button className="button primary" onClick={exportReport} disabled={!hasActive || !!storageError}>Export report</button></div>
+                    </div></header>
+
+                    <main className="app-main">
+                        <div className="review-strip">{poolShedBridge ? (poolShedBridge.syncState() === 'device' ? 'Saved on this device. Pool Shed upload is pending; keep a backup and reconnect before relying on another device.' : 'Linked to the Pool Shed customer profile. Check the Pool Shed sync indicator before leaving site.') : 'Review build for Monday · This workspace saves locally on one device. Download a backup after every visit.'}</div>
+                        {storageError && <div className="review-strip error-strip" role="alert">{storageError}</div>}
+                        {saveError && <div className="review-strip error-strip" role="alert">{saveError}</div>}
+                        {backupMessage && <div className="review-strip" role="status">{backupMessage}</div>}
+                        {view === 'dashboard' && (
+                            <div>
+                                <div className="dashboard-hero"><div><span className="eyebrow">POOL BROS · COMMERCIAL POOL ASSURANCE</span><h2>Every visit, clearly accounted for.</h2><p>Capture site findings, photograph evidence, asset condition and follow-up actions in one connected audit record.</p></div><div className="hero-actions"><button className="button primary" onClick={startNew} disabled={!!storageError}>+ New site audit</button></div></div>
+                                <div className="metric-grid">
+                                    <div className="metric-card"><small>{poolShedBridge ? "Customer audits" : "Audits on this device"}</small><strong>{poolShedBridge ? surveys.filter(a => !linkedCustomerId || a.customerId === linkedCustomerId).length : surveys.length}</strong><p>{poolShedBridge ? "Linked Pool Shed visits" : "Saved local visit records"}</p></div>
+                                    <div className="metric-card red"><small>Critical findings</small><strong>{hasActive ? currentStats.red : 0}</strong><p>Current selected visit</p></div>
+                                    <div className="metric-card amber"><small>Monitor findings</small><strong>{hasActive ? currentStats.amber : 0}</strong><p>Current selected visit</p></div>
+                                    <div className="metric-card blue"><small>Assets recorded</small><strong>{hasActive ? surveyData.assets.length : 0}</strong><p>Current selected visit</p></div>
+                                </div>
+                                {poolShedBridge && !linkedCustomerId && <label className="block mb-5 text-sm font-bold text-slate-700">Customer profile
+                                    <select className="block w-full max-w-lg mt-2 px-3 py-3 rounded-xl border border-slate-300 bg-white" value={selectedCustomerId} onChange={e => switchCustomer(e.target.value)}>
+                                        {poolShedBridge.getCustomers().map(c => <option key={c.id} value={c.id}>{c.name}{c.code ? ` · ${c.code}` : ''}</option>)}
+                                    </select>
+                                </label>}
+                                <div className="dashboard-grid">
+                                    <section className="workspace-panel"><div className="workspace-panel-head"><div><span className="eyebrow">VISIT LIBRARY</span><h3>Saved audits</h3><p>Select a visit to continue, review or export.</p></div></div><div className="visit-list">
+                                        {surveys.filter(a => !poolShedBridge || (linkedCustomerId ? a.customerId === linkedCustomerId : a.customerId === selectedCustomerId)).length === 0 ? <div className="empty-state">No audits are linked to this customer yet. Start a new site audit.</div> : surveys.filter(a => !poolShedBridge || (linkedCustomerId ? a.customerId === linkedCustomerId : a.customerId === selectedCustomerId)).map(audit => { const counts = auditModel.stats(audit, checklistConfig); const complete = counts.total ? Math.round((counts.total - counts.ni) / counts.total * 100) : 0; return <div className="visit-row" key={audit.id}><div className="visit-info"><strong>{audit.metadata?.['site-name'] || 'Untitled audit'}{audit.historicalExample && <span className="sample-tag">Historical example</span>}</strong><small>Visit {audit.metadata?.['visit-date'] || 'date pending'} · Updated {audit.updatedAt ? new Date(audit.updatedAt).toLocaleString('en-GB') : 'date pending'} · {counts.red} red / {counts.amber} amber</small><div className="visit-meter"><span style={{width:`${complete}%`}} /></div></div><button className="button" onClick={() => selectAudit(audit)} disabled={!!storageError}>{audit.id === surveyData.id && hasActive ? 'Continue' : 'Open'}</button></div>; })}
+                                    </div></section>
+                                    <aside className="workspace-panel backup-panel"><div className="workspace-panel-head"><div><span className="eyebrow">DATA CONTROL</span><h3>Audit backups</h3><p>Keep an independent copy after every visit.</p></div></div><div className="backup-copy"><strong>{poolShedBridge ? 'Audits link to the Pool Shed customer profile.' : 'Audits save in this browser on this device.'}</strong> Backups include answers and asset details. {poolShedBridge ? 'Photographs are stored privately in Pool Shed; an exported JSON backup contains their secure references and requires account access to show them again.' : 'Backups include attached photos.'} Restoring a backup creates a separate draft.</div><div className="backup-actions"><button className="button dark" onClick={downloadBackup} disabled={!hasActive || !!storageError}>Download current backup</button><button className="button" onClick={() => importInput.current?.click()} disabled={!!storageError}>Restore backup</button><input ref={importInput} type="file" accept=".json,application/json" onChange={restoreBackup} hidden /></div><p className="backup-message">{poolShedBridge ? 'Pool Shed syncs when connected. Confirm the main workspace indicator shows a shared save before switching devices.' : 'This review build is local only. It has no shared login or automatic cloud recovery.'}</p></aside>
+                                </div>
+                            </div>
+                        )}
+
+                        {view === 'survey' && hasActive && (
+                            <div className="space-y-5 pb-24">
+                                <div className="survey-hero"><div><span className="eyebrow">ACTIVE SITE VISIT {surveyData.historicalExample ? '· HISTORICAL EXAMPLE' : ''}</span><h2>{surveyData.metadata['site-name'] || 'New site audit'}</h2><p>{surveyData.metadata['visit-date'] || 'Visit date to be entered'} · {surveyData.metadata['inspector'] || 'Lead inspector to be entered'} · {currentStats.total} inspection points</p></div><div className="survey-progress"><strong>{completionPercent}%</strong><span>Recorded or marked not applicable</span><div className="progress-track"><i style={{width:`${completionPercent}%`}} /></div></div></div>
+                                <nav className="section-jump" aria-label="Jump to audit section"><a href="#site-details">Site details</a><a href="#site-assets">Assets</a>{checklistConfig.sections.slice(1).map(section => <a href={`#section-${section.id}`} key={section.id}>{section.title}</a>)}</nav>
+                                <section className="audit-section" id="site-details"><div className="audit-section-header"><div><small>01 · VISIT SETUP</small><h2>Site details</h2></div><span className="eyebrow">Required for report export</span></div><div className="p-6 grid grid-cols-1 md:grid-cols-2 gap-6">
+                                    {checklistConfig.sections[0].items.map(item => <div key={item.id} className="space-y-1"><label htmlFor={`metadata-${item.id}`} className="block text-xs font-bold text-slate-500 uppercase tracking-wide">{item.label}{item.required ? ' *' : ''}</label>{item.type === 'select' ? <select id={`metadata-${item.id}`} value={surveyData.metadata[item.id] || ''} onChange={event => updateMetadata(item.id,event.target.value)} className="w-full px-3 py-2 border border-slate-200 rounded-lg text-sm"><option value="">Select facility type</option>{item.options.map(option => <option key={option}>{option}</option>)}</select> : <input id={`metadata-${item.id}`} type={item.type || 'text'} value={surveyData.metadata[item.id] || ''} onChange={event => updateMetadata(item.id,event.target.value)} className="w-full px-3 py-2 border border-slate-200 rounded-lg text-sm" />}</div>)}
+                                </div></section>
+                                <div id="site-assets" className="audit-section"><AssetRegistry assets={surveyData.assets} onAdd={addAsset} onUpdate={updateAsset} onDelete={deleteAsset} savedDraft={surveyData.assetDraft} onDraftChange={updateAssetDraft} /></div>
+                                {checklistConfig.sections.slice(1).map((section,index) => <section key={section.id} id={`section-${section.id}`} className="audit-section"><div className="audit-section-header"><div><small>{String(index+2).padStart(2,'0')} · INSPECTION</small><h2>{section.title}</h2></div><div className="count-row"><span className="count-pill green">● {section.items.filter(item => surveyData.responses[item.id]?.status === 'green').length} green</span><span className="count-pill amber">● {section.items.filter(item => surveyData.responses[item.id]?.status === 'amber').length} amber</span><span className="count-pill red">● {section.items.filter(item => surveyData.responses[item.id]?.status === 'red').length} red</span></div></div><div>{section.items.map(item => <SurveyItem key={item.id} sectionId={section.id} sectionTitle={section.title} item={item} value={surveyData.responses[item.id]} linkedAssets={assetReport.forFinding(surveyData.assets,item.id)} onChange={value => updateResponse(item.id,value)} />)}</div></section>)}
+                            </div>
+                        )}
+
+                        {view === 'assets' && (
+                            <AssetRegistry
+                                assets={surveyData.assets}
+                                onAdd={addAsset}
+                                onUpdate={updateAsset}
+                                onDelete={deleteAsset}
+                                savedDraft={surveyData.assetDraft}
+                                onDraftChange={updateAssetDraft}
+                            />
+                        )}
+
+                        {view === 'upgrades' && (
+                            <UpgradeModule
+                                assets={surveyData.assets}
+                                upgrades={surveyData.upgrades}
+                                onAdd={addUpgrade}
+                                onDelete={deleteUpgrade}
+                            />
+                        )}
+
+                        {view === 'actions' && (
+                            <ActionRegister surveyData={surveyData} onUpdate={updateAction} />
+                        )}
+                    </main>
+
+                    {hasActive && view !== 'dashboard' && <div className="audit-footer"><div className={`save-indicator ${savePhase}`} role={saveError ? 'alert' : 'status'}><i />{saveError || (savePhase === 'pending' ? 'Changes awaiting save' : savePhase === 'saving' ? 'Saving on this device…' : 'Saved on this device')}</div><div className="footer-actions"><button className="button" onClick={saveNow} disabled={!!storageError}>Save now</button><button className="button soft" onClick={downloadBackup} disabled={!!storageError}>↓ Backup</button><button className="button primary" onClick={exportReport} disabled={!!storageError}>Export report</button></div></div>}
+                </div>
+            );
+        };
+
+        const root = ReactDOM.createRoot(document.getElementById('root'));
+        root.render(<App />);
+    </script>
+</body>
+</html>

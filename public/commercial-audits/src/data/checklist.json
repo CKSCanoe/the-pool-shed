@@ -1,0 +1,106 @@
+{
+  "sections": [
+    {
+      "id": "site-metadata",
+      "title": "Site Metadata & Operations",
+      "items": [
+        { "id": "org-name", "label": "Organisation Name", "type": "text", "required": true },
+        { "id": "site-name", "label": "Site Name", "type": "text", "required": true },
+        { "id": "visit-date", "label": "Visit Date", "type": "date", "required": true },
+        { "id": "inspector", "label": "Lead Inspector", "type": "text", "required": true },
+        { "id": "facility-type", "label": "Facility Type", "type": "select", "options": ["School", "Hotel", "Leisure Centre", "Spa", "Hydrotherapy", "Other"], "required": true },
+        { "id": "occupancy-max", "label": "Maximum Occupancy", "type": "number", "unit": "people" },
+        { "id": "operating-hours", "label": "Operating Hours", "type": "text" }
+      ]
+    },
+    {
+      "id": "mgmt-docs",
+      "title": "Management Documentation & Staffing",
+      "items": [
+        { "id": "nop-present", "label": "Normal Operating Procedures (NOP) present and current", "type": "status", "guidance": "HSE/PWTAG" },
+        { "id": "eap-present", "label": "Emergency Action Plan (EAP) present and current", "type": "status", "guidance": "HSE/PWTAG" },
+        { "id": "psop-present", "label": "Pool Safety Operating Procedures (PSOP) present and current", "type": "status", "guidance": "HSE/PWTAG" },
+        { "id": "staff-training", "label": "Staff training records up to date", "type": "status" },
+        { "id": "emergency-drills", "label": "Emergency drills conducted and recorded", "type": "status" },
+        { "id": "safeguarding", "label": "Safeguarding policies implemented", "type": "status" }
+      ]
+    },
+    {
+      "id": "facility-access",
+      "title": "Access, Safety & Welfare",
+      "items": [
+        { "id": "signage-depth", "label": "Depth markings clear and accurate", "type": "status" },
+        { "id": "supervision-zones", "label": "Supervision zones clearly defined", "type": "status" },
+        { "id": "slip-trip-hazards", "label": "Flooring free of slip/trip hazards", "type": "status" },
+        { "id": "changing-welfare", "label": "Changing rooms and welfare facilities condition", "type": "status" },
+        { "id": "accessibility", "label": "Disabled access and hoist functionality", "type": "status" },
+        { "id": "rescue-equipment", "label": "Rescue equipment available and accessible", "type": "status" },
+        { "id": "emergency-comms", "label": "Emergency communications (Phones/Radios) functional", "type": "status" }
+      ]
+    },
+    {
+      "id": "fire-safety",
+      "title": "Fire & Emergency Precautions",
+      "items": [
+        { "id": "fire-exits", "label": "Emergency exits unobstructed and operational (e.g. push bars)", "type": "status" },
+        { "id": "fire-alarms", "label": "Fire alarms tested and operational", "type": "status" },
+        { "id": "evacuation-plan", "label": "Evacuation plan displayed and known to staff", "type": "status" }
+      ]
+    },
+    {
+      "id": "water-chemistry",
+      "title": "Water Chemistry & Testing",
+      "items": [
+        { "id": "testing-logs", "label": "Water testing logs maintained and current", "type": "status" },
+        { "id": "ph-level", "label": "pH Level", "type": "numeric", "unit": "pH", "min": 7.2, "max": 7.6 },
+        { "id": "free-chlorine", "label": "Free Chlorine", "type": "numeric", "unit": "ppm", "min": 1.0, "max": 2.0 },
+        { "id": "combined-chlorine", "label": "Combined Chlorine", "type": "numeric", "unit": "ppm", "max": 0.5 },
+        { "id": "temp-water", "label": "Water Temperature", "type": "numeric", "unit": "°C" },
+        { "id": "testing-method", "label": "Testing method (e.g. Photometer)", "type": "select", "options": ["Manual/DPD", "Photometer", "Automated"] }
+      ]
+    },
+    {
+      "id": "chem-handling",
+      "title": "Chemical Handling & Dosing",
+      "items": [
+        { "id": "dosing-automation", "label": "Dosing automation functional", "type": "status" },
+        { "id": "coshh-sds", "label": "COSHH / SDS available and displayed", "type": "status" },
+        { "id": "ppe-available", "label": "Correct PPE available and used", "type": "status" },
+        { "id": "bunding", "label": "Chemicals stored in appropriate bunds", "type": "status" },
+        { "id": "segregation", "label": "Acid and Chlorine stored separately", "type": "status", "guidance": "HSE" },
+        { "id": "storage-sealed", "label": "Chemicals stored in sealed/overflow tanks", "type": "status" },
+        { "id": "respirators", "label": "Suitable respirators available for plant room", "type": "status" }
+      ]
+    },
+    {
+      "id": "plant-mechanical",
+      "title": "Plant Room & Mechanical",
+      "items": [
+        { "id": "circulation-flow", "label": "Circulation flow and turnover rates adequate", "type": "status" },
+        { "id": "filtration-backwash", "label": "Filtration and backwash procedures correct", "type": "status" },
+        { "id": "suction-entrapment", "label": "Suction entrapment protection in place", "type": "status", "guidance": "PWTAG" },
+        { "id": "ahu-fans", "label": "AHU fans operational and noise levels acceptable", "type": "status" },
+        { "id": "ahu-filters", "label": "AHU filters clean and recently changed", "type": "status" },
+        { "id": "pressure-gauges", "label": "Filter pressure gauges functional and accurate", "type": "status" },
+        { "id": "heating-system", "label": "Heating system functional and efficient", "type": "status" }
+      ]
+    },
+    {
+      "id": "structural-elec",
+      "title": "Structural & Electrical",
+      "items": [
+        { "id": "shell-liner", "label": "Structural shell/liner/tiles condition", "type": "status" },
+        { "id": "elec-safety", "label": "Plant electrical safety / RCDs operational", "type": "status" },
+        { "id": "pool-lighting", "label": "Poolside and underwater lighting functional", "type": "status" }
+      ]
+    },
+    {
+      "id": "maintenance-records",
+      "title": "Records & Maintenance",
+      "items": [
+        { "id": "ppm-records", "label": "Planned Preventative Maintenance (PPM) records current", "type": "status" },
+        { "id": "calibration", "label": "Equipment calibration/verification records", "type": "status" }
+      ]
+    }
+  ]
+}
