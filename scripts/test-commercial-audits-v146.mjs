@@ -10,6 +10,7 @@ const permissionSource = read('public/settings-permissions-engine.js');
 
 assert.match(shell, /id: "audits", label: "Pool Audits"/);
 assert.match(html, /id="screen-audits"/);
+assert.match(html, /commercial-audits\/embedded\.css\?v=1\.46\.0/);
 assert.match(shell, /data-crm-profile-tab="audits"/);
 assert.match(shell, /data-new-pool-audit/);
 assert.match(shell, /data-open-pool-audit/);
