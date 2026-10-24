@@ -82,6 +82,7 @@ const seed = {
       const tabs = [
         { id: "dashboard", label: "Dashboard", title: "The Pool Shed", intro: "A clear live view of sales, stock, vans, purchasing, fulfilment and anything that needs action today." },
         { id: "mywork", label: "My Work", title: "My Work", intro: "Owned actions, approvals and operational exceptions that need attention." },
+        { id: "audits", label: "Pool Audits", title: "Commercial Pool Audits", intro: "Customer-linked site inspections, asset history, evidence and action plans." },
         { id: "crm", label: "CRM", title: "CRM", intro: "Customers, contacts, account context, supplier relationships and connected commercial history." },
         { id: "salesorders", label: "Sales Orders", title: "Sales Orders", intro: "Quotient, WooCommerce and manual orders with custom tags, allocation and status flow." },
         { id: "quotes", label: "Quotes", title: "Quotes · Quote Studio", intro: "Create Quick Quotes or full Project Proposals, send the customer presentation, track engagement and convert accepted work without re-keying." },
@@ -2655,7 +2656,7 @@ const seed = {
           : effectiveMode === "mfa"
             ? '<button class="ps-login-link" type="button" data-login-cancel-mfa>Use a different account</button><span>Authenticator verification</span>'
             : effectiveMode === "denied" || effectiveMode === "workspace" ? '<span></span>' : '<button class="ps-login-link" type="button" data-login-mode="login">Back to sign in</button><span></span>';
-        screen.innerHTML = '<main class="ps-login-stage"><section class="ps-login-shell"><aside class="ps-login-brand"><div><div class="ps-login-lockup"><span class="ps-login-logo"><img src="' + DEFAULT_POOL_BROS_LOGO + '" alt="Pool Bros logo"></span><div><span class="ps-login-kicker">Pool Bros</span><strong>THE POOL SHED</strong></div></div><div class="ps-login-hero"><span class="ps-login-kicker">Operations Command System</span><h1>One secure place to <span>run the operation.</span></h1><p>Secure access to the Pool Bros operations workspace. Sign in to continue to your authorised tools, tasks and information.</p></div></div><div class="ps-login-staff-note"><strong>Pool Bros staff access</strong><span>Your workspace and available tools are tailored to your account after sign-in.</span></div></aside><section class="ps-login-auth"><div class="ps-login-card"><div class="ps-login-card-head"><span class="ps-login-kicker">' + escapeHtml(meta.eyebrow) + '</span><h2>' + escapeHtml(meta.heading) + '</h2><p>' + escapeHtml(meta.intro) + '</p></div><form id="loginForm">' + fields + '<div id="loginMessage" class="ps-login-message' + (good ? ' good' : '') + '">' + escapeHtml(message || '') + '</div></form><div class="ps-login-helper">' + helper + '</div></div></section></section><footer class="ps-login-footer">Pool Shed v1.45.1 · Pool Bros Ltd</footer></main>';
+        screen.innerHTML = '<main class="ps-login-stage"><section class="ps-login-shell"><aside class="ps-login-brand"><div><div class="ps-login-lockup"><span class="ps-login-logo"><img src="' + DEFAULT_POOL_BROS_LOGO + '" alt="Pool Bros logo"></span><div><span class="ps-login-kicker">Pool Bros</span><strong>THE POOL SHED</strong></div></div><div class="ps-login-hero"><span class="ps-login-kicker">Operations Command System</span><h1>One secure place to <span>run the operation.</span></h1><p>Secure access to the Pool Bros operations workspace. Sign in to continue to your authorised tools, tasks and information.</p></div></div><div class="ps-login-staff-note"><strong>Pool Bros staff access</strong><span>Your workspace and available tools are tailored to your account after sign-in.</span></div></aside><section class="ps-login-auth"><div class="ps-login-card"><div class="ps-login-card-head"><span class="ps-login-kicker">' + escapeHtml(meta.eyebrow) + '</span><h2>' + escapeHtml(meta.heading) + '</h2><p>' + escapeHtml(meta.intro) + '</p></div><form id="loginForm">' + fields + '<div id="loginMessage" class="ps-login-message' + (good ? ' good' : '') + '">' + escapeHtml(message || '') + '</div></form><div class="ps-login-helper">' + helper + '</div></div></section></section><footer class="ps-login-footer">Pool Shed v1.46.0 · Pool Bros Ltd</footer></main>';
         bindLoginScreen(effectiveMode);
       }
 
@@ -2906,6 +2907,7 @@ const seed = {
         if (active === "warehouse") return renderWarehouse();
         if (active === "fulfilment") return renderFulfilment();
         if (active === "crm") return renderCrm();
+        if (active === "audits") return renderCommercialAudits();
         if (active === "analytics") return renderAnalytics();
         if (active === "automation") return renderAutomation();
         if (active === "accounting") return renderAccounting();
@@ -2988,6 +2990,7 @@ const seed = {
             if (!tabButton) return;
             event.preventDefault();
             const nextTab = tabButton.dataset.tab;
+            if (nextTab === "audits") poolAuditRoute = { customerId: "", auditId: "" };
             if (!canAccessTab(nextTab)) return toast("You do not have permission to open that section.");
             active = nextTab;
             if (!activeSubPage[nextTab]) activeSubPage[nextTab] = defaultSubPage(nextTab);
@@ -3006,6 +3009,7 @@ const seed = {
           warehouse: ["Goods In", "QC Checks", "Label Printing", "Guided Putaway", "Transfers", "Returns", "Damaged", "Stock Counts"],
           fulfilment: ["Goods Notes", "Picking List", "Pick", "Pack", "Ship", "Tracking"],
           crm: ["All Customers", "Create Customer"],
+          audits: ["All Audits", "Site Visits", "Action Register"],
           jobs: ["Job List", "Create Job", "Project Costing"],
           accounting: ["Invoice Ready", "Draft Invoices", "Xero Linked", "Supplier Bills", "COGS", "Stock Valuation", "Credits"],
           settings: isAdminUser() ? ["Users", "Permissions", "Menu Layout", "My Profile", "My Settings", "Company", "Notifications", "Training", "Automation Rules", "Statuses", "Tags", "Integrations"] : ["Menu Layout", "My Profile", "My Settings", "Training"]
@@ -10362,6 +10366,73 @@ const seed = {
         saveAppData();
       }
 
+      function customerAuditPanel(c) {
+        const records = (canAccessTab("audits") ? (data.poolAudits || []) : []).filter(function(a){ return a.customerId === c.id; })
+          .sort(function(a,b){ return String(b.updatedAt || "").localeCompare(String(a.updatedAt || "")); });
+        const rows = records.map(function(a){
+          const statuses = Object.values(a.responses || {}).map(function(r){ return r && r.status; });
+          const red = statuses.filter(function(x){ return x === "red"; }).length;
+          const amber = statuses.filter(function(x){ return x === "amber"; }).length;
+          return '<div class="crm-line"><span><b>' + escapeHtml(a.metadata && a.metadata['site-name'] || c.name) + '</b><small>' + escapeHtml(a.metadata && a.metadata['visit-date'] || 'Visit date pending') + ' · ' + escapeHtml(a.status || 'Draft') + ' · ' + red + ' red / ' + amber + ' amber</small></span><button class="secondary" data-open-pool-audit="' + escapeHtml(a.id) + '" data-audit-customer="' + escapeHtml(c.id) + '">Open audit</button></div>';
+        }).join('') || '<div class="crm-empty-inline">No commercial pool audits linked to this customer yet.</div>';
+        return '<section class="crm-depth-card"><header><div><h3>Commercial pool audits</h3><p>Site visits, traffic-light findings, evidence, assets and customer reports remain linked to this customer profile.</p></div><button data-new-pool-audit="' + escapeHtml(c.id) + '">＋ New site audit</button></header><div class="crm-depth-body">' + rows + '</div></section>';
+      }
+
+      let poolAuditRoute = { customerId: '', auditId: '', newAudit: false };
+      function requirePoolAuditSession() {
+        if (!isAuthenticated) throw Error('Sign in to Pool Shed before opening customer audits.');
+      }
+      window.__POOL_SHED_AUDIT_BRIDGE__ = {
+        getAll: function(){ requirePoolAuditSession(); if (!canAccessTab('audits')) throw Error('Audit access denied.'); return JSON.parse(JSON.stringify(data.poolAudits || [])); },
+        getCustomers: function(){ requirePoolAuditSession(); if (!canAccessTab('audits')) throw Error('Audit access denied.'); return (data.customers || []).map(function(c){ return { id:c.id, name:c.name || c.companyName || 'Customer', code:c.code || '' }; }); },
+        getUser: function(){ requirePoolAuditSession(); const u = currentUser() || {}; return { id:u.id || '', name:u.name || u.email || '' }; },
+        syncState: function(){ return !navigator.onLine || localStorage.getItem('poolshed:v172:pendingSync') === '1' ? 'device' : 'shared'; },
+        save: function(record){
+          requirePoolAuditSession();
+          if (!canAccessTab('audits')) throw Error('You do not have audit access.');
+          if (!record || !record.id || !record.customerId || !(data.customers || []).some(function(c){ return c.id === record.customerId; })) throw Error('Select a valid customer before saving an audit.');
+          const rows = data.poolAudits = Array.isArray(data.poolAudits) ? data.poolAudits : [];
+          const index = rows.findIndex(function(a){ return a.id === record.id; });
+          if (index >= 0 && rows[index].customerId !== record.customerId) throw Error('An audit cannot be moved to another customer.');
+          const operation = index >= 0 ? 'edit' : 'create';
+          if (window.PoolShedSettingsPermissions && !window.PoolShedSettingsPermissions.can('audits', operation, currentUser())) throw Error('You do not have permission to ' + operation + ' audits.');
+          const clean = JSON.parse(JSON.stringify(record));
+          clean.updatedBy = { id: currentUser().id, name: currentUser().name || currentUser().email || '' };
+          if (JSON.stringify(clean).length > 500000) throw Error('Audit contains embedded media. Upload photos to the secure customer library first.');
+          if (window.PoolShedAudit && (index < 0 || rows[index].status !== clean.status)) {
+            window.PoolShedAudit.record({
+              action: index < 0 ? 'Commercial audit created' : 'Commercial audit status changed',
+              category: 'Operational', module: 'audits',
+              record: { type: 'pool-audit', id: clean.id, label: clean.metadata && clean.metadata['site-name'] || clean.id },
+              before: index < 0 ? null : { status: rows[index].status },
+              after: { customerId: clean.customerId, status: clean.status },
+              reason: 'Customer-linked site visit'
+            });
+          }
+          if (index >= 0) rows[index] = clean; else rows.unshift(clean);
+          if (saveAppData() === false || workspaceLocalSaveFailed) throw Error('Pool Shed could not save this audit locally.');
+          return true;
+        }
+      };
+      function renderCommercialAudits() {
+        const screen = document.getElementById('screen-audits');
+        if (!screen) return;
+        const params = new URLSearchParams();
+        if (poolAuditRoute.customerId) params.set('customer', poolAuditRoute.customerId);
+        if (poolAuditRoute.auditId) params.set('audit', poolAuditRoute.auditId);
+        if (poolAuditRoute.newAudit) params.set('new', poolAuditRoute.newAudit);
+        const src = './commercial-audits/index.html' + (params.toString() ? '?' + params.toString() : '');
+        const frame = screen.querySelector('iframe[data-commercial-audits]');
+        if (frame && frame.getAttribute('src') === src) return;
+        screen.innerHTML = '<div class="pool-audit-embed"><iframe data-commercial-audits title="Pool Bros commercial audit studio" src="' + escapeHtml(src) + '" loading="eager"></iframe></div>';
+      }
+      function openCommercialAudit(customerId, auditId, newAudit) {
+        if (!canAccessTab('audits')) return toast('You do not have permission to open Pool Audits.');
+        poolAuditRoute = { customerId: customerId || '', auditId: auditId || '', newAudit: newAudit ? (window.crypto && window.crypto.randomUUID ? window.crypto.randomUUID() : String(Date.now()) + '-' + Math.random()) : '' };
+        active = 'audits';
+        render();
+      }
+
       function customerMegaProfile(c) {
         const orders = data.salesOrders.filter(function(order) { return order.customerId === c.id; });
         const value = orders.reduce(function(total, order) { return total + salesOrderValue(order); }, 0);
@@ -10403,7 +10474,7 @@ const seed = {
         return '<div class="crm-hero">' +
           '<div class="crm-hero-main"><span class="crm-hero-avatar">' + escapeHtml(initials) + '</span><div class="crm-hero-copy"><h2>' + escapeHtml(c.name) + '</h2><p>' + escapeHtml([c.firstName,c.lastName].filter(Boolean).join(" ") || "No named contact") + ' · ' + escapeHtml(c.code || "No code") + ' · ' + escapeHtml(c.customerType || "Customer") + ' account</p><div class="crm-relationship-meta"><span>Last activity <b>' + lastActivity + '</b></span><span>Owner <b>' + escapeHtml(c.owner || "Office") + '</b></span></div><div class="crm-hero-meta"><span class="crm-pill ' + (healthIssues.length ? 'amber' : 'good') + '">' + healthLabel + ' account</span><span class="crm-pill info">' + Number(c.creditDays||0) + ' day terms</span><span class="crm-pill info">' + escapeHtml(String(c.priceList||"rrp").toUpperCase()) + '</span></div></div>' +
           '<div class="crm-hero-actions"><button class="secondary" data-crm-add-note="' + c.id + '">Add note</button><button class="secondary" data-crm-new-project="' + c.id + '">New job / project</button><button class="secondary" data-create-quote-customer="' + c.id + '">New quote</button><button data-create-sales-order-customer="' + c.id + '">New order</button><button class="secondary" data-crm-edit="' + c.id + '|account">Edit</button></div></div>' +
-          '<nav class="crm-profile-tabs" aria-label="Customer workspace"><button class="active" data-crm-profile-tab="overview">Overview</button><button data-crm-profile-tab="orders">Orders <i>' + orders.length + '</i></button><button data-crm-profile-tab="projects">Jobs &amp; Projects <i>' + jobs.length + '</i></button><button data-crm-profile-tab="people">People <i>' + peopleCount + '</i></button><button data-crm-profile-tab="locations">Locations <i>' + locationCount + '</i></button><button data-crm-profile-tab="finance">Finance</button><button data-crm-profile-tab="files">Files <i>' + (Array.isArray(c.mediaAttachments)?c.mediaAttachments.length:0) + '</i></button><button data-crm-profile-tab="history">History</button></nav>' +
+          '<nav class="crm-profile-tabs" aria-label="Customer workspace"><button class="active" data-crm-profile-tab="overview">Overview</button><button data-crm-profile-tab="orders">Orders <i>' + orders.length + '</i></button><button data-crm-profile-tab="projects">Jobs &amp; Projects <i>' + jobs.length + '</i></button><button data-crm-profile-tab="people">People <i>' + peopleCount + '</i></button><button data-crm-profile-tab="locations">Locations <i>' + locationCount + '</i></button><button data-crm-profile-tab="finance">Finance</button>' + (canAccessTab("audits") ? '<button data-crm-profile-tab="audits">Pool Audits <i>' + (data.poolAudits || []).filter(function(a){return a.customerId===c.id;}).length + '</i></button>' : '') + '<button data-crm-profile-tab="files">Files <i>' + (Array.isArray(c.mediaAttachments)?c.mediaAttachments.length:0) + '</i></button><button data-crm-profile-tab="history">History</button></nav>' +
         '</div>' +
 
         '<div class="crm-profile-page active" data-crm-profile-page="overview">' +
@@ -10453,6 +10524,7 @@ const seed = {
 
         '<div class="crm-profile-page" data-crm-profile-page="finance"><section class="crm-depth-card"><header><div><h3>Finance</h3><p>Pricing, terms, exposure and account controls.</p></div><button data-crm-edit="' + c.id + '|finance">Edit financial settings</button></header><div class="crm-depth-body"><div class="crm-finance-grid"><div class="crm-stat"><span>Credit limit</span><strong>' + money(Number(c.creditLimit||0)) + '</strong><small>Account limit</small></div><div class="crm-stat"><span>Discount</span><strong>' + Number(c.discount||0) + '%</strong><small>Customer discount</small></div><div class="crm-stat"><span>Terms</span><strong>' + Number(c.creditDays||0) + ' days</strong><small>' + escapeHtml(c.creditTermType||"Net") + '</small></div><div class="crm-stat"><span>Currency</span><strong>' + escapeHtml(c.currency||"GBP") + '</strong><small>' + escapeHtml(c.taxCode||"T20") + '</small></div></div></div></section></div>' +
 
+        '<div class="crm-profile-page" data-crm-profile-page="audits">' + customerAuditPanel(c) + '</div>' +
         '<div class="crm-profile-page" data-crm-profile-page="files">' + customerFilesPanel(c) + '</div>' +
 
         '<div class="crm-profile-page" data-crm-profile-page="history"><section class="crm-depth-card"><header><div><h3>History</h3><p>One chronological customer record across operational and account activity.</p></div></header><div class="crm-depth-body">' + recentActivity + '</div></section></div>' +
@@ -10679,6 +10751,12 @@ const seed = {
       }
 
       function bindCrm() {
+        document.querySelectorAll('[data-new-pool-audit]').forEach(function(button){
+          button.addEventListener('click', function(){ openCommercialAudit(button.dataset.newPoolAudit, '', true); });
+        });
+        document.querySelectorAll('[data-open-pool-audit]').forEach(function(button){
+          button.addEventListener('click', function(){ openCommercialAudit(button.dataset.auditCustomer, button.dataset.openPoolAudit); });
+        });
         document.querySelectorAll("[data-open-crm-customer]").forEach(function(button) {
           button.addEventListener("click", function() {
             activeSubPage.crm = "All Customers";
@@ -16200,5 +16278,5 @@ const seed = {
       window.addEventListener("load", function() {
         updateOfflineStatus();
         syncPendingOfflineData();
-        if ("serviceWorker" in navigator && location.protocol !== "file:") navigator.serviceWorker.register("./service-worker.js?v=1.45.1", { updateViaCache:"none" }).catch(function() {});
+        if ("serviceWorker" in navigator && location.protocol !== "file:") navigator.serviceWorker.register("./service-worker.js?v=1.46.0", { updateViaCache:"none" }).catch(function() {});
       });
