@@ -320,6 +320,7 @@ const seed = {
       let sharedWorkspaceReady = false;
       let workspaceBaseSnapshot = null;
       let workspaceLastLocalPayload = "";
+      let workspaceDraftField = null;
       let remoteSaveTimer = null;
       const WORKSPACE_LOCALSTORAGE_SAFE_CHARS = 1750000;
       let workspaceRealtimeChannel = null;
@@ -1285,14 +1286,19 @@ const seed = {
           return true;
         } catch (error) {
           console.warn("Secure shared workspace save failed", error);
+          updateOfflineStatus();
           if (force) toast("Saved locally. Shared upload did not complete, so nothing on the server was overwritten.");
           return false;
-        } finally { workspaceSaveInFlight = false; }
+        } finally {
+          workspaceSaveInFlight = false;
+          updateOfflineStatus();
+        }
       }
 
       async function refreshSharedWorkspaceFromRemote(options) {
         const opts = options || {};
         if (localStorage.getItem("poolshed:v172:recoveryHold") === "1") return false;
+        if (workspaceFieldIsBeingEdited()) return false;
         if (!supabaseClient || !supabaseSession || !navigator.onLine || workspaceSaveInFlight) return false;
         if (localStorage.getItem("poolshed:v172:pendingSync") === "1") return false;
         try {
@@ -1337,7 +1343,7 @@ const seed = {
             }, function(payload) {
               const row = payload && payload.new;
               if (!row || !row.data || row.updated_at === remoteWorkspaceUpdatedAt) return;
-              if (localStorage.getItem("poolshed:v172:pendingSync") === "1" || workspaceSaveInFlight) return;
+              if (localStorage.getItem("poolshed:v172:pendingSync") === "1" || workspaceSaveInFlight || workspaceFieldIsBeingEdited()) return;
               applyRemoteWorkspaceSnapshot(row, true).catch(function(error) {
                 console.warn("Realtime shared workspace refresh failed", error);
               });
@@ -1362,7 +1368,8 @@ const seed = {
         for (let i = 0; i < 80 && workspaceSaveInFlight; i += 1) {
           await new Promise(function(resolve) { setTimeout(resolve, 50); });
         }
-        const saved = await saveRemoteWorkspace(true);
+        if (localStorage.getItem("poolshed:v172:pendingSync") !== "1") return true;
+        const saved = await saveRemoteWorkspace(Boolean(label));
         if (saved && label) toast(label + " · shared workspace saved for all users.");
         return saved;
       }
@@ -1370,6 +1377,7 @@ const seed = {
       function saveAppData() {
         data = normalizeAppData(data);
         const payload = JSON.stringify(data);
+        workspaceDraftField = null;
         workspaceLastLocalPayload = payload;
         workspaceLocalRevisionCounter += 1;
         try { localStorage.setItem("poolshed:v172:localRevision", String(workspaceLocalRevisionCounter)); } catch (error) { void error; }
@@ -1424,14 +1432,27 @@ const seed = {
         return false;
       }
 
+      function workspaceFieldIsBeingEdited() {
+        if (workspaceDraftField && !workspaceDraftField.isConnected) workspaceDraftField = null;
+        if (workspaceDraftField) return true;
+        const field = document.activeElement;
+        return !!(field && field.matches && field.matches('[data-crm-field], [data-crm-address], [data-product-field], [data-product-number-field], [data-order-field], [data-order-address], [data-line-field], [data-line-select-field], [data-po-field], [data-po-line-qty], [data-credit-location]')) ||
+          !!(active === "audits" && field && field.tagName === "IFRAME");
+      }
+
       function updateOfflineStatus() {
         const el = document.getElementById("offlineStatus");
         if (!el) return;
         const pending = localStorage.getItem("poolshed:v172:pendingSync") === "1";
-        if (workspaceLocalSaveFailed) { el.textContent = "Local save failed · keep this page open"; return; }
-        if (localStorage.getItem("poolshed:v172:recoveryHold") === "1") { el.textContent = "Recovery mode · shared sync paused"; return; }
-        if (workspaceSyncConflict) { el.textContent = "Sync conflict · local changes kept"; return; }
-        el.textContent = navigator.onLine ? (pending ? "Online · awaiting upload" : "Online · saved") : "Offline · changes saved";
+        if (workspaceLocalSaveFailed) { el.dataset.state = "error"; el.textContent = "Device save failed"; el.title = "Keep this page open. The local backup could not be written."; return; }
+        if (localStorage.getItem("poolshed:v172:recoveryHold") === "1") { el.dataset.state = "error"; el.textContent = "Recovery mode"; el.title = "Shared sync is paused until Recovery is resolved."; return; }
+        if (workspaceSyncConflict) { el.dataset.state = "error"; el.textContent = "Sync needs review"; el.title = "Local changes are protected, but the shared save needs attention."; return; }
+        if (workspaceDraftField && workspaceDraftField.isConnected) { el.dataset.state = "pending"; el.textContent = "Unsaved field changes"; el.title = "Finish editing this field to save it."; return; }
+        if (!navigator.onLine) { el.dataset.state = "pending"; el.textContent = pending ? "Saved on this device" : "Offline"; el.title = pending ? "Changes will upload when Pool Shed reconnects." : "Pool Shed is offline."; return; }
+        if (!sharedWorkspaceReady || !supabaseSession) { el.dataset.state = "connecting"; el.textContent = "Connecting to team"; el.title = "Pool Shed is opening the shared workspace."; return; }
+        el.dataset.state = pending || workspaceSaveInFlight ? "pending" : "shared";
+        el.textContent = pending || workspaceSaveInFlight ? "Sharing changes…" : "Saved for team";
+        el.title = pending || workspaceSaveInFlight ? "Saved on this device and awaiting confirmation from the shared workspace." : "The shared workspace has confirmed these changes.";
       }
 
       async function syncPendingOfflineData() {
@@ -2656,7 +2677,7 @@ const seed = {
           : effectiveMode === "mfa"
             ? '<button class="ps-login-link" type="button" data-login-cancel-mfa>Use a different account</button><span>Authenticator verification</span>'
             : effectiveMode === "denied" || effectiveMode === "workspace" ? '<span></span>' : '<button class="ps-login-link" type="button" data-login-mode="login">Back to sign in</button><span></span>';
-        screen.innerHTML = '<main class="ps-login-stage"><section class="ps-login-shell"><aside class="ps-login-brand"><div><div class="ps-login-lockup"><span class="ps-login-logo"><img src="' + DEFAULT_POOL_BROS_LOGO + '" alt="Pool Bros logo"></span><div><span class="ps-login-kicker">Pool Bros</span><strong>THE POOL SHED</strong></div></div><div class="ps-login-hero"><span class="ps-login-kicker">Operations Command System</span><h1>One secure place to <span>run the operation.</span></h1><p>Secure access to the Pool Bros operations workspace. Sign in to continue to your authorised tools, tasks and information.</p></div></div><div class="ps-login-staff-note"><strong>Pool Bros staff access</strong><span>Your workspace and available tools are tailored to your account after sign-in.</span></div></aside><section class="ps-login-auth"><div class="ps-login-card"><div class="ps-login-card-head"><span class="ps-login-kicker">' + escapeHtml(meta.eyebrow) + '</span><h2>' + escapeHtml(meta.heading) + '</h2><p>' + escapeHtml(meta.intro) + '</p></div><form id="loginForm">' + fields + '<div id="loginMessage" class="ps-login-message' + (good ? ' good' : '') + '">' + escapeHtml(message || '') + '</div></form><div class="ps-login-helper">' + helper + '</div></div></section></section><footer class="ps-login-footer">Pool Shed v1.46.1 · Pool Bros Ltd</footer></main>';
+        screen.innerHTML = '<main class="ps-login-stage"><section class="ps-login-shell"><aside class="ps-login-brand"><div><div class="ps-login-lockup"><span class="ps-login-logo"><img src="' + DEFAULT_POOL_BROS_LOGO + '" alt="Pool Bros logo"></span><div><span class="ps-login-kicker">Pool Bros</span><strong>THE POOL SHED</strong></div></div><div class="ps-login-hero"><span class="ps-login-kicker">Operations Command System</span><h1>One secure place to <span>run the operation.</span></h1><p>Secure access to the Pool Bros operations workspace. Sign in to continue to your authorised tools, tasks and information.</p></div></div><div class="ps-login-staff-note"><strong>Pool Bros staff access</strong><span>Your workspace and available tools are tailored to your account after sign-in.</span></div></aside><section class="ps-login-auth"><div class="ps-login-card"><div class="ps-login-card-head"><span class="ps-login-kicker">' + escapeHtml(meta.eyebrow) + '</span><h2>' + escapeHtml(meta.heading) + '</h2><p>' + escapeHtml(meta.intro) + '</p></div><form id="loginForm">' + fields + '<div id="loginMessage" class="ps-login-message' + (good ? ' good' : '') + '">' + escapeHtml(message || '') + '</div></form><div class="ps-login-helper">' + helper + '</div></div></section></section><footer class="ps-login-footer">Pool Shed v1.46.2 · Pool Bros Ltd</footer></main>';
         bindLoginScreen(effectiveMode);
       }
 
@@ -2955,6 +2976,7 @@ const seed = {
         } catch (error) {
           renderPageError(error);
         }
+        updateOfflineStatus();
         if (isAuthenticated && sharedWorkspaceReady && localStorage.getItem("poolshed:v172:recoveryHold") !== "1") {
           try {
             const currentPayload = JSON.stringify(data);
@@ -7504,7 +7526,7 @@ const seed = {
           select.addEventListener("change", function() {
             const credit = salesCredit(select.dataset.creditLocation);
             credit.restockLocationId = select.value;
-            toast(credit.id + " return location updated.");
+            saveAppData();
             render();
           });
         });
@@ -7539,10 +7561,7 @@ const seed = {
             }
             saveAppData();
             render();
-            const label = field.dataset.field === "status" ? (order.id + " status " + field.value) : (order.id + " update");
-            if (!await flushSharedWorkspaceSave(label)) {
-              toast(label + " is saved locally and still waiting for the shared workspace.");
-            }
+            await flushSharedWorkspaceSave("");
           });
         });
 
@@ -7595,7 +7614,7 @@ const seed = {
             const order = salesOrder(field.dataset.orderAddress);
             const c = customer(order.customerId);
             c.addresses[field.dataset.addressType] = field.value;
-            toast("Customer address updated for " + c.name + ".");
+            saveAppData();
             render();
           });
         });
@@ -10587,7 +10606,7 @@ const seed = {
           '<section class="crm-edit-page" data-crm-edit-page="finance"><h3>Pricing &amp; terms</h3><p class="muted">Commercial defaults used by sales orders and account controls.</p><div class="form-grid two"><label>Price group<select data-crm-field="'+c.id+'|priceList">'+optionList(["rrp","trade","wholesale"],c.priceList)+'</select></label>' + crmField(c,"discount","Discount %","number") + crmField(c,"creditLimit","Credit limit","number") + crmField(c,"creditDays","Credit days","number") + '<label>Credit term type<select data-crm-field="'+c.id+'|creditTermType">'+optionList(["Net","Net EOM"],c.creditTermType)+'</select></label>' + crmField(c,"nominalCode","Nominal code") + crmField(c,"taxCode","Tax code") + '<label>Currency<select data-crm-field="'+c.id+'|currency">'+optionList(["GBP","EUR","USD"],c.currency)+'</select></label></div></section>' +
           '<section class="crm-edit-page" data-crm-edit-page="site"><h3>Site & access</h3><p class="muted">Operational notes for delivery, jobs and engineers.</p><label>Delivery / access instructions<textarea data-crm-field="'+c.id+'|customFields.siteNotes">'+escapeHtml((c.customFields&&c.customFields.siteNotes)||"")+'</textarea></label><div class="form-grid two"><label>Preferred engineer<input data-crm-field="'+c.id+'|customFields.preferredEngineer" value="'+escapeHtml((c.customFields&&c.customFields.preferredEngineer)||"")+'"></label><label>Service plan<input data-crm-field="'+c.id+'|customFields.servicePlan" value="'+escapeHtml((c.customFields&&c.customFields.servicePlan)||"")+'"></label></div></section>' +
           '<section class="crm-edit-page" data-crm-edit-page="admin"><h3>References & admin</h3><p class="muted">External-system references and internal controls.</p><div class="form-grid two">' + crmField(c,"brightpearlContactId","Brightpearl contact ID") + crmField(c,"xeroContactId","Xero contact ID") + crmField(c,"leadSource","Lead source") + crmField(c,"website","Website") + '</div></section>' +
-        '</div><footer><span class="muted">Saving updates the authoritative customer record and refreshes linked order addresses.</span><button class="secondary" data-crm-edit-close="true">Cancel</button><button data-save-crm-customer="'+c.id+'">Save customer</button></footer></aside>';
+        '</div><footer><span class="muted">Changes save when you leave a field and sync to the team. Pricing changes update eligible open orders.</span><button class="secondary" data-crm-edit-close="true">Close</button><button data-save-crm-customer="'+c.id+'">Done</button></footer></aside>';
       }
 
       function customerCreateProfile() {
@@ -10831,7 +10850,9 @@ const seed = {
         });
         document.querySelectorAll("[data-save-crm-customer]").forEach(function(button) {
           button.addEventListener("click", function() {
-            saveCrmCustomer(button.dataset.saveCrmCustomer);
+            if (crmEditorDirty && !saveCrmCustomer(button.dataset.saveCrmCustomer, { quiet: true })) return;
+            closeCrmEditor(true);
+            render();
           });
         });
         document.querySelectorAll("[data-create-crm-profile]").forEach(function(button) {
@@ -10922,6 +10943,7 @@ const seed = {
           });
         });
         let crmEditorDirty = false;
+        let crmSaveRevision = 0;
         function setCrmEditorDirty(value) {
           crmEditorDirty = !!value;
           const status = document.querySelector("[data-crm-edit-status]");
@@ -10952,7 +10974,18 @@ const seed = {
         });
         document.querySelectorAll(".crm-edit-drawer [data-crm-field], .crm-edit-drawer [data-crm-address]").forEach(function(field) {
           field.addEventListener("input", function() { setCrmEditorDirty(true); });
-          field.addEventListener("change", function() { setCrmEditorDirty(true); });
+          field.addEventListener("change", function() {
+            setCrmEditorDirty(true);
+            const customerId = String(field.dataset.crmField || field.dataset.crmAddress || "").split("|")[0];
+            if (!customerId || customerId === "__new" || !saveCrmCustomer(customerId, { quiet: true })) return;
+            const revision = ++crmSaveRevision;
+            setCrmEditorDirty(false);
+            const status = document.querySelector("[data-crm-edit-status]");
+            if (status) status.textContent = "Saved on this device · sharing with team";
+            flushSharedWorkspaceSave("").then(function(shared) {
+              if (status && status.isConnected && revision === crmSaveRevision && !crmEditorDirty) status.textContent = shared ? "Saved for team" : "Saved on this device · team sync pending";
+            });
+          });
         });
         document.querySelectorAll("[data-crm-edit-tab]").forEach(function(button) {
           button.addEventListener("click", function() {
@@ -11086,9 +11119,10 @@ const seed = {
         toast("Customer details look ready. Use Save customer when complete.");
       }
 
-      function saveCrmCustomer(customerId) {
+      function saveCrmCustomer(customerId, options) {
         const c = customer(customerId);
-        if (!c) return toast("Customer record not found.");
+        if (!c) { toast("Customer record not found."); return false; }
+        const quiet = !!(options && options.quiet);
         const previousPriceList = String(c.priceList || "rrp");
         const previousDiscount = normaliseSalesOrderDiscountRate(c.discount);
         const scope = document.querySelector(".crm-edit-drawer") || document;
@@ -11114,20 +11148,22 @@ const seed = {
           candidate.addresses[type][key] = field.value;
         });
         const hasName = Boolean(String(candidate.companyName || "").trim() || String(candidate.firstName || "").trim() || String(candidate.lastName || "").trim());
-        if (!hasName) return toast("Keep a company name or customer person name before saving.");
+        if (!hasName) { toast("Keep a company name or customer person name before saving."); return false; }
         const hasLookup = Boolean(String(candidate.email || "").trim() || String(candidate.phone || "").trim() || String(candidate.mobile || "").trim() || String(candidate.code || "").trim() || String(candidate.brightpearlContactId || "").trim());
-        if (!hasLookup) return toast("Keep at least one email, phone, mobile, customer code or Contact ID so the customer remains searchable.");
+        if (!hasLookup) { toast("Keep at least one email, phone, mobile, customer code or Contact ID so the customer remains searchable."); return false; }
         const duplicateEmail = String(candidate.email || "").trim().toLowerCase();
         if (duplicateEmail && data.customers.some(function(other) { return other.id !== customerId && String(other.email || "").trim().toLowerCase() === duplicateEmail; })) {
-          return toast("Another customer already uses that primary email. Review the record before saving.");
+          toast("Another customer already uses that primary email. Review the record before saving.");
+          return false;
         }
         candidate.name = candidate.companyName || [candidate.firstName, candidate.lastName].filter(Boolean).join(" ") || candidate.email || candidate.code;
+        const addressChanged = JSON.stringify(candidate.addresses) !== JSON.stringify(c.addresses || {});
         candidate.matrix.brightpearl = candidate.brightpearlContactId ? "Linked" : "Missing";
         candidate.matrix.shopify = candidate.shopifyCustomerId ? "Linked" : "Not linked";
         candidate.matrix.xero = candidate.xeroContactId ? "Linked" : "Missing";
         Object.keys(c).forEach(function(key) { if (!(key in candidate)) delete c[key]; });
         Object.assign(c, candidate);
-        syncCustomerMasterAddressToOrders(c.id);
+        if (!quiet || addressChanged) syncCustomerMasterAddressToOrders(c.id);
 
         const nextPriceList = String(c.priceList || "rrp");
         const nextDiscount = normaliseSalesOrderDiscountRate(c.discount);
@@ -11151,8 +11187,11 @@ const seed = {
         }
 
         saveAppData();
-        toast(c.name + " profile saved" + (updatedOrders ? " and " + updatedOrders + " open Sales Order" + (updatedOrders === 1 ? "" : "s") + " repriced from the CRM profile." : " and linked order addresses refreshed."));
-        render();
+        if (!quiet) {
+          toast(c.name + " profile saved" + (updatedOrders ? " and " + updatedOrders + " open Sales Order" + (updatedOrders === 1 ? "" : "s") + " repriced from the CRM profile." : " and linked order addresses refreshed."));
+          render();
+        }
+        return true;
       }
 
       function applyCustomerToSalesOrder(orderId, rawValue) {
@@ -13784,7 +13823,6 @@ const seed = {
             if (!po) return;
             po[parts[1]] = field.value;
             saveAppData();
-            toast(po.id + " updated.");
             render();
           });
         });
@@ -13809,7 +13847,6 @@ const seed = {
             if (!line) return;
             line.qty = Math.max(Number(line.received || 0), Math.floor(Number(input.value || 0)));
             saveAppData();
-            toast(po.id + " line updated.");
             render();
           });
         });
@@ -16311,6 +16348,13 @@ const seed = {
         toast(label + " is not available on this screen yet.");
       });
 
+      document.addEventListener("input", function(event) {
+        const field = event.target;
+        if (!field || !field.matches || !field.matches('[data-crm-field], [data-crm-address], [data-product-field], [data-product-number-field], [data-order-field], [data-order-address], [data-line-field], [data-line-select-field], [data-po-field], [data-po-line-qty], [data-credit-location]')) return;
+        workspaceDraftField = field;
+        updateOfflineStatus();
+      }, true);
+
       bootApp();
     
       window.addEventListener("online", function() {
@@ -16329,5 +16373,5 @@ const seed = {
       window.addEventListener("load", function() {
         updateOfflineStatus();
         syncPendingOfflineData();
-        if ("serviceWorker" in navigator && location.protocol !== "file:") navigator.serviceWorker.register("./service-worker.js?v=1.46.1", { updateViaCache:"none" }).catch(function() {});
+        if ("serviceWorker" in navigator && location.protocol !== "file:") navigator.serviceWorker.register("./service-worker.js?v=1.46.2", { updateViaCache:"none" }).catch(function() {});
       });

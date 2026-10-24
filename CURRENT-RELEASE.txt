@@ -1,7 +1,7 @@
-Pool Shed v1.46.1 - CRM-linked commercial audit organisations
+Pool Shed v1.46.2 - quiet shared workspace saving
 
-Organisation Name in Pool Audits selects an existing CRM customer profile. The selected customer ID determines which profile owns the audit, and the CRM company name is used in the saved report.
+Existing CRM customer details save when staff leave a field. Routine audit, customer, product, sales-order and purchase-order edits use the shared workspace save path without repeated success popups.
 
-An empty draft can be linked to another customer profile from the survey. Once findings, assets, actions or evidence have been captured, its customer link is locked to protect the audit history and customer-owned media. Start a new audit for another customer instead.
+The header shows whether changes are saved for the team, still sharing, saved only on this device, or need attention. Incoming workspace refreshes wait while a staff member is editing a supported record field, preventing an unfinished entry from being replaced on screen.
 
-Existing customer and audit records remain intact. No database migration or data reset is required.
+New customer creation and operational approval or finalisation actions retain their explicit validation and confirmation steps. Existing records, customer links and recovery data remain intact.
