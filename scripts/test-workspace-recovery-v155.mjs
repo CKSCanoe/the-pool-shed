@@ -6,7 +6,7 @@ const html=fs.readFileSync('public/recovery.html','utf8');
 const js=fs.readFileSync('public/recovery.js','utf8');
 
 assert(app.includes('poolshed:v172:recoveryHold'),'main app must recognise recovery hold mode');
-assert(app.includes('Recovery mode · shared sync paused'),'recovery mode must be visible');
+assert(app.includes('el.textContent = "Recovery mode"') && app.includes('Shared sync is paused until Recovery is resolved.'),'recovery mode must be visible in the persistent save indicator');
 assert(js.includes("poolshed:v172:recovery:"),'scanner must inspect automatic recovery copies');
 assert(js.includes("poolshed:v171:appData"),'scanner must inspect older browser copies');
 assert(js.includes("pool-shed-live-v1.8"),'scanner must inspect IndexedDB offline snapshot');

@@ -124,10 +124,7 @@
   async function flushShared(label,notifySuccess){
     if(flushPromise)return flushPromise;
     flushPromise=(async()=>{
-      if(!pending()){
-        if(notifySuccess&&label)toastMessage(label+' saved for everyone.');
-        return true;
-      }
+      if(!pending())return true;
       if(!navigator.onLine)return false;
       for(let attempt=0;attempt<3;attempt+=1){
         try{
@@ -136,7 +133,6 @@
           if(ok&&!pending()){
             try{localStorage.setItem(LAST_CONFIRMED_KEY,new Date().toISOString());}catch(_){}
             warned=false;
-            if(notifySuccess&&label)toastMessage(label+' saved for everyone.');
             return true;
           }
         }catch(error){console.warn('One-truth shared save retry failed',error);}

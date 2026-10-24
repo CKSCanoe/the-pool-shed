@@ -16,7 +16,7 @@ const handlerEnd=src.indexOf('        document.querySelectorAll("[data-apply-ord
 assert(handlerStart>0&&handlerEnd>handlerStart,'Sales Order field handler not found');
 const statusHandler=src.slice(handlerStart,handlerEnd);
 assert.match(statusHandler,/saveAppData\(\)/,'Sales Order status changes must save locally');
-assert.match(statusHandler,/flushSharedWorkspaceSave\(label\)/,'Sales Order status changes must confirm the shared save');
+assert.match(statusHandler,/flushSharedWorkspaceSave\(""\)/,'Sales Order fields must confirm the shared save without a success popup');
 assert.match(statusHandler,/statusUpdatedBy/,'Sales Order status changes must record who made the change');
 assert.match(statusHandler,/statusUpdatedAt/,'Sales Order status changes must record when it changed');
 

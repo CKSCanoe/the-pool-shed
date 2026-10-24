@@ -36,6 +36,11 @@ p {line-height:1.5;}
 
 .top-actions {width:min(480px,44%);min-width:280px;gap:10px;}
 .top-utility-row {gap:8px;justify-content:flex-end;}
+.workspace-save-status{display:inline-flex;align-items:center;gap:7px;max-width:190px;padding:7px 10px;border:1px solid var(--color-border-default);border-radius:999px;background:var(--color-surface-default);color:var(--color-text-secondary);font-size:12px;font-weight:700;line-height:1.2;white-space:nowrap}
+.workspace-save-status::before{content:"";flex:none;width:7px;height:7px;border-radius:50%;background:#a3adb5}
+.workspace-save-status[data-state="shared"]::before{background:#27825b}
+.workspace-save-status[data-state="pending"]::before{background:#c07a20}
+.workspace-save-status[data-state="error"]::before{background:#b9474f}
 .screen.grid {gap:var(--workspace-gap)!important;align-items:start;}
 
 

@@ -21,6 +21,8 @@ run_node_stage() {
 run_node_stage "workspace and sales safety" \
   test-workspace-audit-v1451.mjs \
   test-commercial-audits-v146.mjs \
+  test-quiet-shared-autosave-v1462.mjs \
+  test-workspace-sync.mjs \
   test-fast-cold-start-v145.mjs \
   test-large-workspace-persistence-v1452.mjs \
   test-sales-order-safety-hotfix.mjs \
