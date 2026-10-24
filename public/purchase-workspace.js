@@ -1063,7 +1063,7 @@
   function poSalesOrderLinks(po) {
     const rows=(po.lines||[]).map(function(line,index){
       const linked=String(line.salesOrderId||po.originalSalesOrderId||''),product=poLineProduct(line)||{};
-      const orders=(data.salesOrders||[]).filter(function(order){return !order.projectId&&(order.lines||[]).some(function(item){return String(item.productId||'')===String(line.productId||'');});});
+      const orders=(data.salesOrders||[]).filter(function(order){const job=(data.jobs||[]).find(function(item){return item.id===order.jobId;});return !order.projectId&&!(job&&job.project)&&(order.lines||[]).some(function(item){return String(item.productId||'')===String(line.productId||'');});});
       const options=orders.map(function(order){return '<option value="'+poEsc(order.id)+'"'+(linked===String(order.id)?' selected':'')+'>'+poEsc(order.id+' · '+(order.customerName||order.customerId||'Customer'))+'</option>';}).join('');
       return '<tr><td><strong>'+poEsc(product.sku||line.productId||'Custom line')+'</strong><small>'+poEsc(product.name||line.customProductName||'')+'</small></td><td>'+Number(line.qty||0)+'</td><td><label class="po-so-link-field"><span class="sr-only">Linked Sales Order for '+poEsc(product.sku||line.productId||'PO line')+'</span><select data-po-link-sales-order="'+poEsc(po.id)+'|'+index+'"><option value="">'+(po.originalSalesOrderId?'Original Sales Order':'Not linked')+'</option>'+options+'</select></label></td><td>'+poMoney(Number(line.qty||0)*poLineCost(line))+' net</td></tr>';
     }).join('');
