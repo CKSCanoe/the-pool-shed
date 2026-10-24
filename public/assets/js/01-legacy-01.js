@@ -2677,7 +2677,7 @@ const seed = {
           : effectiveMode === "mfa"
             ? '<button class="ps-login-link" type="button" data-login-cancel-mfa>Use a different account</button><span>Authenticator verification</span>'
             : effectiveMode === "denied" || effectiveMode === "workspace" ? '<span></span>' : '<button class="ps-login-link" type="button" data-login-mode="login">Back to sign in</button><span></span>';
-        screen.innerHTML = '<main class="ps-login-stage"><section class="ps-login-shell"><aside class="ps-login-brand"><div><div class="ps-login-lockup"><span class="ps-login-logo"><img src="' + DEFAULT_POOL_BROS_LOGO + '" alt="Pool Bros logo"></span><div><span class="ps-login-kicker">Pool Bros</span><strong>THE POOL SHED</strong></div></div><div class="ps-login-hero"><span class="ps-login-kicker">Operations Command System</span><h1>One secure place to <span>run the operation.</span></h1><p>Secure access to the Pool Bros operations workspace. Sign in to continue to your authorised tools, tasks and information.</p></div></div><div class="ps-login-staff-note"><strong>Pool Bros staff access</strong><span>Your workspace and available tools are tailored to your account after sign-in.</span></div></aside><section class="ps-login-auth"><div class="ps-login-card"><div class="ps-login-card-head"><span class="ps-login-kicker">' + escapeHtml(meta.eyebrow) + '</span><h2>' + escapeHtml(meta.heading) + '</h2><p>' + escapeHtml(meta.intro) + '</p></div><form id="loginForm">' + fields + '<div id="loginMessage" class="ps-login-message' + (good ? ' good' : '') + '">' + escapeHtml(message || '') + '</div></form><div class="ps-login-helper">' + helper + '</div></div></section></section><footer class="ps-login-footer">Pool Shed v1.46.2 · Pool Bros Ltd</footer></main>';
+        screen.innerHTML = '<main class="ps-login-stage"><section class="ps-login-shell"><aside class="ps-login-brand"><div><div class="ps-login-lockup"><span class="ps-login-logo"><img src="' + DEFAULT_POOL_BROS_LOGO + '" alt="Pool Bros logo"></span><div><span class="ps-login-kicker">Pool Bros</span><strong>THE POOL SHED</strong></div></div><div class="ps-login-hero"><span class="ps-login-kicker">Operations Command System</span><h1>One secure place to <span>run the operation.</span></h1><p>Secure access to the Pool Bros operations workspace. Sign in to continue to your authorised tools, tasks and information.</p></div></div><div class="ps-login-staff-note"><strong>Pool Bros staff access</strong><span>Your workspace and available tools are tailored to your account after sign-in.</span></div></aside><section class="ps-login-auth"><div class="ps-login-card"><div class="ps-login-card-head"><span class="ps-login-kicker">' + escapeHtml(meta.eyebrow) + '</span><h2>' + escapeHtml(meta.heading) + '</h2><p>' + escapeHtml(meta.intro) + '</p></div><form id="loginForm">' + fields + '<div id="loginMessage" class="ps-login-message' + (good ? ' good' : '') + '">' + escapeHtml(message || '') + '</div></form><div class="ps-login-helper">' + helper + '</div></div></section></section><footer class="ps-login-footer">Pool Shed v1.47.0 · Pool Bros Ltd</footer></main>';
         bindLoginScreen(effectiveMode);
       }
 
@@ -14025,14 +14025,18 @@ const seed = {
         if (amount <= 0) return toast("Enter a supplier payment above zero.");
         if (!/^\d{4}-\d{2}-\d{2}$/.test(paymentDate)) return toast("Choose a valid payment date.");
         if (paymentDate > today) return toast("Supplier payment date cannot be in the future.");
+        const paymentReference = String(values.reference || "").trim();
+        const paymentTerms = window.PoolShedFinanceCommand && window.PoolShedFinanceCommand.supplierTerms(po);
+        if (paymentTerms && paymentTerms.type === "Pro Forma" && !paymentReference) return toast("A bank or card reference is required before recording a proforma supplier payment.");
         const before = purchaseOrderFinancials(po);
+        if ((po.payments || []).some(function(payment){ return paymentReference && String(payment.reference || "").trim().toLowerCase() === paymentReference.toLowerCase() && Number(payment.amount) === amount && payment.date === paymentDate; })) return toast("This supplier payment reference, date and amount is already recorded on the PO.");
         if (before.balance > 0 && amount > before.balance + 0.005 && !confirm("This payment is " + money(amount - before.balance) + " more than the current PO balance. Record it anyway?")) return;
         po.payments = Array.isArray(po.payments) ? po.payments : [];
         po.payments.push({
           id:"POPAY-" + String(po.id || "PO").replace(/[^A-Za-z0-9_-]/g, "") + "-" + Date.now(),
           amount:amount,
           type:values.type || "BACS",
-          reference:String(values.reference || "").trim(),
+          reference:paymentReference,
           date:paymentDate,
           recordedAt:new Date().toISOString(),
           recordedBy:(currentUser && currentUser().name) || "Current user"
@@ -16373,5 +16377,5 @@ const seed = {
       window.addEventListener("load", function() {
         updateOfflineStatus();
         syncPendingOfflineData();
-        if ("serviceWorker" in navigator && location.protocol !== "file:") navigator.serviceWorker.register("./service-worker.js?v=1.46.2", { updateViaCache:"none" }).catch(function() {});
+        if ("serviceWorker" in navigator && location.protocol !== "file:") navigator.serviceWorker.register("./service-worker.js?v=1.47.0", { updateViaCache:"none" }).catch(function() {});
       });

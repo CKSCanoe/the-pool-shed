@@ -28,6 +28,12 @@
   function allDocuments(){return arr(finance().documents);}
   function documentForSource(sourceId,kind){return allDocuments().find(function(d){return d&&d.source_id===sourceId&&(!kind||d.kind===kind);})||null;}
   function docDueDate(doc){return isoDate(doc&&doc.remote&&(doc.remote.DueDate||doc.remote.DueDateString))||isoDate(doc&&doc.due_date)||'';}
+  function poDueDate(po){
+    if(isoDate(po&&po.supplierInvoiceDueDate))return isoDate(po.supplierInvoiceDueDate);
+    var invoice=isoDate(po&&po.supplierInvoiceDate),terms=supplierTerms(po).label,match=terms.match(/(?:net\s*)?(\d{1,3})\s*(?:days?|day)?\s*(?:from invoice|after invoice)?$/i);
+    if(!invoice||!match||!/(?:net|day)/i.test(terms))return '';
+    var date=new Date(invoice+'T00:00:00Z');date.setUTCDate(date.getUTCDate()+Number(match[1]));return date.toISOString().slice(0,10);
+  }
   function docTotal(doc){if(!doc)return 0;if(doc.remote&&Number.isFinite(Number(doc.remote.Total)))return round(doc.remote.Total);return round(num(doc.amount_due)+num(doc.amount_paid)+num(doc.amount_credited));}
   function dueOutstanding(doc){return Math.max(0,round(doc&&doc.amount_due));}
   function customerOrders(id){return arr(store().salesOrders).filter(function(o){return customerId(o)===id;});}
@@ -81,9 +87,85 @@
   }
   function receivedQty(po,line){var events=arr(store().receiptEvents).filter(function(e){return e.poId===po.id&&(!line.productId||e.productId===line.productId);});if(events.length)return events.reduce(function(s,e){return s+num(e.qty);},0);return num(line.received);}
   function threeWayRows(opts){
-    return arr(store().purchaseOrders).map(function(po){var bill=documentForSource(po.id,'ACCPAY'),ordered=arr(po.lines).reduce(function(s,l){return s+num(l.qty);},0),received=arr(po.lines).reduce(function(s,l){return s+receivedQty(po,l);},0),missing=Math.max(0,round(ordered-received)),credit=resolvedReturnCredit(po),pv=poValue(po),billRaw=bill?docTotal(bill):num(po.supplierInvoiceTotal),remoteCredited=bill?num(bill.amount_credited):0,effectiveCredit=Math.max(credit.net,remoteCredited),bv=Math.max(0,round(billRaw-effectiveCredit)),variance=round(bv-pv),status='Awaiting Bill',reasons=[];
+    return arr(store().purchaseOrders).map(function(po){var bill=documentForSource(po.id,'ACCPAY'),localBill=!bill&&!!text(po.supplierInvoiceRef)&&num(po.supplierInvoiceTotal)>0,ordered=arr(po.lines).reduce(function(s,l){return s+num(l.qty);},0),received=arr(po.lines).reduce(function(s,l){return s+receivedQty(po,l);},0),missing=Math.max(0,round(ordered-received)),credit=resolvedReturnCredit(po),pv=poValue(po),billRaw=bill?docTotal(bill):num(po.supplierInvoiceTotal),remoteCredited=bill?num(bill.amount_credited):0,effectiveCredit=Math.max(credit.net,remoteCredited),bv=Math.max(0,round(billRaw-effectiveCredit)),variance=round(bv-pv),status='Awaiting Bill',reasons=[];
       if(bill){if(missing>0)reasons.push(missing+' unit'+(missing===1?'':'s')+' not received');if(Math.abs(variance)>0.01)reasons.push('bill differs from PO after credits by '+Math.abs(variance).toFixed(2));status=reasons.length?'BLOCK PAYMENT':'Matched';}
-      return {poId:po.id,supplier:text(po.supplier),orderedQty:ordered,receivedQty:received,missingQty:missing,poValue:pv,billValue:bv,creditValue:credit.net,valueVariance:variance,billId:bill&&bill.id,billNumber:bill&&(bill.xero_number||bill.remote?.InvoiceNumber)||po.supplierInvoiceRef||'',amountDue:bill?Math.max(0,round(dueOutstanding(bill)-Math.max(0,credit.gross-num(bill.amount_credited)))):0,dueDate:docDueDate(bill),status:status,reasons:reasons};
+      else if(localBill){if(missing>0)reasons.push(missing+' unit'+(missing===1?'':'s')+' not received');if(Math.abs(variance)>0.01)reasons.push('supplier invoice differs from PO net after credits by '+Math.abs(variance).toFixed(2));if(po.invoiceMatchStatus!=='Matched')reasons.push('invoice match needs review');status=reasons.length?'BLOCK PAYMENT':'Matched';}
+      return {poId:po.id,supplier:text(po.supplier),orderedQty:ordered,receivedQty:received,missingQty:missing,poValue:pv,billValue:bv,creditValue:credit.net,valueVariance:variance,billId:bill&&bill.id||localBill&&po.supplierInvoiceRef,billNumber:bill&&(bill.xero_number||bill.remote?.InvoiceNumber)||po.supplierInvoiceRef||'',amountDue:bill?Math.max(0,round(dueOutstanding(bill)-Math.max(0,credit.gross-num(bill.amount_credited)))):localBill?supplierPaymentPosition(po).amountDue:0,dueDate:docDueDate(bill)||poDueDate(po),status:status,reasons:reasons};
+    });
+  }
+  function supplierTerms(po){
+    var profile=arr(store().suppliers).find(function(s){return text(s.name||s.supplier)===text(po&&po.supplier);})||{};
+    var label=text(profile.accountType||profile.terms||po&&po.paymentTerms);
+    return {type:/pro\s*forma/i.test(label)?'Pro Forma':'On Account',label:label||'Terms not set'};
+  }
+  function supplierPaymentPosition(po){
+    var terms=supplierTerms(po),credit=resolvedReturnCredit(po),products=new Map(arr(store().products).map(function(p){return [text(p.id),p];}));
+    var gross=round(arr(po&&po.lines).reduce(function(sum,line){
+      var product=products.get(text(line.productId))||{};
+      var net=num(line.qty)*num(line.unitCost!=null?line.unitCost:line.cost!=null?line.cost:product.cost),code=text(line.taxCode||product.taxCode).toLowerCase();
+      var rate=/zero|exempt|not rated|^0\s*%/.test(code)?0:(code.match(/(\d+(?:\.\d+)?)\s*%/)||[])[1];
+      return sum+net+net*(rate==null?0.2:num(rate)/100);
+    },0)-credit.gross);
+    gross=Math.max(0,gross);
+    var localPaid=round(arr(po&&po.payments).reduce(function(sum,p){return sum+num(p.amount);},0));
+    var doc=documentForSource(po&&po.id,'ACCPAY'),remotePaid=doc?num(doc.amount_paid):0;
+    var paid=Math.max(localPaid,remotePaid);
+    var localDue=Math.max(0,round(gross-paid));
+    var remoteDue=doc?Math.max(0,round(dueOutstanding(doc)-Math.max(0,credit.gross-num(doc.amount_credited)))):null;
+    var due=terms.type==='Pro Forma'||remoteDue==null?localDue:Math.min(localDue,remoteDue);
+    return {poId:po&&po.id,supplier:text(po&&po.supplier),terms:terms.type,termsLabel:terms.label,
+      gross:gross,paid:paid,localPaid:localPaid,remotePaid:remotePaid,amountDue:due,
+      dueDate:terms.type==='Pro Forma'?'Before supplier release':docDueDate(doc)||poDueDate(po),
+      bill:doc||null,source:doc?'PO and Xero':'PO',needsReview:!!(doc&&Math.abs(localDue-remoteDue)>0.01)};
+  }
+  function paymentRunCandidates(){
+    var fc=financeCommand(),queued=new Set();
+    fc.paymentRuns.filter(function(run){return !['Cancelled','Completed'].includes(text(run.status));})
+      .forEach(function(run){arr(run.items).forEach(function(item){queued.add(text(item.poId));});});
+    return threeWayRows().filter(function(row){
+      var po=arr(store().purchaseOrders).find(function(p){return p.id===row.poId;});
+      return po&&supplierTerms(po).type==='On Account'&&row.status==='Matched'&&!!row.billId&&!queued.has(text(po.id))&&supplierPaymentPosition(po).amountDue>0;
+    }).map(function(row){var po=arr(store().purchaseOrders).find(function(p){return p.id===row.poId;}),position=supplierPaymentPosition(po);
+      return Object.assign({},row,{amountDue:position.amountDue,terms:position.terms,termsLabel:position.termsLabel});
+    });
+  }
+  function orderProfitRows(){
+    var d=store(),products=new Map(arr(d.products).map(function(p){return [text(p.id),p];}));
+    return arr(d.salesOrders).filter(function(order){
+      var job=arr(d.jobs).find(function(j){return j.id===order.jobId;});
+      return !order.projectId&&!(job&&job.project);
+    }).map(function(order){
+      var customer=arr(d.customers).find(function(c){return c.id===order.customerId;})||{};
+      var discount=text(order.priceList).toLowerCase()==='accepted quote snapshot'?0:
+        Math.max(0,Math.min(100,num(order.customerDiscountRate!=null?order.customerDiscountRate:customer.discount)));
+      var revenue=round(arr(order.lines).reduce(function(sum,line){
+        var p=products.get(text(line.productId))||{},base=line.specialPrice!=null?num(line.specialPrice):
+          line.unitPrice!=null?num(line.unitPrice):num(p[order.priceList||customer.priceList]||p.rrp);
+        var rate=line.customerDiscountExempt||line.lineType==='shipping'?0:discount;
+        return sum+num(line.qty)*round(base*(1-rate/100));
+      },0));
+      var linked=[],cost=0,linkedQty=new Map();
+      arr(d.purchaseOrders).filter(function(po){return !['Cancelled','Canceled'].includes(text(po.status));}).forEach(function(po){
+        arr(po.lines).forEach(function(line){
+          var so=text(line.salesOrderId!=null?line.salesOrderId:po.originalSalesOrderId);
+          if(so!==text(order.id))return;
+          var lineNet=round(num(line.qty)*num(line.unitCost!=null?line.unitCost:line.cost));
+          cost+=lineNet;linked.push({poId:po.id,supplier:po.supplier,productId:line.productId,net:lineNet});
+          var key=text(line.productId);linkedQty.set(key,(linkedQty.get(key)||0)+num(line.qty));
+        });
+      });
+      arr(d.purchaseReturns).filter(function(r){return r.status==='Closed'&&!r.voidedAt&&!r.detachedFromLivePoAt;}).forEach(function(r){
+        var linkedPo=linked.some(function(x){return x.poId===r.poId&&(x.productId===r.productId||!r.productId);});
+        var otherOrders=arr(d.purchaseOrders).filter(function(po){return po.id===r.poId;}).flatMap(function(po){return arr(po.lines).filter(function(line){return !r.productId||line.productId===r.productId;}).map(function(line){return text(line.salesOrderId||po.originalSalesOrderId);});}).filter(Boolean);
+        if(linkedPo&&(r.salesOrderId?text(r.salesOrderId)===text(order.id):new Set(otherOrders).size===1))cost-=num(r.creditNet!=null?r.creditNet:r.creditAmount!=null?r.creditAmount:r.expectedCredit);
+      });
+      cost=Math.max(0,round(cost));
+      var missing=arr(order.lines).filter(function(l){return l.lineType!=='shipping'&&num(l.qty)>0&&(linkedQty.get(text(l.productId))||0)<num(l.qty);}).length;
+      return {orderId:order.id,customerId:order.customerId,customerName:customer.name||order.customerName||order.customerId||'',
+        status:order.status||'',revenueNet:revenue,linkedCostNet:cost,grossProfit:round(revenue-cost),
+        marginPct:revenue>0?Math.round((revenue-cost)/revenue*1000)/10:0,
+        linkedPOs:Array.from(new Set(linked.map(function(x){return x.poId;}))),missingCostLines:missing,
+        confidence:missing?'Partial cost coverage':'Linked PO costs',linked:linked};
     });
   }
   function supplierAccount(name,opts){var t=today(opts),docs=supplierDocs(name),fc=financeCommand(),pos=new Map(supplierPos(name).map(function(po){return [po.id,po];}));var effectiveDue=function(d){var po=pos.get(d.source_id),credit=po?resolvedReturnCredit(po):{gross:0},unsynced=Math.max(0,num(credit.gross)-num(d.amount_credited));return Math.max(0,round(dueOutstanding(d)-unsynced));};var outstanding=round(docs.reduce(function(s,d){return s+effectiveDue(d);},0)),overdue=round(docs.reduce(function(s,d){var due=docDueDate(d);return s+(due&&due<t?effectiveDue(d):0);},0));var returnCredits=arr(store().purchaseReturns).filter(function(r){return text(r.supplier)===name&&!['Closed','Cancelled'].includes(text(r.status));}).reduce(function(s,r){return s+num(r.expectedCredit||r.creditValue||r.amount);},0),manual=fc.supplierCredits.filter(function(c){return text(c.supplier)===name;}).reduce(function(s,c){return s+num(c.remaining!=null?c.remaining:c.amount);},0);return {supplier:name,outstanding:outstanding,overdue:overdue,availableCredits:round(returnCredits+manual),billCount:docs.filter(function(d){return effectiveDue(d)>0;}).length};}
@@ -114,5 +196,5 @@
     rec.filter(function(x){return x.type==='sync-review'||x.type==='value-mismatch';}).forEach(function(x){attention.push({type:'reconciliation',severity:'warning',sourceId:x.sourceId,title:x.title,action:'Review reconciliation'});});
     return {today:t,metrics:metrics,attention:attention,connection:finance().connection||null,integration:finance().integration||{},monthEnd:monthEndRows(opts)};
   }
-  global.PoolShedFinanceCommand={store:store,financeSnapshot:finance,financeCommand:financeCommand,orderValue:orderValue,poValue:poValue,resolvedReturnCredit:resolvedReturnCredit,documentForSource:documentForSource,customerAccount:customerAccount,customerInvoices:invoiceRows,salesOrderFinanceStatus:salesOrderFinanceStatus,suggestAllocation:suggestAllocation,threeWayRows:threeWayRows,supplierAccount:supplierAccount,invoiceReadyRows:invoiceReadyRows,reconciliationRows:reconciliationRows,monthEndRows:monthEndRows,snapshot:snapshot,customerPolicy:customerPolicy};
+  global.PoolShedFinanceCommand={store:store,financeSnapshot:finance,financeCommand:financeCommand,orderValue:orderValue,poValue:poValue,resolvedReturnCredit:resolvedReturnCredit,documentForSource:documentForSource,customerAccount:customerAccount,customerInvoices:invoiceRows,salesOrderFinanceStatus:salesOrderFinanceStatus,suggestAllocation:suggestAllocation,threeWayRows:threeWayRows,supplierTerms:supplierTerms,supplierPaymentPosition:supplierPaymentPosition,paymentRunCandidates:paymentRunCandidates,orderProfitRows:orderProfitRows,supplierAccount:supplierAccount,invoiceReadyRows:invoiceReadyRows,reconciliationRows:reconciliationRows,monthEndRows:monthEndRows,snapshot:snapshot,customerPolicy:customerPolicy};
 })(typeof globalThis!=='undefined'?globalThis:window);
