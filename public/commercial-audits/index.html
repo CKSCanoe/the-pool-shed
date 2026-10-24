@@ -4,18 +4,18 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Pool Bros | Commercial Audit Studio</title>
-    <link rel="icon" type="image/png" href="./assets/pb-logo.png">
-    <script src="./vendor/react.production.min.js"></script>
-    <script src="./vendor/react-dom.production.min.js"></script>
-    <script src="./vendor/babel.min.js"></script>
-    <script src="./vendor/tailwindcss.js"></script>
-    <script src="./vendor/jspdf.umd.min.js"></script>
-    <script src="./vendor/jspdf.plugin.autotable.min.js"></script>
-    <script src="./src/report-guidance.cjs"></script>
-    <script src="./src/report-evidence.cjs"></script>
-    <script src="./src/asset-report.cjs"></script>
-    <script src="./src/brand.cjs"></script>
-    <script src="./src/audit-model.cjs"></script>
+    <link rel="icon" type="image/png" href="/commercial-audits/assets/pb-logo.png">
+    <script src="/commercial-audits/vendor/react.production.min.js"></script>
+    <script src="/commercial-audits/vendor/react-dom.production.min.js"></script>
+    <script src="/commercial-audits/vendor/babel.min.js"></script>
+    <script src="/commercial-audits/vendor/tailwindcss.js"></script>
+    <script src="/commercial-audits/vendor/jspdf.umd.min.js"></script>
+    <script src="/commercial-audits/vendor/jspdf.plugin.autotable.min.js"></script>
+    <script src="/commercial-audits/src/report-guidance.js"></script>
+    <script src="/commercial-audits/src/report-evidence.js"></script>
+    <script src="/commercial-audits/src/asset-report.js"></script>
+    <script src="/commercial-audits/src/brand.js"></script>
+    <script src="/commercial-audits/src/audit-model.js"></script>
     <style>
         body { font-family: 'Inter', sans-serif; }
         h1, h2, h3, .font-lexend { font-family: 'Lexend', sans-serif; }
@@ -26,7 +26,7 @@
         .status-ni { background-color: #f3f4f6; color: #9ca3af; border: 1px solid #e5e7eb; }
         .glass-panel { background: rgba(255, 255, 255, 0.8); backdrop-filter: blur(10px); }
     </style>
-    <link rel="stylesheet" href="./src/theme.css">
+    <link rel="stylesheet" href="/commercial-audits/src/theme.css">
 </head>
 <body class="bg-slate-100 text-slate-900">
     <div id="root"></div>
@@ -1328,13 +1328,13 @@
                 }
             };
 
-            if (!poolShedBridge) return <div className="boot-screen"><div><img src="./assets/pb-logo.png" alt="Pool Bros" /><p>Open Pool Audits from a signed-in Pool Shed workspace.</p></div></div>;
-            if (!hydrated) return <div className="boot-screen"><div><img src="./assets/pb-logo.png" alt="Pool Bros" /><p>Opening your audit workspace…</p></div></div>;
+            if (!poolShedBridge) return <div className="boot-screen"><div><img src="/commercial-audits/assets/pb-logo.png" alt="Pool Bros" /><p>Open Pool Audits from a signed-in Pool Shed workspace.</p></div></div>;
+            if (!hydrated) return <div className="boot-screen"><div><img src="/commercial-audits/assets/pb-logo.png" alt="Pool Bros" /><p>Opening your audit workspace…</p></div></div>;
 
             return (
                 <div className="app-shell">
                     <header className="app-header"><div className="header-inner">
-                        <div className="brand-lockup"><img className="brand-mark" src="./assets/pb-logo.png" alt="Pool Bros logo" /><div><strong>POOL BROS</strong><small>COMMERCIAL AUDIT STUDIO</small></div></div>
+                        <div className="brand-lockup"><img className="brand-mark" src="/commercial-audits/assets/pb-logo.png" alt="Pool Bros logo" /><div><strong>POOL BROS</strong><small>COMMERCIAL AUDIT STUDIO</small></div></div>
                         <nav className="app-nav" aria-label="Main navigation">
                             {[['dashboard','Overview'],['survey','Site survey'],['assets','Assets'],['upgrades','Upgrades'],['actions','Actions']].map(([key,label]) => <button key={key} className={`nav-button ${view === key ? 'active' : ''}`} onClick={() => setView(key)} disabled={key !== 'dashboard' && !hasActive}>{label}</button>)}
                         </nav>
