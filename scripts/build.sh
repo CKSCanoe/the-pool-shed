@@ -18,6 +18,8 @@ run_node_stage() {
   printf '✓ %s passed\n' "$stage"
 }
 
+run_node_stage "payment operations" test-payment-operations-v147.mjs
+
 run_node_stage "workspace and sales safety" \
   test-workspace-audit-v1451.mjs \
   test-commercial-audits-v146.mjs \

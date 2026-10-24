@@ -1,7 +1,9 @@
-Pool Shed v1.46.2 - quiet shared workspace saving
+Pool Shed v1.47.0 - supplier payment operations and Sales Order costs
 
-Existing CRM customer details save when staff leave a field. Routine audit, customer, product, sales-order and purchase-order edits use the shared workspace save path without repeated success popups.
+Finance Command now separates unpaid proforma Purchase Orders from on-account payables. Proforma orders are due in full before supplier release and require an actual supplier payment with a reference; they do not enter the payment run. On-account bills enter a payment run only after the PO, receipt and invoice match, and an outstanding balance remains.
 
-The header shows whether changes are saved for the team, still sharing, saved only on this device, or need attention. Incoming workspace refreshes wait while a staff member is editing a supported record field, preventing an unfinished entry from being replaced on screen.
+Rach can choose a due-date range, include already overdue bills, run a review, select items, create a saved draft payment batch, inspect and export it, or cancel the draft. Creating a batch never records a bank payment. The PO now records supplier invoice and payment due dates. A clear Net N days term can calculate a due date from the invoice date; an explicit due date takes precedence. Bills with no due date are called out for review.
 
-New customer creation and operational approval or finalisation actions retain their explicit validation and confirmation steps. Existing records, customer links and recovery data remain intact.
+Each PO line can link to a non-Project Sales Order. Finance Command shows indicative Sales Order gross profit from linked PO costs and flags incomplete coverage. This is an operational estimate, not a final ledger profit calculation. Projects retain their own reporting.
+
+Shared workspace saving, audit links and existing records remain intact. Xero remains the accounting ledger and any PO/Xero balance discrepancy is marked for reconciliation.
