@@ -1,5 +1,7 @@
-Pool Shed v1.46.0 - Customer-linked commercial pool audits
-Multiple project quotes/extras and credits are now linked to the existing accepted project. Customer acceptance is distinct from email delivery, accepted extra evidence is retained, only accepted extras/credits change agreed project revenue, and Sales Orders keep the accepted quote price/cost snapshot.
-Project finance now exposes original contract, approved extras, total selling value, actual costs, committed costs, remaining forecast costs, projected profit and projected margin. Project-summary cost matching was indexed for larger projects.
-Database migration 011-project-extra-quotes.sql is required after the existing migrations through 010. No data reset is required.
-Not deployed. Authenticated desktop/tablet/mobile verification, production migration execution and the remaining completion-order items are still outstanding.
+Pool Shed v1.46.1 - CRM-linked commercial audit organisations
+
+Organisation Name in Pool Audits selects an existing CRM customer profile. The selected customer ID determines which profile owns the audit, and the CRM company name is used in the saved report.
+
+An empty draft can be linked to another customer profile from the survey. Once findings, assets, actions or evidence have been captured, its customer link is locked to protect the audit history and customer-owned media. Start a new audit for another customer instead.
+
+Existing customer and audit records remain intact. No database migration or data reset is required.

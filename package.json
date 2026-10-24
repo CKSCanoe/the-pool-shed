@@ -39,7 +39,7 @@
     "test:azzy-production": "node scripts/test-azzy-brain-gateway.mjs && node scripts/test-azzy-durable-memory.mjs && node scripts/test-azzy-jarvis-final.mjs && node scripts/test-azzy-poolshed-ready-final.mjs",
     "test:sales-safety": "node scripts/test-sales-order-safety-hotfix.mjs && node scripts/test-sales-order-list-option-a.mjs && node scripts/test-sales-order-detail-v162.mjs"
   },
-  "version": "1.46.0",
+  "version": "1.46.1",
   "description": "The Pool Shed inventory, secure visual quotes, purchasing, sales, warehouse and project management application",
   "devDependencies": {
     "@electric-sql/pglite": "^0.5.8",
