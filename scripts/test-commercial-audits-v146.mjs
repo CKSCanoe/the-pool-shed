@@ -16,8 +16,12 @@ assert.match(shell, /data-crm-profile-tab="audits"/);
 assert.match(shell, /data-new-pool-audit/);
 assert.match(shell, /data-open-pool-audit/);
 assert.match(auditHtml, /poolShedBridge\.save\(survey\)/);
+assert.match(auditHtml, /onBlurCapture=\{saveOnFieldExit\}/, 'leaving a field triggers a save');
+assert.match(auditHtml, /surveyDataRef\.current/, 'manual saves use the latest edit');
+assert.match(auditHtml, /if \(next\.status !== previous\.status\) saveNow\(\)/, 'traffic-light changes save immediately');
+assert.match(auditHtml, /poolShedBridge\.openCustomerProfile/, 'audit returns to its customer profile');
 assert.match(auditHtml, /poolShedMedia\.upload\('customer'/);
-assert.match(auditHtml, /await prepareReportMedia\(surveyData\)/);
+assert.match(auditHtml, /await prepareReportMedia\(savedAudit\)/);
 assert.doesNotMatch(auditHtml, /["']\.\/(?:vendor|src|assets)\//, 'clean URLs must not break audit asset paths');
 for (const source of auditHtml.matchAll(/(?:src|href)="(\/commercial-audits\/(?:vendor|src|assets)\/[^\"]+)"/g)) {
   assert.ok(fs.existsSync(`public${source[1]}`), `audit asset exists: ${source[1]}`);
@@ -39,14 +43,29 @@ new vm.Script(babelContext.module.exports.transform(jsx, { presets: [['react', {
 
 const data = { customers: [{ id: 'C1', name: 'School pool' }, { id: 'C2', name: 'Hotel pool' }], poolAudits: [] };
 const user = { id: 'U1', name: 'Inspector', role: 'Engineer' };
+const localStore = new Map();
+let localWriteAllowed = true;
+let indexedWriteAllowed = true;
+const localStorage = { getItem: key => localStore.get(key) || null, setItem: (key, value) => localStore.set(key, value) };
 const ctx = {
-  window: null, data, navigator: { onLine: true }, localStorage: { getItem: () => null },
+  window: null, data, navigator: { onLine: true }, localStorage,
   PoolShedSettingsPermissions: { can: () => true }, PoolShedAudit: { record: () => {} },
   currentUser: () => user, canAccessTab: () => true,
-  saveAppData: () => true, workspaceLocalSaveFailed: false,
-  document: { getElementById: () => null }, URLSearchParams, JSON, Error,
+  saveAppData: () => {
+    ctx.workspaceLastLocalPayload = JSON.stringify(data);
+    localStore.set('poolshed:v172:localSnapshotMode', localWriteAllowed ? 'localstorage' : 'indexeddb');
+    if (localWriteAllowed) localStore.set('poolshed:v172:appData', ctx.workspaceLastLocalPayload);
+    else localStore.delete('poolshed:v172:appData');
+    localStore.set('poolshed:v172:pendingSync', '1');
+    return true;
+  },
+  writeOfflineSnapshot: async (_pending, _key, _reason, snapshot) => {
+    if (indexedWriteAllowed) ctx.lastIndexedSnapshot = snapshot;
+    return indexedWriteAllowed;
+  },
+  document: { getElementById: () => null, querySelector: () => null }, URLSearchParams, JSON, Error,
   escapeHtml: value => String(value), toast: () => {}, render: () => {},
-  active: 'crm', isAuthenticated: true
+  active: 'crm', activeSubPage: { crm: 'All Customers' }, isAuthenticated: true
 };
 ctx.window = ctx;
 const start = shell.indexOf('      function customerAuditPanel(c) {');
@@ -58,13 +77,18 @@ const bridge = ctx.__POOL_SHED_AUDIT_BRIDGE__;
 assert.ok(bridge);
 assert.deepEqual(Array.from(bridge.getCustomers(), c => c.id), ['C1', 'C2']);
 const record = { id: 'A1', customerId: 'C1', status: 'draft', metadata: { 'site-name': 'Main pool' }, responses: {}, assets: [] };
-bridge.save(record);
+await bridge.save(record);
 assert.equal(data.poolAudits.length, 1);
 assert.equal(data.poolAudits[0].customerId, 'C1');
 record.metadata['site-name'] = 'Changed outside';
 assert.equal(data.poolAudits[0].metadata['site-name'], 'Main pool', 'saved record is detached from caller');
 assert.match(ctx.customerAuditPanel(data.customers[0]), /Main pool/);
 assert.doesNotMatch(ctx.customerAuditPanel(data.customers[1]), /Main pool/);
+assert.equal(JSON.parse(localStorage.getItem('poolshed:v172:appData')).poolAudits[0].customerId, 'C1', 'customer link survives a storage reload');
+assert.equal(ctx.lastIndexedSnapshot.poolAudits[0].id, 'A1', 'audit is in the device backup');
+await bridge.save({ ...data.poolAudits[0], metadata: { 'site-name': 'Updated pool' } });
+assert.match(ctx.customerAuditPanel(data.customers[0]), /Updated pool/, 'customer profile reflects the latest audit');
+assert.equal(JSON.parse(localStorage.getItem('poolshed:v172:appData')).poolAudits[0].metadata['site-name'], 'Updated pool');
 let auditFrame = '';
 ctx.document.getElementById = () => ({ querySelector: () => null, set innerHTML(value) { auditFrame = value; } });
 ctx.openCommercialAudit('C1', '', true);
@@ -78,14 +102,26 @@ ctx.openCommercialAudit('C1', 'A1');
 ctx.renderCommercialAudits();
 assert.match(auditFrame, /customer=C1&audit=A1/);
 assert.doesNotMatch(auditFrame, /&new=/);
-assert.throws(() => bridge.save({ ...record, customerId: 'C2' }), /cannot be moved/);
-assert.throws(() => bridge.save({ ...record, id: 'A2', customerId: 'missing' }), /valid customer/);
-assert.throws(() => bridge.save({ ...record, id: 'A3', responses: { x: { image: 'data:image/png;base64,' + 'A'.repeat(501000) } } }), /embedded media/);
+await assert.rejects(bridge.save({ ...record, customerId: 'C2' }), /cannot be moved/);
+await assert.rejects(bridge.save({ ...record, id: 'A2', customerId: 'missing' }), /valid customer/);
+await assert.rejects(bridge.save({ ...record, id: 'A3', responses: { x: { image: 'data:image/png;base64,' + 'A'.repeat(501000) } } }), /embedded media/);
+localWriteAllowed = false;
+await bridge.save({ ...record, id: 'A4', metadata: { 'site-name': 'IndexedDB visit' } });
+assert.equal(ctx.lastIndexedSnapshot.poolAudits[0].id, 'A4', 'large-workspace fallback preserves the audit');
+indexedWriteAllowed = false;
+await assert.rejects(bridge.save({ ...record, id: 'A5' }), /could not save this audit on this device/, 'save must not confirm when both device stores fail');
+localWriteAllowed = true;
+indexedWriteAllowed = true;
+let customerAuditsTabOpened = false;
+ctx.document.querySelector = () => ({ click: () => { customerAuditsTabOpened = true; } });
+bridge.openCustomerProfile('C1');
+assert.equal(ctx.active, 'crm');
+assert.equal(customerAuditsTabOpened, true, 'return path selects the customer audit tab');
 ctx.navigator.onLine = false;
 assert.equal(bridge.syncState(), 'device');
 ctx.isAuthenticated = false;
 assert.throws(() => bridge.getAll(), /Sign in/);
-assert.throws(() => bridge.save({ ...record, id: 'A4' }), /Sign in/);
+await assert.rejects(bridge.save({ ...record, id: 'A6' }), /Sign in/);
 
 const permCtx = { window: null, globalThis: null, localStorage: { getItem: () => null },
   __POOL_SHED_GET_DATA__: () => ({ securityControl: {} }),

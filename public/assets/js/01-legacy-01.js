@@ -10379,6 +10379,7 @@ const seed = {
       }
 
       let poolAuditRoute = { customerId: '', auditId: '', newAudit: false };
+      let poolAuditSnapshotQueue = Promise.resolve();
       function requirePoolAuditSession() {
         if (!isAuthenticated) throw Error('Sign in to Pool Shed before opening customer audits.');
       }
@@ -10386,14 +10387,25 @@ const seed = {
         getAll: function(){ requirePoolAuditSession(); if (!canAccessTab('audits')) throw Error('Audit access denied.'); return JSON.parse(JSON.stringify(data.poolAudits || [])); },
         getCustomers: function(){ requirePoolAuditSession(); if (!canAccessTab('audits')) throw Error('Audit access denied.'); return (data.customers || []).map(function(c){ return { id:c.id, name:c.name || c.companyName || 'Customer', code:c.code || '' }; }); },
         getUser: function(){ requirePoolAuditSession(); const u = currentUser() || {}; return { id:u.id || '', name:u.name || u.email || '' }; },
-        syncState: function(){ return !navigator.onLine || localStorage.getItem('poolshed:v172:pendingSync') === '1' ? 'device' : 'shared'; },
-        save: function(record){
+        syncState: function(){ return !navigator.onLine || workspaceSaveInFlight || workspaceSyncConflict || localStorage.getItem('poolshed:v172:pendingSync') === '1' ? 'device' : 'shared'; },
+        openCustomerProfile: function(customerId){
+          requirePoolAuditSession();
+          if (!(data.customers || []).some(function(c){ return c.id === customerId; })) throw Error('Customer profile not found.');
+          selectedCrmCustomerId = customerId;
+          activeSubPage.crm = 'All Customers';
+          active = 'crm';
+          render();
+          const auditsTab = document.querySelector('#screen-crm [data-crm-profile-tab="audits"]');
+          if (auditsTab) auditsTab.click();
+        },
+        save: async function(record){
           requirePoolAuditSession();
           if (!canAccessTab('audits')) throw Error('You do not have audit access.');
           if (!record || !record.id || !record.customerId || !(data.customers || []).some(function(c){ return c.id === record.customerId; })) throw Error('Select a valid customer before saving an audit.');
           const rows = data.poolAudits = Array.isArray(data.poolAudits) ? data.poolAudits : [];
           const index = rows.findIndex(function(a){ return a.id === record.id; });
           if (index >= 0 && rows[index].customerId !== record.customerId) throw Error('An audit cannot be moved to another customer.');
+          const recordBeforeSave = index >= 0 ? rows[index] : null;
           const operation = index >= 0 ? 'edit' : 'create';
           if (window.PoolShedSettingsPermissions && !window.PoolShedSettingsPermissions.can('audits', operation, currentUser())) throw Error('You do not have permission to ' + operation + ' audits.');
           const clean = JSON.parse(JSON.stringify(record));
@@ -10410,7 +10422,24 @@ const seed = {
             });
           }
           if (index >= 0) rows[index] = clean; else rows.unshift(clean);
-          if (saveAppData() === false || workspaceLocalSaveFailed) throw Error('Pool Shed could not save this audit locally.');
+          try { saveAppData(); }
+          catch (error) {
+            if (index >= 0) rows[index] = recordBeforeSave;
+            else rows.shift();
+            throw error;
+          }
+          const payload = workspaceLastLocalPayload;
+          let storedInLocalStorage = false;
+          try {
+            storedInLocalStorage = localStorage.getItem('poolshed:v172:localSnapshotMode') === 'localstorage' &&
+              localStorage.getItem('poolshed:v172:appData') === payload;
+          } catch (error) { void error; }
+          const snapshot = JSON.parse(payload);
+          poolAuditSnapshotQueue = poolAuditSnapshotQueue.catch(function(){ return false; }).then(function(){
+            return writeOfflineSnapshot(true, 'latest', 'commercial-audit-save', snapshot);
+          });
+          const storedInIndexedDb = await poolAuditSnapshotQueue;
+          if (!storedInLocalStorage && !storedInIndexedDb) throw Error('Pool Shed could not save this audit on this device.');
           return true;
         }
       };
