@@ -657,11 +657,40 @@
             const [backupMessage, setBackupMessage] = useState('');
             const pendingTimer = useRef(null);
             const saveRevision = useRef(0);
+            const surveyDataRef = useRef(surveyData);
+            const editRevision = useRef(0);
+            const savedEditRevision = useRef(0);
             const importInput = useRef(null);
             const makeId = () => window.crypto?.randomUUID?.() || `visit-${Date.now()}-${Math.random().toString(36).slice(2, 9)}`;
             const rememberActive = id => { try { localStorage.setItem('poolbros.activeAuditId', id); } catch {} };
             const sortSurveys = rows => rows.slice().sort((a, b) => String(b.updatedAt || b.createdAt || '').localeCompare(String(a.updatedAt || a.createdAt || '')));
             const upsertSurvey = record => setSurveys(previous => sortSurveys([record, ...previous.filter(item => item.id !== record.id)]));
+            const setActiveSurvey = (record, edited = false) => {
+                surveyDataRef.current = record;
+                if (edited) { editRevision.current += 1; setSavePhase('pending'); }
+                setSurveyData(record);
+            };
+            const editSurvey = change => setActiveSurvey(change(surveyDataRef.current), true);
+
+            const persistSurvey = async (record, revision, editAtSave) => {
+                setSavePhase('saving');
+                try {
+                    await saveSurvey(record);
+                    upsertSurvey(record);
+                    if (revision === saveRevision.current && editAtSave === editRevision.current) {
+                        savedEditRevision.current = editAtSave;
+                        setSaveError('');
+                        setSavePhase('saved');
+                    }
+                    return record;
+                } catch (error) {
+                    if (revision === saveRevision.current) {
+                        setSaveError('This audit could not be saved on this device. Keep this page open and check browser storage.');
+                        setSavePhase('error');
+                    }
+                    throw error;
+                }
+            };
 
             useEffect(() => {
                 let live = true;
@@ -677,11 +706,12 @@
                             rows.find(item => item.id === remembered && item.customerId === customerForVisit) ||
                             rows.find(item => item.customerId === customerForVisit));
                         if (selected) {
-                            setSurveyData(selected);
+                            setActiveSurvey(selected);
                             activeAuditCustomerId = selected.customerId || ''; activeAuditId = selected.id;
                             if (poolShedMedia) poolShedMedia.ensureValue(selected).catch(() => {});
                             setHasActive(true);
                             setSavePhase('saved');
+                            if (linkedAuditId || linkedCustomerId) setView('survey');
                         } else if (startNewFromProfile) {
                             const customer = poolShedBridge.getCustomers().find(item => item.id === linkedCustomerId);
                             if (!customer) throw new Error('The selected customer is unavailable.');
@@ -690,7 +720,10 @@
                             record.customerId = customer.id;
                             record.createdBy = poolShedBridge.getUser();
                             record.metadata = { 'org-name': customer.name, 'site-name': customer.name, 'visit-date': now.slice(0, 10), 'inspector': record.createdBy.name };
-                            setSurveyData(record);
+                            await saveSurvey(record);
+                            if (!live) return;
+                            upsertSurvey(record);
+                            setActiveSurvey(record);
                             activeAuditCustomerId = customer.id;
                             activeAuditId = record.id;
                             setHasActive(true);
@@ -716,22 +749,9 @@
                 if (!hydrated || !hasActive || storageError) return;
                 const revision = ++saveRevision.current;
                 setSavePhase('pending');
-                pendingTimer.current = setTimeout(async () => {
-                    setSavePhase('saving');
-                    const record = { ...surveyData, updatedAt: new Date().toISOString() };
-                    try {
-                        await saveSurvey(record);
-                        upsertSurvey(record);
-                        if (revision === saveRevision.current) {
-                            setSaveError('');
-                            setSavePhase('saved');
-                        }
-                    } catch (error) {
-                        if (revision === saveRevision.current) {
-                            setSaveError('This audit could not be saved on this device. Check available browser storage before continuing.');
-                            setSavePhase('error');
-                        }
-                    }
+                pendingTimer.current = setTimeout(() => {
+                    const record = { ...surveyDataRef.current, updatedAt: new Date().toISOString() };
+                    persistSurvey(record, revision, editRevision.current).catch(() => {});
                 }, 350);
                 return () => clearTimeout(pendingTimer.current);
             }, [surveyData, hydrated, hasActive, storageError]);
@@ -747,18 +767,20 @@
                 if (!hasActive || storageError) return null;
                 clearTimeout(pendingTimer.current);
                 const revision = ++saveRevision.current;
-                const record = { ...surveyData, updatedAt: new Date().toISOString() };
-                setSavePhase('saving');
+                const record = { ...surveyDataRef.current, updatedAt: new Date().toISOString() };
+                return persistSurvey(record, revision, editRevision.current);
+            };
+
+            const saveOnFieldExit = event => {
+                if (!event.target.matches('input, textarea, select, button')) return;
+                if (editRevision.current > savedEditRevision.current) saveNow().catch(() => {});
+            };
+
+            const returnToCustomer = async () => {
                 try {
-                    await saveSurvey(record);
-                    upsertSurvey(record);
-                    if (revision === saveRevision.current) { setSavePhase('saved'); setSaveError(''); }
-                    return record;
-                } catch (error) {
-                    setSavePhase('error');
-                    setSaveError('Save failed. Stay on this page and check available browser storage.');
-                    throw error;
-                }
+                    await saveNow();
+                    poolShedBridge.openCustomerProfile(surveyDataRef.current.customerId);
+                } catch { setSaveError('Save failed. Stay on this audit until it is saved on this device.'); }
             };
 
             const selectAudit = async next => {
@@ -766,7 +788,12 @@
                 if (hasActive) {
                     try { await saveNow(); } catch { return; }
                 }
-                setSurveyData(auditModel.normalise(next));
+                const normalized = auditModel.normalise(next);
+                if (!surveys.some(item => item.id === normalized.id)) {
+                    try { await saveSurvey(normalized); upsertSurvey(normalized); }
+                    catch (error) { setSaveError('The new audit could not be saved. Check browser storage and try again.'); return; }
+                }
+                setActiveSurvey(normalized);
                 activeAuditCustomerId = next.customerId || ''; activeAuditId = next.id;
                 if (poolShedMedia) poolShedMedia.ensureValue(next).catch(() => {});
                 setHasActive(true);
@@ -793,7 +820,7 @@
                 const next = surveys.find(item => item.customerId === customerId);
                 setHasActive(!!next);
                 if (next) {
-                    setSurveyData(next);
+                    setActiveSurvey(next);
                     activeAuditCustomerId = next.customerId; activeAuditId = next.id;
                 } else {
                     activeAuditCustomerId = ''; activeAuditId = '';
@@ -836,7 +863,7 @@
                     if (hasActive) await saveNow();
                     await saveSurvey(restored);
                     upsertSurvey(restored);
-                    setSurveyData(restored);
+                    setActiveSurvey(restored);
                     activeAuditCustomerId = restored.customerId || '';
                     activeAuditId = restored.id;
                     setHasActive(true);
@@ -848,18 +875,23 @@
                 }
             };
 
-            const updateMetadata = (id, val) => setSurveyData(prev => ({ ...prev, metadata: { ...prev.metadata, [id]: val } }));
-            const updateResponse = (id, update) => setSurveyData(prev => ({ ...prev, responses: { ...prev.responses, [id]: typeof update === 'function' ? update(prev.responses[id] || {}) : update } }));
-            const addAsset = (asset) => setSurveyData(prev => ({ ...prev, assets: [...prev.assets, asset] }));
-            const updateAsset = (id, asset) => setSurveyData(prev => ({ ...prev, assets: prev.assets.map(existing => existing.id === id ? { ...asset, id } : existing) }));
-            const deleteAsset = (id) => setSurveyData(prev => ({ ...prev, assets: prev.assets.filter(a => a.id !== id) }));
-            const updateAssetDraft = update => setSurveyData(prev => ({ ...prev, assetDraft: typeof update === 'function' ? update(prev.assetDraft || emptyAsset()) : update }));
-            const addUpgrade = (upg) => setSurveyData(prev => ({ ...prev, upgrades: [...prev.upgrades, upg] }));
-            const deleteUpgrade = (id) => setSurveyData(prev => ({ ...prev, upgrades: prev.upgrades.filter(u => u.id !== id) }));
-            const updateAction = (itemId, patch) => setSurveyData(prev => ({ ...prev, actions: { ...(prev.actions || {}), [itemId]: { ...(prev.actions?.[itemId] || {}), ...patch } } }));
+            const updateMetadata = (id, val) => editSurvey(prev => ({ ...prev, metadata: { ...prev.metadata, [id]: val } }));
+            const updateResponse = (id, update) => {
+                const previous = surveyDataRef.current.responses[id] || {};
+                const next = typeof update === 'function' ? update(previous) : update;
+                editSurvey(audit => ({ ...audit, responses: { ...audit.responses, [id]: next } }));
+                if (next.status !== previous.status) saveNow().catch(() => {});
+            };
+            const addAsset = (asset) => { editSurvey(prev => ({ ...prev, assets: [...prev.assets, asset] })); saveNow().catch(() => {}); };
+            const updateAsset = (id, asset) => { editSurvey(prev => ({ ...prev, assets: prev.assets.map(existing => existing.id === id ? { ...asset, id } : existing) })); saveNow().catch(() => {}); };
+            const deleteAsset = (id) => { editSurvey(prev => ({ ...prev, assets: prev.assets.filter(a => a.id !== id) })); saveNow().catch(() => {}); };
+            const updateAssetDraft = update => editSurvey(prev => ({ ...prev, assetDraft: typeof update === 'function' ? update(prev.assetDraft || emptyAsset()) : update }));
+            const addUpgrade = (upg) => { editSurvey(prev => ({ ...prev, upgrades: [...prev.upgrades, upg] })); saveNow().catch(() => {}); };
+            const deleteUpgrade = (id) => { editSurvey(prev => ({ ...prev, upgrades: prev.upgrades.filter(u => u.id !== id) })); saveNow().catch(() => {}); };
+            const updateAction = (itemId, patch) => editSurvey(prev => ({ ...prev, actions: { ...(prev.actions || {}), [itemId]: { ...(prev.actions?.[itemId] || {}), ...patch } } }));
 
-            const generatePDF = async () => {
-                const reportData = await prepareReportMedia(surveyData);
+            const generatePDF = async savedAudit => {
+                const reportData = await prepareReportMedia(savedAudit);
                 const { jsPDF } = window.jspdf;
                 const doc = new jsPDF();
                 const evidencePhotos = reportEvidence.collect(checklistConfig, reportData);
@@ -1320,8 +1352,8 @@
                     return;
                 }
                 try {
-                    await saveNow();
-                    await generatePDF();
+                    const savedAudit = await saveNow();
+                    await generatePDF(savedAudit);
                     setBackupMessage('Report download started. Review the PDF before issuing it to a client.');
                 } catch (error) {
                     setBackupMessage(error.message || 'Report export failed.');
@@ -1332,7 +1364,7 @@
             if (!hydrated) return <div className="boot-screen"><div><img src="/commercial-audits/assets/pb-logo.png" alt="Pool Bros" /><p>Opening your audit workspace…</p></div></div>;
 
             return (
-                <div className="app-shell">
+                <div className="app-shell" onBlurCapture={saveOnFieldExit}>
                     <header className="app-header"><div className="header-inner">
                         <div className="brand-lockup"><img className="brand-mark" src="/commercial-audits/assets/pb-logo.png" alt="Pool Bros logo" /><div><strong>POOL BROS</strong><small>COMMERCIAL AUDIT STUDIO</small></div></div>
                         <nav className="app-nav" aria-label="Main navigation">
@@ -1342,7 +1374,7 @@
                     </div></header>
 
                     <main className="app-main">
-                        <div className="review-strip">{poolShedBridge ? (poolShedBridge.syncState() === 'device' ? 'Saved on this device. Pool Shed upload is pending; keep a backup and reconnect before relying on another device.' : 'Linked to the Pool Shed customer profile. Check the Pool Shed sync indicator before leaving site.') : 'Review build for Monday · This workspace saves locally on one device. Download a backup after every visit.'}</div>
+                        <div className="review-strip">{poolShedBridge.syncState() === 'device' ? 'Pool Shed upload is pending. Confirm the shared workspace sync before using another device.' : 'Audits are linked to their Pool Shed customer profiles.'}</div>
                         {storageError && <div className="review-strip error-strip" role="alert">{storageError}</div>}
                         {saveError && <div className="review-strip error-strip" role="alert">{saveError}</div>}
                         {backupMessage && <div className="review-strip" role="status">{backupMessage}</div>}
@@ -1371,7 +1403,7 @@
 
                         {view === 'survey' && hasActive && (
                             <div className="space-y-5 pb-24">
-                                <div className="survey-hero"><div><span className="eyebrow">ACTIVE SITE VISIT {surveyData.historicalExample ? '· HISTORICAL EXAMPLE' : ''}</span><h2>{surveyData.metadata['site-name'] || 'New site audit'}</h2><p>{surveyData.metadata['visit-date'] || 'Visit date to be entered'} · {surveyData.metadata['inspector'] || 'Lead inspector to be entered'} · {currentStats.total} inspection points</p></div><div className="survey-progress"><strong>{completionPercent}%</strong><span>Recorded or marked not applicable</span><div className="progress-track"><i style={{width:`${completionPercent}%`}} /></div></div></div>
+                                <div className="survey-hero"><div><span className="eyebrow">ACTIVE SITE VISIT {surveyData.historicalExample ? '· HISTORICAL EXAMPLE' : ''}</span><h2>{surveyData.metadata['site-name'] || 'New site audit'}</h2><p>{surveyData.metadata['visit-date'] || 'Visit date to be entered'} · {surveyData.metadata['inspector'] || 'Lead inspector to be entered'} · {currentStats.total} inspection points</p><button type="button" className="button soft" onClick={returnToCustomer}>← {poolShedBridge.getCustomers().find(c => c.id === surveyData.customerId)?.name || 'Customer'} profile</button></div><div className="survey-progress"><strong>{completionPercent}%</strong><span>Recorded or marked not applicable</span><div className="progress-track"><i style={{width:`${completionPercent}%`}} /></div></div></div>
                                 <nav className="section-jump" aria-label="Jump to audit section"><a href="#site-details">Site details</a><a href="#site-assets">Assets</a>{checklistConfig.sections.slice(1).map(section => <a href={`#section-${section.id}`} key={section.id}>{section.title}</a>)}</nav>
                                 <section className="audit-section" id="site-details"><div className="audit-section-header"><div><small>01 · VISIT SETUP</small><h2>Site details</h2></div><span className="eyebrow">Required for report export</span></div><div className="p-6 grid grid-cols-1 md:grid-cols-2 gap-6">
                                     {checklistConfig.sections[0].items.map(item => <div key={item.id} className="space-y-1"><label htmlFor={`metadata-${item.id}`} className="block text-xs font-bold text-slate-500 uppercase tracking-wide">{item.label}{item.required ? ' *' : ''}</label>{item.type === 'select' ? <select id={`metadata-${item.id}`} value={surveyData.metadata[item.id] || ''} onChange={event => updateMetadata(item.id,event.target.value)} className="w-full px-3 py-2 border border-slate-200 rounded-lg text-sm"><option value="">Select facility type</option>{item.options.map(option => <option key={option}>{option}</option>)}</select> : <input id={`metadata-${item.id}`} type={item.type || 'text'} value={surveyData.metadata[item.id] || ''} onChange={event => updateMetadata(item.id,event.target.value)} className="w-full px-3 py-2 border border-slate-200 rounded-lg text-sm" />}</div>)}
@@ -1406,7 +1438,7 @@
                         )}
                     </main>
 
-                    {hasActive && view !== 'dashboard' && <div className="audit-footer"><div className={`save-indicator ${savePhase}`} role={saveError ? 'alert' : 'status'}><i />{saveError || (savePhase === 'pending' ? 'Changes awaiting save' : savePhase === 'saving' ? 'Saving on this device…' : 'Saved on this device')}</div><div className="footer-actions"><button className="button" onClick={saveNow} disabled={!!storageError}>Save now</button><button className="button soft" onClick={downloadBackup} disabled={!!storageError}>↓ Backup</button><button className="button primary" onClick={exportReport} disabled={!!storageError}>Export report</button></div></div>}
+                    {hasActive && view !== 'dashboard' && <div className="audit-footer"><div className={`save-indicator ${savePhase}`} role={saveError ? 'alert' : 'status'}><i />{saveError || (savePhase === 'pending' ? 'Changes awaiting save' : savePhase === 'saving' ? 'Saving on this device…' : poolShedBridge.syncState() === 'device' ? 'Saved on this device · Pool Shed sync pending' : 'Saved · Linked to customer profile')}</div><div className="footer-actions"><button className="button" onClick={saveNow} disabled={!!storageError}>Save now</button><button className="button soft" onClick={downloadBackup} disabled={!!storageError}>↓ Backup</button><button className="button primary" onClick={exportReport} disabled={!!storageError}>Export report</button></div></div>}
                 </div>
             );
         };
