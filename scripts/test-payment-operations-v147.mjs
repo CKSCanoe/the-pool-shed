@@ -28,6 +28,7 @@ assert.equal(f.paymentRunCandidates().length,1);
 data.purchaseOrders[0].payments=[{amount:120,reference:'BANK-1',date:'2026-10-24'}];
 assert.equal(f.supplierPaymentPosition(data.purchaseOrders[0]).amountDue,0);
 const ui=fs.readFileSync('public/finance-command-workspace.js','utf8');
+assert(ui.includes("x.missingCostLines?'Pending costs':cash(x.grossProfit)"));
 for(const text of ['Run payment run','Due from','Due to','Include already overdue','Create draft payment batch','Pay before release','Order Profit','Select at least one matched'])assert(ui.includes(text),`Missing payment workflow: ${text}`);
 assert(fs.readFileSync('public/purchase-workspace.js','utf8').includes('supplierInvoiceDueDate'));
 console.log('PASS payment terms, proforma due, matched account bill filtering, draft deduplication and linked order profit');
