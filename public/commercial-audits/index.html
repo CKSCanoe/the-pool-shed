@@ -36,7 +36,7 @@
         const poolShedBridge = (() => { try { return window.parent !== window && window.parent.__POOL_SHED_AUDIT_BRIDGE__ || null; } catch { return null; } })();
         const poolShedMedia = (() => { try { return window.parent !== window && window.parent.PoolShedBusinessMedia || null; } catch { return null; } })();
         const routeParams = new URLSearchParams(location.search);
-        const linkedCustomerId = poolShedBridge ? (routeParams.get('customer') || '') : '';
+        let linkedCustomerId = poolShedBridge ? (routeParams.get('customer') || '') : '';
         const linkedAuditId = poolShedBridge ? (routeParams.get('audit') || '') : '';
         const startNewFromProfile = poolShedBridge && routeParams.has('new');
         let activeAuditCustomerId = '';
@@ -69,9 +69,9 @@
         };
 
         // The signed-in Pool Shed workspace owns audit persistence and customer links.
-        const saveSurvey = async survey => {
+        const saveSurvey = async (survey, options) => {
             if (!poolShedBridge) throw new Error('Open Pool Audits from a signed-in Pool Shed workspace.');
-            return poolShedBridge.save(survey);
+            return poolShedBridge.save(survey, options);
         };
         const getAllSurveys = async () => {
             if (!poolShedBridge) throw new Error('Open Pool Audits from a signed-in Pool Shed workspace.');
@@ -93,7 +93,7 @@
                     "id": "site-metadata",
                     "title": "Site Metadata & Operations",
                     "items": [
-                        { "id": "org-name", "label": "Organisation Name", "type": "text", "required": true },
+                        { "id": "org-name", "label": "Organisation Name", "type": "crm-customer", "required": true },
                         { "id": "site-name", "label": "Site Name", "type": "text", "required": true },
                         { "id": "visit-date", "label": "Visit Date", "type": "date", "required": true },
                         { "id": "inspector", "label": "Lead Inspector", "type": "text", "required": true },
@@ -655,11 +655,13 @@
             const [saveError, setSaveError] = useState('');
             const [storageError, setStorageError] = useState('');
             const [backupMessage, setBackupMessage] = useState('');
+            const [relinkingCustomer, setRelinkingCustomer] = useState(false);
             const pendingTimer = useRef(null);
             const saveRevision = useRef(0);
             const surveyDataRef = useRef(surveyData);
             const editRevision = useRef(0);
             const savedEditRevision = useRef(0);
+            const relinkInProgress = useRef(false);
             const importInput = useRef(null);
             const makeId = () => window.crypto?.randomUUID?.() || `visit-${Date.now()}-${Math.random().toString(36).slice(2, 9)}`;
             const rememberActive = id => { try { localStorage.setItem('poolbros.activeAuditId', id); } catch {} };
@@ -675,14 +677,15 @@
             const persistSurvey = async (record, revision, editAtSave) => {
                 setSavePhase('saving');
                 try {
-                    await saveSurvey(record);
-                    upsertSurvey(record);
+                    const saved = await saveSurvey(record);
+                    const confirmed = saved && typeof saved === 'object' && saved.id === record.id ? auditModel.normalise(saved) : record;
+                    if (revision === saveRevision.current) upsertSurvey(confirmed);
                     if (revision === saveRevision.current && editAtSave === editRevision.current) {
                         savedEditRevision.current = editAtSave;
                         setSaveError('');
                         setSavePhase('saved');
                     }
-                    return record;
+                    return confirmed;
                 } catch (error) {
                     if (revision === saveRevision.current) {
                         setSaveError('This audit could not be saved on this device. Keep this page open and check browser storage.');
@@ -774,6 +777,55 @@
             const saveOnFieldExit = event => {
                 if (!event.target.matches('input, textarea, select, button')) return;
                 if (editRevision.current > savedEditRevision.current) saveNow().catch(() => {});
+            };
+
+            const changeOrganisation = async customerId => {
+                const current = surveyDataRef.current;
+                if (customerId === current.customerId || relinkInProgress.current) return;
+                const customers = poolShedBridge.getCustomers();
+                const target = customers.find(customer => customer.id === customerId);
+                if (!target) { setSaveError('Choose an existing CRM customer profile.'); return; }
+                if (!poolShedBridge.canRelink(current)) {
+                    setBackupMessage('This visit has findings, assets or evidence and stays on its original customer profile. Start a new audit for another customer.');
+                    return;
+                }
+                relinkInProgress.current = true;
+                setRelinkingCustomer(true);
+                try {
+                    await saveNow();
+                    const latest = surveyDataRef.current;
+                    const previousCustomer = customers.find(customer => customer.id === latest.customerId);
+                    const siteName = latest.metadata['site-name'];
+                    const moved = {
+                        ...latest, customerId,
+                        updatedAt: new Date().toISOString(),
+                        metadata: {
+                            ...latest.metadata,
+                            'org-name': target.name,
+                            'site-name': siteName === previousCustomer?.name ? target.name : siteName
+                        }
+                    };
+                    const saved = await saveSurvey(moved, { relinkCustomer: true });
+                    const confirmed = saved && typeof saved === 'object' && saved.id === moved.id ? auditModel.normalise(saved) : moved;
+                    if (linkedCustomerId) linkedCustomerId = customerId;
+                    const params = new URLSearchParams(window.location.search);
+                    params.set('customer', customerId);
+                    params.set('audit', confirmed.id);
+                    params.delete('new');
+                    window.history.replaceState(null, '', `${window.location.pathname}?${params}`);
+                    activeAuditCustomerId = customerId;
+                    setSelectedCustomerId(customerId);
+                    setActiveSurvey(confirmed);
+                    upsertSurvey(confirmed);
+                    setSavePhase('saved');
+                    setSaveError('');
+                    setBackupMessage(`Audit connected to ${target.name} in the CRM.`);
+                } catch (error) {
+                    setSaveError(error.message || 'The CRM profile link could not be saved. The audit remains open.');
+                } finally {
+                    relinkInProgress.current = false;
+                    setRelinkingCustomer(false);
+                }
             };
 
             const returnToCustomer = async () => {
@@ -1342,9 +1394,11 @@
 
             const currentStats = auditModel.stats(surveyData, checklistConfig);
             const completionPercent = currentStats.total ? Math.round((currentStats.total - currentStats.ni) / currentStats.total * 100) : 0;
+            const crmCustomers = poolShedBridge ? poolShedBridge.getCustomers().slice().sort((a, b) => a.name.localeCompare(b.name, 'en-GB')) : [];
+            const connectedCustomer = crmCustomers.find(customer => customer.id === surveyData.customerId);
             const exportReport = async () => {
                 if (!hasActive || storageError) return;
-                const missing = checklistConfig.sections[0].items.filter(item => item.required && !surveyData.metadata[item.id]);
+                const missing = checklistConfig.sections[0].items.filter(item => item.required && !(item.id === 'org-name' ? connectedCustomer : surveyData.metadata[item.id]));
                 if (missing.length) {
                     setBackupMessage(`Complete the required site details before exporting: ${missing.map(item => item.label).join(', ')}.`);
                     setView('survey');
@@ -1362,6 +1416,7 @@
 
             if (!poolShedBridge) return <div className="boot-screen"><div><img src="/commercial-audits/assets/pb-logo.png" alt="Pool Bros" /><p>Open Pool Audits from a signed-in Pool Shed workspace.</p></div></div>;
             if (!hydrated) return <div className="boot-screen"><div><img src="/commercial-audits/assets/pb-logo.png" alt="Pool Bros" /><p>Opening your audit workspace…</p></div></div>;
+            const canChangeOrganisation = poolShedBridge.canRelink(surveyData);
 
             return (
                 <div className="app-shell" onBlurCapture={saveOnFieldExit}>
@@ -1406,7 +1461,17 @@
                                 <div className="survey-hero"><div><span className="eyebrow">ACTIVE SITE VISIT {surveyData.historicalExample ? '· HISTORICAL EXAMPLE' : ''}</span><h2>{surveyData.metadata['site-name'] || 'New site audit'}</h2><p>{surveyData.metadata['visit-date'] || 'Visit date to be entered'} · {surveyData.metadata['inspector'] || 'Lead inspector to be entered'} · {currentStats.total} inspection points</p><button type="button" className="button soft" onClick={returnToCustomer}>← {poolShedBridge.getCustomers().find(c => c.id === surveyData.customerId)?.name || 'Customer'} profile</button></div><div className="survey-progress"><strong>{completionPercent}%</strong><span>Recorded or marked not applicable</span><div className="progress-track"><i style={{width:`${completionPercent}%`}} /></div></div></div>
                                 <nav className="section-jump" aria-label="Jump to audit section"><a href="#site-details">Site details</a><a href="#site-assets">Assets</a>{checklistConfig.sections.slice(1).map(section => <a href={`#section-${section.id}`} key={section.id}>{section.title}</a>)}</nav>
                                 <section className="audit-section" id="site-details"><div className="audit-section-header"><div><small>01 · VISIT SETUP</small><h2>Site details</h2></div><span className="eyebrow">Required for report export</span></div><div className="p-6 grid grid-cols-1 md:grid-cols-2 gap-6">
-                                    {checklistConfig.sections[0].items.map(item => <div key={item.id} className="space-y-1"><label htmlFor={`metadata-${item.id}`} className="block text-xs font-bold text-slate-500 uppercase tracking-wide">{item.label}{item.required ? ' *' : ''}</label>{item.type === 'select' ? <select id={`metadata-${item.id}`} value={surveyData.metadata[item.id] || ''} onChange={event => updateMetadata(item.id,event.target.value)} className="w-full px-3 py-2 border border-slate-200 rounded-lg text-sm"><option value="">Select facility type</option>{item.options.map(option => <option key={option}>{option}</option>)}</select> : <input id={`metadata-${item.id}`} type={item.type || 'text'} value={surveyData.metadata[item.id] || ''} onChange={event => updateMetadata(item.id,event.target.value)} className="w-full px-3 py-2 border border-slate-200 rounded-lg text-sm" />}</div>)}
+                                    {checklistConfig.sections[0].items.map(item => <div key={item.id} className="space-y-1">
+                                        <label htmlFor={`metadata-${item.id}`} className="block text-xs font-bold text-slate-500 uppercase tracking-wide">{item.label}{item.required ? ' *' : ''}</label>
+                                        {item.id === 'org-name' ? <>
+                                            <select id="metadata-org-name" value={surveyData.customerId || ''} onChange={event => changeOrganisation(event.target.value)} disabled={relinkingCustomer || !canChangeOrganisation} aria-describedby="organisation-link-help" className="w-full px-3 py-2 border border-slate-200 rounded-lg text-sm bg-white disabled:bg-slate-100 disabled:text-slate-600">
+                                                <option value="" disabled>Choose a CRM customer profile</option>
+                                                {!connectedCustomer && surveyData.customerId && <option value={surveyData.customerId}>Customer profile unavailable</option>}
+                                                {crmCustomers.map(customer => <option key={customer.id} value={customer.id}>{customer.name}{customer.code ? ` · ${customer.code}` : ''}</option>)}
+                                            </select>
+                                            <p id="organisation-link-help" className="text-xs text-slate-500">{canChangeOrganisation ? 'The selected CRM profile owns this audit. Changing it moves this empty draft to that profile.' : 'This audit has captured content and remains linked to its original CRM profile. Start a new audit for another customer.'}</p>
+                                        </> : item.type === 'select' ? <select id={`metadata-${item.id}`} value={surveyData.metadata[item.id] || ''} onChange={event => updateMetadata(item.id,event.target.value)} className="w-full px-3 py-2 border border-slate-200 rounded-lg text-sm"><option value="">Select facility type</option>{item.options.map(option => <option key={option}>{option}</option>)}</select> : <input id={`metadata-${item.id}`} type={item.type || 'text'} value={surveyData.metadata[item.id] || ''} onChange={event => updateMetadata(item.id,event.target.value)} className="w-full px-3 py-2 border border-slate-200 rounded-lg text-sm" />}
+                                    </div>)}
                                 </div></section>
                                 <div id="site-assets" className="audit-section"><AssetRegistry assets={surveyData.assets} onAdd={addAsset} onUpdate={updateAsset} onDelete={deleteAsset} savedDraft={surveyData.assetDraft} onDraftChange={updateAssetDraft} /></div>
                                 {checklistConfig.sections.slice(1).map((section,index) => <section key={section.id} id={`section-${section.id}`} className="audit-section"><div className="audit-section-header"><div><small>{String(index+2).padStart(2,'0')} · INSPECTION</small><h2>{section.title}</h2></div><div className="count-row"><span className="count-pill green">● {section.items.filter(item => surveyData.responses[item.id]?.status === 'green').length} green</span><span className="count-pill amber">● {section.items.filter(item => surveyData.responses[item.id]?.status === 'amber').length} amber</span><span className="count-pill red">● {section.items.filter(item => surveyData.responses[item.id]?.status === 'red').length} red</span></div></div><div>{section.items.map(item => <SurveyItem key={item.id} sectionId={section.id} sectionTitle={section.title} item={item} value={surveyData.responses[item.id]} linkedAssets={assetReport.forFinding(surveyData.assets,item.id)} onChange={value => updateResponse(item.id,value)} />)}</div></section>)}

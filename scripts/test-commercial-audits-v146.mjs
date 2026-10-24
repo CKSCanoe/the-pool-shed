@@ -11,11 +11,14 @@ const worker = read('public/service-worker.js');
 
 assert.match(shell, /id: "audits", label: "Pool Audits"/);
 assert.match(html, /id="screen-audits"/);
-assert.match(html, /commercial-audits\/embedded\.css\?v=1\.46\.0/);
+assert.match(html, /commercial-audits\/embedded\.css\?v=1\.46\.1/);
 assert.match(shell, /data-crm-profile-tab="audits"/);
 assert.match(shell, /data-new-pool-audit/);
 assert.match(shell, /data-open-pool-audit/);
-assert.match(auditHtml, /poolShedBridge\.save\(survey\)/);
+assert.match(auditHtml, /poolShedBridge\.save\(survey, options\)/);
+assert.match(auditHtml, /id="metadata-org-name" value=\{surveyData\.customerId \|\| ''\}/, 'organisation dropdown uses the CRM customer ID');
+assert.match(auditHtml, /onChange=\{event => changeOrganisation\(event\.target\.value\)\}/, 'selecting an organisation updates its profile link');
+assert.match(auditHtml, /"id": "org-name", "label": "Organisation Name", "type": "crm-customer"/, 'organisation is configured as a CRM selector');
 assert.match(auditHtml, /onBlurCapture=\{saveOnFieldExit\}/, 'leaving a field triggers a save');
 assert.match(auditHtml, /surveyDataRef\.current/, 'manual saves use the latest edit');
 assert.match(auditHtml, /if \(next\.status !== previous\.status\) saveNow\(\)/, 'traffic-light changes save immediately');
@@ -41,7 +44,7 @@ const jsx = auditHtml.match(/<script type="text\/babel">([\s\S]*?)<\/script>/)?.
 assert.ok(jsx, 'audit application source exists');
 new vm.Script(babelContext.module.exports.transform(jsx, { presets: [['react', { runtime: 'classic' }]] }).code);
 
-const data = { customers: [{ id: 'C1', name: 'School pool' }, { id: 'C2', name: 'Hotel pool' }], poolAudits: [] };
+const data = { customers: [{ id: 'C1', name: 'School pool', companyName: 'School Trust' }, { id: 'C2', name: 'Hotel pool' }], poolAudits: [] };
 const user = { id: 'U1', name: 'Inspector', role: 'Engineer' };
 const localStore = new Map();
 let localWriteAllowed = true;
@@ -49,7 +52,7 @@ let indexedWriteAllowed = true;
 const localStorage = { getItem: key => localStore.get(key) || null, setItem: (key, value) => localStore.set(key, value) };
 const ctx = {
   window: null, data, navigator: { onLine: true }, localStorage,
-  PoolShedSettingsPermissions: { can: () => true }, PoolShedAudit: { record: () => {} },
+  PoolShedSettingsPermissions: { can: () => true }, PoolShedAudit: { record: event => { ctx.lastAuditEvent = event; } },
   currentUser: () => user, canAccessTab: () => true,
   saveAppData: () => {
     ctx.workspaceLastLocalPayload = JSON.stringify(data);
@@ -80,6 +83,7 @@ const record = { id: 'A1', customerId: 'C1', status: 'draft', metadata: { 'site-
 await bridge.save(record);
 assert.equal(data.poolAudits.length, 1);
 assert.equal(data.poolAudits[0].customerId, 'C1');
+assert.equal(data.poolAudits[0].metadata['org-name'], 'School Trust', 'report organisation comes from the CRM company name');
 record.metadata['site-name'] = 'Changed outside';
 assert.equal(data.poolAudits[0].metadata['site-name'], 'Main pool', 'saved record is detached from caller');
 assert.match(ctx.customerAuditPanel(data.customers[0]), /Main pool/);
@@ -103,6 +107,16 @@ ctx.renderCommercialAudits();
 assert.match(auditFrame, /customer=C1&audit=A1/);
 assert.doesNotMatch(auditFrame, /&new=/);
 await assert.rejects(bridge.save({ ...record, customerId: 'C2' }), /cannot be moved/);
+assert.equal(bridge.canRelink(data.poolAudits.find(item => item.id === 'A1')), true);
+const moved = await bridge.save({ ...data.poolAudits.find(item => item.id === 'A1'), customerId: 'C2' }, { relinkCustomer: true });
+assert.equal(moved.metadata['org-name'], 'Hotel pool');
+assert.doesNotMatch(ctx.customerAuditPanel(data.customers[0]), /Updated pool/, 'old profile no longer lists the moved visit');
+assert.match(ctx.customerAuditPanel(data.customers[1]), /Updated pool/, 'new profile lists the moved visit');
+assert.equal(JSON.parse(localStorage.getItem('poolshed:v172:appData')).poolAudits.find(item => item.id === 'A1').customerId, 'C2', 'CRM link persists after reload');
+assert.equal(ctx.lastAuditEvent.action, 'Commercial audit linked to another customer');
+ctx.renderCommercialAudits();
+assert.match(auditFrame, /customer=C2&audit=A1/, 'reopening the active visit uses the new profile route');
+await assert.rejects(bridge.save({ ...moved, customerId: 'C1', responses: { check: { status: 'red' } } }, { relinkCustomer: true }), /findings, assets or evidence/);
 await assert.rejects(bridge.save({ ...record, id: 'A2', customerId: 'missing' }), /valid customer/);
 await assert.rejects(bridge.save({ ...record, id: 'A3', responses: { x: { image: 'data:image/png;base64,' + 'A'.repeat(501000) } } }), /embedded media/);
 localWriteAllowed = false;
