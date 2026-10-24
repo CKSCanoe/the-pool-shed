@@ -1,4 +1,4 @@
-const CACHE = 'pool-shed-v1.46.0-css-authority-commercial-audits';
+const CACHE = 'pool-shed-v1.46.0-css-authority-commercial-audits-route-fix';
 const CORE = ["./","./index.html","./commercial-audits/index.html","./commercial-audits/embedded.css?v=1.46.0","./assets/img/pb-logo.png","./assets/css/app.css?v=1.46.0","./config.js?v=1.46.0","./identity-authority.js?v=1.46.0","./audit-authority.js?v=1.46.0","./assets/js/01-legacy-01.js?v=1.46.0","./shared-one-truth-authority.js?v=1.46.0","./assets/js/02-legacy-02.js?v=1.46.0","./assets/js/03-pb-import-governance-v192.js?v=1.46.0","./assets/js/04-pb-product-profile-v196-fix.js?v=1.46.0","./assets/js/05-pb-v1100-inventory-product-hub.js?v=1.46.0","./business-media.js?v=1.46.0","./product-images.js?v=1.46.0","./sales-order-search.js?v=1.46.0","./catalogue-intelligence.js?v=1.46.0","./partial-fulfilment.js?v=1.46.0","./assets/js/06-pb-product-title-persistence-v115-fix.js?v=1.46.0","./bundle-engine.js?v=1.46.0","./bundle-system.js?v=1.46.0","./bundle-studio.js?v=1.46.0","./bundle-sales-intelligence.js?v=1.46.0","./pool-shed-overhaul.js?v=1.46.0","./sales-order-customer-picker.js?v=1.46.0","./professional-workspace.js?v=1.46.0","./accounting-workspace.js?v=1.46.0","./finance-command-engine.js?v=1.46.0","./finance-command-workspace.js?v=1.46.0","./analytics-command-engine.js?v=1.46.0","./analytics-command-workspace.js?v=1.46.0","./settings-permissions-engine.js?v=1.46.0","./record-router.js?v=1.46.0","./notifications-command-engine.js?v=1.46.0","./action-authority.js?v=1.46.0","./approval-authority.js?v=1.46.0","./action-approval-integrations.js?v=1.46.0","./action-source-adapters.js?v=1.46.0","./my-work-workspace.js?v=1.46.0","./notifications-command-workspace.js?v=1.46.0","./automation-command-engine.js?v=1.46.0","./automation-command-workspace.js?v=1.46.0","./azzy-jarvis-host.js?v=1.46.0","./azzy-jarvis.css?v=1.46.0-startup-v1","./assets/img/azzy-jarvis-64.png","./assets/img/azzy-jarvis-192.png","./production-readiness-engine.js?v=1.46.0","./settings-command-workspace.js?v=1.46.0","./project-engine.js?v=1.46.0","./project-documents.js?v=1.46.0","./project-billing.js?v=1.46.0","./project-workspace.js?v=1.46.0","./project-design-parity.js?v=1.46.0","./project-setup-tools.js?v=1.46.0","./sales-workspace.js?v=1.46.0","./warehouse-workspace.js?v=1.46.0","./purchase-workspace.js?v=1.46.0","./supplier-command-engine.js?v=1.46.0","./supplier-command-workspace.js?v=1.46.0","./product-hub-engine.js?v=1.46.0","./product-hub-workspace.js?v=1.46.0","./inventory-control-engine.js?v=1.46.0","./inventory-workspace.js?v=1.46.0","./fulfilment-control-engine.js?v=1.46.0","./fulfilment-workspace.js?v=1.46.0","./dashboard-review-engine.js?v=1.46.0","./business-review.js?v=1.46.0","./quarterly-review.js?v=1.46.0","./quote-studio.css?v=1.46.0","./quote-studio-engine.js?v=1.46.0","./quote-studio-workspace.js?v=1.46.0","./proposal.html","./quote-customer-portal.css?v=1.46.0","./quote-customer-portal.js?v=1.46.0"];
 const BOOT_CORE = [
   './',
@@ -15,11 +15,11 @@ const BOOT_CORE = [
 CORE.push(...[
   './commercial-audits/assets/pb-logo.png',
   './commercial-audits/src/theme.css',
-  './commercial-audits/src/report-guidance.cjs',
-  './commercial-audits/src/report-evidence.cjs',
-  './commercial-audits/src/asset-report.cjs',
-  './commercial-audits/src/brand.cjs',
-  './commercial-audits/src/audit-model.cjs',
+  './commercial-audits/src/report-guidance.js',
+  './commercial-audits/src/report-evidence.js',
+  './commercial-audits/src/asset-report.js',
+  './commercial-audits/src/brand.js',
+  './commercial-audits/src/audit-model.js',
   './commercial-audits/vendor/react.production.min.js',
   './commercial-audits/vendor/react-dom.production.min.js',
   './commercial-audits/vendor/babel.min.js',
@@ -95,7 +95,7 @@ self.addEventListener('fetch', event => {
 
   if (isNavigation) {
     const isCustomerProposal = url.pathname.endsWith('/proposal.html') || url.pathname.endsWith('/proposal');
-    const isCommercialAudit = url.pathname.endsWith('/commercial-audits/index.html');
+    const isCommercialAudit = /^\/commercial-audits(?:\/|\/index\.html)?$/.test(url.pathname);
     event.respondWith(
       fetch(request, { cache: 'no-store' })
         .then(response => {

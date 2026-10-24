@@ -7,6 +7,7 @@ const shell = read('public/assets/js/01-legacy-01.js');
 const html = read('public/index.html');
 const auditHtml = read('public/commercial-audits/index.html');
 const permissionSource = read('public/settings-permissions-engine.js');
+const worker = read('public/service-worker.js');
 
 assert.match(shell, /id: "audits", label: "Pool Audits"/);
 assert.match(html, /id="screen-audits"/);
@@ -17,6 +18,12 @@ assert.match(shell, /data-open-pool-audit/);
 assert.match(auditHtml, /poolShedBridge\.save\(survey\)/);
 assert.match(auditHtml, /poolShedMedia\.upload\('customer'/);
 assert.match(auditHtml, /await prepareReportMedia\(surveyData\)/);
+assert.doesNotMatch(auditHtml, /["']\.\/(?:vendor|src|assets)\//, 'clean URLs must not break audit asset paths');
+for (const source of auditHtml.matchAll(/(?:src|href)="(\/commercial-audits\/(?:vendor|src|assets)\/[^\"]+)"/g)) {
+  assert.ok(fs.existsSync(`public${source[1]}`), `audit asset exists: ${source[1]}`);
+}
+assert.doesNotMatch(auditHtml, /\.cjs["']/);
+assert.match(worker, /commercial-audits\(\?:\\\/\|\\\/index\\\.html\)\?\$/);
 assert.match(auditHtml, /startNewFromProfile = poolShedBridge && routeParams\.has\('new'\)/);
 assert.match(auditHtml, /restored\.customerId && restored\.customerId !== customer\.id/);
 assert.doesNotMatch(auditHtml, /indexedDB\.open/);
