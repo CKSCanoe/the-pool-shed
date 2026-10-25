@@ -11,7 +11,7 @@ const worker = read('public/service-worker.js');
 
 assert.match(shell, /id: "audits", label: "Pool Audits"/);
 assert.match(html, /id="screen-audits"/);
-assert.match(html, /commercial-audits\/embedded\.css\?v=1\.47\.2/);
+assert.match(html, /commercial-audits\/embedded\.css\?v=1\.47\.3/);
 assert.match(shell, /data-crm-profile-tab="audits"/);
 assert.match(shell, /data-new-pool-audit/);
 assert.match(shell, /data-open-pool-audit/);
@@ -23,7 +23,12 @@ assert.match(auditHtml, /onBlurCapture=\{saveOnFieldExit\}/, 'leaving a field tr
 assert.match(auditHtml, /surveyDataRef\.current/, 'manual saves use the latest edit');
 assert.match(auditHtml, /if \(next\.status !== previous\.status\) saveNow\(\)/, 'traffic-light changes save immediately');
 assert.match(auditHtml, /poolShedBridge\.openCustomerProfile/, 'audit returns to its customer profile');
-assert.match(auditHtml, /poolShedMedia\.upload\('customer'/);
+assert.match(auditHtml, /poolShedMedia\.queueAuditPhoto\(activeAuditCustomerId/);
+assert.match(auditHtml, /if \(onPersist\) await onPersist\(\)/, 'new photograph links save immediately');
+assert.match(auditHtml, /poolShedBridge\.prepareOffline\(surveyDataRef\.current\.id\)/, 'selected audit must be prepared before the visit');
+assert.match(auditHtml, /upgradeDraft: draft/, 'upgrade proposals persist while they are being written');
+assert.match(shell, /cacheAuditPhotos\(selectedAudit\)/, 'existing audit photographs are downloaded for offline use');
+assert.match(shell, /writeOfflineSnapshot\(false, 'shared-base', 'verified-merge-base'/, 'offline merge base is stored before departure');
 assert.match(auditHtml, /await prepareReportMedia\(savedAudit\)/);
 assert.doesNotMatch(auditHtml, /["']\.\/(?:vendor|src|assets)\//, 'clean URLs must not break audit asset paths');
 for (const source of auditHtml.matchAll(/(?:src|href)="(\/commercial-audits\/(?:vendor|src|assets)\/[^\"]+)"/g)) {

@@ -43,6 +43,7 @@ const state = {
   render: () => {},
   console
 };
+state.window = state;
 vm.createContext(state);
 vm.runInContext(source.slice(start, end), state);
 

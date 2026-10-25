@@ -17,7 +17,7 @@ for(const f of ['identity-authority.js','audit-authority.js','record-router.js']
   assert(index.includes(`./${f}?v=${release}`),`index missing retained ${f}`);
   assert(sw.includes(`./${f}?v=${release}`),`service worker missing retained ${f}`);
 }
-const order=['identity-authority.js','audit-authority.js','assets/js/01-legacy-01.js','settings-permissions-engine.js','record-router.js','notifications-command-workspace.js'];
+const order=['identity-authority.js','settings-permissions-engine.js','audit-authority.js','assets/js/01-legacy-01.js','record-router.js','notifications-command-workspace.js'];
 let pos=-1;for(const token of order){const i=index.indexOf(token);assert(i>pos,token+' must load after preceding foundation authority');pos=i;}
 assert.match(buildCss,/58-foundation-authority\.css/);
 assert.match(pkg.scripts['test:foundation']||'',/test-foundation-audit-integration-v126\.mjs/);

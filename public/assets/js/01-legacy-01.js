@@ -631,13 +631,13 @@ const seed = {
         else setTimeout(task, 0);
       }
 
-      async function readOfflineSnapshot() {
+      async function readOfflineSnapshot(snapshotKey) {
         try {
           const db = await openOfflineDb();
           if (!db) return null;
           return await new Promise(function(resolve) {
             const tx = db.transaction(OFFLINE_STORE, "readonly");
-            const request = tx.objectStore(OFFLINE_STORE).get("latest");
+            const request = tx.objectStore(OFFLINE_STORE).get(snapshotKey || "latest");
             request.onsuccess = function() { resolve(request.result || null); };
             request.onerror = function() { resolve(null); };
           });
@@ -976,11 +976,14 @@ const seed = {
         supabaseSession = session || null;
         if (!session || !session.user) return false;
         const authUser = session.user;
+        const users = loadUsers();
+        const cachedUser = users.find(function(item){ return item.id === authUser.id; });
+        if (!navigator.onLine && (!cachedUser || cachedUser.status === 'Inactive' || cachedUser.status === 'Disabled')) return false;
         let profile = null;
-        try {
+        try { if (navigator.onLine) {
           const response = await supabaseClient.from("user_profiles").select("*").eq("id", authUser.id).maybeSingle();
           if (!response.error) profile = response.data;
-        } catch (error) { void error; }
+        }} catch (error) { void error; }
         if (profile && profile.active === false) {
           supabaseSession = null;
           isAuthenticated = false;
@@ -989,19 +992,18 @@ const seed = {
           showLogin("denied", "This account is currently inactive. Contact your Pool Shed administrator if you need access restored.");
           return false;
         }
-        const users = loadUsers();
         const nextUser = {
           id: authUser.id,
           name: (profile && profile.full_name) || authUser.user_metadata.full_name || authUser.email || "User",
           email: authUser.email || "",
           jobTitle: (profile && profile.job_title) || "",
-          role: (profile && window.PoolShedIdentity ? window.PoolShedIdentity.normalizeRole(profile.role, { diagnose:true, context:"authenticated-profile-load" }) : (profile && profile.role === "User" ? "Office" : (profile && profile.role) || "Office")),
+          role: (profile && window.PoolShedIdentity ? window.PoolShedIdentity.normalizeRole(profile.role, { diagnose:true, context:"authenticated-profile-load" }) : (profile && profile.role === "User" ? "Office" : (profile && profile.role) || (cachedUser && cachedUser.role) || "Office")),
           status: profile && profile.active === false ? "Inactive" : "Active",
           phone: (profile && profile.phone) || "",
           avatar: (profile && profile.avatar_url) || "",
           notes: "Supabase authenticated user",
           password: "", resetCode: "", passwordSet: true,
-          permissions: (profile && profile.permissions) || {}
+          permissions: (profile && profile.permissions) || (cachedUser && cachedUser.permissions) || {}
         };
         let index = users.findIndex(function(item) { return item.id === nextUser.id; });
         if (index < 0 && nextUser.email) index = users.findIndex(function(item) { return String(item.email || "").trim().toLowerCase() === String(nextUser.email || "").trim().toLowerCase(); });
@@ -1021,7 +1023,7 @@ const seed = {
         // Start membership reconciliation immediately, but do not serialize the
         // verified RLS workspace read behind the server enrolment endpoint. Existing
         // members can prove access by reading the protected shared snapshot itself.
-        ensureSharedWorkspaceAccess().catch(function(){});
+        if (navigator.onLine) ensureSharedWorkspaceAccess().catch(function(){});
         setTimeout(function(){
           loadSupabaseProfiles().then(function(){
             try { if (active === "settings") render(); } catch (error) { void error; }
@@ -1085,10 +1087,9 @@ const seed = {
           const remoteSnapshot = normalizeAppData(clone(response.data.data));
           const knownBase = baseSnapshot || workspaceBaseSnapshot;
           if (!knownBase) {
-            localStorage.removeItem("poolshed:v172:pendingSync");
-            workspaceSyncConflict = false;
-            await applyRemoteWorkspaceSnapshot(response.data, true);
-            toast("Another user saved first. Pool Shed kept your unsynced browser copy in Recovery and loaded the verified shared master because there was no safe merge base.");
+            workspaceSyncConflict = true;
+            updateOfflineStatus();
+            toast("The shared workspace changed while you were offline. Your audit remains on this device. Review Recovery before switching devices.");
             return false;
           }
           const base = normalizeAppData(clone(knownBase));
@@ -1109,6 +1110,7 @@ const seed = {
           workspaceLastLocalPayload = mergedPayload;
           cacheWorkspaceLocally(mergedPayload, true);
           await writeOfflineSnapshot(true);
+          await writeOfflineSnapshot(false, "shared-base", "verified-merge-base", remoteSnapshot);
           updateOfflineStatus();
 
           toast(conflicts.length
@@ -1145,6 +1147,7 @@ const seed = {
         setTimeout(function(){
           try { cacheWorkspaceLocally(payload, false); } catch (error) { void error; }
           queueOfflineSnapshot(workspaceBaseSnapshot, false, "verified-shared-master");
+          writeOfflineSnapshot(false, "shared-base", "verified-merge-base", workspaceBaseSnapshot).catch(function(){});
         }, 0);
         return true;
       }
@@ -1211,21 +1214,16 @@ const seed = {
           workspaceBaseSnapshot = normalizeAppData(clone(response.data.data));
           if (await saveRemoteWorkspace(true)) return true;
 
-          let recoveryKey = preserveUnsyncedWorkspaceRecovery("shared-upload-incomplete-on-sign-in");
-          if (!recoveryKey) recoveryKey = await preserveLargeWorkspaceRecovery("shared-upload-incomplete-on-sign-in");
-          localStorage.removeItem("poolshed:v172:pendingSync");
-          workspaceSyncConflict = false;
-          await applyRemoteWorkspaceSnapshot(response.data, false);
-          if (recoveryKey) toast("Shared master loaded. Your unsynced browser changes were kept safely in Recovery.");
-          return true;
+          // A failed upload is still pending work, not permission to replace it.
+          preserveUnsyncedWorkspaceRecovery("shared-upload-incomplete-on-sign-in");
+          return false;
         }
 
         // Stale or unknown pending work is never allowed to overwrite a newer server master.
         if (pending) {
-          let recoveryKey = preserveUnsyncedWorkspaceRecovery("stale-local-workspace-on-sign-in");
-          if (!recoveryKey) recoveryKey = await preserveLargeWorkspaceRecovery("stale-local-workspace-on-sign-in");
-          localStorage.removeItem("poolshed:v172:pendingSync");
-          if (recoveryKey) toast("Shared workspace loaded. Unsynced browser changes were kept in Recovery.");
+          const merged = await resolveSharedWorkspaceConflict(clone(data), workspaceBaseSnapshot);
+          if (!merged) return false;
+          return saveRemoteWorkspace(true);
         }
 
         return applyRemoteWorkspaceSnapshot(response.data, false);
@@ -1241,6 +1239,9 @@ const seed = {
           : Number(localStorage.getItem("poolshed:v172:localRevision") || 0);
         const baseForAttempt = workspaceBaseSnapshot ? clone(workspaceBaseSnapshot) : null;
         try {
+          if (window.PoolShedBusinessMedia && window.PoolShedBusinessMedia.syncAuditPhotos) {
+            await window.PoolShedBusinessMedia.syncAuditPhotos(window.__POOL_SHED_AUDIT_BRIDGE__);
+          }
           const savedJson = JSON.stringify(normalizeAppData(data));
           const localSnapshot = JSON.parse(savedJson);
           const response = await supabaseClient.rpc("ps_workspace_save", {
@@ -1267,6 +1268,7 @@ const seed = {
           if (response.error) throw response.error;
           remoteWorkspaceUpdatedAt = response.data.updated_at;
           sharedWorkspaceReady = true;
+          window.__POOL_SHED_SHARED_READY__ = true;
           workspaceBaseSnapshot = clone(localSnapshot);
           workspaceLastLocalPayload = savedJson;
           localStorage.setItem("poolshed:v172:remoteRevision", remoteWorkspaceUpdatedAt);
@@ -1279,6 +1281,7 @@ const seed = {
           if (savingLocalRevision === currentLocalRevision && localPayloadUnchanged) {
             localStorage.removeItem("poolshed:v172:pendingSync");
             await writeOfflineSnapshot(false);
+            await writeOfflineSnapshot(false, "shared-base", "verified-merge-base", localSnapshot);
           } else {
             queueRemoteWorkspaceSave();
           }
@@ -1426,6 +1429,9 @@ const seed = {
         if (snapshot && snapshot.data) {
           data = normalizeAppData(snapshot.data);
           cacheWorkspaceLocally(JSON.stringify(data), pending || snapshot.pendingSync === true);
+          const base = await readOfflineSnapshot("shared-base");
+          workspaceBaseSnapshot = base && base.data ? normalizeAppData(base.data) : null;
+          remoteWorkspaceUpdatedAt = localStorage.getItem("poolshed:v172:remoteRevision") || null;
           if (isAuthenticated) render();
           return true;
         }
@@ -1449,7 +1455,7 @@ const seed = {
         if (workspaceSyncConflict) { el.dataset.state = "error"; el.textContent = "Sync needs review"; el.title = "Local changes are protected, but the shared save needs attention."; return; }
         if (workspaceDraftField && workspaceDraftField.isConnected) { el.dataset.state = "pending"; el.textContent = "Unsaved field changes"; el.title = "Finish editing this field to save it."; return; }
         if (!navigator.onLine) { el.dataset.state = "pending"; el.textContent = pending ? "Saved on this device" : "Offline"; el.title = pending ? "Changes will upload when Pool Shed reconnects." : "Pool Shed is offline."; return; }
-        if (!sharedWorkspaceReady || !supabaseSession) { el.dataset.state = "connecting"; el.textContent = "Connecting to team"; el.title = "Pool Shed is opening the shared workspace."; return; }
+        if (!sharedWorkspaceReady || !supabaseSession) { el.dataset.state = pending ? "pending" : "connecting"; el.textContent = pending ? "Saved on this device · sync pending" : "Connecting to team"; el.title = pending ? "Keep this iPad until the shared save is confirmed." : "Pool Shed is opening the shared workspace."; return; }
         el.dataset.state = pending || workspaceSaveInFlight ? "pending" : "shared";
         el.textContent = pending || workspaceSaveInFlight ? "Sharing changes…" : "Saved for team";
         el.title = pending || workspaceSaveInFlight ? "Saved on this device and awaiting confirmation from the shared workspace." : "The shared workspace has confirmed these changes.";
@@ -1458,6 +1464,11 @@ const seed = {
       async function syncPendingOfflineData() {
         if (localStorage.getItem("poolshed:v172:recoveryHold") === "1") return;
         if (!navigator.onLine || localStorage.getItem("poolshed:v172:pendingSync") !== "1") return;
+        if (!sharedWorkspaceReady) {
+          const ready = await loadRemoteWorkspace();
+          if (ready) { startSharedWorkspaceLiveSync(); updateOfflineStatus(); render(); }
+          return;
+        }
         await saveRemoteWorkspace(false);
       }
 
@@ -2677,7 +2688,7 @@ const seed = {
           : effectiveMode === "mfa"
             ? '<button class="ps-login-link" type="button" data-login-cancel-mfa>Use a different account</button><span>Authenticator verification</span>'
             : effectiveMode === "denied" || effectiveMode === "workspace" ? '<span></span>' : '<button class="ps-login-link" type="button" data-login-mode="login">Back to sign in</button><span></span>';
-        screen.innerHTML = '<main class="ps-login-stage"><section class="ps-login-shell"><aside class="ps-login-brand"><div><div class="ps-login-lockup"><span class="ps-login-logo"><img src="' + DEFAULT_POOL_BROS_LOGO + '" alt="Pool Bros logo"></span><div><span class="ps-login-kicker">Pool Bros</span><strong>THE POOL SHED</strong></div></div><div class="ps-login-hero"><span class="ps-login-kicker">Operations Command System</span><h1>One secure place to <span>run the operation.</span></h1><p>Secure access to the Pool Bros operations workspace. Sign in to continue to your authorised tools, tasks and information.</p></div></div><div class="ps-login-staff-note"><strong>Pool Bros staff access</strong><span>Your workspace and available tools are tailored to your account after sign-in.</span></div></aside><section class="ps-login-auth"><div class="ps-login-card"><div class="ps-login-card-head"><span class="ps-login-kicker">' + escapeHtml(meta.eyebrow) + '</span><h2>' + escapeHtml(meta.heading) + '</h2><p>' + escapeHtml(meta.intro) + '</p></div><form id="loginForm">' + fields + '<div id="loginMessage" class="ps-login-message' + (good ? ' good' : '') + '">' + escapeHtml(message || '') + '</div></form><div class="ps-login-helper">' + helper + '</div></div></section></section><footer class="ps-login-footer">Pool Shed v1.47.2 · Pool Bros Ltd</footer></main>';
+        screen.innerHTML = '<main class="ps-login-stage"><section class="ps-login-shell"><aside class="ps-login-brand"><div><div class="ps-login-lockup"><span class="ps-login-logo"><img src="' + DEFAULT_POOL_BROS_LOGO + '" alt="Pool Bros logo"></span><div><span class="ps-login-kicker">Pool Bros</span><strong>THE POOL SHED</strong></div></div><div class="ps-login-hero"><span class="ps-login-kicker">Operations Command System</span><h1>One secure place to <span>run the operation.</span></h1><p>Secure access to the Pool Bros operations workspace. Sign in to continue to your authorised tools, tasks and information.</p></div></div><div class="ps-login-staff-note"><strong>Pool Bros staff access</strong><span>Your workspace and available tools are tailored to your account after sign-in.</span></div></aside><section class="ps-login-auth"><div class="ps-login-card"><div class="ps-login-card-head"><span class="ps-login-kicker">' + escapeHtml(meta.eyebrow) + '</span><h2>' + escapeHtml(meta.heading) + '</h2><p>' + escapeHtml(meta.intro) + '</p></div><form id="loginForm">' + fields + '<div id="loginMessage" class="ps-login-message' + (good ? ' good' : '') + '">' + escapeHtml(message || '') + '</div></form><div class="ps-login-helper">' + helper + '</div></div></section></section><footer class="ps-login-footer">Pool Shed v1.47.3 · Pool Bros Ltd</footer></main>';
         bindLoginScreen(effectiveMode);
       }
 
@@ -2714,6 +2725,21 @@ const seed = {
 
       async function completeSupabaseSignIn(session) {
         if (!session) return false;
+        const offlineReady = (function(){ try { return JSON.parse(localStorage.getItem('poolshed:v172:offlineReady') || 'null'); } catch (error) { return null; } })();
+        const canResumeDeviceCopy = !!(offlineReady && session.user && offlineReady.userId === session.user.id &&
+          Date.now() - Number(offlineReady.preparedAt) < 7 * 86400000 &&
+          localStorage.getItem('poolshed:v169:sessionUserId') === session.user.id &&
+          (localStorage.getItem('poolshed:v172:appData') || await readOfflineSnapshot()));
+        if (!navigator.onLine) {
+          if (!canResumeDeviceCopy) { showLogin('workspace', 'Prepare this iPad for offline audits while signed in and connected.'); return false; }
+          const appliedOffline = await applySupabaseSession(session);
+          if (!appliedOffline) { showLogin('workspace', 'This signed-in user has no verified offline profile on this iPad. Reconnect to continue.'); return false; }
+          sharedWorkspaceReady = false;
+          window.__POOL_SHED_SHARED_READY__ = false;
+          showApp();
+          updateOfflineStatus();
+          return true;
+        }
         const factorId = await pendingMfaFactor();
         if (factorId) {
           loginMfaFactorId = factorId;
@@ -2726,6 +2752,11 @@ const seed = {
         if (!sharedLoaded) {
           sharedWorkspaceReady = false;
           stopSharedWorkspaceLiveSync();
+          if (canResumeDeviceCopy && localStorage.getItem('poolshed:v172:pendingSync') === '1') {
+            showApp();
+            updateOfflineStatus();
+            return true;
+          }
           showLogin("workspace", isAdminUser()
             ? "The shared Pool Shed master could not be loaded after retrying. Your browser data has NOT been overwritten."
             : "The shared Pool Shed master could not be loaded after retrying. No separate browser copy has been opened.");
@@ -10414,7 +10445,55 @@ const seed = {
         getCustomers: function(){ requirePoolAuditSession(); if (!canAccessTab('audits')) throw Error('Audit access denied.'); return (data.customers || []).map(function(c){ return { id:c.id, name:c.companyName || c.name || 'Customer', code:c.code || '' }; }); },
         getUser: function(){ requirePoolAuditSession(); const u = currentUser() || {}; return { id:u.id || '', name:u.name || u.email || '' }; },
         canRelink: function(record){ requirePoolAuditSession(); if (!canAccessTab('audits')) throw Error('Audit access denied.'); return canRelinkPoolAudit(record) && (!window.PoolShedSettingsPermissions || window.PoolShedSettingsPermissions.can('audits', 'edit', currentUser())); },
-        syncState: function(){ return !navigator.onLine || workspaceSaveInFlight || workspaceSyncConflict || localStorage.getItem('poolshed:v172:pendingSync') === '1' ? 'device' : 'shared'; },
+        isOfflinePhotoReferenced: function(ref, auditId, customerId){
+          return (data.poolAudits || []).some(function(audit){
+            return audit.id === auditId && audit.customerId === customerId && JSON.stringify(audit).includes(ref);
+          });
+        },
+        replaceOfflinePhoto: async function(ref, uploadedRef, auditId, customerId){
+          requirePoolAuditSession();
+          const audit = (data.poolAudits || []).find(function(row){ return row.id === auditId && row.customerId === customerId; });
+          if (!audit) throw Error('The customer-linked audit is unavailable. The photo remains on this device.');
+          let replaced = false;
+          function walk(value){
+            if (Array.isArray(value)) value.forEach(walk);
+            else if (value && typeof value === 'object') Object.keys(value).forEach(function(key){
+              if (value[key] === ref) { value[key] = uploadedRef; replaced = true; }
+              else walk(value[key]);
+            });
+          }
+          walk(audit);
+          if (!replaced) return false;
+          saveAppData();
+          const saved = await writeOfflineSnapshot(true, 'latest', 'audit-photo-upload', clone(data));
+          if (!saved && localStorage.getItem('poolshed:v172:appData') !== workspaceLastLocalPayload) throw Error('The uploaded photo reference could not be saved on this device.');
+          return true;
+        },
+        prepareOffline: async function(auditId){
+          requirePoolAuditSession();
+          if (!navigator.onLine) throw Error('Connect before preparing the iPad for offline work.');
+          if (!sharedWorkspaceReady || !supabaseSession) throw Error('Wait for the shared workspace to finish connecting.');
+          if (!navigator.serviceWorker) throw Error('This browser cannot prepare Pool Shed for offline use.');
+          const selectedAudit = (data.poolAudits || []).find(function(audit){ return audit.id === auditId; });
+          if (!selectedAudit) throw Error('Open the customer audit before preparing offline use.');
+          if (localStorage.getItem('poolshed:v172:pendingSync') === '1' && !await flushSharedWorkspaceSave('Offline preparation')) throw Error('Changes are still waiting to upload. Reconnect and try again.');
+          const saved = await writeOfflineSnapshot(false, 'latest', 'audit-offline-ready', clone(data));
+          if (!saved && !localStorage.getItem('poolshed:v172:appData')) throw Error('The customer list and audits were not saved on this iPad.');
+          if (!workspaceBaseSnapshot || !await writeOfflineSnapshot(false, 'shared-base', 'verified-merge-base', workspaceBaseSnapshot)) throw Error('The shared starting point was not saved on this iPad. Reconnect and retry.');
+          if (window.PoolShedBusinessMedia && window.PoolShedBusinessMedia.cacheAuditPhotos) await window.PoolShedBusinessMedia.cacheAuditPhotos(selectedAudit);
+          const registration = await navigator.serviceWorker.ready;
+          if (!registration.active) throw Error('Offline app files are not ready yet.');
+          const result = await new Promise(function(resolve,reject){
+            const channel = new MessageChannel();
+            const timer = setTimeout(function(){ reject(Error('Offline preparation timed out. Check your connection and retry.')); }, 120000);
+            channel.port1.onmessage = function(event){ clearTimeout(timer); resolve(event.data || {}); };
+            registration.active.postMessage({ type:'POOL_SHED_PREPARE_OFFLINE' }, [channel.port2]);
+          });
+          if (!result.ok) throw Error('Some offline app files are unavailable. Reconnect and retry preparation.');
+          localStorage.setItem('poolshed:v172:offlineReady', JSON.stringify({ userId:currentUser().id, preparedAt:Date.now() }));
+          return true;
+        },
+        syncState: function(){ return !navigator.onLine || !sharedWorkspaceReady || workspaceSaveInFlight || workspaceSyncConflict || workspaceLocalSaveFailed || localStorage.getItem('poolshed:v172:pendingSync') === '1' ? 'device' : 'shared'; },
         openCustomerProfile: function(customerId){
           requirePoolAuditSession();
           if (!(data.customers || []).some(function(c){ return c.id === customerId; })) throw Error('Customer profile not found.');
@@ -16363,19 +16442,26 @@ const seed = {
     
       window.addEventListener("online", function() {
         updateOfflineStatus();
+        if (isAuthenticated && !sharedWorkspaceReady) {
+          loadRemoteWorkspace().then(function(ready){
+            if (ready) { startSharedWorkspaceLiveSync(); updateOfflineStatus(); render(); }
+          }).catch(function(error){ console.warn('Offline audit reconnection is still pending', error); });
+          return;
+        }
         Promise.resolve(syncPendingOfflineData()).then(function() {
           return refreshSharedWorkspaceFromRemote({ silent: true });
         });
       });
       window.addEventListener("offline", updateOfflineStatus);
       window.addEventListener("focus", function() {
-        if (isAuthenticated) refreshSharedWorkspaceFromRemote({ silent: true });
+        if (isAuthenticated) Promise.resolve(syncPendingOfflineData()).then(function(){ return refreshSharedWorkspaceFromRemote({ silent: true }); });
       });
       document.addEventListener("visibilitychange", function() {
-        if (!document.hidden && isAuthenticated) refreshSharedWorkspaceFromRemote({ silent: true });
+        if (!document.hidden && isAuthenticated) Promise.resolve(syncPendingOfflineData()).then(function(){ return refreshSharedWorkspaceFromRemote({ silent: true }); });
       });
+      setInterval(function(){ if (isAuthenticated && navigator.onLine && localStorage.getItem('poolshed:v172:pendingSync') === '1') syncPendingOfflineData().catch(function(error){ console.warn('Shared audit retry pending', error); }); }, 30000);
       window.addEventListener("load", function() {
         updateOfflineStatus();
         syncPendingOfflineData();
-        if ("serviceWorker" in navigator && location.protocol !== "file:") navigator.serviceWorker.register("./service-worker.js?v=1.47.2", { updateViaCache:"none" }).catch(function() {});
+        if ("serviceWorker" in navigator && location.protocol !== "file:") navigator.serviceWorker.register("./service-worker.js?v=1.47.3", { updateViaCache:"none" }).catch(function() {});
       });
