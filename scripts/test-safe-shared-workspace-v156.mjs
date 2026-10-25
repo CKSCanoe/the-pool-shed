@@ -9,7 +9,7 @@ const health=fs.readFileSync('api/workspace-health.js','utf8');
 
 assert(app.includes('/api/workspace-access?workspace='),'sign-in must enrol active staff into the shared workspace');
 assert(app.includes('poolshed:v172:recoveryHold'),'recovery hold must block shared reads/writes');
-assert(app.includes('stale-local-workspace-on-sign-in'),'stale browser state must be preserved as recovery');
+assert(app.includes('shared-upload-incomplete-on-sign-in'),'failed uploads must preserve the device copy as recovery');
 assert(app.includes('.channel("pool-shed-workspace-'),'shared workspace must subscribe to realtime changes');
 assert(app.includes('setInterval(function()'),'polling fallback must exist');
 assert(app.includes('refreshSharedWorkspaceFromRemote({ silent: true })'),'polling/online refresh must use the shared master');

@@ -1,3 +1,7 @@
+Pool Shed v1.47.3 - offline commercial audits
+
+Selected commercial audits can be prepared on an iPad while online. Answers, assets, actions and new photographs are saved on the device before team sync. Offline preparation checks the application files, workspace merge base and selected audit images. Pending changes and photographs upload on reconnection; the app shows whether changes are device-only or confirmed for the team. Browser speech recognition may need an internet connection.
+
 Pool Shed v1.47.2 - iPad navigation and tablet layout
 
 The sidebar now becomes a hideable menu at iPad widths, including landscape and larger touch tablets. Selecting a section or subsection closes it; tapping outside or pressing Escape does the same. Navigation targets are larger for touch. The audit workspace gains the full tablet canvas while the existing customer and finance workflows remain intact.

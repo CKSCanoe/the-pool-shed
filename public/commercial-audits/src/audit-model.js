@@ -9,7 +9,7 @@
     if (!id) throw new Error('An audit ID is required.');
     return {
       id, createdAt: now, updatedAt: now, status: 'draft',
-      metadata: {}, responses: {}, assets: [], upgrades: [], actions: {}, assetDraft: null
+      metadata: {}, responses: {}, assets: [], upgrades: [], actions: {}, assetDraft: null, upgradeDraft: null
     };
   }
 
@@ -25,6 +25,7 @@
       upgrades: Array.isArray(audit.upgrades) ? audit.upgrades : [],
       actions: audit.actions && typeof audit.actions === 'object' && !Array.isArray(audit.actions) ? audit.actions : {},
       assetDraft: audit.assetDraft && typeof audit.assetDraft === 'object' && !Array.isArray(audit.assetDraft) ? audit.assetDraft : null,
+      upgradeDraft: audit.upgradeDraft && typeof audit.upgradeDraft === 'object' && !Array.isArray(audit.upgradeDraft) ? audit.upgradeDraft : null,
       status: audit.status || 'draft'
     };
   }

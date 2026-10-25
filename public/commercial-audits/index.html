@@ -41,7 +41,7 @@
         const startNewFromProfile = poolShedBridge && routeParams.has('new');
         let activeAuditCustomerId = '';
         let activeAuditId = '';
-        const photoUrl = image => poolShedMedia && poolShedMedia.secureRef(image) ? poolShedMedia.url(image) : image;
+        const photoUrl = image => poolShedMedia && poolShedMedia.isManagedRef(image) ? poolShedMedia.url(image) : image;
         const prepareReportMedia = async audit => {
             if (!poolShedMedia) return audit;
             const copy = JSON.parse(JSON.stringify(audit));
@@ -51,7 +51,7 @@
             const imageData = {};
             for (const ref of refs) {
                 const url = poolShedMedia.url(ref);
-                if (!url) throw new Error('A linked photograph is unavailable. Reconnect and retry the report.');
+                if (!url) throw new Error('A linked photograph is unavailable on this device. Reconnect and retry the report.');
                 const response = await fetch(url);
                 if (!response.ok) throw new Error('A linked photograph could not be loaded for the report.');
                 const blob = await response.blob();
@@ -260,7 +260,7 @@
             );
         };
 
-        const ImageUpload = ({ photos, onChange, onBusyChange, sectionTitle, itemId, itemLabel }) => {
+        const ImageUpload = ({ photos, onChange, onBusyChange, onPersist, sectionTitle, itemId, itemLabel }) => {
             const fileInputRef = useRef(null);
             const [error, setError] = useState('');
             const [isReading, setIsReading] = useState(false);
@@ -278,8 +278,8 @@
                 onBusyChange?.(true);
                 try {
                     const additions = poolShedBridge ? await Promise.all(files.map(async file => {
-                        if (!activeAuditCustomerId || !activeAuditId || !poolShedMedia) throw new Error('Select a customer and connect before uploading photographs.');
-                        const media = await poolShedMedia.upload('customer', activeAuditCustomerId, 'site_photo', file, {
+                        if (!activeAuditCustomerId || !activeAuditId || !poolShedMedia) throw new Error('Select a customer before adding photographs.');
+                        const media = await poolShedMedia.queueAuditPhoto(activeAuditCustomerId, activeAuditId, itemId, file, {
                             title: itemLabel + ' evidence', notes: sectionTitle + ' / ' + itemLabel,
                             siteKey: activeAuditId + ':' + itemId
                         });
@@ -291,6 +291,7 @@
                         reader.readAsDataURL(file);
                     })));
                     onChange([...photos, ...additions]);
+                    if (onPersist) await onPersist();
                 } catch (readError) {
                     setError(readError.message);
                 } finally {
@@ -314,7 +315,7 @@
                     {error && <p role="alert" className="text-xs text-red-700">{error}</p>}
                     {photos.map((photo, index) => (
                         <div key={`${index}-${photo.image.slice(0, 40)}`} className="flex items-start gap-2 rounded-lg border border-slate-200 bg-white p-2">
-                            <img src={photoUrl(photo.image)} data-business-media-ref={poolShedMedia?.secureRef(photo.image) ? photo.image : undefined} alt={`Evidence ${index + 1} for ${itemLabel}`} className="w-14 h-14 object-cover rounded border border-slate-200 flex-none" />
+                            <img src={photoUrl(photo.image)} data-business-media-ref={poolShedMedia?.isManagedRef(photo.image) ? photo.image : undefined} alt={`Evidence ${index + 1} for ${itemLabel}`} className="w-14 h-14 object-cover rounded border border-slate-200 flex-none" />
                             <div className="min-w-0 flex-1 space-y-1">
                                 <label className="block text-[10px] font-bold text-slate-500" htmlFor={`caption-${itemId}-${index}`}>Caption for photo {index + 1}</label>
                                 <input id={`caption-${itemId}-${index}`} type="text" disabled={isReading} maxLength="240" value={photo.caption || ''} onChange={e => onChange(photos.map((entry, i) => i === index ? { ...entry, caption: e.target.value } : entry))} placeholder="What does this show?" className="w-full px-2 py-1 text-xs border border-slate-200 rounded" />
@@ -326,7 +327,7 @@
             );
         };
 
-        const SurveyItem = ({ sectionId, sectionTitle, item, value, linkedAssets = [], onChange }) => {
+        const SurveyItem = ({ sectionId, sectionTitle, item, value, linkedAssets = [], onChange, onPersist }) => {
             const isStatus = item.type === 'status';
             const isNumeric = item.type === 'numeric';
             const isSelect = item.type === 'select';
@@ -427,6 +428,7 @@
                                     itemId={item.id}
                                     itemLabel={item.label}
                                     onChange={photos => onChange(previous => ({ ...previous, image: null, imageCaption: null, photos }))}
+                                    onPersist={onPersist}
                                 />
                             </div>
                         )}
@@ -444,7 +446,7 @@
 
         const emptyAsset = () => ({ name: '', type: 'Pump', brand: '', model: '', serialNumber: '', location: '', linkedItemId: '', installDate: '', lastInspected: '', nextInspectionDue: '', lastService: '', nextServiceDue: '', mediaType: '', lastMediaChange: '', nextMediaChangeDue: '', dateStates: {}, condition: 'Not assessed', note: '', photos: [] });
 
-        const AssetRegistry = ({ assets, onAdd, onUpdate, onDelete, savedDraft, onDraftChange }) => {
+        const AssetRegistry = ({ assets, onAdd, onUpdate, onDelete, savedDraft, onDraftChange, onPersist }) => {
             const draft = savedDraft || emptyAsset();
             const editingId = draft.editingId || null;
             const setDraft = onDraftChange;
@@ -516,7 +518,7 @@
                                 {draft.type === 'Filter' && dateField('Next media change due', 'nextMediaChangeDue')}
                             </div>
                             <label className="block space-y-1 text-xs font-bold text-slate-600"><span>Asset observation or record source</span><textarea value={draft.note || ''} onChange={e => setField('note', e.target.value)} placeholder="Condition observed, label checked, logbook date, or follow-up needed" className={`${fieldClass} min-h-20 resize-y`} /></label>
-                            <div className="rounded-lg border border-blue-100 bg-white p-3"><ImageUpload photos={assetReport.photosForAsset(draft)} onChange={photos => setDraft(previous => ({ ...previous, image: null, imageCaption: null, photos }))} onBusyChange={setPhotoReading} sectionTitle="Asset register" itemId={`asset-${editingId || 'new'}`} itemLabel={draft.name || 'new asset'} /></div>
+                            <div className="rounded-lg border border-blue-100 bg-white p-3"><ImageUpload photos={assetReport.photosForAsset(draft)} onChange={photos => setDraft(previous => ({ ...previous, image: null, imageCaption: null, photos }))} onPersist={onPersist} onBusyChange={setPhotoReading} sectionTitle="Asset register" itemId={`asset-${editingId || 'new'}`} itemLabel={draft.name || 'new asset'} /></div>
                             <div className="flex flex-wrap gap-2"><button type="submit" disabled={photoReading} className="px-4 py-2 rounded-lg bg-blue-900 text-white text-sm font-bold hover:bg-blue-800 disabled:opacity-50">{photoReading ? 'Adding photo...' : editingId ? 'Save asset changes' : 'Add asset to survey'}</button>{editingId && <button type="button" onClick={() => setDraft(null)} className="px-4 py-2 rounded-lg border border-slate-200 bg-white text-slate-700 text-sm font-semibold">Cancel editing</button>}</div>
                         </form>
                         <div className="space-y-3">
@@ -539,13 +541,14 @@
             );
         };
 
-        const UpgradeModule = ({ assets, upgrades, onAdd, onDelete }) => {
-            const [newUpgrade, setNewUpgrade] = useState({ assetId: '', proposal: '', benefit: '', urgency: 'Medium' });
+        const UpgradeModule = ({ assets, upgrades, onAdd, onDelete, draft, onDraftChange }) => {
+            const newUpgrade = draft || { assetId: '', proposal: '', benefit: '', urgency: 'Medium' };
+            const setNewUpgrade = onDraftChange;
 
             const handleSubmit = (e) => {
                 e.preventDefault();
                 onAdd({ ...newUpgrade, id: 'upg-' + Date.now() });
-                setNewUpgrade({ assetId: '', proposal: '', benefit: '', urgency: 'Medium' });
+                setNewUpgrade(null);
             };
 
             return (
@@ -655,6 +658,8 @@
             const [saveError, setSaveError] = useState('');
             const [storageError, setStorageError] = useState('');
             const [backupMessage, setBackupMessage] = useState('');
+            const [offlinePrep, setOfflinePrep] = useState('');
+            const [offlinePreparing, setOfflinePreparing] = useState(false);
             const [relinkingCustomer, setRelinkingCustomer] = useState(false);
             const pendingTimer = useRef(null);
             const saveRevision = useRef(0);
@@ -899,6 +904,19 @@
                 }
             };
 
+            const prepareOffline = async () => {
+                setOfflinePreparing(true);
+                setOfflinePrep('Saving customer data and downloading audit files to this iPad…');
+                try {
+                    await saveNow();
+                    if (!hasActive) throw new Error('Open or start the school audit before preparing this iPad.');
+                    await poolShedBridge.prepareOffline(surveyDataRef.current.id);
+                    setOfflinePrep('Ready for offline auditing on this iPad. Keep Pool Shed signed in, and confirm “Saved for team” after reconnecting.');
+                } catch (error) {
+                    setOfflinePrep(error.message || 'Offline preparation did not finish. Reconnect and try again.');
+                } finally { setOfflinePreparing(false); }
+            };
+
             const restoreBackup = async event => {
                 const file = event.target.files?.[0];
                 event.target.value = '';
@@ -940,6 +958,7 @@
             const updateAssetDraft = update => editSurvey(prev => ({ ...prev, assetDraft: typeof update === 'function' ? update(prev.assetDraft || emptyAsset()) : update }));
             const addUpgrade = (upg) => { editSurvey(prev => ({ ...prev, upgrades: [...prev.upgrades, upg] })); saveNow().catch(() => {}); };
             const deleteUpgrade = (id) => { editSurvey(prev => ({ ...prev, upgrades: prev.upgrades.filter(u => u.id !== id) })); saveNow().catch(() => {}); };
+            const updateUpgradeDraft = draft => editSurvey(prev => ({ ...prev, upgradeDraft: draft }));
             const updateAction = (itemId, patch) => editSurvey(prev => ({ ...prev, actions: { ...(prev.actions || {}), [itemId]: { ...(prev.actions?.[itemId] || {}), ...patch } } }));
 
             const generatePDF = async savedAudit => {
@@ -1433,6 +1452,7 @@
                         {storageError && <div className="review-strip error-strip" role="alert">{storageError}</div>}
                         {saveError && <div className="review-strip error-strip" role="alert">{saveError}</div>}
                         {backupMessage && <div className="review-strip" role="status">{backupMessage}</div>}
+                        {offlinePrep && <div className="review-strip" role="status">{offlinePrep}</div>}
                         {view === 'dashboard' && (
                             <div>
                                 <div className="dashboard-hero"><div><span className="eyebrow">POOL BROS · COMMERCIAL POOL ASSURANCE</span><h2>Every visit, clearly accounted for.</h2><p>Capture site findings, photograph evidence, asset condition and follow-up actions in one connected audit record.</p></div><div className="hero-actions"><button className="button primary" onClick={startNew} disabled={!!storageError}>+ New site audit</button></div></div>
@@ -1447,11 +1467,12 @@
                                         {poolShedBridge.getCustomers().map(c => <option key={c.id} value={c.id}>{c.name}{c.code ? ` · ${c.code}` : ''}</option>)}
                                     </select>
                                 </label>}
+                                <div className="review-strip"><strong>Working at a site without internet?</strong> While connected, open the customer audit and select <button type="button" className="button soft" disabled={offlinePreparing || !hasActive} onClick={prepareOffline}>{offlinePreparing ? 'Preparing…' : 'Prepare this iPad for offline use'}</button> before you leave. Answers, assets, actions and photographs save on this device first. Browser speech recognition may need internet, so type notes when offline.</div>
                                 <div className="dashboard-grid">
                                     <section className="workspace-panel"><div className="workspace-panel-head"><div><span className="eyebrow">VISIT LIBRARY</span><h3>Saved audits</h3><p>Select a visit to continue, review or export.</p></div></div><div className="visit-list">
                                         {surveys.filter(a => !poolShedBridge || (linkedCustomerId ? a.customerId === linkedCustomerId : a.customerId === selectedCustomerId)).length === 0 ? <div className="empty-state">No audits are linked to this customer yet. Start a new site audit.</div> : surveys.filter(a => !poolShedBridge || (linkedCustomerId ? a.customerId === linkedCustomerId : a.customerId === selectedCustomerId)).map(audit => { const counts = auditModel.stats(audit, checklistConfig); const complete = counts.total ? Math.round((counts.total - counts.ni) / counts.total * 100) : 0; return <div className="visit-row" key={audit.id}><div className="visit-info"><strong>{audit.metadata?.['site-name'] || 'Untitled audit'}{audit.historicalExample && <span className="sample-tag">Historical example</span>}</strong><small>Visit {audit.metadata?.['visit-date'] || 'date pending'} · Updated {audit.updatedAt ? new Date(audit.updatedAt).toLocaleString('en-GB') : 'date pending'} · {counts.red} red / {counts.amber} amber</small><div className="visit-meter"><span style={{width:`${complete}%`}} /></div></div><button className="button" onClick={() => selectAudit(audit)} disabled={!!storageError}>{audit.id === surveyData.id && hasActive ? 'Continue' : 'Open'}</button></div>; })}
                                     </div></section>
-                                    <aside className="workspace-panel backup-panel"><div className="workspace-panel-head"><div><span className="eyebrow">DATA CONTROL</span><h3>Audit backups</h3><p>Keep an independent copy after every visit.</p></div></div><div className="backup-copy"><strong>{poolShedBridge ? 'Audits link to the Pool Shed customer profile.' : 'Audits save in this browser on this device.'}</strong> Backups include answers and asset details. {poolShedBridge ? 'Photographs are stored privately in Pool Shed; an exported JSON backup contains their secure references and requires account access to show them again.' : 'Backups include attached photos.'} Restoring a backup creates a separate draft.</div><div className="backup-actions"><button className="button dark" onClick={downloadBackup} disabled={!hasActive || !!storageError}>Download current backup</button><button className="button" onClick={() => importInput.current?.click()} disabled={!!storageError}>Restore backup</button><input ref={importInput} type="file" accept=".json,application/json" onChange={restoreBackup} hidden /></div><p className="backup-message">{poolShedBridge ? 'Pool Shed syncs when connected. Confirm the main workspace indicator shows a shared save before switching devices.' : 'This review build is local only. It has no shared login or automatic cloud recovery.'}</p></aside>
+                                    <aside className="workspace-panel backup-panel"><div className="workspace-panel-head"><div><span className="eyebrow">DATA CONTROL</span><h3>Audit backups</h3><p>Keep an independent copy after every visit.</p></div></div><div className="backup-copy"><strong>Audits save on this device before they sync to the customer profile.</strong> JSON backups include answers and asset details. Photographs remain in the protected device media store until uploaded; a JSON backup alone does not contain their image files. Keep this iPad until the team save is confirmed.</div><div className="backup-actions"><button className="button dark" onClick={downloadBackup} disabled={!hasActive || !!storageError}>Download current backup</button><button className="button" onClick={() => importInput.current?.click()} disabled={!!storageError}>Restore backup</button><input ref={importInput} type="file" accept=".json,application/json" onChange={restoreBackup} hidden /></div><p className="backup-message">Confirm Pool Shed shows “Saved for team” before switching devices or clearing browser data.</p></aside>
                                 </div>
                             </div>
                         )}
@@ -1473,8 +1494,8 @@
                                         </> : item.type === 'select' ? <select id={`metadata-${item.id}`} value={surveyData.metadata[item.id] || ''} onChange={event => updateMetadata(item.id,event.target.value)} className="w-full px-3 py-2 border border-slate-200 rounded-lg text-sm"><option value="">Select facility type</option>{item.options.map(option => <option key={option}>{option}</option>)}</select> : <input id={`metadata-${item.id}`} type={item.type || 'text'} value={surveyData.metadata[item.id] || ''} onChange={event => updateMetadata(item.id,event.target.value)} className="w-full px-3 py-2 border border-slate-200 rounded-lg text-sm" />}
                                     </div>)}
                                 </div></section>
-                                <div id="site-assets" className="audit-section"><AssetRegistry assets={surveyData.assets} onAdd={addAsset} onUpdate={updateAsset} onDelete={deleteAsset} savedDraft={surveyData.assetDraft} onDraftChange={updateAssetDraft} /></div>
-                                {checklistConfig.sections.slice(1).map((section,index) => <section key={section.id} id={`section-${section.id}`} className="audit-section"><div className="audit-section-header"><div><small>{String(index+2).padStart(2,'0')} · INSPECTION</small><h2>{section.title}</h2></div><div className="count-row"><span className="count-pill green">● {section.items.filter(item => surveyData.responses[item.id]?.status === 'green').length} green</span><span className="count-pill amber">● {section.items.filter(item => surveyData.responses[item.id]?.status === 'amber').length} amber</span><span className="count-pill red">● {section.items.filter(item => surveyData.responses[item.id]?.status === 'red').length} red</span></div></div><div>{section.items.map(item => <SurveyItem key={item.id} sectionId={section.id} sectionTitle={section.title} item={item} value={surveyData.responses[item.id]} linkedAssets={assetReport.forFinding(surveyData.assets,item.id)} onChange={value => updateResponse(item.id,value)} />)}</div></section>)}
+                                <div id="site-assets" className="audit-section"><AssetRegistry assets={surveyData.assets} onAdd={addAsset} onUpdate={updateAsset} onDelete={deleteAsset} savedDraft={surveyData.assetDraft} onDraftChange={updateAssetDraft} onPersist={saveNow} /></div>
+                                {checklistConfig.sections.slice(1).map((section,index) => <section key={section.id} id={`section-${section.id}`} className="audit-section"><div className="audit-section-header"><div><small>{String(index+2).padStart(2,'0')} · INSPECTION</small><h2>{section.title}</h2></div><div className="count-row"><span className="count-pill green">● {section.items.filter(item => surveyData.responses[item.id]?.status === 'green').length} green</span><span className="count-pill amber">● {section.items.filter(item => surveyData.responses[item.id]?.status === 'amber').length} amber</span><span className="count-pill red">● {section.items.filter(item => surveyData.responses[item.id]?.status === 'red').length} red</span></div></div><div>{section.items.map(item => <SurveyItem key={item.id} sectionId={section.id} sectionTitle={section.title} item={item} value={surveyData.responses[item.id]} linkedAssets={assetReport.forFinding(surveyData.assets,item.id)} onChange={value => updateResponse(item.id,value)} onPersist={saveNow} />)}</div></section>)}
                             </div>
                         )}
 
@@ -1486,6 +1507,7 @@
                                 onDelete={deleteAsset}
                                 savedDraft={surveyData.assetDraft}
                                 onDraftChange={updateAssetDraft}
+                                onPersist={saveNow}
                             />
                         )}
 
@@ -1493,6 +1515,8 @@
                             <UpgradeModule
                                 assets={surveyData.assets}
                                 upgrades={surveyData.upgrades}
+                                draft={surveyData.upgradeDraft}
+                                onDraftChange={updateUpgradeDraft}
                                 onAdd={addUpgrade}
                                 onDelete={deleteUpgrade}
                             />
