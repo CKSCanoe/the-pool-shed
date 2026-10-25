@@ -14,7 +14,7 @@
     "test:po-ui": "node scripts/test-po-picker-ui.mjs",
     "test:receiving": "node scripts/test-receiving-ledger.mjs",
     "test:workspace": "node scripts/test-professional-workspace.mjs && node scripts/test-workspace-sync.mjs && node scripts/test-workspace-database.mjs",
-    "test:browser": "node scripts/test-browser-smoke.cjs && node scripts/test-responsive-layout-v128.cjs",
+    "test:browser": "node scripts/test-browser-smoke.cjs && node scripts/test-responsive-layout-v128.cjs && node scripts/test-ipad-navigation-v1472.cjs",
     "test:performance": "node scripts/test-ledger-performance.mjs",
     "test:accounting": "node scripts/test-accounting.mjs && node scripts/test-accounting-database.mjs && node scripts/test-accounting-api.mjs",
     "test:projects": "node scripts/test-project-extra-quotes-v146.mjs && node scripts/test-project-performance-v146.mjs && node scripts/test-project-reporting-v153.mjs && node scripts/test-project-extra-sql-v146.mjs && node scripts/test-project-control-v144.mjs && node scripts/test-project-email-v144.mjs && node scripts/test-project-workspace-v143.mjs && node scripts/test-project-profit-v142.mjs && node scripts/test-project-engine.mjs && node scripts/test-project-database.mjs && node scripts/test-project-ai.mjs",
@@ -39,7 +39,7 @@
     "test:azzy-production": "node scripts/test-azzy-brain-gateway.mjs && node scripts/test-azzy-durable-memory.mjs && node scripts/test-azzy-jarvis-final.mjs && node scripts/test-azzy-poolshed-ready-final.mjs",
     "test:sales-safety": "node scripts/test-sales-order-safety-hotfix.mjs && node scripts/test-sales-order-list-option-a.mjs && node scripts/test-sales-order-detail-v162.mjs"
   },
-  "version": "1.47.1",
+  "version": "1.47.2",
   "description": "The Pool Shed inventory, secure visual quotes, purchasing, sales, warehouse and project management application",
   "devDependencies": {
     "@electric-sql/pglite": "^0.5.8",

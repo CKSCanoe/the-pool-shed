@@ -19,6 +19,7 @@ assert.match(legacy, /role="option" aria-selected="false" id="globalSearchOption
 assert.match(legacy, /event\.key === "ArrowDown" \|\| event\.key === "ArrowUp"/, 'search results need arrow-key navigation');
 assert.match(legacy, /aria-activedescendant/, 'search combobox needs active-descendant management');
 assert.match(legacy, /menu\.classList\.add\("hidden"\)[\s\S]*button\.setAttribute\("aria-expanded", "false"\)[\s\S]*button\.focus\(\)/, 'Escape must close the account menu and restore focus');
-assert.match(workspace, /e\.key==='Escape'\)\{document\.body\.classList\.remove\('ps-menu-open'\);document\.getElementById\('workspaceMenu'\)\?\.setAttribute\('aria-expanded','false'\);\}/, 'Escape must keep mobile-menu ARIA state synchronized');
+assert.match(workspace, /e\.key==='Escape'\)closeWorkspaceMenu\(\)/, 'Escape must close the mobile menu');
+assert.match(workspace, /function closeWorkspaceMenu\(\)\{document\.body\.classList\.remove\('ps-menu-open'\);document\.getElementById\('workspaceMenu'\)\?\.setAttribute\('aria-expanded','false'\);\}/, 'Mobile menu close must keep ARIA state synchronized');
 
 console.log('PASS v1.45.1 shell accessibility, keyboard search and menu-state hardening');

@@ -5,7 +5,7 @@
 
  Canonical breakpoints:
  - 1200px: dense desktop/laptop reflow
- - 940px: tablet / compact shell
+ - 1100px or a touch tablet: compact shell
  - 640px: phone / single-column workspace
 */
 
@@ -62,7 +62,7 @@ html,body,.app,.main{max-width:100%;min-width:0}
   min-width:0!important;
   max-width:100%!important;
 }
-@media (min-width:941px){
+@media (min-width:1101px) and (hover:hover) and (pointer:fine){
   .main .screen :where(
     .settings-command-tabs,.analytics-subnav,.automation-subnav,.inventory-subnav,
     .ff-subnav,.ph-section-nav,.finance-command-subnav,.warehouse-precision-tabs,
@@ -150,10 +150,18 @@ html,body,.app,.main{max-width:100%;min-width:0}
 }
 
 /* --------------------------------------------------------------------------
-   6. Tablet shell. Collapse the sidebar before it starves the application canvas.
+   6. Tablet shell. Include iPad landscape, including the 13-inch model.
    -------------------------------------------------------------------------- */
-@media (max-width:940px){
+@media (max-width:1100px), (hover:none) and (pointer:coarse) and (max-width:1400px){
   .app{display:block!important;grid-template-columns:1fr!important}
+  body.ps-menu-open{overflow:hidden}
+  body.ps-menu-open::before{
+    content:"";
+    position:fixed;
+    inset:0;
+    z-index:9999;
+    background:rgba(8,19,31,.46);
+  }
   .sidebar{
     display:none!important;
     position:fixed!important;
@@ -165,6 +173,7 @@ html,body,.app,.main{max-width:100%;min-width:0}
   }
   body.ps-menu-open .sidebar{display:flex!important}
   .ps-mobile-menu{display:inline-flex!important;align-items:center;justify-content:center}
+  .sidebar nav button,.sidebar .nav-subgroups button{min-height:44px}
 
   .main{padding:18px!important;width:100%!important;max-width:100%!important}
   .main > .topbar{flex-direction:column!important;gap:12px!important}

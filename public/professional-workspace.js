@@ -126,7 +126,10 @@ function psToolWorkspace() {
   screen.querySelectorAll('table').forEach(t=>{if(t.closest('.table-scroll,.order-lines-scroll,.po-lines-wrap,.ps-table-region'))return;const wrap=document.createElement('div');wrap.className='ps-table-region';wrap.tabIndex=0;wrap.setAttribute('aria-label','Scrollable table');t.before(wrap);wrap.append(t);});
   document.querySelectorAll('#nav [data-tab]').forEach(b=>{if(b.dataset.tab===active)b.setAttribute('aria-current','page');else b.removeAttribute('aria-current');});
  };
- document.addEventListener('click',function(e){const b=e.target.closest('button');if(!b)return;
+ function closeWorkspaceMenu(){document.body.classList.remove('ps-menu-open');document.getElementById('workspaceMenu')?.setAttribute('aria-expanded','false');}
+ document.addEventListener('click',function(e){
+  if(document.body.classList.contains('ps-menu-open')&&!e.target.closest('.sidebar,#workspaceMenu'))closeWorkspaceMenu();
+  const b=e.target.closest('button');if(!b)return;
   if(b.hasAttribute('data-conflict-backup')){const url=URL.createObjectURL(new Blob([JSON.stringify(data,null,2)],{type:'application/json'}));const a=document.createElement('a');a.href=url;a.download='pool-shed-local-conflict-backup-'+todayIso()+'.json';a.click();setTimeout(()=>URL.revokeObjectURL(url),1000);conflictBackup=true;return;}
   if(b.hasAttribute('data-conflict-reload')){if(!conflictBackup)return toast('Download and save your local backup first.');if(!confirm('Have you saved the local backup? Loading the shared version replaces the local workspace. Review the backup separately to recover local-only changes.'))return;localStorage.removeItem('poolshed:v172:pendingSync');loadRemoteWorkspace().then(ok=>{if(ok){workspaceSyncConflict=false;conflictBackup=false;render();}else {localStorage.setItem('poolshed:v172:pendingSync','1');toast('Could not load the shared workspace. Local changes are still kept.');}});return;}
   if(b.hasAttribute('data-section-open')){openSidebarSubGroup(active,b.dataset.sectionOpen);return;}
@@ -135,10 +138,10 @@ function psToolWorkspace() {
   if(b.hasAttribute('data-tool-action')){try{psToolTransaction(b.dataset.toolAction,{id:b.dataset.toolId});toast('Tool updated.');render();}catch(err){toast(err.message);}return;}
   if(b.id==='workspaceDensity'){const mode=document.documentElement.dataset.density==='comfortable'?'compact':'comfortable';document.documentElement.dataset.density=mode;localStorage.setItem('poolshed:workspaceDensity',mode);b.textContent=mode==='comfortable'?'Compact view':'Comfortable view';}
   if(b.id==='workspaceMenu'){document.body.classList.toggle('ps-menu-open');b.setAttribute('aria-expanded',String(document.body.classList.contains('ps-menu-open')));}
-  if(b.closest('#nav')){document.body.classList.remove('ps-menu-open');document.getElementById('workspaceMenu')?.setAttribute('aria-expanded','false');}
+  if(b.closest('#nav'))closeWorkspaceMenu();
  });
  document.addEventListener('submit',function(e){const f=e.target.closest('[data-tool-form]');if(!f)return;e.preventDefault();try{const t=psToolTransaction(f.dataset.toolForm,Object.fromEntries(new FormData(f)));psSelectedTool=t.id;toast('Tool record saved.');render();}catch(err){toast(err.message);}});
- document.addEventListener('keydown',function(e){if((e.metaKey||e.ctrlKey)&&e.key==='k'){e.preventDefault();document.getElementById('globalSearch')?.focus();}if(e.key==='Escape'){document.body.classList.remove('ps-menu-open');document.getElementById('workspaceMenu')?.setAttribute('aria-expanded','false');}});
+ document.addEventListener('keydown',function(e){if((e.metaKey||e.ctrlKey)&&e.key==='k'){e.preventDefault();document.getElementById('globalSearch')?.focus();}if(e.key==='Escape')closeWorkspaceMenu();});
  try{document.documentElement.dataset.density=localStorage.getItem('poolshed:workspaceDensity')||'compact';}catch{}
  const row=document.querySelector('.top-utility-row');if(row){const density=document.createElement('button');density.id='workspaceDensity';density.className='secondary';density.textContent=document.documentElement.dataset.density==='comfortable'?'Compact view':'Comfortable view';row.prepend(density);const menu=document.createElement('button');menu.id='workspaceMenu';menu.className='ps-mobile-menu secondary';menu.textContent='Menu';menu.setAttribute('aria-expanded','false');menu.setAttribute('aria-controls','nav');row.prepend(menu);}
  document.getElementById('globalSearch')?.setAttribute('aria-label','Search records (Ctrl or Command K)');

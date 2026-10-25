@@ -13,7 +13,7 @@ assert.match(current,new RegExp('Pool Shed v'+release.replace(/\./g,'\\.')+' .*Q
 assert.match(cssBuild,/system\/60-responsive-layout\.css/,'responsive authority must be in CSS build');
 assert.ok(cssBuild.indexOf('60-responsive-layout.css')>cssBuild.indexOf('59-my-work-action-authority.css'),'responsive authority must load last');
 assert.match(css,/\.main \.screen\.grid\{[\s\S]*grid-template-columns:minmax\(0,1fr\)!important/,'screen intrinsic-width containment missing');
-assert.match(css,/@media \(max-width:940px\)/,'tablet shell breakpoint missing');
+assert.match(css,/@media \(max-width:1100px\), \(hover:none\) and \(pointer:coarse\) and \(max-width:1400px\)/,'tablet shell breakpoint missing');
 assert.match(css,/\.sidebar\{[\s\S]*display:none!important/,'tablet sidebar collapse missing');
 assert.match(css,/\.settings-metrics\{grid-template-columns:repeat\(auto-fit,minmax\(160px,1fr\)\)!important\}/,'responsive Settings KPI authority missing');
 assert.match(css,/dashboard-project-table-wrap table\{[\s\S]*min-width:1060px/,'dashboard local table-scroll contract missing');
