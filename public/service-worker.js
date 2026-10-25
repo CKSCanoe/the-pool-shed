@@ -1,18 +1,18 @@
-const CACHE = 'pool-shed-v1.47.4-quiet-shared-autosave';
-const CORE = ["./","./index.html","./commercial-audits/index.html","./commercial-audits/embedded.css?v=1.47.4","./assets/img/pb-logo.png","./assets/css/app.css?v=1.47.4","./config.js?v=1.47.4","./identity-authority.js?v=1.47.4","./audit-authority.js?v=1.47.4","./assets/js/01-legacy-01.js?v=1.47.4","./shared-one-truth-authority.js?v=1.47.4","./assets/js/02-legacy-02.js?v=1.47.4","./assets/js/03-pb-import-governance-v192.js?v=1.47.4","./assets/js/04-pb-product-profile-v196-fix.js?v=1.47.4","./assets/js/05-pb-v1100-inventory-product-hub.js?v=1.47.4","./business-media.js?v=1.47.4","./product-images.js?v=1.47.4","./sales-order-search.js?v=1.47.4","./catalogue-intelligence.js?v=1.47.4","./partial-fulfilment.js?v=1.47.4","./assets/js/06-pb-product-title-persistence-v115-fix.js?v=1.47.4","./bundle-engine.js?v=1.47.4","./bundle-system.js?v=1.47.4","./bundle-studio.js?v=1.47.4","./bundle-sales-intelligence.js?v=1.47.4","./pool-shed-overhaul.js?v=1.47.4","./sales-order-customer-picker.js?v=1.47.4","./professional-workspace.js?v=1.47.4","./accounting-workspace.js?v=1.47.4","./finance-command-engine.js?v=1.47.4","./finance-command-workspace.js?v=1.47.4","./analytics-command-engine.js?v=1.47.4","./analytics-command-workspace.js?v=1.47.4","./settings-permissions-engine.js?v=1.47.4","./record-router.js?v=1.47.4","./notifications-command-engine.js?v=1.47.4","./action-authority.js?v=1.47.4","./approval-authority.js?v=1.47.4","./action-approval-integrations.js?v=1.47.4","./action-source-adapters.js?v=1.47.4","./my-work-workspace.js?v=1.47.4","./notifications-command-workspace.js?v=1.47.4","./automation-command-engine.js?v=1.47.4","./automation-command-workspace.js?v=1.47.4","./azzy-jarvis-host.js?v=1.47.4","./azzy-jarvis.css?v=1.47.4-startup-v1","./assets/img/azzy-jarvis-64.png","./assets/img/azzy-jarvis-192.png","./production-readiness-engine.js?v=1.47.4","./settings-command-workspace.js?v=1.47.4","./project-engine.js?v=1.47.4","./project-documents.js?v=1.47.4","./project-billing.js?v=1.47.4","./project-workspace.js?v=1.47.4","./project-design-parity.js?v=1.47.4","./project-setup-tools.js?v=1.47.4","./sales-workspace.js?v=1.47.4","./warehouse-workspace.js?v=1.47.4","./purchase-workspace.js?v=1.47.4","./supplier-command-engine.js?v=1.47.4","./supplier-command-workspace.js?v=1.47.4","./product-hub-engine.js?v=1.47.4","./product-hub-workspace.js?v=1.47.4","./inventory-control-engine.js?v=1.47.4","./inventory-workspace.js?v=1.47.4","./fulfilment-control-engine.js?v=1.47.4","./fulfilment-workspace.js?v=1.47.4","./dashboard-review-engine.js?v=1.47.4","./business-review.js?v=1.47.4","./quarterly-review.js?v=1.47.4","./quote-studio.css?v=1.47.4","./quote-studio-engine.js?v=1.47.4","./quote-studio-workspace.js?v=1.47.4","./proposal.html","./quote-customer-portal.css?v=1.47.4","./quote-customer-portal.js?v=1.47.4"];
+const CACHE = 'pool-shed-v1.47.5-quiet-shared-autosave';
+const CORE = ["./","./index.html","./commercial-audits/index.html","./commercial-audits/embedded.css?v=1.47.5","./assets/img/pb-logo.png","./assets/css/app.css?v=1.47.5","./config.js?v=1.47.5","./identity-authority.js?v=1.47.5","./audit-authority.js?v=1.47.5","./assets/js/01-legacy-01.js?v=1.47.5","./shared-one-truth-authority.js?v=1.47.5","./assets/js/02-legacy-02.js?v=1.47.5","./assets/js/03-pb-import-governance-v192.js?v=1.47.5","./assets/js/04-pb-product-profile-v196-fix.js?v=1.47.5","./assets/js/05-pb-v1100-inventory-product-hub.js?v=1.47.5","./business-media.js?v=1.47.5","./product-images.js?v=1.47.5","./sales-order-search.js?v=1.47.5","./catalogue-intelligence.js?v=1.47.5","./partial-fulfilment.js?v=1.47.5","./assets/js/06-pb-product-title-persistence-v115-fix.js?v=1.47.5","./bundle-engine.js?v=1.47.5","./bundle-system.js?v=1.47.5","./bundle-studio.js?v=1.47.5","./bundle-sales-intelligence.js?v=1.47.5","./pool-shed-overhaul.js?v=1.47.5","./sales-order-customer-picker.js?v=1.47.5","./professional-workspace.js?v=1.47.5","./accounting-workspace.js?v=1.47.5","./finance-command-engine.js?v=1.47.5","./finance-command-workspace.js?v=1.47.5","./analytics-command-engine.js?v=1.47.5","./analytics-command-workspace.js?v=1.47.5","./settings-permissions-engine.js?v=1.47.5","./record-router.js?v=1.47.5","./notifications-command-engine.js?v=1.47.5","./action-authority.js?v=1.47.5","./approval-authority.js?v=1.47.5","./action-approval-integrations.js?v=1.47.5","./action-source-adapters.js?v=1.47.5","./my-work-workspace.js?v=1.47.5","./notifications-command-workspace.js?v=1.47.5","./automation-command-engine.js?v=1.47.5","./automation-command-workspace.js?v=1.47.5","./azzy-jarvis-host.js?v=1.47.5","./azzy-jarvis.css?v=1.47.5-startup-v1","./assets/img/azzy-jarvis-64.png","./assets/img/azzy-jarvis-192.png","./production-readiness-engine.js?v=1.47.5","./settings-command-workspace.js?v=1.47.5","./project-engine.js?v=1.47.5","./project-documents.js?v=1.47.5","./project-billing.js?v=1.47.5","./project-workspace.js?v=1.47.5","./project-design-parity.js?v=1.47.5","./project-setup-tools.js?v=1.47.5","./sales-workspace.js?v=1.47.5","./warehouse-workspace.js?v=1.47.5","./purchase-workspace.js?v=1.47.5","./supplier-command-engine.js?v=1.47.5","./supplier-command-workspace.js?v=1.47.5","./product-hub-engine.js?v=1.47.5","./product-hub-workspace.js?v=1.47.5","./inventory-control-engine.js?v=1.47.5","./inventory-workspace.js?v=1.47.5","./fulfilment-control-engine.js?v=1.47.5","./fulfilment-workspace.js?v=1.47.5","./dashboard-review-engine.js?v=1.47.5","./business-review.js?v=1.47.5","./quarterly-review.js?v=1.47.5","./quote-studio.css?v=1.47.5","./quote-studio-engine.js?v=1.47.5","./quote-studio-workspace.js?v=1.47.5","./proposal.html","./quote-customer-portal.css?v=1.47.5","./quote-customer-portal.js?v=1.47.5"];
 const BOOT_CORE = [
   './',
   './index.html',
   './assets/img/pb-logo.png',
-  './assets/css/app.css?v=1.47.4',
-  './config.js?v=1.47.4',
-  './identity-authority.js?v=1.47.4',
-  './settings-permissions-engine.js?v=1.47.4',
-  './azzy-jarvis-host.js?v=1.47.4',
-  './azzy-jarvis.css?v=1.47.4-startup-v1',
+  './assets/css/app.css?v=1.47.5',
+  './config.js?v=1.47.5',
+  './identity-authority.js?v=1.47.5',
+  './settings-permissions-engine.js?v=1.47.5',
+  './azzy-jarvis-host.js?v=1.47.5',
+  './azzy-jarvis.css?v=1.47.5-startup-v1',
   './assets/img/azzy-jarvis-192.png'
 ];
-CORE.push('./audit-offline-media.js?v=1.47.4');
+CORE.push('./audit-offline-media.js?v=1.47.5');
 CORE.push(...[
   './commercial-audits/assets/pb-logo.png',
   './commercial-audits/src/theme.css',
@@ -113,10 +113,14 @@ self.addEventListener('fetch', event => {
     if (!isCustomerProposal) {
       // The signed-in shell and survey must open from the prepared cache even
       // when a browser refuses to start a navigation request while offline.
+      // Vercel redirects clean .html URLs. A redirected cached Response cannot
+      // be returned for a service-worker navigation, so clear its redirect flag.
       event.respondWith((async () => {
         const key = isCommercialAudit ? './commercial-audits/index.html' : './index.html';
         const cached = await caches.match(key);
-        if (cached) return cached;
+        if (cached) return cached.redirected
+          ? new Response(await cached.blob(), { status:cached.status, statusText:cached.statusText, headers:cached.headers })
+          : cached;
         try {
           const response = await fetch(request);
           if (response.ok) event.waitUntil(caches.open(CACHE).then(cache => cache.put(key, response.clone())));

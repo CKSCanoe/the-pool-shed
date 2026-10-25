@@ -5,7 +5,12 @@ const assert = require('node:assert/strict');
 const {chromium} = require(process.env.PLAYWRIGHT_MODULE || 'playwright-core');
 const root = path.resolve('public');
 const server = http.createServer((request,response) => {
-  const relative = decodeURIComponent(request.url.split('?')[0]).replace(/^\//,'') || 'index.html';
+  const route = decodeURIComponent(request.url.split('?')[0]);
+  if (route === '/index.html' || route === '/commercial-audits/index.html' || route === '/commercial-audits/') {
+    response.writeHead(308,{Location:route === '/index.html' ? '/' : '/commercial-audits'}).end();
+    return;
+  }
+  const relative = (route === '/commercial-audits' ? 'commercial-audits/index.html' : route.replace(/^\//,'') || 'index.html');
   const file = path.resolve(root,relative);
   if (!file.startsWith(root + path.sep)) { response.writeHead(403).end(); return; }
   try {
@@ -33,14 +38,13 @@ const server = http.createServer((request,response) => {
       });
     });
     assert.equal(prepared.ok,true,`missing offline resources: ${(prepared.missing||[]).join(', ')}`);
+    const redirected = await page.evaluate(async () => (await caches.match('./index.html')).redirected);
+    assert.equal(redirected,true,'test server must reproduce the Vercel clean-URL redirect');
     await context.setOffline(true);
     await page.reload();
     await page.waitForFunction(() => typeof window.__POOL_SHED_AUDIT_BRIDGE__ === 'object', {timeout:30000});
-    const iframe = await page.evaluate(async () => {
-      const response = await fetch('/commercial-audits/index.html');
-      return {ok:response.ok,hasAudit:response.ok && (await response.text()).includes('Commercial Audit Studio')};
-    });
-    assert.deepEqual(iframe,{ok:true,hasAudit:true});
+    await page.goto(origin + '/commercial-audits/index.html');
+    assert.match(await page.title(),/Commercial Audit Studio/);
     console.log('PASS prepared Pool Shed shell and audit files reopen offline at iPad width');
   } finally {
     await browser.close();
