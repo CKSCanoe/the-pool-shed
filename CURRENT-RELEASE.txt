@@ -1,3 +1,7 @@
+Pool Shed v1.47.2 - iPad navigation and tablet layout
+
+The sidebar now becomes a hideable menu at iPad widths, including landscape and larger touch tablets. Selecting a section or subsection closes it; tapping outside or pressing Escape does the same. Navigation targets are larger for touch. The audit workspace gains the full tablet canvas while the existing customer and finance workflows remain intact.
+
 Pool Shed v1.47.1 - supplier payment operations and Sales Order costs
 
 Finance Command now separates unpaid proforma Purchase Orders from on-account payables. Proforma orders are due in full before supplier release and require an actual supplier payment with a reference; they do not enter the payment run. On-account bills enter a payment run only after the PO, receipt and invoice match, and an outstanding balance remains.
