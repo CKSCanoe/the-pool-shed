@@ -4,7 +4,7 @@ const css=fs.readFileSync('public/quote-customer-portal.css','utf8');
 const js=fs.readFileSync('public/quote-customer-portal.js','utf8');
 const html=fs.readFileSync('public/proposal.html','utf8');
 const pkg=JSON.parse(fs.readFileSync('package.json','utf8'));
-assert.equal(pkg.version,'1.47.4');
+assert.equal(pkg.version,'1.47.5');
 for(const token of [
   'var(--color-surface-default)','var(--color-shell)','var(--color-action-primary)',
   '.pc-nav{height:74px','.pc-hero{min-height:665px','.pc-project-bar{position:sticky',
