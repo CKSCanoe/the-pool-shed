@@ -15,7 +15,7 @@ const quoteServer=read('server/quote.js');
 const vercel=read('vercel.json');
 const index=read('public/index.html');
 
-assert.equal(pkg.version,'1.47.3');
+assert.equal(pkg.version,'1.47.4');
 for(const token of [
   'create table if not exists public.ps_product_media',
   'create table if not exists public.ps_customer_media',
@@ -46,7 +46,7 @@ assert(engine.includes("image:p.image||p.imageUrl||''"),'Quote Studio must inher
 assert(engine.includes("brochure:p.brochureUrl||p.datasheetUrl||''"),'Quote Studio must inherit approved Product Hub documents');
 assert(quoteApi.includes('assertBusinessMediaRefs'),'Quote publish must reject broken Product/CRM media refs');
 assert(quoteServer.includes('resolveBusinessMedia'),'Customer proposal must resolve secure Product/CRM media refs server-side');
-assert(index.includes('business-media.js?v=1.47.3'),'Product/CRM secure media client must load before product media rendering');
+assert(index.includes('business-media.js?v=1.47.4'),'Product/CRM secure media client must load before product media rendering');
 assert(vercel.includes('"api/media.js"'),'Vercel must expose the secure media API');
 
 assert(!migration.includes('create policy') || !/to\s+anon/i.test(migration),'Product/CRM storage must not create anonymous access policies');
