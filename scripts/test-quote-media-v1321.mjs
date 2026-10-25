@@ -6,7 +6,7 @@ const server=fs.readFileSync('server/quote.js','utf8');
 const engine=fs.readFileSync('public/quote-studio-engine.js','utf8');
 const workspace=fs.readFileSync('public/quote-studio-workspace.js','utf8');
 const migration=fs.readFileSync('database/008-quote-media.sql','utf8');
-assert.equal(pkg.version,'1.47.5');
+assert.equal(pkg.version,'1.47.6');
 for(const t of ["action==='media-upload'","action==='media-sign'",'assertQuoteMediaRefs','resolveQuoteMedia'])assert(api.includes(t),'api missing '+t);
 for(const t of ['uploadQuoteMedia','signQuoteMedia','quote-media','storage/v1/object/sign','ps_quote_media'])assert(server.includes(t),'server missing '+t);
 for(const t of ['quote-media:','signedMedia','refreshMedia','hydrateMedia'])assert(engine.includes(t),'engine missing '+t);

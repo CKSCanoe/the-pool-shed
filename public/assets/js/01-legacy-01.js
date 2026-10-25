@@ -2688,7 +2688,7 @@ const seed = {
           : effectiveMode === "mfa"
             ? '<button class="ps-login-link" type="button" data-login-cancel-mfa>Use a different account</button><span>Authenticator verification</span>'
             : effectiveMode === "denied" || effectiveMode === "workspace" ? '<span></span>' : '<button class="ps-login-link" type="button" data-login-mode="login">Back to sign in</button><span></span>';
-        screen.innerHTML = '<main class="ps-login-stage"><section class="ps-login-shell"><aside class="ps-login-brand"><div><div class="ps-login-lockup"><span class="ps-login-logo"><img src="' + DEFAULT_POOL_BROS_LOGO + '" alt="Pool Bros logo"></span><div><span class="ps-login-kicker">Pool Bros</span><strong>THE POOL SHED</strong></div></div><div class="ps-login-hero"><span class="ps-login-kicker">Operations Command System</span><h1>One secure place to <span>run the operation.</span></h1><p>Secure access to the Pool Bros operations workspace. Sign in to continue to your authorised tools, tasks and information.</p></div></div><div class="ps-login-staff-note"><strong>Pool Bros staff access</strong><span>Your workspace and available tools are tailored to your account after sign-in.</span></div></aside><section class="ps-login-auth"><div class="ps-login-card"><div class="ps-login-card-head"><span class="ps-login-kicker">' + escapeHtml(meta.eyebrow) + '</span><h2>' + escapeHtml(meta.heading) + '</h2><p>' + escapeHtml(meta.intro) + '</p></div><form id="loginForm">' + fields + '<div id="loginMessage" class="ps-login-message' + (good ? ' good' : '') + '">' + escapeHtml(message || '') + '</div></form><div class="ps-login-helper">' + helper + '</div></div></section></section><footer class="ps-login-footer">Pool Shed v1.47.5 · Pool Bros Ltd</footer></main>';
+        screen.innerHTML = '<main class="ps-login-stage"><section class="ps-login-shell"><aside class="ps-login-brand"><div><div class="ps-login-lockup"><span class="ps-login-logo"><img src="' + DEFAULT_POOL_BROS_LOGO + '" alt="Pool Bros logo"></span><div><span class="ps-login-kicker">Pool Bros</span><strong>THE POOL SHED</strong></div></div><div class="ps-login-hero"><span class="ps-login-kicker">Operations Command System</span><h1>One secure place to <span>run the operation.</span></h1><p>Secure access to the Pool Bros operations workspace. Sign in to continue to your authorised tools, tasks and information.</p></div></div><div class="ps-login-staff-note"><strong>Pool Bros staff access</strong><span>Your workspace and available tools are tailored to your account after sign-in.</span></div></aside><section class="ps-login-auth"><div class="ps-login-card"><div class="ps-login-card-head"><span class="ps-login-kicker">' + escapeHtml(meta.eyebrow) + '</span><h2>' + escapeHtml(meta.heading) + '</h2><p>' + escapeHtml(meta.intro) + '</p></div><form id="loginForm">' + fields + '<div id="loginMessage" class="ps-login-message' + (good ? ' good' : '') + '">' + escapeHtml(message || '') + '</div></form><div class="ps-login-helper">' + helper + '</div></div></section></section><footer class="ps-login-footer">Pool Shed v1.47.6 · Pool Bros Ltd</footer></main>';
         bindLoginScreen(effectiveMode);
       }
 
@@ -10442,6 +10442,48 @@ const seed = {
       }
       window.__POOL_SHED_AUDIT_BRIDGE__ = {
         getAll: function(){ requirePoolAuditSession(); if (!canAccessTab('audits')) throw Error('Audit access denied.'); return JSON.parse(JSON.stringify(data.poolAudits || [])); },
+        canDelete: function(record){
+          requirePoolAuditSession();
+          if (!canAccessTab('audits') || !record) return false;
+          const user = currentUser() || {};
+          const permissions = window.PoolShedSettingsPermissions;
+          if (permissions && permissions.can('audits', 'delete', user)) return true;
+          return record.status === 'draft' && String(record.createdBy && record.createdBy.id || '') === String(user.id || '') &&
+            !!user.id && !!permissions && permissions.can('audits', 'edit', user);
+        },
+        delete: async function(auditId, customerId){
+          requirePoolAuditSession();
+          const rows = Array.isArray(data.poolAudits) ? data.poolAudits : [];
+          const index = rows.findIndex(function(row){ return row.id === auditId && row.customerId === customerId; });
+          if (index < 0) throw Error('This audit is no longer linked to the selected customer. Refresh the library.');
+          const record = rows[index];
+          if (!this.canDelete(record)) throw Error('Only an administrator or the creator of a draft audit can delete this visit.');
+          data.poolAudits = rows.filter(function(row){ return row !== record; });
+          try { saveAppData(); }
+          catch (error) { data.poolAudits = rows; throw error; }
+          const payload = workspaceLastLocalPayload;
+          let storedInLocalStorage = false;
+          try { storedInLocalStorage = localStorage.getItem('poolshed:v172:localSnapshotMode') === 'localstorage' &&
+            localStorage.getItem('poolshed:v172:appData') === payload; } catch (error) { void error; }
+          const snapshot = JSON.parse(payload);
+          poolAuditSnapshotQueue = poolAuditSnapshotQueue.catch(function(){ return false; }).then(function(){
+            return writeOfflineSnapshot(true, 'latest', 'commercial-audit-delete', snapshot);
+          });
+          const storedInIndexedDb = await poolAuditSnapshotQueue;
+          if (!storedInLocalStorage && !storedInIndexedDb) {
+            data.poolAudits = rows;
+            try { saveAppData(); } catch (error) { void error; }
+            throw Error('Pool Shed could not save this deletion on this device. The audit remains available.');
+          }
+          if (window.PoolShedAudit) window.PoolShedAudit.record({
+            action: 'Commercial audit deleted', category: 'Operational', module: 'audits',
+            record: { type: 'pool-audit', id: record.id, label: record.metadata && record.metadata['site-name'] || record.id },
+            before: { customerId: record.customerId, status: record.status }, after: null,
+            reason: 'Confirmed removal from audit library'
+          });
+          if (poolAuditRoute.auditId === auditId) poolAuditRoute = { customerId: customerId, auditId: '', newAudit: false };
+          return true;
+        },
         getCustomers: function(){ requirePoolAuditSession(); if (!canAccessTab('audits')) throw Error('Audit access denied.'); return (data.customers || []).map(function(c){ return { id:c.id, name:c.companyName || c.name || 'Customer', code:c.code || '' }; }); },
         getUser: function(){ requirePoolAuditSession(); const u = currentUser() || {}; return { id:u.id || '', name:u.name || u.email || '' }; },
         canRelink: function(record){ requirePoolAuditSession(); if (!canAccessTab('audits')) throw Error('Audit access denied.'); return canRelinkPoolAudit(record) && (!window.PoolShedSettingsPermissions || window.PoolShedSettingsPermissions.can('audits', 'edit', currentUser())); },
@@ -16463,5 +16505,5 @@ const seed = {
       window.addEventListener("load", function() {
         updateOfflineStatus();
         syncPendingOfflineData();
-        if ("serviceWorker" in navigator && location.protocol !== "file:") navigator.serviceWorker.register("./service-worker.js?v=1.47.5", { updateViaCache:"none" }).catch(function() {});
+        if ("serviceWorker" in navigator && location.protocol !== "file:") navigator.serviceWorker.register("./service-worker.js?v=1.47.6", { updateViaCache:"none" }).catch(function() {});
       });

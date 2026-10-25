@@ -661,6 +661,8 @@
             const [offlinePrep, setOfflinePrep] = useState('');
             const [offlinePreparing, setOfflinePreparing] = useState(false);
             const [relinkingCustomer, setRelinkingCustomer] = useState(false);
+            const [auditToDelete, setAuditToDelete] = useState(null);
+            const [deletingAudit, setDeletingAudit] = useState(false);
             const pendingTimer = useRef(null);
             const saveRevision = useRef(0);
             const surveyDataRef = useRef(surveyData);
@@ -858,6 +860,29 @@
                 setBackupMessage('');
                 rememberActive(next.id);
                 setView('survey');
+            };
+
+            const deleteAudit = async () => {
+                if (!auditToDelete || deletingAudit || !poolShedBridge) return;
+                setDeletingAudit(true);
+                setSaveError('');
+                try {
+                    if (hasActive && surveyDataRef.current.id === auditToDelete.id) await saveNow();
+                    await poolShedBridge.delete(auditToDelete.id, auditToDelete.customerId);
+                    if (hasActive && surveyDataRef.current.id === auditToDelete.id) {
+                        clearTimeout(pendingTimer.current);
+                        ++saveRevision.current;
+                        activeAuditId = ''; activeAuditCustomerId = '';
+                        rememberActive('');
+                        setHasActive(false);
+                        setView('dashboard');
+                    }
+                    setSurveys(previous => previous.filter(item => item.id !== auditToDelete.id));
+                    setAuditToDelete(null);
+                    setBackupMessage('Audit removed from this library and its customer profile. The change will sync when connected.');
+                } catch (error) {
+                    setSaveError(error.message || 'The audit could not be deleted. Please try again.');
+                } finally { setDeletingAudit(false); }
             };
 
             const startNew = () => {
@@ -1470,10 +1495,11 @@
                                 <div className="review-strip"><strong>Working at a site without internet?</strong> While connected, open the customer audit and select <button type="button" className="button soft" disabled={offlinePreparing || !hasActive} onClick={prepareOffline}>{offlinePreparing ? 'Preparing…' : 'Prepare this iPad for offline use'}</button> before you leave. Answers, assets, actions and photographs save on this device first. Browser speech recognition may need internet, so type notes when offline.</div>
                                 <div className="dashboard-grid">
                                     <section className="workspace-panel"><div className="workspace-panel-head"><div><span className="eyebrow">VISIT LIBRARY</span><h3>Saved audits</h3><p>Select a visit to continue, review or export.</p></div></div><div className="visit-list">
-                                        {surveys.filter(a => !poolShedBridge || (linkedCustomerId ? a.customerId === linkedCustomerId : a.customerId === selectedCustomerId)).length === 0 ? <div className="empty-state">No audits are linked to this customer yet. Start a new site audit.</div> : surveys.filter(a => !poolShedBridge || (linkedCustomerId ? a.customerId === linkedCustomerId : a.customerId === selectedCustomerId)).map(audit => { const counts = auditModel.stats(audit, checklistConfig); const complete = counts.total ? Math.round((counts.total - counts.ni) / counts.total * 100) : 0; return <div className="visit-row" key={audit.id}><div className="visit-info"><strong>{audit.metadata?.['site-name'] || 'Untitled audit'}{audit.historicalExample && <span className="sample-tag">Historical example</span>}</strong><small>Visit {audit.metadata?.['visit-date'] || 'date pending'} · Updated {audit.updatedAt ? new Date(audit.updatedAt).toLocaleString('en-GB') : 'date pending'} · {counts.red} red / {counts.amber} amber</small><div className="visit-meter"><span style={{width:`${complete}%`}} /></div></div><button className="button" onClick={() => selectAudit(audit)} disabled={!!storageError}>{audit.id === surveyData.id && hasActive ? 'Continue' : 'Open'}</button></div>; })}
+                                        {surveys.filter(a => !poolShedBridge || (linkedCustomerId ? a.customerId === linkedCustomerId : a.customerId === selectedCustomerId)).length === 0 ? <div className="empty-state">No audits are linked to this customer yet. Start a new site audit.</div> : surveys.filter(a => !poolShedBridge || (linkedCustomerId ? a.customerId === linkedCustomerId : a.customerId === selectedCustomerId)).map(audit => { const counts = auditModel.stats(audit, checklistConfig); const complete = counts.total ? Math.round((counts.total - counts.ni) / counts.total * 100) : 0; return <div className="visit-row" key={audit.id}><div className="visit-info"><strong>{audit.metadata?.['site-name'] || 'Untitled audit'}{audit.historicalExample && <span className="sample-tag">Historical example</span>}</strong><small>Visit {audit.metadata?.['visit-date'] || 'date pending'} · Updated {audit.updatedAt ? new Date(audit.updatedAt).toLocaleString('en-GB') : 'date pending'} · {counts.red} red / {counts.amber} amber</small><div className="visit-meter"><span style={{width:`${complete}%`}} /></div></div><div className="visit-actions"><button className="button" onClick={() => selectAudit(audit)} disabled={!!storageError || deletingAudit}>{audit.id === surveyData.id && hasActive ? 'Continue' : 'Open'}</button>{poolShedBridge?.canDelete(audit) && <button type="button" className="button danger-outline" onClick={() => setAuditToDelete(audit)} disabled={!!storageError || deletingAudit} aria-label={`Delete audit for ${audit.metadata?.['site-name'] || 'Untitled audit'}`}>Delete</button>}</div></div>; })}
                                     </div></section>
                                     <aside className="workspace-panel backup-panel"><div className="workspace-panel-head"><div><span className="eyebrow">DATA CONTROL</span><h3>Audit backups</h3><p>Keep an independent copy after every visit.</p></div></div><div className="backup-copy"><strong>Audits save on this device before they sync to the customer profile.</strong> JSON backups include answers and asset details. Photographs remain in the protected device media store until uploaded; a JSON backup alone does not contain their image files. Keep this iPad until the team save is confirmed.</div><div className="backup-actions"><button className="button dark" onClick={downloadBackup} disabled={!hasActive || !!storageError}>Download current backup</button><button className="button" onClick={() => importInput.current?.click()} disabled={!!storageError}>Restore backup</button><input ref={importInput} type="file" accept=".json,application/json" onChange={restoreBackup} hidden /></div><p className="backup-message">Confirm Pool Shed shows “Saved for team” before switching devices or clearing browser data.</p></aside>
                                 </div>
+                                {auditToDelete && <div className="audit-dialog-backdrop" role="presentation"><div className="audit-dialog" role="alertdialog" aria-modal="true" aria-labelledby="delete-audit-title" aria-describedby="delete-audit-description"><span className="eyebrow">REMOVE VISIT</span><h3 id="delete-audit-title">Delete this audit?</h3><p id="delete-audit-description"><strong>{auditToDelete.metadata?.['site-name'] || 'Untitled audit'}</strong> · {auditToDelete.metadata?.['visit-date'] || 'Date pending'} will be removed from the audit library and customer profile. This cannot be undone. Download a backup first if you need a copy.</p><div className="audit-dialog-actions"><button type="button" className="button" onClick={() => setAuditToDelete(null)} disabled={deletingAudit}>Keep audit</button><button type="button" className="button danger-solid" onClick={deleteAudit} disabled={deletingAudit}>{deletingAudit ? 'Deleting…' : 'Delete audit'}</button></div></div></div>}
                             </div>
                         )}
 
