@@ -1,3 +1,4 @@
+Pool Shed v1.47.6 - confirmed audit library deletion with customer profile sync
 Pool Shed v1.47.5 - offline reload after Vercel redirects
 
 Offline navigation now converts the prepared cached shell and audit page into non-redirected responses. This allows a full offline reload on Vercel while retaining the v1.47.4 cache-first behaviour.

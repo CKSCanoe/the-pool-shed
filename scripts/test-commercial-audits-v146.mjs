@@ -11,7 +11,7 @@ const worker = read('public/service-worker.js');
 
 assert.match(shell, /id: "audits", label: "Pool Audits"/);
 assert.match(html, /id="screen-audits"/);
-assert.match(html, /commercial-audits\/embedded\.css\?v=1\.47\.5/);
+assert.match(html, /commercial-audits\/embedded\.css\?v=1\.47\.6/);
 assert.match(shell, /data-crm-profile-tab="audits"/);
 assert.match(shell, /data-new-pool-audit/);
 assert.match(shell, /data-open-pool-audit/);
@@ -57,7 +57,7 @@ let indexedWriteAllowed = true;
 const localStorage = { getItem: key => localStore.get(key) || null, setItem: (key, value) => localStore.set(key, value) };
 const ctx = {
   window: null, data, navigator: { onLine: true }, localStorage,
-  PoolShedSettingsPermissions: { can: () => true }, PoolShedAudit: { record: event => { ctx.lastAuditEvent = event; } },
+  PoolShedSettingsPermissions: { can: (_module, operation, actor) => operation !== 'delete' || actor.role === 'Admin' }, PoolShedAudit: { record: event => { ctx.lastAuditEvent = event; } },
   currentUser: () => user, canAccessTab: () => true,
   saveAppData: () => {
     ctx.workspaceLastLocalPayload = JSON.stringify(data);
@@ -119,6 +119,20 @@ assert.doesNotMatch(ctx.customerAuditPanel(data.customers[0]), /Updated pool/, '
 assert.match(ctx.customerAuditPanel(data.customers[1]), /Updated pool/, 'new profile lists the moved visit');
 assert.equal(JSON.parse(localStorage.getItem('poolshed:v172:appData')).poolAudits.find(item => item.id === 'A1').customerId, 'C2', 'CRM link persists after reload');
 assert.equal(ctx.lastAuditEvent.action, 'Commercial audit linked to another customer');
+const ownDraft = { ...record, id: 'A7', createdBy: { id: user.id }, metadata: { 'site-name': 'Test draft' } };
+await bridge.save(ownDraft);
+assert.equal(bridge.canDelete(ownDraft), true, 'engineers may delete their own draft');
+assert.equal(bridge.canDelete({ ...ownDraft, createdBy: { id: 'OTHER' } }), false, 'engineers cannot delete another author’s draft');
+assert.equal(bridge.canDelete({ ...ownDraft, status: 'approved' }), false, 'engineers cannot delete approved reports');
+await assert.rejects(bridge.delete('A7', 'C2'), /no longer linked/, 'deletion requires the matching customer');
+await bridge.delete('A7', 'C1');
+assert.equal(data.poolAudits.some(item => item.id === 'A7'), false);
+assert.equal(JSON.parse(localStorage.getItem('poolshed:v172:appData')).poolAudits.some(item => item.id === 'A7'), false, 'deletion persists locally');
+assert.equal(ctx.lastIndexedSnapshot.poolAudits.some(item => item.id === 'A7'), false, 'deletion persists in device backup');
+assert.doesNotMatch(ctx.customerAuditPanel(data.customers[0]), /Test draft/, 'deleted audit disappears from customer profile');
+assert.equal(ctx.lastAuditEvent.action, 'Commercial audit deleted');
+assert.equal(ctx.lastAuditEvent.before.customerId, 'C1');
+await assert.rejects(bridge.delete('A7', 'C1'), /no longer linked/, 'repeat deletion does not affect another audit');
 ctx.renderCommercialAudits();
 assert.match(auditFrame, /customer=C2&audit=A1/, 'reopening the active visit uses the new profile route');
 await assert.rejects(bridge.save({ ...moved, customerId: 'C1', responses: { check: { status: 'red' } } }, { relinkCustomer: true }), /findings, assets or evidence/);
@@ -127,7 +141,15 @@ await assert.rejects(bridge.save({ ...record, id: 'A3', responses: { x: { image:
 localWriteAllowed = false;
 await bridge.save({ ...record, id: 'A4', metadata: { 'site-name': 'IndexedDB visit' } });
 assert.equal(ctx.lastIndexedSnapshot.poolAudits[0].id, 'A4', 'large-workspace fallback preserves the audit');
+ctx.navigator.onLine = false;
+await bridge.save({ ...ownDraft, id: 'A8', metadata: { 'site-name': 'Offline test visit' } });
+await bridge.delete('A8', 'C1');
+assert.equal(ctx.lastIndexedSnapshot.poolAudits.some(item => item.id === 'A8'), false, 'offline deletion is saved for later sync');
+ctx.navigator.onLine = true;
+await bridge.save({ ...ownDraft, id: 'A9', metadata: { 'site-name': 'Keep on failure' } });
 indexedWriteAllowed = false;
+await assert.rejects(bridge.delete('A9', 'C1'), /could not save this deletion/, 'deletion is not reported as complete without a device copy');
+assert.equal(data.poolAudits.some(item => item.id === 'A9'), true, 'failed deletion restores the audit in memory');
 await assert.rejects(bridge.save({ ...record, id: 'A5' }), /could not save this audit on this device/, 'save must not confirm when both device stores fail');
 localWriteAllowed = true;
 indexedWriteAllowed = true;
