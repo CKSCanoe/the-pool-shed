@@ -1,18 +1,18 @@
-const CACHE = 'pool-shed-v1.47.3-quiet-shared-autosave';
-const CORE = ["./","./index.html","./commercial-audits/index.html","./commercial-audits/embedded.css?v=1.47.3","./assets/img/pb-logo.png","./assets/css/app.css?v=1.47.3","./config.js?v=1.47.3","./identity-authority.js?v=1.47.3","./audit-authority.js?v=1.47.3","./assets/js/01-legacy-01.js?v=1.47.3","./shared-one-truth-authority.js?v=1.47.3","./assets/js/02-legacy-02.js?v=1.47.3","./assets/js/03-pb-import-governance-v192.js?v=1.47.3","./assets/js/04-pb-product-profile-v196-fix.js?v=1.47.3","./assets/js/05-pb-v1100-inventory-product-hub.js?v=1.47.3","./business-media.js?v=1.47.3","./product-images.js?v=1.47.3","./sales-order-search.js?v=1.47.3","./catalogue-intelligence.js?v=1.47.3","./partial-fulfilment.js?v=1.47.3","./assets/js/06-pb-product-title-persistence-v115-fix.js?v=1.47.3","./bundle-engine.js?v=1.47.3","./bundle-system.js?v=1.47.3","./bundle-studio.js?v=1.47.3","./bundle-sales-intelligence.js?v=1.47.3","./pool-shed-overhaul.js?v=1.47.3","./sales-order-customer-picker.js?v=1.47.3","./professional-workspace.js?v=1.47.3","./accounting-workspace.js?v=1.47.3","./finance-command-engine.js?v=1.47.3","./finance-command-workspace.js?v=1.47.3","./analytics-command-engine.js?v=1.47.3","./analytics-command-workspace.js?v=1.47.3","./settings-permissions-engine.js?v=1.47.3","./record-router.js?v=1.47.3","./notifications-command-engine.js?v=1.47.3","./action-authority.js?v=1.47.3","./approval-authority.js?v=1.47.3","./action-approval-integrations.js?v=1.47.3","./action-source-adapters.js?v=1.47.3","./my-work-workspace.js?v=1.47.3","./notifications-command-workspace.js?v=1.47.3","./automation-command-engine.js?v=1.47.3","./automation-command-workspace.js?v=1.47.3","./azzy-jarvis-host.js?v=1.47.3","./azzy-jarvis.css?v=1.47.3-startup-v1","./assets/img/azzy-jarvis-64.png","./assets/img/azzy-jarvis-192.png","./production-readiness-engine.js?v=1.47.3","./settings-command-workspace.js?v=1.47.3","./project-engine.js?v=1.47.3","./project-documents.js?v=1.47.3","./project-billing.js?v=1.47.3","./project-workspace.js?v=1.47.3","./project-design-parity.js?v=1.47.3","./project-setup-tools.js?v=1.47.3","./sales-workspace.js?v=1.47.3","./warehouse-workspace.js?v=1.47.3","./purchase-workspace.js?v=1.47.3","./supplier-command-engine.js?v=1.47.3","./supplier-command-workspace.js?v=1.47.3","./product-hub-engine.js?v=1.47.3","./product-hub-workspace.js?v=1.47.3","./inventory-control-engine.js?v=1.47.3","./inventory-workspace.js?v=1.47.3","./fulfilment-control-engine.js?v=1.47.3","./fulfilment-workspace.js?v=1.47.3","./dashboard-review-engine.js?v=1.47.3","./business-review.js?v=1.47.3","./quarterly-review.js?v=1.47.3","./quote-studio.css?v=1.47.3","./quote-studio-engine.js?v=1.47.3","./quote-studio-workspace.js?v=1.47.3","./proposal.html","./quote-customer-portal.css?v=1.47.3","./quote-customer-portal.js?v=1.47.3"];
+const CACHE = 'pool-shed-v1.47.4-quiet-shared-autosave';
+const CORE = ["./","./index.html","./commercial-audits/index.html","./commercial-audits/embedded.css?v=1.47.4","./assets/img/pb-logo.png","./assets/css/app.css?v=1.47.4","./config.js?v=1.47.4","./identity-authority.js?v=1.47.4","./audit-authority.js?v=1.47.4","./assets/js/01-legacy-01.js?v=1.47.4","./shared-one-truth-authority.js?v=1.47.4","./assets/js/02-legacy-02.js?v=1.47.4","./assets/js/03-pb-import-governance-v192.js?v=1.47.4","./assets/js/04-pb-product-profile-v196-fix.js?v=1.47.4","./assets/js/05-pb-v1100-inventory-product-hub.js?v=1.47.4","./business-media.js?v=1.47.4","./product-images.js?v=1.47.4","./sales-order-search.js?v=1.47.4","./catalogue-intelligence.js?v=1.47.4","./partial-fulfilment.js?v=1.47.4","./assets/js/06-pb-product-title-persistence-v115-fix.js?v=1.47.4","./bundle-engine.js?v=1.47.4","./bundle-system.js?v=1.47.4","./bundle-studio.js?v=1.47.4","./bundle-sales-intelligence.js?v=1.47.4","./pool-shed-overhaul.js?v=1.47.4","./sales-order-customer-picker.js?v=1.47.4","./professional-workspace.js?v=1.47.4","./accounting-workspace.js?v=1.47.4","./finance-command-engine.js?v=1.47.4","./finance-command-workspace.js?v=1.47.4","./analytics-command-engine.js?v=1.47.4","./analytics-command-workspace.js?v=1.47.4","./settings-permissions-engine.js?v=1.47.4","./record-router.js?v=1.47.4","./notifications-command-engine.js?v=1.47.4","./action-authority.js?v=1.47.4","./approval-authority.js?v=1.47.4","./action-approval-integrations.js?v=1.47.4","./action-source-adapters.js?v=1.47.4","./my-work-workspace.js?v=1.47.4","./notifications-command-workspace.js?v=1.47.4","./automation-command-engine.js?v=1.47.4","./automation-command-workspace.js?v=1.47.4","./azzy-jarvis-host.js?v=1.47.4","./azzy-jarvis.css?v=1.47.4-startup-v1","./assets/img/azzy-jarvis-64.png","./assets/img/azzy-jarvis-192.png","./production-readiness-engine.js?v=1.47.4","./settings-command-workspace.js?v=1.47.4","./project-engine.js?v=1.47.4","./project-documents.js?v=1.47.4","./project-billing.js?v=1.47.4","./project-workspace.js?v=1.47.4","./project-design-parity.js?v=1.47.4","./project-setup-tools.js?v=1.47.4","./sales-workspace.js?v=1.47.4","./warehouse-workspace.js?v=1.47.4","./purchase-workspace.js?v=1.47.4","./supplier-command-engine.js?v=1.47.4","./supplier-command-workspace.js?v=1.47.4","./product-hub-engine.js?v=1.47.4","./product-hub-workspace.js?v=1.47.4","./inventory-control-engine.js?v=1.47.4","./inventory-workspace.js?v=1.47.4","./fulfilment-control-engine.js?v=1.47.4","./fulfilment-workspace.js?v=1.47.4","./dashboard-review-engine.js?v=1.47.4","./business-review.js?v=1.47.4","./quarterly-review.js?v=1.47.4","./quote-studio.css?v=1.47.4","./quote-studio-engine.js?v=1.47.4","./quote-studio-workspace.js?v=1.47.4","./proposal.html","./quote-customer-portal.css?v=1.47.4","./quote-customer-portal.js?v=1.47.4"];
 const BOOT_CORE = [
   './',
   './index.html',
   './assets/img/pb-logo.png',
-  './assets/css/app.css?v=1.47.3',
-  './config.js?v=1.47.3',
-  './identity-authority.js?v=1.47.3',
-  './settings-permissions-engine.js?v=1.47.3',
-  './azzy-jarvis-host.js?v=1.47.3',
-  './azzy-jarvis.css?v=1.47.3-startup-v1',
+  './assets/css/app.css?v=1.47.4',
+  './config.js?v=1.47.4',
+  './identity-authority.js?v=1.47.4',
+  './settings-permissions-engine.js?v=1.47.4',
+  './azzy-jarvis-host.js?v=1.47.4',
+  './azzy-jarvis.css?v=1.47.4-startup-v1',
   './assets/img/azzy-jarvis-192.png'
 ];
-CORE.push('./audit-offline-media.js?v=1.47.3');
+CORE.push('./audit-offline-media.js?v=1.47.4');
 CORE.push(...[
   './commercial-audits/assets/pb-logo.png',
   './commercial-audits/src/theme.css',
@@ -110,6 +110,21 @@ self.addEventListener('fetch', event => {
   if (isNavigation) {
     const isCustomerProposal = url.pathname.endsWith('/proposal.html') || url.pathname.endsWith('/proposal');
     const isCommercialAudit = /^\/commercial-audits(?:\/|\/index\.html)?$/.test(url.pathname);
+    if (!isCustomerProposal) {
+      // The signed-in shell and survey must open from the prepared cache even
+      // when a browser refuses to start a navigation request while offline.
+      event.respondWith((async () => {
+        const key = isCommercialAudit ? './commercial-audits/index.html' : './index.html';
+        const cached = await caches.match(key);
+        if (cached) return cached;
+        try {
+          const response = await fetch(request);
+          if (response.ok) event.waitUntil(caches.open(CACHE).then(cache => cache.put(key, response.clone())));
+          return response;
+        } catch (_) { return Response.error(); }
+      })());
+      return;
+    }
     event.respondWith(
       fetch(request, { cache: 'no-store' })
         .then(response => {

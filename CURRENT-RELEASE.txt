@@ -1,3 +1,7 @@
+Pool Shed v1.47.4 - reliable offline opening
+
+The prepared Pool Shed shell and selected commercial audit now open directly from the verified device cache, including after a full offline reload.
+
 Pool Shed v1.47.3 - offline commercial audits
 
 Selected commercial audits can be prepared on an iPad while online. Answers, assets, actions and new photographs are saved on the device before team sync. Offline preparation checks the application files, workspace merge base and selected audit images. Pending changes and photographs upload on reconnection; the app shows whether changes are device-only or confirmed for the team. Browser speech recognition may need an internet connection.
