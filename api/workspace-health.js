@@ -1,6 +1,7 @@
 import {db,eq} from '../server/accounting.js';
 import {supabaseServerKey} from '../server/supabase-keys.js';
 import {appOriginAllowed} from '../server/origin-policy.js';
+import auditDeviceRecovery from '../server/audit-device-recovery.js';
 
 const send=(res,status,value)=>res.status(status).json(value);
 const WORKSPACE_ID='pool-bros-main';
@@ -105,6 +106,7 @@ async function status(){
 }
 
 export default async function handler(req,res){
+  if(req.method==='GET'&&new URL(req.url,process.env.APP_ORIGIN||'http://localhost').searchParams.get('device-recovery')==='1')return auditDeviceRecovery(req,res);
   res.setHeader('Cache-Control','no-store');
   res.setHeader('X-Content-Type-Options','nosniff');
   try{
