@@ -1,6 +1,7 @@
 import assert from 'node:assert/strict';
 import vm from 'node:vm';
-import handler from '../api/audit-device-recovery.js';
+import handler from '../server/audit-device-recovery.js';
+import { readFileSync } from 'node:fs';
 
 function request(method) {
   const headers = {};
@@ -30,4 +31,6 @@ assert.match(script[2], /getAll\(\)/);
 assert.match(script[2], /navigator\.share/);
 assert.doesNotMatch(script[2], /\bfetch\s*\(/, 'recovery must not transmit local data');
 assert.equal(request('POST').code, 405);
+const endpoint=readFileSync(new URL('../api/workspace-health.js',import.meta.url),'utf8');
+assert.match(endpoint,/device-recovery.*auditDeviceRecovery\(req,res\)/);
 console.log('PASS read-only audit device recovery page, photo export, no-store and no-network controls');
