@@ -10536,6 +10536,49 @@ const seed = {
           return true;
         },
         syncState: function(){ return !navigator.onLine || !sharedWorkspaceReady || workspaceSaveInFlight || workspaceSyncConflict || workspaceLocalSaveFailed || localStorage.getItem('poolshed:v172:pendingSync') === '1' ? 'device' : 'shared'; },
+        verifyHandover: async function(auditId, customerId){
+          requirePoolAuditSession();
+          if (!canAccessTab('audits')) throw Error('Audit access denied.');
+          if (!navigator.onLine) throw Error('This iPad is offline. Keep it open and run the handover check after reconnecting.');
+          if (workspaceLocalSaveFailed) throw Error('The device save failed. Keep this audit open and retry saving before switching devices.');
+          await poolAuditSnapshotQueue;
+          if (!sharedWorkspaceReady || !supabaseSession) throw Error('The shared workspace has not connected. Keep this audit on the iPad and retry.');
+          if (!await flushSharedWorkspaceSave()) throw Error('The shared upload is still pending. Keep this iPad open and retry the handover check.');
+          if (workspaceSyncConflict || localStorage.getItem('poolshed:v172:pendingSync') === '1') throw Error('Changes are still waiting to share. Keep this iPad open and retry.');
+          const local = (data.poolAudits || []).find(function(row){ return row.id === auditId && row.customerId === customerId; });
+          if (!local) throw Error('The selected audit is not saved against this customer on the iPad.');
+          const result = await supabaseClient.from('workspace_snapshots').select('data').eq('workspace_id', WORKSPACE_ID).maybeSingle();
+          if (result.error || !result.data || !result.data.data) throw Error('Pool Shed could not read the shared copy. Keep the iPad until the check succeeds.');
+          const remote = (result.data.data.poolAudits || []).find(function(row){ return row.id === auditId && row.customerId === customerId; });
+          if (!remote) throw Error('This audit is not yet visible on the shared customer profile. Retry the handover check.');
+          function stable(value){
+            if (Array.isArray(value)) return value.map(stable);
+            if (value && typeof value === 'object') return Object.keys(value).sort().reduce(function(out,key){ out[key] = stable(value[key]); return out; }, {});
+            return value;
+          }
+          const fingerprint = function(value){ return JSON.stringify(stable(value)); };
+          const expected = fingerprint(local);
+          if (fingerprint(remote) !== expected) throw Error('The shared audit does not yet match this iPad. Keep it open and retry.');
+          const media = window.PoolShedBusinessMedia;
+          const refs = media && media.refsFrom ? media.refsFrom(remote) : [];
+          if (JSON.stringify(remote).includes('audit-local:')) throw Error('Some photos are still on this iPad. Keep it open until they finish uploading.');
+          if (refs.length) {
+            const token = await window.__POOL_SHED_AUTH_TOKEN__();
+            const query = '/api/media?action=sign&workspace=' + encodeURIComponent(WORKSPACE_ID) + '&refs=' + encodeURIComponent(refs.join(','));
+            const response = await fetch(query, { headers: { Authorization: 'Bearer ' + token }, cache: 'no-store' });
+            const signed = await response.json().catch(function(){ return {}; });
+            if (!response.ok || refs.some(function(ref){ return !signed.urls || !signed.urls[ref]; })) throw Error('One or more photos are not available from the shared customer media library. Retry before switching devices.');
+            for (let offset = 0; offset < refs.length; offset += 4) {
+              const checks = await Promise.all(refs.slice(offset, offset + 4).map(function(ref){
+                return fetch(signed.urls[ref], { method: 'HEAD', cache: 'no-store' });
+              }));
+              if (checks.some(function(photo){ return !photo.ok; })) throw Error('One or more shared photos could not be opened. Keep the iPad and retry.');
+            }
+          }
+          const latest = (data.poolAudits || []).find(function(row){ return row.id === auditId && row.customerId === customerId; });
+          if (!latest || fingerprint(latest) !== expected || localStorage.getItem('poolshed:v172:pendingSync') === '1') throw Error('The audit changed during the check. Save and run it again.');
+          return { photos: refs.length, checkedAt: new Date().toISOString() };
+        },
         openCustomerProfile: function(customerId){
           requirePoolAuditSession();
           if (!(data.customers || []).some(function(c){ return c.id === customerId; })) throw Error('Customer profile not found.');

@@ -660,6 +660,7 @@
             const [backupMessage, setBackupMessage] = useState('');
             const [offlinePrep, setOfflinePrep] = useState('');
             const [offlinePreparing, setOfflinePreparing] = useState(false);
+            const [handover, setHandover] = useState({ phase: 'idle', message: '' });
             const [relinkingCustomer, setRelinkingCustomer] = useState(false);
             const [auditToDelete, setAuditToDelete] = useState(null);
             const [deletingAudit, setDeletingAudit] = useState(false);
@@ -676,6 +677,7 @@
             const upsertSurvey = record => setSurveys(previous => sortSurveys([record, ...previous.filter(item => item.id !== record.id)]));
             const setActiveSurvey = (record, edited = false) => {
                 surveyDataRef.current = record;
+                setHandover({ phase: 'idle', message: '' });
                 if (edited) { editRevision.current += 1; setSavePhase('pending'); }
                 setSurveyData(record);
             };
@@ -779,6 +781,21 @@
                 const revision = ++saveRevision.current;
                 const record = { ...surveyDataRef.current, updatedAt: new Date().toISOString() };
                 return persistSurvey(record, revision, editRevision.current);
+            };
+
+            const checkHandover = async () => {
+                if (!hasActive || storageError || handover.phase === 'checking') return;
+                setHandover({ phase: 'checking', message: 'Saving the audit, uploading photos and checking the shared customer record…' });
+                const revisionAtStart = editRevision.current;
+                try {
+                    const saved = await saveNow();
+                    if (!saved) throw new Error('Open an audit before checking the handover.');
+                    const result = await poolShedBridge.verifyHandover(saved.id, saved.customerId);
+                    if (editRevision.current !== revisionAtStart || surveyDataRef.current.id !== saved.id) throw new Error('The audit changed during the check. Run it again after saving.');
+                    setHandover({ phase: 'ready', message: `Safe to switch devices. This audit and ${result.photos} ${result.photos === 1 ? 'photo' : 'photos'} were checked on the shared customer record at ${new Date(result.checkedAt).toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' })}.` });
+                } catch (error) {
+                    setHandover({ phase: 'waiting', message: error.message || 'The handover could not be confirmed. Keep this iPad and retry.' });
+                }
             };
 
             const saveOnFieldExit = event => {
@@ -1473,7 +1490,7 @@
                     </div></header>
 
                     <main className="app-main">
-                        <div className="review-strip">{poolShedBridge.syncState() === 'device' ? 'Pool Shed upload is pending. Confirm the shared workspace sync before using another device.' : 'Audits are linked to their Pool Shed customer profiles.'}</div>
+                                <div className="review-strip">{poolShedBridge.syncState() === 'device' ? 'Pool Shed upload is pending. Keep this device and run Check handover after reconnecting.' : 'Audits are linked to their Pool Shed customer profiles. Run Check handover before switching devices.'}</div>
                         {storageError && <div className="review-strip error-strip" role="alert">{storageError}</div>}
                         {saveError && <div className="review-strip error-strip" role="alert">{saveError}</div>}
                         {backupMessage && <div className="review-strip" role="status">{backupMessage}</div>}
@@ -1493,11 +1510,12 @@
                                     </select>
                                 </label>}
                                 <div className="review-strip"><strong>Working at a site without internet?</strong> While connected, open the customer audit and select <button type="button" className="button soft" disabled={offlinePreparing || !hasActive} onClick={prepareOffline}>{offlinePreparing ? 'Preparing…' : 'Prepare this iPad for offline use'}</button> before you leave. Answers, assets, actions and photographs save on this device first. Browser speech recognition may need internet, so type notes when offline.</div>
+                                {hasActive && <div className={`handover-panel ${handover.phase}`} role="status"><div><strong>{handover.phase === 'ready' ? '✓ Handover confirmed' : 'Moving from iPad to office?'}</strong><p>{handover.message || 'When you reconnect, check this visit and every linked photo against the shared customer record before changing devices.'}</p></div><button type="button" className="button dark" onClick={checkHandover} disabled={handover.phase === 'checking' || !!storageError}>{handover.phase === 'checking' ? 'Checking…' : handover.phase === 'ready' ? 'Check again' : 'Check handover'}</button></div>}
                                 <div className="dashboard-grid">
                                     <section className="workspace-panel"><div className="workspace-panel-head"><div><span className="eyebrow">VISIT LIBRARY</span><h3>Saved audits</h3><p>Select a visit to continue, review or export.</p></div></div><div className="visit-list">
                                         {surveys.filter(a => !poolShedBridge || (linkedCustomerId ? a.customerId === linkedCustomerId : a.customerId === selectedCustomerId)).length === 0 ? <div className="empty-state">No audits are linked to this customer yet. Start a new site audit.</div> : surveys.filter(a => !poolShedBridge || (linkedCustomerId ? a.customerId === linkedCustomerId : a.customerId === selectedCustomerId)).map(audit => { const counts = auditModel.stats(audit, checklistConfig); const complete = counts.total ? Math.round((counts.total - counts.ni) / counts.total * 100) : 0; return <div className="visit-row" key={audit.id}><div className="visit-info"><strong>{audit.metadata?.['site-name'] || 'Untitled audit'}{audit.historicalExample && <span className="sample-tag">Historical example</span>}</strong><small>Visit {audit.metadata?.['visit-date'] || 'date pending'} · Updated {audit.updatedAt ? new Date(audit.updatedAt).toLocaleString('en-GB') : 'date pending'} · {counts.red} red / {counts.amber} amber</small><div className="visit-meter"><span style={{width:`${complete}%`}} /></div></div><div className="visit-actions"><button className="button" onClick={() => selectAudit(audit)} disabled={!!storageError || deletingAudit}>{audit.id === surveyData.id && hasActive ? 'Continue' : 'Open'}</button>{poolShedBridge?.canDelete(audit) && <button type="button" className="button danger-outline" onClick={() => setAuditToDelete(audit)} disabled={!!storageError || deletingAudit} aria-label={`Delete audit for ${audit.metadata?.['site-name'] || 'Untitled audit'}`}>Delete</button>}</div></div>; })}
                                     </div></section>
-                                    <aside className="workspace-panel backup-panel"><div className="workspace-panel-head"><div><span className="eyebrow">DATA CONTROL</span><h3>Audit backups</h3><p>Keep an independent copy after every visit.</p></div></div><div className="backup-copy"><strong>Audits save on this device before they sync to the customer profile.</strong> JSON backups include answers and asset details. Photographs remain in the protected device media store until uploaded; a JSON backup alone does not contain their image files. Keep this iPad until the team save is confirmed.</div><div className="backup-actions"><button className="button dark" onClick={downloadBackup} disabled={!hasActive || !!storageError}>Download current backup</button><button className="button" onClick={() => importInput.current?.click()} disabled={!!storageError}>Restore backup</button><input ref={importInput} type="file" accept=".json,application/json" onChange={restoreBackup} hidden /></div><p className="backup-message">Confirm Pool Shed shows “Saved for team” before switching devices or clearing browser data.</p></aside>
+                                    <aside className="workspace-panel backup-panel"><div className="workspace-panel-head"><div><span className="eyebrow">DATA CONTROL</span><h3>Audit backups</h3><p>Keep an independent copy after every visit.</p></div></div><div className="backup-copy"><strong>Audits save on this device before they sync to the customer profile.</strong> JSON backups include answers and asset details. Photographs remain in the protected device media store until uploaded; a JSON backup alone does not contain their image files. Keep this iPad until the handover check passes.</div><div className="backup-actions"><button className="button dark" onClick={downloadBackup} disabled={!hasActive || !!storageError}>Download current backup</button><button className="button" onClick={() => importInput.current?.click()} disabled={!!storageError}>Restore backup</button><input ref={importInput} type="file" accept=".json,application/json" onChange={restoreBackup} hidden /></div><p className="backup-message">Run Check handover before switching devices. Keep the iPad and its browser data until the audit and photos are confirmed.</p></aside>
                                 </div>
                                 {auditToDelete && <div className="audit-dialog-backdrop" role="presentation"><div className="audit-dialog" role="alertdialog" aria-modal="true" aria-labelledby="delete-audit-title" aria-describedby="delete-audit-description"><span className="eyebrow">REMOVE VISIT</span><h3 id="delete-audit-title">Delete this audit?</h3><p id="delete-audit-description"><strong>{auditToDelete.metadata?.['site-name'] || 'Untitled audit'}</strong> · {auditToDelete.metadata?.['visit-date'] || 'Date pending'} will be removed from the audit library and customer profile. This cannot be undone. Download a backup first if you need a copy.</p><div className="audit-dialog-actions"><button type="button" className="button" onClick={() => setAuditToDelete(null)} disabled={deletingAudit}>Keep audit</button><button type="button" className="button danger-solid" onClick={deleteAudit} disabled={deletingAudit}>{deletingAudit ? 'Deleting…' : 'Delete audit'}</button></div></div></div>}
                             </div>
@@ -1507,6 +1525,7 @@
                             <div className="space-y-5 pb-24">
                                 <div className="survey-hero"><div><span className="eyebrow">ACTIVE SITE VISIT {surveyData.historicalExample ? '· HISTORICAL EXAMPLE' : ''}</span><h2>{surveyData.metadata['site-name'] || 'New site audit'}</h2><p>{surveyData.metadata['visit-date'] || 'Visit date to be entered'} · {surveyData.metadata['inspector'] || 'Lead inspector to be entered'} · {currentStats.total} inspection points</p><button type="button" className="button soft" onClick={returnToCustomer}>← {poolShedBridge.getCustomers().find(c => c.id === surveyData.customerId)?.name || 'Customer'} profile</button></div><div className="survey-progress"><strong>{completionPercent}%</strong><span>Recorded or marked not applicable</span><div className="progress-track"><i style={{width:`${completionPercent}%`}} /></div></div></div>
                                 <nav className="section-jump" aria-label="Jump to audit section"><a href="#site-details">Site details</a><a href="#site-assets">Assets</a>{checklistConfig.sections.slice(1).map(section => <a href={`#section-${section.id}`} key={section.id}>{section.title}</a>)}</nav>
+                                <div className={`handover-panel ${handover.phase}`} role="status"><div><strong>{handover.phase === 'ready' ? '✓ Safe to switch devices' : 'iPad to office handover'}</strong><p>{handover.message || 'Your answers save on this iPad first. After reconnecting, check that this audit and its photos have reached the shared customer profile.'}</p></div><button type="button" className="button dark" onClick={checkHandover} disabled={handover.phase === 'checking' || !!storageError}>{handover.phase === 'checking' ? 'Checking…' : handover.phase === 'ready' ? 'Check again' : 'Check handover'}</button></div>
                                 <section className="audit-section" id="site-details"><div className="audit-section-header"><div><small>01 · VISIT SETUP</small><h2>Site details</h2></div><span className="eyebrow">Required for report export</span></div><div className="p-6 grid grid-cols-1 md:grid-cols-2 gap-6">
                                     {checklistConfig.sections[0].items.map(item => <div key={item.id} className="space-y-1">
                                         <label htmlFor={`metadata-${item.id}`} className="block text-xs font-bold text-slate-500 uppercase tracking-wide">{item.label}{item.required ? ' *' : ''}</label>
@@ -1553,7 +1572,7 @@
                         )}
                     </main>
 
-                    {hasActive && view !== 'dashboard' && <div className="audit-footer"><div className={`save-indicator ${savePhase}`} role={saveError ? 'alert' : 'status'}><i />{saveError || (savePhase === 'pending' ? 'Changes awaiting save' : savePhase === 'saving' ? 'Saving on this device…' : poolShedBridge.syncState() === 'device' ? 'Saved on this device · Pool Shed sync pending' : 'Saved · Linked to customer profile')}</div><div className="footer-actions"><button className="button" onClick={saveNow} disabled={!!storageError}>Save now</button><button className="button soft" onClick={downloadBackup} disabled={!!storageError}>↓ Backup</button><button className="button primary" onClick={exportReport} disabled={!!storageError}>Export report</button></div></div>}
+                    {hasActive && view !== 'dashboard' && <div className="audit-footer"><div className={`save-indicator ${savePhase}`} role={saveError ? 'alert' : 'status'}><i />{saveError || (savePhase === 'pending' ? 'Changes awaiting save' : savePhase === 'saving' ? 'Saving on this device…' : handover.phase === 'ready' ? 'Handover checked · Safe to switch' : poolShedBridge.syncState() === 'device' ? 'Saved on this device · Upload pending' : 'Saved on this device · Check handover before switching')}</div><div className="footer-actions"><button className="button" onClick={saveNow} disabled={!!storageError}>Save now</button><button className="button soft" onClick={downloadBackup} disabled={!!storageError}>↓ Backup</button><button className="button primary" onClick={exportReport} disabled={!!storageError}>Export report</button></div></div>}
                 </div>
             );
         };
