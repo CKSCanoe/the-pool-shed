@@ -1,5 +1,6 @@
 import fs from 'node:fs';
 import assert from 'node:assert/strict';
+import {absoluteSigned} from '../server/business-media.js';
 
 const read=p=>fs.readFileSync(p,'utf8');
 const pkg=JSON.parse(read('package.json'));
@@ -14,6 +15,11 @@ const quoteApi=read('api/quote.js');
 const quoteServer=read('server/quote.js');
 const vercel=read('vercel.json');
 const index=read('public/index.html');
+
+const storageOrigin='https://example.supabase.co';
+assert.equal(absoluteSigned('/object/sign/customer-media/example/photo.jpg?token=secret',storageOrigin),storageOrigin+'/storage/v1/object/sign/customer-media/example/photo.jpg?token=secret');
+assert.equal(absoluteSigned('/storage/v1/object/sign/customer-media/example/photo.jpg?token=secret',storageOrigin),storageOrigin+'/storage/v1/object/sign/customer-media/example/photo.jpg?token=secret');
+assert.equal(absoluteSigned(storageOrigin+'/storage/v1/object/sign/customer-media/example/photo.jpg?token=secret',storageOrigin),storageOrigin+'/storage/v1/object/sign/customer-media/example/photo.jpg?token=secret');
 
 assert.equal(pkg.version,'1.47.6');
 for(const token of [

@@ -13,7 +13,13 @@ const CUSTOMER_KINDS=new Set(['site_photo','drawing','survey','document','access
 const cleanPart=v=>String(v||'').replace(/[^a-zA-Z0-9._-]/g,'_').slice(0,160)||'item';
 const objectPath=p=>String(p||'').split('/').filter(Boolean).map(encodeURIComponent).join('/');
 const headers=extra=>elevatedSupabaseHeaders(process.env,extra||{});
-const absoluteSigned=value=>{const raw=String(value||'');if(!raw)return '';return /^https?:\/\//i.test(raw)?raw:String(process.env.SUPABASE_URL||'').replace(/\/$/,'')+(raw.startsWith('/')?'':'/')+raw};
+export const absoluteSigned=(value,baseUrl=process.env.SUPABASE_URL)=>{
+  const raw=String(value||'');
+  if(!raw)return '';
+  if(/^https?:\/\//i.test(raw))return raw;
+  const path=raw.startsWith('/')?raw:'/'+raw;
+  return String(baseUrl||'').replace(/\/$/,'')+(path.startsWith('/storage/v1/')?path:'/storage/v1'+path);
+};
 const ext=m=>m==='image/png'?'png':m==='image/webp'?'webp':m==='application/pdf'?'pdf':'jpg';
 export const isBusinessMediaRef=v=>/^(?:product|customer)-media:[0-9a-f-]{36}$/i.test(String(v||''));
 export const mediaRef=(domain,id)=>DOMAINS[domain].prefix+id;
