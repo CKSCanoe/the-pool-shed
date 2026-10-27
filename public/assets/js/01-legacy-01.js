@@ -10430,6 +10430,7 @@ const seed = {
 
       let poolAuditRoute = { customerId: '', auditId: '', newAudit: false };
       let poolAuditSnapshotQueue = Promise.resolve();
+      const poolAuditApprovedRelinks = new Map();
       function requirePoolAuditSession() {
         if (!isAuthenticated) throw Error('Sign in to Pool Shed before opening customer audits.');
       }
@@ -10475,6 +10476,7 @@ const seed = {
             try { saveAppData(); } catch (error) { void error; }
             throw Error('Pool Shed could not save this deletion on this device. The audit remains available.');
           }
+          poolAuditApprovedRelinks.delete(auditId);
           if (window.PoolShedAudit) window.PoolShedAudit.record({
             action: 'Commercial audit deleted', category: 'Operational', module: 'audits',
             record: { type: 'pool-audit', id: record.id, label: record.metadata && record.metadata['site-name'] || record.id },
@@ -10597,8 +10599,10 @@ const seed = {
           const rows = data.poolAudits = Array.isArray(data.poolAudits) ? data.poolAudits : [];
           const index = rows.findIndex(function(a){ return a.id === record.id; });
           const relinking = index >= 0 && rows[index].customerId !== record.customerId;
-          if (relinking && (!options || options.relinkCustomer !== true)) throw Error('An audit cannot be moved to another customer without a profile change.');
-          if (relinking && (!canRelinkPoolAudit(rows[index]) || !canRelinkPoolAudit(record))) throw Error('An audit with findings, assets or evidence cannot be moved to another customer.');
+          const priorApproval = poolAuditApprovedRelinks.get(record.id);
+          const retryApprovedRelink = relinking && priorApproval && priorApproval.from === rows[index].customerId && priorApproval.to === record.customerId;
+          if (relinking && (!options || options.relinkCustomer !== true) && !retryApprovedRelink) throw Error('An audit cannot be moved to another customer without a profile change.');
+          if (relinking && (!canRelinkPoolAudit(rows[index]) || (!retryApprovedRelink && !canRelinkPoolAudit(record)))) throw Error('An audit with findings, assets or evidence cannot be moved to another customer.');
           const recordBeforeSave = index >= 0 ? rows[index] : null;
           const operation = index >= 0 ? 'edit' : 'create';
           if (window.PoolShedSettingsPermissions && !window.PoolShedSettingsPermissions.can('audits', operation, currentUser())) throw Error('You do not have permission to ' + operation + ' audits.');
@@ -10644,6 +10648,7 @@ const seed = {
           });
           const storedInIndexedDb = await poolAuditSnapshotQueue;
           if (!storedInLocalStorage && !storedInIndexedDb) throw Error('Pool Shed could not save this audit on this device.');
+          if (relinking && options && options.relinkCustomer === true) poolAuditApprovedRelinks.set(clean.id, { from: recordBeforeSave.customerId, to: clean.customerId });
           if (relinking) poolAuditRoute = { customerId: clean.customerId, auditId: clean.id, newAudit: false };
           return clean;
         }
