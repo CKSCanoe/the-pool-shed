@@ -16,6 +16,10 @@ assert.match(shell, /data-crm-profile-tab="audits"/);
 assert.match(shell, /data-new-pool-audit/);
 assert.match(shell, /data-open-pool-audit/);
 assert.match(auditHtml, /poolShedBridge\.save\(survey, options\)/);
+assert.match(auditHtml, /useState\(linkedCustomerId \|\| ''\)/, 'new visits require an explicit CRM customer selection');
+assert.match(auditHtml, /Choose the customer before starting an audit/);
+assert.match(auditHtml, /catch \{ record = auditModel\.normalise\(surveyDataRef\.current\); emergency = true; \}/, 'visible answers can be backed up if save fails');
+assert.match(auditHtml, /Audit save failed: \$\{error\.message\}/, 'save failures show the actual cause');
 assert.match(auditHtml, /id="metadata-org-name" value=\{surveyData\.customerId \|\| ''\}/, 'organisation dropdown uses the CRM customer ID');
 assert.match(auditHtml, /onChange=\{event => changeOrganisation\(event\.target\.value\)\}/, 'selecting an organisation updates its profile link');
 assert.match(auditHtml, /"id": "org-name", "label": "Organisation Name", "type": "crm-customer"/, 'organisation is configured as a CRM selector');
@@ -119,6 +123,14 @@ assert.doesNotMatch(ctx.customerAuditPanel(data.customers[0]), /Updated pool/, '
 assert.match(ctx.customerAuditPanel(data.customers[1]), /Updated pool/, 'new profile lists the moved visit');
 assert.equal(JSON.parse(localStorage.getItem('poolshed:v172:appData')).poolAudits.find(item => item.id === 'A1').customerId, 'C2', 'CRM link persists after reload');
 assert.equal(ctx.lastAuditEvent.action, 'Commercial audit linked to another customer');
+// A delayed shared snapshot can still contain the old, empty draft. An explicit
+// relink that was already approved must be recoverable by the next autosave.
+data.poolAudits[0] = { ...data.poolAudits[0], customerId: 'C1', metadata: { ...data.poolAudits[0].metadata, 'org-name': 'School Trust' } };
+const recovered = await bridge.save({ ...moved, responses: { poolside: { status: 'green' } } });
+assert.equal(recovered.customerId, 'C2', 'approved customer relink is retried after a stale shared copy');
+assert.equal(data.poolAudits[0].customerId, 'C2');
+assert.equal(data.poolAudits[0].responses.poolside.status, 'green', 'captured answers survive the retry');
+await assert.rejects(bridge.save({ ...recovered, customerId: 'C1' }), /cannot be moved/, 'an unrelated move still needs explicit approval');
 ctx.sharedWorkspaceReady = true;
 ctx.supabaseSession = { user: { id: 'U1' } };
 ctx.workspaceLocalSaveFailed = false;

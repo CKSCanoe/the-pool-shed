@@ -649,7 +649,7 @@
 
         const App = () => {
             const [view, setView] = useState('dashboard');
-            const [selectedCustomerId, setSelectedCustomerId] = useState(linkedCustomerId || (poolShedBridge?.getCustomers()[0]?.id || ''));
+            const [selectedCustomerId, setSelectedCustomerId] = useState(linkedCustomerId || '');
             const [surveyData, setSurveyData] = useState(() => auditModel.createAudit('not-started', new Date().toISOString()));
             const [surveys, setSurveys] = useState([]);
             const [hasActive, setHasActive] = useState(false);
@@ -697,7 +697,7 @@
                     return confirmed;
                 } catch (error) {
                     if (revision === saveRevision.current) {
-                        setSaveError('This audit could not be saved on this device. Keep this page open and check browser storage.');
+                        setSaveError(error?.message ? `Audit save failed: ${error.message}` : 'This audit could not be saved on this device. Keep this page open.');
                         setSavePhase('error');
                     }
                     throw error;
@@ -843,7 +843,7 @@
                     upsertSurvey(confirmed);
                     setSavePhase('saved');
                     setSaveError('');
-                    setBackupMessage(`Audit connected to ${target.name} in the CRM.`);
+                    setBackupMessage(`Audit linked to ${target.name} on this device. Run Check handover to confirm it is shared.`);
                 } catch (error) {
                     setSaveError(error.message || 'The CRM profile link could not be saved. The audit remains open.');
                 } finally {
@@ -861,7 +861,7 @@
 
             const selectAudit = async next => {
                 if (storageError) return;
-                if (hasActive) {
+                if (hasActive && editRevision.current > savedEditRevision.current) {
                     try { await saveNow(); } catch { return; }
                 }
                 const normalized = auditModel.normalise(next);
@@ -914,7 +914,7 @@
                 selectAudit(record);
             };
             const switchCustomer = async customerId => {
-                if (hasActive) { try { await saveNow(); } catch { return; } }
+                if (hasActive && editRevision.current > savedEditRevision.current) { try { await saveNow(); } catch { return; } }
                 setSelectedCustomerId(customerId);
                 const next = surveys.find(item => item.customerId === customerId);
                 setHasActive(!!next);
@@ -929,7 +929,10 @@
             const downloadBackup = async () => {
                 if (!hasActive) return;
                 try {
-                    const record = await saveNow();
+                    let record;
+                    let emergency = false;
+                    try { record = await saveNow(); }
+                    catch { record = auditModel.normalise(surveyDataRef.current); emergency = true; }
                     const body = auditModel.makeBackup(record, new Date().toISOString());
                     const url = URL.createObjectURL(new Blob([body], { type: 'application/json' }));
                     const anchor = document.createElement('a');
@@ -940,9 +943,9 @@
                     anchor.click();
                     anchor.remove();
                     setTimeout(() => URL.revokeObjectURL(url), 1000);
-                    setBackupMessage('Backup download started. Confirm the file is in your Downloads folder.');
+                    setBackupMessage(emergency ? 'Emergency backup downloaded from the visible audit. Confirm the file is in Downloads. Photos are not included; keep this device until they are uploaded.' : 'Backup download started. Confirm the file is in your Downloads folder.');
                 } catch {
-                    setBackupMessage('Backup was not created because the audit could not be saved.');
+                    setBackupMessage('Backup could not be downloaded. Keep this page open.');
                 }
             };
 
@@ -1506,6 +1509,7 @@
                                 </div>
                                 {poolShedBridge && !linkedCustomerId && <label className="block mb-5 text-sm font-bold text-slate-700">Customer profile
                                     <select className="block w-full max-w-lg mt-2 px-3 py-3 rounded-xl border border-slate-300 bg-white" value={selectedCustomerId} onChange={e => switchCustomer(e.target.value)}>
+                                        <option value="">Choose the customer before starting an audit</option>
                                         {poolShedBridge.getCustomers().map(c => <option key={c.id} value={c.id}>{c.name}{c.code ? ` · ${c.code}` : ''}</option>)}
                                     </select>
                                 </label>}
