@@ -40,3 +40,21 @@ Status words: Working · Repaired · New · Tested locally · Deployed · Verifi
 Staging follow-ups before Phase 1 testing: the `public` reset removed staging's storage policies and the `ps_on_auth_user_created` trigger on `auth.users`. Re-apply them from `pool-shed-schema.sql` before running the app against staging. Staging storage files are not yet copied.
 
 Note: the older per-entity tables (`customers`, `products`, `sales_orders`, `stock_movements`, …) exist but are **empty**. All live business data is in the snapshot.
+
+---
+
+## Phase 1 · v1.48.0 egress fix · branch `phase-1-egress` · 19 Nov 2026
+
+| # | Change | Status | Evidence |
+|---|---|---|---|
+| 1.1 | Sync checks only `updated_at` every 8 s while visible; full download only when another user saved; skipped while editing/saving | **New · Tested locally** | `scripts/test-egress-sync-v148.mjs`: idle hour = 450 stamp checks, 0 full downloads (was 720) |
+| 1.2 | Realtime subscription on `workspace_snapshots` removed | **New · Tested locally** | Live publication was empty, so no behaviour is lost |
+| 1.3 | Quote engagement refresh pauses while hidden | **New · Tested locally** | — |
+| 1.4 | Logo 420 KB → 50 KB; design labs undeployed; `vercel.json` duplicate key removed | **New · Tested locally** | — |
+| 1.5 | Version 1.48.0, new service-worker cache name | **New** | — |
+| 1.6 | Build gate | **Tested locally** | 84/84 pass; CSS build and runtime validation pass |
+| 1.7 | Staging repaired (login trigger, storage policies) | **Done** | staging only |
+| 1.8 | Browser test on staging (login, dashboard, save, two-user edit, idle network) | **Outstanding** · needs owner sign-in and the staging publishable key | — |
+| 1.9 | Deploy to production and measure Supabase egress for 48 h | **Outstanding** · after 1.8 | — |
+
+Measured on live data (read-only): one old check = 7.07 MB (0.49 MB gzip); one new check = 51 bytes. The 11.51 GB overage ≈ 34 tab-hours of the old poll.
