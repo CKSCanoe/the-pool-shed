@@ -165,6 +165,6 @@ document.addEventListener('submit',e=>{if(!e.target.id?.startsWith('qs'))return;
 document.addEventListener('keydown',e=>{if(!selectedId)return;if(e.key==='Escape'&&studioFocusCanvas){studioFocusCanvas=false;studioLeftOpen=!(global.matchMedia&&global.matchMedia('(max-width:1480px)').matches);studioRightOpen=true;renderNow();return;}const tag=String(document.activeElement?.tagName||'').toUpperCase();if(['INPUT','TEXTAREA','SELECT'].includes(tag)||document.activeElement?.isContentEditable)return;const mod=e.metaKey||e.ctrlKey;if(!mod)return;if(String(e.key).toLowerCase()==='z'){e.preventDefault();if(e.shiftKey){if(engine.redo(selectedId)){notify('Quote edit restored.');renderNow()}}else if(engine.undo(selectedId)){notify('Last quote edit undone.');renderNow()}}else if(String(e.key).toLowerCase()==='y'){e.preventDefault();if(engine.redo(selectedId)){notify('Quote edit restored.');renderNow()}}});
 let qsRemoteSyncBusy=false;
 async function qsSyncEngagement(){if(qsRemoteSyncBusy)return;qsRemoteSyncBusy=true;try{await engine.refreshEngagement(selectedId||'');const screen=document.getElementById('screen-quotes');if(screen&&!screen.classList.contains('hidden'))render();}catch(_){ }finally{qsRemoteSyncBusy=false}}
-setTimeout(qsSyncEngagement,7000);setInterval(qsSyncEngagement,60000);
+setTimeout(qsSyncEngagement,7000);setInterval(function(){if(!document.hidden)qsSyncEngagement()},60000);
 
 })(typeof globalThis!=='undefined'?globalThis:window);

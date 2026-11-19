@@ -8,14 +8,6 @@
   "trailingSlash": false,
   "rewrites": [
     {
-      "source": "/design-labs/supplier-workspace-option-b-funding-v5",
-      "destination": "/design-labs/supplier-workspace-option-b-funding-v5.html"
-    },
-    {
-      "source": "/design-labs/supplier-details-comparison-v4",
-      "destination": "/design-labs/supplier-details-comparison-v4.html"
-    },
-    {
       "source": "/proposal",
       "destination": "/proposal.html"
     },
@@ -135,9 +127,6 @@
       "maxDuration": 60
     },
     "api/workspace-health.js": {
-      "maxDuration": 60
-    },
-    "api/workspace-recovery-publish.js": {
       "maxDuration": 60
     },
     "api/workspace-recovery-publish.js": {
