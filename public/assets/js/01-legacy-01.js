@@ -1299,7 +1299,15 @@ const seed = {
         }
       }
 
+      let workspaceRefreshInFlight = false;
       async function refreshSharedWorkspaceFromRemote(options) {
+        // v1.48: tab focus, the online event and the timer can fire together; only one refresh may run.
+        if (workspaceRefreshInFlight) return false;
+        workspaceRefreshInFlight = true;
+        try { return await refreshSharedWorkspaceFromRemoteOnce(options); } finally { workspaceRefreshInFlight = false; }
+      }
+
+      async function refreshSharedWorkspaceFromRemoteOnce(options) {
         const opts = options || {};
         if (localStorage.getItem("poolshed:v172:recoveryHold") === "1") return false;
         if (workspaceFieldIsBeingEdited()) return false;

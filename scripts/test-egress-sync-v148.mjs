@@ -6,7 +6,7 @@ import vm from 'node:vm';
 import assert from 'node:assert/strict';
 
 const source = fs.readFileSync('public/assets/js/01-legacy-01.js', 'utf8');
-const start = source.indexOf('      async function refreshSharedWorkspaceFromRemote(');
+const start = source.indexOf('      let workspaceRefreshInFlight = false;');
 const end = source.indexOf('      function queueRemoteWorkspaceSave(', start);
 assert(start > 0 && end > start, 'sync functions found');
 const block = source.slice(start, end);
@@ -114,6 +114,40 @@ function harness() {
   assert.equal(full, 0, 'idle hour: zero full downloads (was 720 with the 5 s full poll)');
   assert.equal(h.selects.length, ticks, 'one stamp check per tick');
   console.log(`idle hour: ${ticks} revision checks, ${full} full downloads (before v1.48: 720 full downloads)`);
+}
+
+// 6. Focus + online + timer firing together: only one download.
+{
+  const h = harness();
+  h.setRemote('2026-11-19T21:00:00Z');
+  await Promise.all([1, 2, 3].map(() => h.state.refreshSharedWorkspaceFromRemote({ silent: true })));
+  assert.equal(h.selects.filter(s => s.includes('data')).length, 1, 'simultaneous refreshes download once');
+}
+
+// 7. Stock-count reminders: one open reminder per alert, not a new copy (and a full save) every day.
+{
+  const engine = fs.readFileSync('public/inventory-control-engine.js', 'utf8');
+  const g = { notifications: [], saves: 0 };
+  const ctx = { console, Date };
+  ctx.window = ctx; ctx.globalThis = ctx;
+  vm.createContext(ctx);
+  vm.runInContext(engine, ctx);
+  const api = ctx.PoolShedInventoryControl || ctx.window.PoolShedInventoryControl;
+  if (api && typeof api.ensureReminders === 'function') {
+    ctx.__POOL_SHED_GET_DATA__ = () => g;
+    ctx.saveAppData = () => { g.saves += 1; };
+    const fake = [{ id: 'COUNT:L-WH-MAIN', severity: 'warning', title: 'Stock count due', locationId: 'L-WH-MAIN', reason: 'r', action: 'a' }];
+    const src = engine.match(/function ensureReminders\(opts\)\{[^]*?return added;\}/)[0];
+    const run = new Function('store', 'alerts', 'global', src + '; return ensureReminders;')(() => g, () => fake, ctx);
+    assert.equal(run({ today: '2026-11-19' }), 1, 'first day adds the reminder');
+    assert.equal(run({ today: '2026-11-19' }), 0, 'same day: no duplicate');
+    assert.equal(run({ today: '2026-11-20' }), 0, 'next day: still open, no duplicate and no save');
+    g.notifications[0].archived = true;
+    assert.equal(run({ today: '2026-11-21' }), 1, 'after it is dealt with, a new reminder may be raised');
+    assert.equal(g.saves, 2, 'only real changes trigger a save');
+  } else {
+    throw new Error('PoolShedInventoryControl.ensureReminders not found');
+  }
 }
 
 console.log('Egress sync v1.48 behaviour test passed.');
