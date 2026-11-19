@@ -29,7 +29,8 @@ export function need(name) {
 }
 
 export function supabase(prefix = "") {
-  const url = need(prefix + "SUPABASE_URL").replace(/\/+$/, "");
+  // Accept the project URL with or without the "/rest/v1/" suffix the dashboard sometimes shows.
+  const url = need(prefix + "SUPABASE_URL").trim().replace(/\/+$/, "").replace(/\/rest\/v1$/, "");
   const key = need(prefix + "SUPABASE_SERVICE_ROLE_KEY");
   const headers = { apikey: key, Authorization: `Bearer ${key}` };
   async function call(method, pathname, { body, accept = "application/json", extra = {}, timeout = 120000, raw = false } = {}) {
