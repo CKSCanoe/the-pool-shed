@@ -16,7 +16,7 @@ const args = process.argv.slice(2);
 const target = args.includes("--target") ? args[args.indexOf("--target") + 1] : "production";
 const allRevisions = args.includes("--all-revisions");
 const db = supabase(target === "production" ? "" : target.toUpperCase() + "_");
-const outDir = path.join(ROOT, "backups", `${stamp()}-${target}`);
+const outDir = args.includes("--into") ? path.resolve(ROOT, args[args.indexOf("--into") + 1]) : path.join(ROOT, "backups", `${stamp()}-${target}`);
 const PAGE = 500;
 const manifest = { target, host: db.host, startedAt: new Date().toISOString(), tables: {}, files: {} };
 
@@ -34,9 +34,14 @@ for (const table of tables) {
   const rows = [];
   try {
     if (isRevisions && !allRevisions) {
-      rows.push(...await db.call("GET", `/rest/v1/${table}?select=*&order=updated_at.desc&limit=50`, { timeout: 300000 }));
-      const head = await db.call("GET", `/rest/v1/${table}?select=updated_at&limit=1`, { raw: true, extra: { Prefer: "count=exact", Range: "0-0" } });
-      manifest.tables[table + "_totalRows"] = Number((head.headers.get("content-range") || "").split("/")[1] || 0);
+      // Each revision is a full multi-MB copy of the workspace, so fetch the index first, then the newest few one at a time.
+      const index = await db.call("GET", `/rest/v1/${table}?select=workspace_id,updated_at,updated_by&order=updated_at.desc`, { timeout: 300000 });
+      manifest.tables[table + "_totalRows"] = index.length;
+      writeJson(path.join(outDir, "tables", `${table}.index.json`), index);
+      for (const rev of index.slice(0, 5)) {
+        const one = await db.call("GET", `/rest/v1/${table}?select=*&workspace_id=eq.${encodeURIComponent(rev.workspace_id)}&updated_at=eq.${encodeURIComponent(rev.updated_at)}`, { timeout: 300000 });
+        rows.push(...one);
+      }
     } else {
       for (let offset = 0; ; offset += PAGE) {
         const page = await db.call("GET", `/rest/v1/${table}?select=*&limit=${PAGE}&offset=${offset}`, { timeout: 300000 });
