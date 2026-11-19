@@ -69,7 +69,9 @@ It must say `PASS`. Copy the `backups/` folder to both off-site locations.
    ```bash
    /opt/homebrew/opt/libpq/bin/pg_restore --no-owner --no-privileges --schema=public -d "STAGING-CONNECTION-STRING" backups/pgdump/pool-shed-full.dump
    ```
-4. Export staging the same way and compare:
+   Load the login records first (`--data-only --schema=auth --table=users`) so that `user_profiles` can link to them.
+   If staging already has a Pool Shed schema, it must hold zero rows before you reset `public`.
+4. Fingerprint staging and compare. Use `psql -A -t` with `select json_build_object(...)`, not `COPY`, which doubles backslashes. The staging REST export below also works:
    ```bash
    node scripts/phase0/backup-database.mjs --target staging
    ```
