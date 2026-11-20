@@ -87,3 +87,17 @@ Measured on live data (read-only): one old check = 7.07 MB (0.49 MB gzip); one n
 | 3.1f | Build-gate guard | **New · Tested locally** | `scripts/test-migration-015.mjs` |
 | 3.1g | Apply to live | **Deployed · Verified in production** 20 Nov 2026, 10:10 UTC | Private before-copy taken; continuity check PASS. Applied with no errors in 3.2 s: 14,438 records + settings mirrored; `ps_records_verify` ok on all 48 sections; snapshot byte-identical (same md5); staff cannot read the new tables; 0 sync issues. Rolled-back test saves as an admin: about 1.4–1.6 s with the mirror against 0.7 s without (first cold run 5.6 s). Saves run in the background; the per-save cost falls in 3.3, when saves become per-record. |
 | 3.1h | **Mirror trigger switched off on live** (owner approved), 20 Nov 2026 ~11:35 UTC | **Paused** | Staging test showed saves timing out (8 s limit). Live app saves were already 5.8–7.9 s on the database (pg_stat_statements, 5 saves) because every save uploads and re-parses the whole 7.4 MB workspace; the mirror adds ~0.8 s. No live saves happened while it was on (none since 08:18), so nothing was lost. `alter table workspace_snapshots enable trigger zz_ps_records_mirror` turns it back on; a full re-mirror is needed first. Root fix: per-record saves (3.3). |
+
+---
+
+## v1.49.0 · Phase 3.2 + 3.3 · changes-only refresh and per-record saves · branch `phase-3-2-delta-refresh` · 20 Nov 2026
+
+| # | Change | Status | Evidence |
+|---|---|---|---|
+| 3.2a | `016`: change feed `ps_records_changes` (permission-checked, kill switch `delta_refresh`, full-download fallback) | **New · Tested on staging** | `scripts/phase3/test-016-delta-staging.mjs`: 11 kinds of real save rebuilt with the app's own code, all **identical** to the server; 0.3–85 KB instead of 7.4 MB |
+| 3.2b | `016`: saved revision stamp kept (bug on live since before Phase 0: a user's second quick save was rejected as "Another user saved first" and triggered a 7 MB download) | **Repaired · Tested on staging** | returned stamp = stored stamp; back-to-back saves accepted; stale saves still refused |
+| 3.3a | `017`: `ps_workspace_save_changes` applies only changed records; per-record clash detection; same permission, lock and safety rules as the full save; kill switch `record_saves` | **New · Tested on staging** | `scripts/phase3/test-017-record-saves-staging.mjs`: 2.3 KB sent instead of 7.4 MB; two tabs editing different records from the same old copy both kept; same record reported as a clash and nothing overwritten; record copy verified |
+| 3.3b | Whole-workspace safety copies at most every 10 minutes (per-record history covers every change in between) | **New · Tested on staging** | — |
+| 3.3c | App: exact server copy kept; changed records worked out with an order-independent comparison; full save and full download remain as fallbacks | **New · Tested locally and in a real browser** | `test-delta-refresh-v149`, `test-record-saves-v149`, guards `test-migration-016/017`; build gate passes |
+| 3.3d | Real browser on staging (owner's Chrome) | **Tested on staging · PASS** | Database timing: per-record saves avg 0.55 s (a full save of the same data: 8.0 s, timed out). Second tab picked up the change via the feed in 15 ms. Owner's two-window test: worked |
+| 3.3e | Deploy: apply 016+017 to live, full re-mirror, switch the mirror back on, merge the app | **Outstanding** · needs owner approval | — |
