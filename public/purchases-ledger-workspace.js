@@ -66,10 +66,11 @@
     var s = state, list = s.purchases || [];
     var waiting = list.filter(function(p){ return p.state === 'Waiting for approval'; });
     var missing = list.filter(function(p){ return p.state === 'Invoice copy missing'; });
-    var overdue = list.filter(function(p){ return p.state === 'Overdue'; });
-    var due7 = list.filter(function(p){ return Number(p.outstanding) > 0 && p.due_date && p.due_date <= isoDays(7); });
+    var today = isoDays(0);
+    var overdue = list.filter(function(p){ return Number(p.outstanding) > 0 && p.due_date && p.due_date < today; });
+    var due7 = list.filter(function(p){ return Number(p.outstanding) > 0 && p.due_date && p.due_date >= today && p.due_date <= isoDays(7); });
     var sum = function(a){ return a.reduce(function(t, p){ return t + Number(p.outstanding || p.gross || 0); }, 0); };
-    var metrics = '<div class="finance-metrics">' +
+    var metrics = '<div class="finance-command-metrics">' +
       metric('Waiting for approval', waiting.length, cash(sum(waiting))) + metric('Invoice copy missing', missing.length, 'Cannot be paid until attached') +
       metric('Due in 7 days', cash(sum(due7)), due7.length + ' bills') + metric('Overdue', cash(sum(overdue)), overdue.length + ' bills') + '</div>';
     var sups = suppliers();
@@ -155,7 +156,7 @@
     var dueTable = '<div class="form-grid three"><label>Bills due by<input type="date" data-pp-dueby value="' + esc(s.dueBy) + '"></label></div>' +
       (c.length ? '<table class="finance-table"><thead><tr><th></th><th>Supplier / invoice</th><th>Due</th><th>Owed</th><th>Status</th></tr></thead><tbody>' + rows + '</tbody></table>'
                 : '<p class="muted">' + (s.loading ? 'Loading…' : 'Nothing on account is due by this date.') + '</p>') +
-      (held.length ? '<p class="muted">Held bills need approval or an invoice copy first (Record a purchase page).</p>' : '');
+      (held.some(function(x){ return /approval|copy|Rejected/.test(x.held_reason || ''); }) ? '<p class="muted">Bills waiting for approval or an invoice copy are sorted out on the Record a Purchase page.</p>' : '');
     var create = '<button type="button" class="primary" data-pp-action="create-run" ' + (!chosen.length || s.busy ? 'disabled' : '') + '>Create payment run · ' + cash(total) + ' (' + chosen.length + ')</button>';
     var runRows = (s.runs || []).map(function(r){
       var a = '';

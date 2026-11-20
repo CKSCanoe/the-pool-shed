@@ -122,3 +122,17 @@ Measured on live data (read-only): one old check = 7.07 MB (0.49 MB gzip); one n
 |---|---|---|---|
 | 3.5a | `021`: `ps_workspace_document` (whole workspace from records) and a check function | **New · Tested on staging**; live proven **read-only** (function not yet on live) | Staging: identical, 48 sections, rebuild 1.6–1.9 s. Live read-only query: identical, 48 sections, 1.5 s |
 | 3.5c | Stop rewriting the document per save; cached document; nightly archive | **Planned for ~4 Dec 2026** (two clean weeks after 3.3) · owner go-ahead | design in PHASE-3-PLAN.md |
+
+---
+
+## Operations O1/O2 · purchases, payment runs and the Pool Shed ledger · branch `ops-o1-purchasing-ledger`
+
+| # | Change | Status | Evidence |
+|---|---|---|---|
+| O1a | `022` ledger foundation: balanced, permanent postings; reversals; closed months; finance roles only | **New · Tested on staging** | `scripts/ops/test-022-ledger-staging.sql` (rolled back): all rules hold; trial balance 0.00 |
+| O1b | `023` record purchases and payment runs with controls (pro-forma paid up front; on-account due on terms; unique supplier invoice; job or category; VAT check; copy before payment; approval by a different person at or above £1,000; runs approved by a different person) | **New · Tested on staging** | `scripts/ops/test-023-purchases-staging.sql` (rolled back): every control holds; the books balance |
+| O1c | `024` private finance file storage (supplier invoices and receipts, finance roles only) and the screen lists | **New · Tested on staging** | `test-finance-media-v151` (Sales, Warehouse, Engineer and Office refused; Admin and Accounts allowed) |
+| O1d | v1.51.0 screens: Accounting → **Record a Purchase**, **Payment Runs** | **New · Tested in a real browser on staging** | Pro-forma purchase paid at purchase; on-account due on Net 30; duplicate refused; copy-missing hold; run created, approved by a second admin, marked paid; bill £0 owed; payment list correct. Uploads need the Vercel API (not available in the local preview), so they are tested by the role test and get a final check on the Vercel preview |
+| O1e | Before live use: push bills and payments to Xero (or run in parallel); opening balances from Xero; finance-media bucket on live | **Outstanding** | see OPERATIONS-PLAN.md §5 |
+
+Note: staging now holds a few posted test documents (PINV-000001/2, SPAY-000001/2, RUN-000001). By design they cannot be deleted; they are labelled "(UI test)".
