@@ -114,3 +114,32 @@ The first live benefit (faster Azzy and server features, per-record history) arr
 ## 7. What does not change
 
 Screens, workflows, record numbers, customer and order history, documents, PDFs, audits, logins and the Vercel app address all stay the same. Phase 4 (the "Deep End" redesign) is built on top of this, after it.
+
+
+---
+
+## 3.4 detailed design (owner decisions, 20 Nov 2026)
+
+**Who sees what**
+
+| | Admin, Management, Accounts | Sales, Purchasing, Office | Warehouse | Engineer |
+|---|---|---|---|---|
+| Costs and margins (`products.cost`, `supplierProducts.cost`, PO line `unitCost`/`confirmedUnitCost`, SO line `unitCost`, project `costs`, margins, budgets, labour rates, extra costs) | ✓ | ✓ | hidden | hidden |
+| Payments and finance (SO/PO `payments`, `paymentCorrections`, `xeroRef`, invoice status, customer `creditLimit`/`creditDays`/`creditTermType`/`xeroContactId`, `financeCommand`) | ✓ | hidden | hidden | hidden |
+| Security settings (`securityControl`) | Admin, Management | hidden | hidden | hidden |
+| Jobs | all | all | all | **assigned jobs only** (owner, or listed in a new "Assigned engineers" field) |
+| Sales and purchase orders | all | all | all | **only orders linked to their jobs, with no prices** |
+| Quotes | all | all | all | hidden (they are price documents) |
+
+**Found while designing (fix first):** any signed-in user could change their own `role`, `permissions` or `active` in `user_profiles`, so every role check could be bypassed. `018` closes it (tested on staging).
+
+**How it is enforced (server-side; nothing hidden ever reaches a restricted device)**
+1. `workspace_snapshots.data` is no longer readable directly by staff. Everyone loads through `ps_workspace_load()`, which returns the full workspace to Admin, Management and Accounts, and a redacted copy to other roles. The stamp check (`updated_at`) stays a direct read.
+2. The change feed applies the same redaction (hidden records are left out, hidden fields are stripped, and record lists cover visible records only).
+3. Restricted roles can only save per record. The server puts every hidden field back from the stored record before saving, so a restricted save can never erase a cost, a payment or a hidden order. Hidden records and settings cannot be changed. The full save is refused for restricted roles.
+4. The load response lists the hidden fields, so the app strips them from its own copy before working out changes (otherwise defaults such as `cost: 0` would look like edits).
+5. Server functions: the project AI review and Quote Studio staff actions require a role that sees costs; Azzy reads through the redacted load.
+
+**Proof required before live:** an Engineer test account on staging cannot obtain any cost, margin, payment or hidden order through the app, the network tab, the REST API, the change feed, Azzy or the server functions (automated scan for cost, finance and price fields in everything returned). Its saves leave every hidden field unchanged (before and after compared field by field). Admin behaviour is unchanged.
+
+**Known limitation until Phase 4:** some screens may show £0.00 or "—" in cost columns for Warehouse and Engineer users. The data is not there; the new interface in Phase 4 hides those columns properly.
