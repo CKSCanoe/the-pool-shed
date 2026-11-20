@@ -104,3 +104,19 @@ Phase 3 still finishes first where it protects data (020 tomorrow; 3.5c about 4 
 **Before go-live:** chart of accounts mapped to your Xero account codes; **opening balances** taken from Xero on the go-live date (open customer invoices, open supplier bills, stock value); a parallel month where both are compared; then Pool Shed becomes the place where entries are made.
 
 **Still to decide:** stock costing (recommended: weighted average cost); VAT scheme (standard accrual or cash, flat rate?); posting style to Xero (documents plus daily summaries, recommended); go-live month.
+
+
+---
+
+## 6. Finding (20 Nov 2026): purchase orders are used to record job costs
+
+Live data (patterns only): 24 of 26 POs entered by hand, all "Needs review", supplier email "Blocked until reviewed" on 24; **70 of 90 lines are one-off custom purchases** (building materials 42, plant and crane hire 12, groundworks, delivery, consumables), suppliers include builders' merchants, plant and crane hire, a tree surgeon, traffic management and a fuel station; 23 of 26 are for a job; none linked to a sales order. Only one PO shows real ordering (supplier confirmed, part received).
+
+**Meaning:** most "POs" are records of things already bought, used to put the cost on the job. Forcing them through sent → received → billed adds steps without value, which is why they never leave "Draft".
+
+**Proposed process (owner to confirm):** two clear routes, both feeding job profit, the ledger and payment runs:
+
+1. **Record a purchase** (most cases): supplier, date, job, category, net and VAT, how it was paid (on account, card or cash), receipt photo. One step. It posts a **purchase invoice** (Dr job cost or direct purchases + VAT input; Cr creditors) and, if paid by card or cash, the **payment** at the same time. Purchases on account then appear in the **payment run** when due.
+2. **Order from a supplier** (goods ordered in advance, e.g. pool equipment): PO → sent → received at goods-in (status automatic) → supplier bill matched (three-way) → payment run.
+
+**Existing 26 POs:** they stay as they are (continuity promise). They pre-date the ledger, and their costs are already in Xero, so they are **not** posted again. They are marked "Recorded before ledger" (owner confirms) so the PO list shows what is genuinely outstanding.
