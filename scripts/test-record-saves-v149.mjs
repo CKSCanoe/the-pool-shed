@@ -48,3 +48,44 @@ assert.throws(() => ctx.computeWorkspaceChanges(base, Object.assign(clone(base),
 const save = src.slice(src.indexOf('async function saveRemoteWorkspace('), src.indexOf('let workspaceRefreshInFlight = false;'));
 assert(/saveWorkspaceRecords\(localSnapshot\)/.test(save) && /rpc\("ps_workspace_save", \{/.test(save), 'per-record first, full save as fallback');
 console.log('Per-record save v1.49 behaviour test passed.');
+
+// saveRemoteWorkspace with per-record saves: saved, clash, nothing to send, and fallback to the full save.
+{
+  const block = src.slice(src.indexOf('      async function saveRemoteWorkspace('), src.indexOf('      async function refreshSharedWorkspaceFromRemote(', src.indexOf('      async function saveRemoteWorkspace(')));
+  const run = async ({ local, raw, reply }) => {
+    const store = new Map(), calls = [];
+    const st = {
+      data: local, workspaceBaseSnapshot: clone(raw), workspaceRemoteRaw: raw, workspaceLocalRevisionCounter: 1,
+      remoteWorkspaceUpdatedAt: 'R1', workspaceSaveInFlight: false, workspaceSyncConflict: false, sharedWorkspaceReady: true,
+      supabaseClient: { async rpc(name, args) { calls.push(name); return reply(name, args); } },
+      supabaseSession: { user: { id: 'U1' } }, navigator: { onLine: true }, WORKSPACE_ID: 'pool-bros-main',
+      localStorage: { getItem: k => store.get(k) ?? null, setItem: (k, v) => store.set(k, String(v)), removeItem: k => store.delete(k) },
+      normalizeAppData: v => v, clone, writeOfflineSnapshot: async () => true, queueRemoteWorkspaceSave() {}, updateOfflineStatus() {},
+      resolveSharedWorkspaceConflict: async () => false, toast() {}, render() {}, console: { warn() {}, log() {} },
+      crypto: globalThis.crypto, TextEncoder, structuredClone
+    };
+    st.window = st;
+    vm.createContext(st); vm.runInContext(block, st);
+    const ok = await st.saveRemoteWorkspace(false);
+    return { ok, calls, st };
+  };
+  const raw = { customers: [{ id: 'C1', name: 'Ann' }, { id: 'C2', name: 'Bob' }] };
+  const edited = clone(raw); edited.customers[1].name = 'Bobby';
+
+  let r = await run({ local: edited, raw, reply: () => ({ data: { updated_at: 'R2', merged: false }, error: null }) });
+  assert.equal(r.ok, true); assert.deepEqual(r.calls, ['ps_workspace_save_changes'], 'only the changed record is sent');
+  assert.equal(r.st.remoteWorkspaceUpdatedAt, 'R2'); assert.deepEqual(JSON.parse(JSON.stringify(r.st.workspaceRemoteRaw)), edited, 'server copy now matches what was saved');
+
+  r = await run({ local: clone(raw), raw, reply: () => { throw new Error('nothing should be sent'); } });
+  assert.equal(r.ok, true); assert.deepEqual(r.calls, [], 'nothing changed: nothing sent');
+
+  r = await run({ local: edited, raw, reply: () => ({ data: { conflicts: [{ s: 'customers', k: 'id:C2' }] }, error: null }) });
+  assert.equal(r.ok, false); assert.equal(r.st.workspaceSyncConflict, true, 'a real clash goes to the existing clash handling');
+
+  r = await run({ local: edited, raw, reply: name => name === 'ps_workspace_save_changes' ? { data: { fallback: true }, error: null } : { data: { updated_at: 'R3' }, error: null } });
+  assert.equal(r.ok, true); assert.deepEqual(r.calls, ['ps_workspace_save_changes', 'ps_workspace_save'], 'switched off: full save as before');
+
+  r = await run({ local: edited, raw, reply: name => name === 'ps_workspace_save_changes' ? { data: null, error: { message: 'boom' } } : { data: { updated_at: 'R4' }, error: null } });
+  assert.deepEqual(r.calls, ['ps_workspace_save_changes', 'ps_workspace_save'], 'error: full save as before');
+  console.log('Per-record save path in saveRemoteWorkspace passed.');
+}

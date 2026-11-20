@@ -21,6 +21,7 @@ const state = {
   workspaceBaseSnapshot: { name: 'Previous' },
   workspaceLocalRevisionCounter: 1,
   remoteWorkspaceUpdatedAt: '2026-10-23T10:00:00Z',
+  workspaceRemoteRaw: null, // v1.49: no exact server copy, so this test exercises the full-save path
   workspaceSaveInFlight: false,
   workspaceSyncConflict: false,
   sharedWorkspaceReady: true,
@@ -47,7 +48,7 @@ state.window = state;
 vm.createContext(state);
 vm.runInContext(source.slice(start, end), state);
 
-assert.equal(await state.saveRemoteWorkspace(false), true);
+assert.equal((state.workspaceRemoteRaw = null, await state.saveRemoteWorkspace(false)), true);
 assert.equal(rpcArgs.w, 'pool-shed');
 assert.equal(rpcArgs.expected, '2026-10-23T10:00:00Z');
 assert.equal(rpcArgs.snapshot.name, 'Original');
@@ -59,17 +60,17 @@ store.set('poolshed:v172:pendingSync', '1');
 store.set('poolshed:v172:appData', JSON.stringify({ name: 'Newer edit' }));
 state.workspaceLocalRevisionCounter += 1;
 response = { data: { updated_at: '2026-10-24T10:01:00Z' }, error: null };
-assert.equal(await state.saveRemoteWorkspace(false), true);
+assert.equal((state.workspaceRemoteRaw = null, await state.saveRemoteWorkspace(false)), true);
 assert.equal(store.get('poolshed:v172:pendingSync'), '1', 'a newer local edit stays pending');
 assert.equal(queued, 1, 'a newer local edit is queued for a further upload');
 
 response = { data: null, error: null };
-assert.equal(await state.saveRemoteWorkspace(false), false);
+assert.equal((state.workspaceRemoteRaw = null, await state.saveRemoteWorkspace(false)), false);
 assert.equal(state.workspaceSyncConflict, true, 'a revision collision blocks unconfirmed sharing');
 assert.equal(store.get('poolshed:v172:pendingSync'), '1');
 state.workspaceSyncConflict = false;
 state.navigator.onLine = false;
-assert.equal(await state.saveRemoteWorkspace(false), false, 'offline changes cannot be called shared');
+assert.equal((state.workspaceRemoteRaw = null, await state.saveRemoteWorkspace(false)), false, 'offline changes cannot be called shared');
 assert.equal(store.get('poolshed:v172:pendingSync'), '1');
 assert(messages.some(message => message.includes('Another user saved')), 'a conflict remains visible to staff');
 
