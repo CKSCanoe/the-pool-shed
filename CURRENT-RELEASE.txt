@@ -1,4 +1,6 @@
-Pool Shed v1.49.0 - open tabs fetch only what changed
+Pool Shed v1.49.0 - fast per-record saving and refresh
+
+Saving now sends only the records you changed (typically 1-3 KB) instead of the whole 7 MB workspace, so saves are several times faster and no longer hit the server time limit. When two people edit different records at the same time, both changes are kept; only two people changing the same record get a clash. Other open tabs download only the records that changed. If anything does not line up, the app falls back to the full save or download it used before. Also fixes false "Another user saved first" messages after two quick edits.
 
 When someone saves, other open tabs now download only the records that changed (typically 1-10 KB) instead of the whole 7 MB workspace. If anything does not line up, the tab downloads in full exactly as before. Also fixes false "Another user saved first" messages after two quick edits by the same person: the saved revision stamp now matches the one returned to the app.
 

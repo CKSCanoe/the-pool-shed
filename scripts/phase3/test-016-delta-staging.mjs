@@ -4,6 +4,8 @@
 // server's snapshot. Finally restores staging to its starting content.
 // Usage: node scripts/phase3/test-016-delta-staging.mjs
 import fs from 'node:fs';
+import os from 'node:os';
+import path from 'node:path';
 import vm from 'node:vm';
 import { execFileSync } from 'node:child_process';
 import assert from 'node:assert/strict';
@@ -75,9 +77,14 @@ for (const [label, expr] of edits) {
   results.push(`IDENTICAL  catch-up across all ${edits.length} saves  feed ${JSON.stringify(f).length} bytes`);
 }
 
-// Restore staging to its starting content (one more ordinary save, using the copy the first save kept).
-sql(`select ps_workspace_save('pool-bros-main',(select updated_at from workspace_snapshots where workspace_id='pool-bros-main'),
-  (select data from ps_workspace_revisions where workspace_id='pool-bros-main' and updated_at='${start.updated_at}' order by id desc limit 1))::text;`);
+// Restore staging: a full save of the starting data, sent from a private temporary file (too big for a command line).
+{
+  const tmp = fs.mkdtempSync(path.join(os.tmpdir(), 'ps-restore-'));
+  const file = path.join(tmp, 'restore.sql');
+  fs.writeFileSync(file, `${AS_STAFF}\nselect ps_workspace_save('pool-bros-main',(select updated_at from workspace_snapshots where workspace_id='pool-bros-main'),'${JSON.stringify(start.data).replace(/'/g, "''")}'::jsonb);`, { mode: 0o600 });
+  try { execFileSync(PSQL, [url, '-X', '-q', '-v', 'ON_ERROR_STOP=1', '-f', file]); }
+  finally { fs.rmSync(tmp, { recursive: true, force: true }); }
+}
 assert.equal(canonical(snapshot().data), canonical(start.data), 'staging restored');
 const verify = JSON.parse(sql("select ps_records_verify('pool-bros-main')::text"));
 assert.equal(verify.ok, true, 'mirror still equals the snapshot');

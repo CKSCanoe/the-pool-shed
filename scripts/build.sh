@@ -26,6 +26,8 @@ run_node_stage "workspace and sales safety" \
   test-migration-015.mjs \
   test-migration-016.mjs \
   test-delta-refresh-v149.mjs \
+  test-record-saves-v149.mjs \
+  test-migration-017.mjs \
   test-workspace-audit-v1451.mjs \
   test-commercial-audits-v146.mjs \
   test-audit-device-recovery.mjs \

@@ -1252,11 +1252,32 @@ const seed = {
           }
           const savedJson = JSON.stringify(normalizeAppData(data));
           const localSnapshot = JSON.parse(savedJson);
-          const response = await supabaseClient.rpc("ps_workspace_save", {
-            w: WORKSPACE_ID,
-            expected: remoteWorkspaceUpdatedAt || null,
-            snapshot: localSnapshot
-          });
+          // v1.49: send only the changed records. Falls back to the full save whenever that is not possible.
+          const oldStamp = remoteWorkspaceUpdatedAt;
+          const oldRaw = workspaceRemoteRaw;
+          const recordSave = await saveWorkspaceRecords(localSnapshot).catch(function(error) { console.warn("Per-record save failed; using a full save", error); return null; });
+          let response;
+          if (recordSave && recordSave.status === "saved" && recordSave.merged) {
+            remoteWorkspaceUpdatedAt = recordSave.updated_at;
+            sharedWorkspaceReady = true;
+            window.__POOL_SHED_SHARED_READY__ = true;
+            workspaceSaveInFlight = false;
+            await absorbOthersAfterRecordSave(localSnapshot, oldStamp, oldRaw, recordSave.updated_at);
+            updateOfflineStatus();
+            return true;
+          } else if (recordSave && recordSave.status === "saved") {
+            response = { error: null, data: { updated_at: recordSave.updated_at } };
+          } else if (recordSave && recordSave.status === "unchanged") {
+            response = { error: null, data: { updated_at: remoteWorkspaceUpdatedAt } };
+          } else if (recordSave && recordSave.status === "conflict") {
+            response = { error: null, data: null };
+          } else {
+            response = await supabaseClient.rpc("ps_workspace_save", {
+              w: WORKSPACE_ID,
+              expected: remoteWorkspaceUpdatedAt || null,
+              snapshot: localSnapshot
+            });
+          }
           if (!response.error && !response.data) {
             workspaceSyncConflict = true;
             updateOfflineStatus();
@@ -1366,21 +1387,123 @@ const seed = {
         }
         return out;
       }
-      async function refreshSharedWorkspaceByDelta() {
-        if (!workspaceRemoteRaw || !remoteWorkspaceUpdatedAt || typeof supabaseClient.rpc !== "function") return null;
+      // Returns { raw, updated_at } for the server's current state, built from the change feed; or
+      // { unchanged: true }; or null when the feed cannot be used (the caller then downloads in full).
+      async function fetchWorkspaceByDelta(since, raw) {
+        if (!raw || !since || !supabaseClient || typeof supabaseClient.rpc !== "function") return null;
         if (!(window.crypto && crypto.subtle)) return null;
         try {
-          const feed = await supabaseClient.rpc("ps_records_changes", { w: WORKSPACE_ID, since: remoteWorkspaceUpdatedAt });
+          const feed = await supabaseClient.rpc("ps_records_changes", { w: WORKSPACE_ID, since: since });
           if (feed.error || !feed.data || feed.data.full) return null;
-          if (feed.data.unchanged) return false;
-          if (workspaceFieldIsBeingEdited() || workspaceSaveInFlight || localStorage.getItem("poolshed:v172:pendingSync") === "1") return false;
-          const rebuilt = await applyWorkspaceDelta(workspaceRemoteRaw, feed.data);
-          await applyRemoteWorkspaceSnapshot({ data: clone(rebuilt), updated_at: feed.data.updated_at }, true, rebuilt);
-          return true;
+          if (feed.data.unchanged) return { unchanged: true };
+          return { raw: await applyWorkspaceDelta(raw, feed.data), updated_at: feed.data.updated_at };
         } catch (error) {
-          console.warn("Delta refresh fell back to a full download", error);
+          console.warn("Change feed unavailable; using a full download", error);
           return null;
         }
+      }
+      async function refreshSharedWorkspaceByDelta() {
+        const result = await fetchWorkspaceByDelta(remoteWorkspaceUpdatedAt, workspaceRemoteRaw);
+        if (!result) return null;
+        if (result.unchanged) return false;
+        if (workspaceFieldIsBeingEdited() || workspaceSaveInFlight || localStorage.getItem("poolshed:v172:pendingSync") === "1") return false;
+        await applyRemoteWorkspaceSnapshot({ data: clone(result.raw), updated_at: result.updated_at }, true, result.raw);
+        return true;
+      }
+
+      // v1.49 per-record saves. Order-independent equality: records from the server have their fields in a
+      // different order from the app's own copies.
+      function workspaceDeepEqual(a, b) {
+        if (a === b) return true;
+        if (a === null || b === null || typeof a !== "object" || typeof b !== "object") return false;
+        if (Array.isArray(a) !== Array.isArray(b)) return false;
+        if (Array.isArray(a)) {
+          if (a.length !== b.length) return false;
+          for (let i = 0; i < a.length; i += 1) if (!workspaceDeepEqual(a[i], b[i])) return false;
+          return true;
+        }
+        const ka = Object.keys(a).filter(function(k) { return a[k] !== undefined; });
+        const kb = Object.keys(b).filter(function(k) { return b[k] !== undefined; });
+        if (ka.length !== kb.length) return false;
+        for (const k of ka) if (!Object.prototype.hasOwnProperty.call(b, k) || !workspaceDeepEqual(a[k], b[k])) return false;
+        return true;
+      }
+      // What changed between the server copy and the app's copy, record by record. Throws when a section cannot be
+      // described record by record; the caller then uses the full save.
+      function computeWorkspaceChanges(raw, local) {
+        const sections = [];
+        const names = new Set(Object.keys(raw || {}).concat(Object.keys(local || {})));
+        names.forEach(function(name) {
+          const before = raw ? raw[name] : undefined;
+          const after = local[name];
+          if (after === undefined) { if (before !== undefined) throw new Error("Section removed: " + name); return; }
+          if (Array.isArray(after)) {
+            if (before !== undefined && !Array.isArray(before)) throw new Error("Section type changed: " + name);
+            const oldItems = Array.isArray(before) ? before : [];
+            const oldKeys = workspaceSectionKeys(name, oldItems);
+            const newKeys = workspaceSectionKeys(name, after);
+            const oldByKey = new Map(oldKeys.map(function(key, index) { return [key, oldItems[index]]; }));
+            const newSet = new Set(newKeys);
+            const upserts = [];
+            newKeys.forEach(function(key, index) {
+              if (!oldByKey.has(key) || !workspaceDeepEqual(oldByKey.get(key), after[index])) upserts.push([key, after[index]]);
+            });
+            const deletes = oldKeys.filter(function(key) { return !newSet.has(key); });
+            // The server keeps existing order, removes deletions and appends new records in the order sent, so the
+            // full key list is only needed when records moved or were inserted anywhere but the end.
+            const oldSet = new Set(oldKeys);
+            const expectedOrder = oldKeys.filter(function(key) { return newSet.has(key); })
+              .concat(newKeys.filter(function(key) { return !oldSet.has(key); }));
+            const orderChanged = expectedOrder.length !== newKeys.length || expectedOrder.some(function(key, index) { return key !== newKeys[index]; });
+            if (upserts.length || deletes.length || orderChanged) {
+              sections.push({ s: name, kind: "list", upserts: upserts, deletes: deletes, order: orderChanged ? newKeys : null });
+            }
+          } else if (!workspaceDeepEqual(before, after)) {
+            if (Array.isArray(before)) throw new Error("Section type changed: " + name);
+            sections.push({ s: name, kind: "settings", data: after });
+          }
+        });
+        return { sections: sections };
+      }
+      // Returns { status: "saved", updated_at, merged } | { status: "conflict" } | { status: "unchanged" } | null (use the full save).
+      async function saveWorkspaceRecords(localSnapshot) {
+        if (!workspaceRemoteRaw || !remoteWorkspaceUpdatedAt || !supabaseClient || typeof supabaseClient.rpc !== "function") return null;
+        let changes;
+        try { changes = computeWorkspaceChanges(workspaceRemoteRaw, localSnapshot); }
+        catch (error) { console.warn("Per-record save not possible; using a full save", error); return null; }
+        if (!changes.sections.length) return { status: "unchanged" };
+        const response = await supabaseClient.rpc("ps_workspace_save_changes", { w: WORKSPACE_ID, expected: remoteWorkspaceUpdatedAt, changes: changes });
+        if (response.error) { console.warn("Per-record save failed; using a full save", response.error); return null; }
+        const result = response.data || {};
+        if (result.fallback) return null;
+        if (Array.isArray(result.conflicts) && result.conflicts.length) return { status: "conflict", conflicts: result.conflicts };
+        if (!result.updated_at) return null;
+        return { status: "saved", updated_at: result.updated_at, merged: !!result.merged };
+      }
+      // After a per-record save that landed on top of other people's changes: bring their changes in,
+      // keeping anything this user typed while the save was in flight.
+      async function absorbOthersAfterRecordSave(savedSnapshot, oldStamp, oldRaw, newStamp) {
+        const remote = await fetchWorkspaceByDelta(oldStamp, oldRaw);
+        if (!remote || remote.unchanged || remote.updated_at !== newStamp) {
+          const merged = await resolveSharedWorkspaceConflict(clone(data), savedSnapshot);
+          if (merged) queueRemoteWorkspaceSave();
+          return;
+        }
+        const conflicts = [];
+        const merged = workspaceMergeValue(normalizeAppData(clone(savedSnapshot)), normalizeAppData(clone(data)), normalizeAppData(clone(remote.raw)), "", conflicts);
+        const unsavedLocalEdits = !workspaceDeepEqual(normalizeAppData(clone(data)), normalizeAppData(clone(savedSnapshot)));
+        if (!unsavedLocalEdits) {
+          await applyRemoteWorkspaceSnapshot({ data: clone(remote.raw), updated_at: remote.updated_at }, true, remote.raw);
+          localStorage.removeItem("poolshed:v172:pendingSync");
+          return;
+        }
+        data = normalizeAppData(merged);
+        remoteWorkspaceUpdatedAt = remote.updated_at;
+        workspaceRemoteRaw = remote.raw;
+        workspaceBaseSnapshot = normalizeAppData(clone(remote.raw));
+        try { localStorage.setItem("poolshed:v172:remoteRevision", remoteWorkspaceUpdatedAt); localStorage.setItem("poolshed:v172:pendingSync", "1"); } catch (error) { void error; }
+        render();
+        queueRemoteWorkspaceSave();
       }
       async function refreshSharedWorkspaceFromRemote(options) {
         // v1.48: tab focus, the online event and the timer can fire together; only one refresh may run.
