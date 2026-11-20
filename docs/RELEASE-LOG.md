@@ -85,4 +85,4 @@ Measured on live data (read-only): one old check = 7.07 MB (0.49 MB gzip); one n
 | 3.1d | Cost per save | **Measured** | Mirror step alone: ~0.2 s with nothing changed, ~0.25 s for a customer edit, ~0.45 s for a product edit (saves run in the background) |
 | 3.1e | Server functions read single records | **Moved** to 3.2 (project tools) and Phase 7 (Azzy) | See PHASE-3-PLAN.md §3.1 |
 | 3.1f | Build-gate guard | **New · Tested locally** | `scripts/test-migration-015.mjs` |
-| 3.1g | Apply to live | **Outstanding** · needs owner approval | — |
+| 3.1g | Apply to live | **Deployed · Verified in production** 20 Nov 2026, 10:10 UTC | Private before-copy taken; continuity check PASS. Applied with no errors in 3.2 s: 14,438 records + settings mirrored; `ps_records_verify` ok on all 48 sections; snapshot byte-identical (same md5); staff cannot read the new tables; 0 sync issues. Rolled-back test saves as an admin: about 1.4–1.6 s with the mirror against 0.7 s without (first cold run 5.6 s). Saves run in the background; the per-save cost falls in 3.3, when saves become per-record. |
