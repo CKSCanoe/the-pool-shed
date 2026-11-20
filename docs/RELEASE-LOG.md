@@ -113,3 +113,12 @@ Measured on live data (read-only): one old check = 7.07 MB (0.49 MB gzip); one n
 | 3.4c | App v1.50.0: loads through `ps_workspace_load`; works out changes on the permitted view; restricted roles never full-save; Azzy reads as the user (not the service key) with finance documents for finance roles only; project AI review and Quote Studio staff actions require a cost-seeing role; job form "Assigned engineers" | **New · Tested locally and in a real browser** | Build gate passes (new `test-role-view-v150`, `test-migration-019`; project AI refuses Engineer/Warehouse). Owner's Chrome on staging as a temporary Engineer: 1 assigned job, 3 linked orders, no quotes, no real costs; the server sent no hidden fields (the margins and "Draft" seen in memory are app defaults); direct read refused; a job note saved and hidden margins (20, not the default 25) and payments were byte-identical afterwards |
 | 3.4d | `020`: staff can no longer read the raw workspace directly (stamp only) | **Tested on staging** · apply to live only after every tab runs v1.50 | A v1.49 tab could not load on staging once 020 was applied, which confirms the ordering |
 | 3.4e | Deploy | **019 deployed · verified on live** 20 Nov 2026 ~15:35 UTC; app v1.50 **deployed** via PR #50 (`6345f44`; live cache `pool-shed-v1.50.0-roles-r1`, checks green; post-deploy: data unchanged, record copy exact, 0 sync issues); 020 **after** all tabs run v1.50 | Private before-copy; continuity PASS; 019 applied without errors (10 functions, one `ps_redact_item`, roles widened); rolled-back live checks: Admin sees everything and saves normally; temporary Engineer received 0 forbidden field names (1 job, 3 orders, 0 quotes), its save worked and hidden data (project margins, order payments and line costs, product costs) was unchanged; record copy ok; data fingerprint unchanged |
+
+---
+
+## Phase 3.5 · record store as source of truth
+
+| # | Change | Status | Evidence |
+|---|---|---|---|
+| 3.5a | `021`: `ps_workspace_document` (whole workspace from records) and a check function | **New · Tested on staging**; live proven **read-only** (function not yet on live) | Staging: identical, 48 sections, rebuild 1.6–1.9 s. Live read-only query: identical, 48 sections, 1.5 s |
+| 3.5c | Stop rewriting the document per save; cached document; nightly archive | **Planned for ~4 Dec 2026** (two clean weeks after 3.3) · owner go-ahead | design in PHASE-3-PLAN.md |

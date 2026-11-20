@@ -145,3 +145,24 @@ Screens, workflows, record numbers, customer and order history, documents, PDFs,
 **Known limitation until Phase 4:** some screens may show £0.00 or "—" in cost columns for Warehouse and Engineer users. The data is not there; the new interface in Phase 4 hides those columns properly.
 
 **Implementation notes (20 Nov 2026):** database roles now match the app's (Admin, Management, Accounts, Sales, Purchasing, Warehouse, Engineer, Office; legacy Manager = Management, Viewer = Office). Audit logs and approval settings are visible to Admin, Management and Accounts only, because they hold before-and-after copies of costs and payments. Notification read markers are hidden from cost-restricted roles. **Known limit:** free text typed into a visible field (for example an order note that mentions a price) is shown as typed.
+
+
+---
+
+## 3.5 detailed plan (20 Nov 2026)
+
+**Status of the prerequisites:** per-record saving (3.3) went live on 20 Nov 2026 with no real staff saves yet; role-based visibility (3.4) went live the same day, with `020` still to apply. The plan's own rule is **two clean weeks** before the source of truth moves, so the switch (3.5c) is scheduled for **about 4 Dec 2026**, with the owner's go-ahead.
+
+**Why the benefit is smaller than first planned:** 3.3 already removed the 7 MB upload per save. What 3.5c still removes is the server-side rewrite of the 7 MB document on each save (about 0.4 s per save on live, plus database churn and write-ahead log), and the whole-document safety copies.
+
+**3.5a (done on staging, proven on live read-only):** `021` adds `ps_workspace_document(w)`, the whole workspace rebuilt from `ps_records` + `ps_settings`, and `ps_workspace_document_check(w)`.
+- Staging: identical to the stored document, all 48 sections, 3 runs, rebuild 1.6–1.9 s.
+- Live (read-only query, 20 Nov ~16:00 UTC): **identical**, all 48 sections, nothing differing, after a day including the 3.3 and 3.4 releases; rebuild and compare 1.5 s.
+
+**Design for 3.5c (the switch):**
+1. Saves (`ps_workspace_save_changes`) stop rewriting `workspace_snapshots.data`; they update the records, the revision stamp and the change map only.
+2. Rebuilding on every load (1.5 s) would make opening the app slower than today's read (0.35 s), so a **cached document** is kept instead: rebuilt per changed section (not whole) after saves, by a background job every minute (pg_cron), and on demand when the cache is behind. Loads and server features read the cache; the feed keeps tabs current in between.
+3. The full-save path, Quote Studio's server save and the recovery tools validate against the record-built document (never a stale copy), then write through the records.
+4. Server features (project review and email, health and audits, order recovery, recovery publish, Quote Studio conversion, Azzy fallback) read through one shared server helper, so the source can be switched in one place.
+5. Whole-document safety copies become one nightly archive; per-record history (who changed what, before and after) covers everything in between, with a point-in-time rebuild tool tested on staging before the switch.
+6. Proof before live: `ps_workspace_document_check` identical every day for two weeks (added to the scheduled checks); a full staging rehearsal of every save path; the continuity check; the rollback (switch saves back to writing the document) rehearsed.
