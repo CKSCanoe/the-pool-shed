@@ -47,7 +47,7 @@ Every sale line has a cost (from the product, the supplier bill or the job). Eve
 |---|---|---|---|
 | **O1. Purchasing that flows** | Automatic PO status (sent, part or fully received, billed); "order for this job"; outstanding deliveries; supplier terms (on account / proforma, days); supplier bill entry with three-way match | Phase 3 records | M |
 | **O2. Payment runs** | Due-this-week list from matched bills; approve; bank payment file export (your bank's format) or push to Xero; mark paid; remittance email | O1 | M |
-| **O3. Invoicing that flows** | Invoice Ready set automatically; Accounts queue; payments recorded; aged debtors and chasing; **Xero connection** (invoices, bills, payments both ways) | Phase 6 brought forward | L |
+| **O3. Pool Shed ledger** | Double-entry ledger (§5): invoices, credit notes, bills, payments, stock journals; posted entries can't be edited (corrections by credit or reversal); month close; aged debtors and creditors; trial balance; push to Xero | Phase 6 reshaped | L |
 | **O4. Warehouse and vans** | Set up vans as locations; choose tracked products (van kit and chemicals first); transfers; "use on job" from a van on the phone; weekly van check; "where is it?" search; restock from van minimums | Phase 3 records | L |
 | **O5. Profit** | Costs on every line (including custom lines); job profit from materials, labour and tools; profit per order, job, customer and month; dashboard tile; Xero overheads for net profit | O1–O4 | M |
 | **O6. Tools** | Register, assignment to van or person, job bookings and hire charges, service reminders, "where is it?" | O4 locations | M |
@@ -61,8 +61,46 @@ Phase 3 still finishes first where it protects data (020 tomorrow; 3.5c about 4 
 
 ## 4. Decisions needed from the owner
 
-1. **Accounts system of record:** Xero (recommended: Pool Shed prepares and Xero is the ledger) or Pool Shed only.
+1. ~~Accounts system of record~~ **Decided 20 Nov 2026: Pool Shed is the ledger** (Brightpearl-style); posted documents are pushed to Xero. See §5.
 2. **How suppliers are paid:** online banking with a bulk payment file (which bank?), paid in Xero, or by card or direct debit.
 3. **Vans:** how many, and who drives each.
 4. **Which stock to track first:** van kit and chemicals (recommended), or more.
 5. **First priority**, if not O1 → O2 → O3 → O4 → O5 → O6 → O7.
+
+
+---
+
+## 5. The Pool Shed ledger (owner decision 20 Nov 2026: Brightpearl-style)
+
+**Principle:** Pool Shed is where every financial event is recorded and corrected. Xero receives the **final, posted** documents for the official books, VAT return and bank reconciliation. Nothing financial is ever edited after posting: mistakes are corrected with a credit note, a reversal or a correcting journal, so there is always a full, auditable trail. This is how Brightpearl, Sage and Xero itself work.
+
+**What it records (each posts a balanced double entry: debits = credits, enforced by the database):**
+
+| Event in Pool Shed | Ledger document | Double entry (simplified) |
+|---|---|---|
+| Goods received at goods-in | Stock receipt | Dr Stock · Cr Goods received not invoiced |
+| Supplier bill entered and matched | Purchase invoice | Dr Goods received not invoiced (+ price variance) + Dr VAT input · Cr Creditors |
+| Return to supplier / supplier credit | Purchase credit note | the reverse of the above, for the returned quantity |
+| Payment run paid | Supplier payment | Dr Creditors · Cr Bank |
+| Order delivered or job stage complete | Sales invoice | Dr Debtors · Cr Sales + Cr VAT output; **and** Dr Cost of sales · Cr Stock at average cost |
+| Customer return or price correction | Sales credit note | the reverse, for the credited lines (restocked items go back to Stock) |
+| Customer pays | Customer receipt | Dr Bank · Cr Debtors (allocated to invoices) |
+| Van stock used on a job | Job materials journal | Dr Job cost (work in progress) · Cr Stock |
+| Labour day logged | Labour cost journal | Dr Job cost · Cr Subcontractor accruals (or creditors via their bill) |
+| Stock check difference | Stock adjustment | Dr/Cr Stock adjustments · Cr/Dr Stock |
+| Anything else | Manual journal (Accounts and Admin only, with a reason) | as entered, must balance |
+
+**Rules built into the database (not just the screens):**
+- Posted documents and journal lines **cannot be changed or deleted**; corrections create new documents that reference the original.
+- Every journal **balances** (debits = credits) or it is rejected.
+- **Month close:** once a month is closed, nothing can post into it; corrections go into the current month with a reference to the original.
+- Who can post, approve payment runs and close months follows the role rules from 3.4 (Accounts, Management, Admin).
+- The ledger lives in proper database tables (not inside the workspace document), so it stays fast and is never part of what restricted roles download.
+
+**Reports from the ledger:** aged debtors and aged creditors, customer and supplier statements, trial balance, profit and loss (gross profit from real cost of sales; net profit once overheads arrive from Xero or are entered), stock valuation, VAT summary to check against Xero, and job profitability.
+
+**Push to Xero:** the existing Xero connection (OAuth, queue, webhooks, sync) is reused. Posted sales invoices, credit notes, purchase invoices, purchase credits and payments go to Xero as documents against the mapped contacts and account codes. Stock, cost-of-sales and job journals go as **daily summary journals**, so Xero's books match without clutter. Each document shows its status: *not sent, queued, in Xero, needs attention*. Anything Xero rejects is listed with the reason, and is fixed in Pool Shed, never in Xero.
+
+**Before go-live:** chart of accounts mapped to your Xero account codes; **opening balances** taken from Xero on the go-live date (open customer invoices, open supplier bills, stock value); a parallel month where both are compared; then Pool Shed becomes the place where entries are made.
+
+**Still to decide:** stock costing (recommended: weighted average cost); VAT scheme (standard accrual or cash, flat rate?); posting style to Xero (documents plus daily summaries, recommended); go-live month.
