@@ -1,0 +1,229 @@
+/* Pool Shed v1.51.0 — Record a purchase and Payment runs (Operations O1/O2).
+   All money rules are enforced by the database (database/022-024); these screens only collect and show.
+   Pro-forma suppliers are paid up front; on-account suppliers are paid on their terms through approved payment runs. */
+(function(global){
+  'use strict';
+  var W = function(){ return typeof global.__POOL_SHED_WORKSPACE_ID__ === 'function' ? global.__POOL_SHED_WORKSPACE_ID__() : 'pool-bros-main'; };
+  var DB = function(){ return typeof global.__POOL_SHED_DB__ === 'function' ? global.__POOL_SHED_DB__() : null; };
+  var DATA = function(){ return typeof global.__POOL_SHED_GET_DATA__ === 'function' ? global.__POOL_SHED_GET_DATA__() : {}; };
+  var CATEGORIES = ['Building materials','Plant & hire','Groundworks','Pool equipment','Plumbing','Electrical','Consumables','Delivery / freight',
+                    'Fuel','Tools & equipment','Vehicles','Subcontractor','Office & admin','Other'];
+  var state = { purchases: null, candidates: null, runs: null, settings: null, loading: false, error: '', dueBy: isoDays(7), selected: {}, busy: false, last: null };
+
+  function isoDays(n){ return new Date(Date.now() + n * 86400000).toISOString().slice(0, 10); }
+  function esc(v){ return String(v == null ? '' : v).replace(/[&<>"']/g, function(c){ return ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'})[c]; }); }
+  function cash(v){ return new Intl.NumberFormat('en-GB', { style: 'currency', currency: 'GBP' }).format(Number(v || 0)); }
+  function day(v){ return v ? new Date(v + (String(v).length === 10 ? 'T12:00:00' : '')).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' }) : '—'; }
+  function notify(m){ try { if (typeof global.toast === 'function') global.toast(m); else console.log(m); } catch (_) {} }
+  function rerender(){ try { if (typeof global.render === 'function') global.render(); } catch (_) {} }
+  function supplierKey(s){ return s && s.id != null && s.id !== '' ? 'id:' + s.id : 'name:' + (s && s.name || ''); }
+  function supplierBasis(s){ return /pro\s*-?\s*forma/i.test(String(s && s.accountType || '')) ? 'pro_forma' : 'on_account'; }
+  function suppliers(){ return (DATA().suppliers || []).filter(function(s){ return s && s.name && String(s.status || 'Active') !== 'Inactive'; })
+    .sort(function(a, b){ return String(a.name).localeCompare(String(b.name)); }); }
+  function pill(text, tone){ return '<span class="finance-pill ' + (tone || 'dark') + '">' + esc(text) + '</span>'; }
+  function tone(stateText){ return /Paid/.test(stateText) ? 'good' : /Overdue|Rejected/.test(stateText) ? 'bad' : /approval|missing/.test(stateText) ? 'warn' : 'dark'; }
+  function panel(title, help, body, actions){ return '<section class="finance-panel"><header class="finance-panel-head"><div><h3>' + esc(title) + '</h3><p>' + esc(help || '') + '</p></div>' + (actions ? '<div class="finance-row-actions">' + actions + '</div>' : '') + '</header><div class="finance-panel-body">' + body + '</div></section>'; }
+  function friendly(e){ var m = String(e && (e.message || e.error_description || e.error) || e || 'Something went wrong'); return m.replace(/^.*?ERROR:\s*/, ''); }
+
+  async function rpc(name, args){
+    var db = DB(); if (!db) throw new Error('Not connected. Sign in again.');
+    var r = await db.rpc(name, args); if (r.error) throw r.error; return r.data;
+  }
+  async function load(force){
+    if (state.loading || (!force && state.purchases)) return;
+    state.loading = true; state.error = '';
+    try {
+      var w = W();
+      var res = await Promise.all([rpc('ps_ledger_settings_get', { w: w }), rpc('ps_purchase_list', { w: w, max_rows: 200 }),
+                                   rpc('ps_payment_candidates', { w: w, up_to: state.dueBy }), rpc('ps_payment_runs_list', { w: w })]);
+      state.settings = res[0]; state.purchases = res[1] || []; state.candidates = res[2] || []; state.runs = res[3] || [];
+    } catch (e) { state.error = friendly(e); }
+    state.loading = false; rerender();
+  }
+  async function authToken(){ return typeof global.__POOL_SHED_AUTH_TOKEN__ === 'function' ? await global.__POOL_SHED_AUTH_TOKEN__() : ''; }
+  async function uploadCopy(file, supKey, kind){
+    if (!file) return null;
+    if (file.size > 25 * 1024 * 1024) throw new Error('The file is larger than 25 MB.');
+    var token = await authToken(); if (!token) throw new Error('Sign in again to upload.');
+    var url = '/api/media?action=finance-upload&workspace=' + encodeURIComponent(W()) + '&supplierKey=' + encodeURIComponent(supKey) +
+              '&kind=' + encodeURIComponent(kind || 'supplier_invoice') + '&name=' + encodeURIComponent(file.name || 'invoice');
+    var r = await fetch(url, { method: 'POST', headers: { Authorization: 'Bearer ' + token, 'Content-Type': file.type || 'application/octet-stream' }, body: file });
+    var body = await r.json().catch(function(){ return {}; });
+    if (!r.ok) throw new Error(body.error || 'The copy could not be uploaded.');
+    return body.ref;
+  }
+  async function openCopy(ref){
+    var token = await authToken();
+    var r = await fetch('/api/media?action=finance-sign&workspace=' + encodeURIComponent(W()) + '&refs=' + encodeURIComponent(ref), { headers: { Authorization: 'Bearer ' + token } });
+    var body = await r.json().catch(function(){ return {}; });
+    if (!r.ok || !body.urls || !body.urls[ref]) throw new Error(body.error || 'The copy could not be opened.');
+    global.open(body.urls[ref], '_blank', 'noopener');
+  }
+
+  // ---------- Record a purchase ----------
+  function recordPage(){
+    load(false);
+    var s = state, list = s.purchases || [];
+    var waiting = list.filter(function(p){ return p.state === 'Waiting for approval'; });
+    var missing = list.filter(function(p){ return p.state === 'Invoice copy missing'; });
+    var overdue = list.filter(function(p){ return p.state === 'Overdue'; });
+    var due7 = list.filter(function(p){ return Number(p.outstanding) > 0 && p.due_date && p.due_date <= isoDays(7); });
+    var sum = function(a){ return a.reduce(function(t, p){ return t + Number(p.outstanding || p.gross || 0); }, 0); };
+    var metrics = '<div class="finance-metrics">' +
+      metric('Waiting for approval', waiting.length, cash(sum(waiting))) + metric('Invoice copy missing', missing.length, 'Cannot be paid until attached') +
+      metric('Due in 7 days', cash(sum(due7)), due7.length + ' bills') + metric('Overdue', cash(sum(overdue)), overdue.length + ' bills') + '</div>';
+    var sups = suppliers();
+    var supOptions = '<option value="">Choose supplier…</option>' + sups.map(function(x){
+      var basis = supplierBasis(x) === 'pro_forma' ? 'Pro forma: paid up front' : 'On account: ' + (x.terms || 'Net 30');
+      return '<option value="' + esc(supplierKey(x)) + '" data-basis="' + supplierBasis(x) + '">' + esc(x.name) + ' · ' + esc(basis) + '</option>'; }).join('');
+    var jobs = (DATA().jobs || []).map(function(j){ return '<option value="' + esc(j.id) + '">' + esc(j.id + ' · ' + (j.name || 'Job')) + '</option>'; }).join('');
+    var cats = CATEGORIES.map(function(c){ return '<option>' + esc(c) + '</option>'; }).join('');
+    var form = '<form class="pp-form" data-pp-form="purchase" autocomplete="off">' +
+      '<div class="form-grid two">' +
+      '<label>Supplier<select name="supplier" required>' + supOptions + '</select><small data-pp-basis>Pro-forma suppliers are paid up front; on-account suppliers are paid on their terms.</small></label>' +
+      '<label>Supplier invoice or receipt number<input name="invoiceNo" required maxlength="60" placeholder="As printed on the invoice or receipt"></label>' +
+      '<label>Invoice date<input type="date" name="date" required value="' + new Date().toISOString().slice(0, 10) + '" max="' + new Date().toISOString().slice(0, 10) + '"></label>' +
+      '<label>Job<select name="job"><option value="">Not for a job (overhead)…</option>' + jobs + '</select></label>' +
+      '<label>Cost category<select name="category"><option value="">Choose…</option>' + cats + '</select><small>Required when it is not for a job.</small></label>' +
+      '<label>What was bought<input name="description" maxlength="200" placeholder="e.g. 40 blocks, sand and cement"></label>' +
+      '<label>Net amount (£)<input name="net" required inputmode="decimal" pattern="[0-9]+([.][0-9]{1,2})?" placeholder="0.00"></label>' +
+      '<label>VAT (£)<input name="vat" inputmode="decimal" pattern="[0-9]+([.][0-9]{1,2})?" placeholder="0.00"><small><button type="button" class="link" data-pp-action="vat20">Add 20% VAT</button> · use 0 if no VAT</small></label>' +
+      '<label class="full">Invoice or receipt copy<input type="file" name="copy" accept="image/*,application/pdf" capture="environment"><small>Photo or PDF. Bills cannot be paid until a copy is attached.</small></label>' +
+      '<fieldset class="full pp-paid"><legend>Already paid?</legend>' +
+      '<label class="inline"><input type="checkbox" name="paid"> Yes, paid at purchase <span class="muted">(required for pro-forma suppliers)</span></label>' +
+      '<div class="form-grid two pp-paid-fields"><label>How<select name="method"><option value="card">Company card</option><option value="bank_transfer">Bank transfer</option><option value="cash">Cash</option></select></label>' +
+      '<label>Payment reference<input name="payRef" maxlength="60" placeholder="Card slip or bank reference"></label></div></fieldset>' +
+      '</div><div class="finance-row-actions"><button type="submit" class="primary" ' + (s.busy ? 'disabled' : '') + '>' + (s.busy ? 'Saving…' : 'Record purchase') + '</button></div></form>' +
+      (s.last ? '<div class="pp-result ' + (s.last.ok ? 'good' : 'bad') + '">' + s.last.html + '</div>' : '');
+    var rows = list.slice(0, 60).map(function(p){
+      var actions = '';
+      if (p.state === 'Invoice copy missing') actions += '<label class="secondary small pp-file">Attach copy<input type="file" accept="image/*,application/pdf" capture="environment" data-pp-attach="' + esc(p.document_id) + '" data-pp-supplier="' + esc(p.supplier_key) + '" hidden></label>';
+      if (p.attachment_ref) actions += '<button type="button" class="secondary small" data-pp-action="open-copy" data-ref="' + esc(p.attachment_ref) + '">View copy</button>';
+      if (p.state === 'Waiting for approval' && s.settings && s.settings.can_approve && !p.created_by_me) {
+        actions += '<button type="button" class="primary small" data-pp-action="approve" data-doc="' + esc(p.document_id) + '">Approve</button>' +
+                   '<button type="button" class="secondary small" data-pp-action="reject" data-doc="' + esc(p.document_id) + '">Reject</button>';
+      }
+      return '<tr><td><strong>' + esc(p.supplier) + '</strong><br><small>' + esc(p.supplier_invoice_no) + ' · ' + esc(p.doc_number) + '</small></td>' +
+        '<td>' + esc(p.job_id || p.category || '—') + (p.description ? '<br><small>' + esc(p.description) + '</small>' : '') + '</td>' +
+        '<td>' + day(p.doc_date) + '</td><td class="num">' + cash(p.gross) + '</td><td class="num">' + cash(p.outstanding) + '</td>' +
+        '<td>' + pill(p.state, tone(p.state)) + (p.payment_basis === 'pro_forma' ? ' ' + pill('Pro forma', 'dark') : '') + '</td><td class="finance-row-actions">' + actions + '</td></tr>';
+    }).join('');
+    var table = list.length ? '<table class="finance-table"><thead><tr><th>Supplier / invoice</th><th>Job or category</th><th>Date</th><th>Total</th><th>Owed</th><th>Status</th><th></th></tr></thead><tbody>' + rows + '</tbody></table>'
+                            : '<p class="muted">' + (s.loading ? 'Loading…' : 'No purchases recorded yet.') + '</p>';
+    return (s.error ? '<div class="pp-result bad">' + esc(s.error) + '</div>' : '') + metrics +
+      panel('Record a purchase', 'For anything already bought: one step, with the invoice or receipt. Larger purchases (' + cash(s.settings ? s.settings.approval_threshold : 1000) + ' or more) wait for approval by a different person.', form) +
+      panel('Recent purchases', 'Corrections are made with a credit note, never by editing.', table, '<button type="button" class="secondary" data-pp-action="refresh">Refresh</button>');
+  }
+  function metric(label, value, help){ return '<div class="finance-metric"><span>' + esc(label) + '</span><strong>' + esc(value) + '</strong><small>' + esc(help || '') + '</small></div>'; }
+
+  async function submitPurchase(form){
+    var f = new FormData(form), supKey = String(f.get('supplier') || ''), sup = suppliers().find(function(x){ return supplierKey(x) === supKey; });
+    var paid = !!f.get('paid'), net = String(f.get('net') || '').trim(), vat = String(f.get('vat') || '').trim() || '0';
+    if (!sup) return notify('Choose the supplier.');
+    if (supplierBasis(sup) === 'pro_forma' && !paid) return notify(sup.name + ' is a pro-forma supplier: tick "paid at purchase" and record how it was paid.');
+    state.busy = true; state.last = null; rerender();
+    try {
+      var file = f.get('copy'); var ref = file && file.size ? await uploadCopy(file, supKey, paid ? 'receipt' : 'supplier_invoice') : null;
+      var p = { supplier_key: supKey, supplier_invoice_no: String(f.get('invoiceNo') || '').trim(), invoice_date: f.get('date'),
+                job_id: String(f.get('job') || ''), category: String(f.get('category') || ''), description: String(f.get('description') || ''),
+                net: Number(net), vat: Number(vat), attachment_ref: ref };
+      if (paid) p.paid = { method: String(f.get('method') || 'card'), reference: String(f.get('payRef') || ''), date: f.get('date') };
+      var r = await rpc('ps_purchase_record', { w: W(), p: p });
+      var bits = ['Recorded <strong>' + esc(r.document.doc_number) + '</strong> for ' + esc(sup.name) + '.'];
+      if (r.payment) bits.push('Payment ' + esc(r.payment.doc_number) + ' recorded.');
+      else bits.push('Due ' + day(r.due_date) + '.');
+      if (r.approval === 'pending') bits.push('<strong>Waiting for approval</strong> by Admin or Management.');
+      if (!ref && !r.payment) bits.push('Attach the invoice copy before it can be paid.');
+      if (r.over_credit_limit) bits.push('<strong>Over ' + esc(sup.name) + '\'s credit limit</strong> (owed ' + cash(r.owed_to_supplier) + ').');
+      state.last = { ok: true, html: bits.join(' ') };
+      form.reset();
+      await load(true);
+    } catch (e) { state.last = { ok: false, html: esc(friendly(e)) }; }
+    state.busy = false; rerender();
+  }
+
+  // ---------- Payment runs ----------
+  function runsPage(){
+    load(false);
+    var s = state, c = s.candidates || [], ready = c.filter(function(x){ return x.ready; }), held = c.filter(function(x){ return !x.ready; });
+    var chosen = ready.filter(function(x){ return s.selected[x.document_id] !== false; });
+    var total = chosen.reduce(function(t, x){ return t + Number(x.outstanding || 0); }, 0);
+    var rows = c.map(function(x){
+      return '<tr class="' + (x.ready ? '' : 'muted') + '"><td>' + (x.ready ? '<input type="checkbox" data-pp-select="' + esc(x.document_id) + '" ' + (s.selected[x.document_id] !== false ? 'checked' : '') + '>' : '') + '</td>' +
+        '<td><strong>' + esc(x.supplier) + '</strong><br><small>' + esc(x.supplier_invoice_no) + ' · ' + esc(x.doc_number) + '</small></td>' +
+        '<td>' + day(x.due_date) + '</td><td class="num">' + cash(x.outstanding) + '</td><td>' + (x.ready ? pill('Ready', 'good') : pill(x.held_reason || 'Held', 'warn')) + '</td></tr>'; }).join('');
+    var dueTable = '<div class="form-grid three"><label>Bills due by<input type="date" data-pp-dueby value="' + esc(s.dueBy) + '"></label></div>' +
+      (c.length ? '<table class="finance-table"><thead><tr><th></th><th>Supplier / invoice</th><th>Due</th><th>Owed</th><th>Status</th></tr></thead><tbody>' + rows + '</tbody></table>'
+                : '<p class="muted">' + (s.loading ? 'Loading…' : 'Nothing on account is due by this date.') + '</p>') +
+      (held.length ? '<p class="muted">Held bills need approval or an invoice copy first (Record a purchase page).</p>' : '');
+    var create = '<button type="button" class="primary" data-pp-action="create-run" ' + (!chosen.length || s.busy ? 'disabled' : '') + '>Create payment run · ' + cash(total) + ' (' + chosen.length + ')</button>';
+    var runRows = (s.runs || []).map(function(r){
+      var a = '';
+      if (r.status === 'draft' && s.settings && s.settings.can_approve && !r.created_by_me) a += '<button type="button" class="primary small" data-pp-action="approve-run" data-run="' + esc(r.run_id) + '">Approve</button>';
+      if (r.status === 'draft' && r.created_by_me) a += '<small class="muted">Needs approval by a different person</small> ';
+      if (r.status === 'approved' || r.status === 'paid') a += '<button type="button" class="secondary small" data-pp-action="run-csv" data-run="' + esc(r.run_id) + '" data-num="' + esc(r.run_number) + '">Payment list (CSV)</button>';
+      if (r.status === 'approved') a += '<button type="button" class="primary small" data-pp-action="pay-run" data-run="' + esc(r.run_id) + '">Mark paid</button>';
+      if (r.status === 'draft' || r.status === 'approved') a += '<button type="button" class="secondary small" data-pp-action="cancel-run" data-run="' + esc(r.run_id) + '">Cancel</button>';
+      return '<tr><td><strong>' + esc(r.run_number) + '</strong></td><td>' + day(r.pay_date) + '</td><td class="num">' + cash(r.total) + '</td><td>' + esc(r.bills) + ' bills · ' + esc(r.suppliers) + ' suppliers</td>' +
+        '<td>' + pill(r.status === 'draft' ? 'Waiting for approval' : r.status === 'approved' ? 'Approved, ready to pay' : 'Paid', r.status === 'paid' ? 'good' : r.status === 'approved' ? 'dark' : 'warn') + '</td><td class="finance-row-actions">' + a + '</td></tr>'; }).join('');
+    var runsTable = (s.runs || []).length ? '<table class="finance-table"><thead><tr><th>Run</th><th>Pay date</th><th>Total</th><th>Contents</th><th>Status</th><th></th></tr></thead><tbody>' + runRows + '</tbody></table>' : '<p class="muted">No payment runs yet.</p>';
+    return (s.error ? '<div class="pp-result bad">' + esc(s.error) + '</div>' : '') +
+      panel('Bills to pay', 'On-account supplier bills that are due, approved and have their invoice copy. Pro-forma suppliers are paid up front, so they never appear here.', dueTable, create) +
+      panel('Payment runs', 'Created by one person, approved by another, then paid. Paying records each supplier payment and settles the bills.', runsTable, '<button type="button" class="secondary" data-pp-action="refresh">Refresh</button>');
+  }
+
+  async function act(fn, done){
+    if (state.busy) return; state.busy = true; rerender();
+    try { var r = await fn(); if (done) notify(done(r)); await load(true); } catch (e) { notify(friendly(e)); }
+    state.busy = false; rerender();
+  }
+  async function downloadRun(runId, num){
+    var lines = await rpc('ps_payment_run_lines', { w: W(), run: runId });
+    var csv = [['Supplier', 'Amount', 'Reference', 'Bills paid']].concat((lines || []).map(function(l){ return [l.supplier, Number(l.amount).toFixed(2), num, l.bills]; }))
+      .map(function(row){ return row.map(function(v){ return '"' + String(v == null ? '' : v).replace(/"/g, '""') + '"'; }).join(','); }).join('\r\n');
+    var a = document.createElement('a'); a.href = URL.createObjectURL(new Blob([csv], { type: 'text/csv' })); a.download = num + '-payment-list.csv'; a.click();
+    setTimeout(function(){ URL.revokeObjectURL(a.href); }, 1000);
+  }
+
+  document.addEventListener('submit', function(e){
+    var form = e.target.closest && e.target.closest('[data-pp-form="purchase"]'); if (!form) return;
+    e.preventDefault(); submitPurchase(form);
+  });
+  document.addEventListener('change', function(e){
+    var t = e.target;
+    if (t.matches && t.matches('[data-pp-form="purchase"] select[name="supplier"]')) {
+      var opt = t.selectedOptions[0], form = t.form, pro = opt && opt.dataset.basis === 'pro_forma';
+      var note = form.querySelector('[data-pp-basis]'); if (note) note.textContent = pro ? 'Pro-forma supplier: paid up front, so record how it was paid.' : 'On account: paid on their terms through a payment run.';
+      var box = form.querySelector('input[name="paid"]'); if (box && pro) box.checked = true;
+    }
+    if (t.matches && t.matches('[data-pp-attach]')) {
+      var file = t.files && t.files[0]; if (!file) return;
+      act(async function(){ var ref = await uploadCopy(file, t.dataset.ppSupplier, 'supplier_invoice'); return rpc('ps_purchase_attach', { w: W(), doc_id: t.dataset.ppAttach, p_ref: ref }); },
+          function(){ return 'Invoice copy attached.'; });
+    }
+    if (t.matches && t.matches('[data-pp-select]')) { state.selected[t.dataset.ppSelect] = t.checked; rerender(); }
+    if (t.matches && t.matches('[data-pp-dueby]')) { state.dueBy = t.value || isoDays(7); state.purchases = null; load(true); }
+  });
+  document.addEventListener('click', function(e){
+    var b = e.target.closest && e.target.closest('[data-pp-action]'); if (!b) return;
+    var a = b.dataset.ppAction;
+    if (a === 'refresh') return load(true);
+    if (a === 'vat20') { var f = b.closest('form'), net = Number(f.net.value || 0); f.vat.value = (Math.round(net * 20) / 100).toFixed(2); return; }
+    if (a === 'open-copy') return openCopy(b.dataset.ref).catch(function(err){ notify(friendly(err)); });
+    if (a === 'approve') return act(function(){ return rpc('ps_purchase_approve', { w: W(), doc_id: b.dataset.doc, approve: true, reason: null }); }, function(){ return 'Purchase approved.'; });
+    if (a === 'reject') { var why = prompt('Why is this purchase rejected?'); if (!why) return; return act(function(){ return rpc('ps_purchase_approve', { w: W(), doc_id: b.dataset.doc, approve: false, reason: why }); }, function(){ return 'Purchase rejected.'; }); }
+    if (a === 'create-run') {
+      var ids = (state.candidates || []).filter(function(x){ return x.ready && state.selected[x.document_id] !== false; }).map(function(x){ return x.document_id; });
+      return act(function(){ return rpc('ps_payment_run_create', { w: W(), pay_date: new Date().toISOString().slice(0, 10), document_ids: ids, method: 'bank_transfer' }); },
+                 function(r){ return 'Payment run ' + r.run_number + ' created. A different person must approve it.'; });
+    }
+    if (a === 'approve-run') return act(function(){ return rpc('ps_payment_run_approve', { w: W(), run: b.dataset.run }); }, function(){ return 'Payment run approved.'; });
+    if (a === 'pay-run') { if (!confirm('Mark this payment run as paid? Only do this once the bank payments have been made.')) return;
+      return act(function(){ return rpc('ps_payment_run_pay', { w: W(), run: b.dataset.run, paid_date: new Date().toISOString().slice(0, 10) }); }, function(r){ return 'Paid: ' + r.supplier_payments + ' supplier payment(s) recorded.'; }); }
+    if (a === 'cancel-run') { if (!confirm('Cancel this payment run? Its bills go back to the list.')) return;
+      return act(function(){ return rpc('ps_payment_run_cancel', { w: W(), run: b.dataset.run }); }, function(){ return 'Payment run cancelled.'; }); }
+    if (a === 'run-csv') return downloadRun(b.dataset.run, b.dataset.num).catch(function(err){ notify(friendly(err)); });
+  });
+
+  global.PoolShedPurchasesUI = { recordPage: recordPage, runsPage: runsPage, reload: function(){ return load(true); }, _state: state, _supplierKey: supplierKey };
+})(typeof window !== 'undefined' ? window : globalThis);
