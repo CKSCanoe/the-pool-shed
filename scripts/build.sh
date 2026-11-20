@@ -32,6 +32,7 @@ run_node_stage "workspace and sales safety" \
   test-migration-019.mjs \
   test-role-view-v150.mjs \
   test-migration-021.mjs \
+  test-migration-022.mjs \
   test-workspace-audit-v1451.mjs \
   test-commercial-audits-v146.mjs \
   test-audit-device-recovery.mjs \
