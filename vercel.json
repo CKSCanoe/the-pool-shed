@@ -132,5 +132,11 @@
     "api/workspace-recovery-publish.js": {
       "maxDuration": 60
     }
-  }
+  },
+  "crons": [
+    {
+      "path": "/api/workspace-health?fleet-reminders=1",
+      "schedule": "0 7 * * *"
+    }
+  ]
 }

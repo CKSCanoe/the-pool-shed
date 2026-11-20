@@ -2,6 +2,7 @@ import {db,eq} from '../server/accounting.js';
 import {supabaseServerKey} from '../server/supabase-keys.js';
 import {appOriginAllowed} from '../server/origin-policy.js';
 import auditDeviceRecovery from '../server/audit-device-recovery.js';
+import {runFleetReminders,resendEmail} from '../server/fleet-reminders.js';
 
 const send=(res,status,value)=>res.status(status).json(value);
 const WORKSPACE_ID='pool-bros-main';
@@ -106,6 +107,13 @@ async function status(){
 }
 
 export default async function handler(req,res){
+  // v1.53: daily monthly-van-report reminders (Vercel cron). Needs CRON_SECRET; sends only if 'fleet_email_reminders' is on.
+  if(req.method==='GET'&&new URL(req.url,process.env.APP_ORIGIN||'http://localhost').searchParams.get('fleet-reminders')==='1'){
+    res.setHeader('Cache-Control','no-store');
+    if(!process.env.CRON_SECRET||req.headers.authorization!=='Bearer '+process.env.CRON_SECRET)return send(res,401,{error:'Unauthorised'});
+    try{return send(res,200,await runFleetReminders({db,send:resendEmail,w:process.env.FINANCE_WORKSPACE_ID||'pool-bros-main'}));}
+    catch(error){return send(res,500,{error:error.message||'Van report reminders failed'});}
+  }
   if(req.method==='GET'&&new URL(req.url,process.env.APP_ORIGIN||'http://localhost').searchParams.get('device-recovery')==='1')return auditDeviceRecovery(req,res);
   res.setHeader('Cache-Control','no-store');
   res.setHeader('X-Content-Type-Options','nosniff');

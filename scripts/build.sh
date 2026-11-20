@@ -42,6 +42,8 @@ run_node_stage "workspace and sales safety" \
   test-migration-026.mjs \
   test-fleet-media-v152.mjs \
   test-fleet-ui-v152.mjs \
+  test-migration-028.mjs \
+  test-fleet-reminders-v153.mjs \
   test-workspace-audit-v1451.mjs \
   test-commercial-audits-v146.mjs \
   test-audit-device-recovery.mjs \
