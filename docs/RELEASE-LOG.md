@@ -54,7 +54,9 @@ Note: the older per-entity tables (`customers`, `products`, `sales_orders`, `sto
 | 1.5 | Version 1.48.0, new service-worker cache name | **New** | — |
 | 1.6 | Build gate | **Tested locally** | 84/84 pass; CSS build and runtime validation pass |
 | 1.7 | Staging repaired (login trigger, storage policies) | **Done** | staging only |
-| 1.8 | Browser test on staging (login, dashboard, save, two-user edit, idle network) | **Outstanding** · needs owner sign-in and the staging publishable key | — |
+| 1.8 | Browser test on staging (owner's Chrome, measured with pg_stat_statements on staging) | **Tested on staging · PASS** | Idle 2 min: 10 stamp checks, 0 full downloads. Background tab: 0 requests. Simulated other-user save: tab synced on focus. That run exposed two bugs, fixed in `b4ca345`. Final run, about 2 h 40 min open: **1,213 stamp checks, 1 full download (initial load), 0 saves**, no new notifications. The old code would have made ~1,940 full downloads (~0.95 GB compressed). |
+| 1.8a | Daily duplicate stock-count reminders forcing a full save | **Repaired · Tested on staging** | 45 duplicates in live data; key no longer includes the day |
+| 1.8b | Simultaneous refresh triggers downloading 2–3 times | **Repaired · Tested on staging** | single in-flight lock |
 | 1.9 | Deploy to production and measure Supabase egress for 48 h | **Outstanding** · after 1.8 | — |
 
 Measured on live data (read-only): one old check = 7.07 MB (0.49 MB gzip); one new check = 51 bytes. The 11.51 GB overage ≈ 34 tab-hours of the old poll.
