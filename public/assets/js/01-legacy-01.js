@@ -320,6 +320,9 @@ const seed = {
       let workspaceSaveInFlight = false;
       let sharedWorkspaceReady = false;
       let workspaceBaseSnapshot = null;
+      // v1.49: exact copy of the server data at remoteWorkspaceUpdatedAt (before normalisation), used to apply
+      // record-level changes from ps_records_changes. null means "unknown": the next refresh downloads in full.
+      let workspaceRemoteRaw = null;
       let workspaceLastLocalPayload = "";
       let workspaceDraftField = null;
       let remoteSaveTimer = null;
@@ -1100,6 +1103,7 @@ const seed = {
 
           data = normalizeAppData(merged);
           remoteWorkspaceUpdatedAt = response.data.updated_at || null;
+          workspaceRemoteRaw = response.data.data;
           workspaceBaseSnapshot = clone(remoteSnapshot);
           workspaceSyncConflict = false;
           sharedWorkspaceReady = true;
@@ -1126,8 +1130,10 @@ const seed = {
         }
       }
 
-      async function applyRemoteWorkspaceSnapshot(row, shouldRender) {
+      async function applyRemoteWorkspaceSnapshot(row, shouldRender, rawData) {
         if (!row || !row.data) return false;
+        // Keep the server's exact data before normalisation changes it in place (v1.49 delta refresh).
+        workspaceRemoteRaw = rawData || (typeof structuredClone === "function" ? structuredClone(row.data) : clone(row.data));
         data = normalizeAppData(row.data);
         remoteWorkspaceUpdatedAt = row.updated_at || null;
         // Serialize once: the same canonical JSON creates the immutable merge base
@@ -1212,6 +1218,7 @@ const seed = {
         // Preserve the local work in Recovery, then open the verified server master.
         if (pending && localBaseRevision && localBaseRevision === remoteRevision) {
           remoteWorkspaceUpdatedAt = remoteRevision;
+          workspaceRemoteRaw = response.data.data;
           workspaceBaseSnapshot = normalizeAppData(clone(response.data.data));
           if (await saveRemoteWorkspace(true)) return true;
 
@@ -1245,11 +1252,32 @@ const seed = {
           }
           const savedJson = JSON.stringify(normalizeAppData(data));
           const localSnapshot = JSON.parse(savedJson);
-          const response = await supabaseClient.rpc("ps_workspace_save", {
-            w: WORKSPACE_ID,
-            expected: remoteWorkspaceUpdatedAt || null,
-            snapshot: localSnapshot
-          });
+          // v1.49: send only the changed records. Falls back to the full save whenever that is not possible.
+          const oldStamp = remoteWorkspaceUpdatedAt;
+          const oldRaw = workspaceRemoteRaw;
+          const recordSave = await saveWorkspaceRecords(localSnapshot).catch(function(error) { console.warn("Per-record save failed; using a full save", error); return null; });
+          let response;
+          if (recordSave && recordSave.status === "saved" && recordSave.merged) {
+            remoteWorkspaceUpdatedAt = recordSave.updated_at;
+            sharedWorkspaceReady = true;
+            window.__POOL_SHED_SHARED_READY__ = true;
+            workspaceSaveInFlight = false;
+            await absorbOthersAfterRecordSave(localSnapshot, oldStamp, oldRaw, recordSave.updated_at);
+            updateOfflineStatus();
+            return true;
+          } else if (recordSave && recordSave.status === "saved") {
+            response = { error: null, data: { updated_at: recordSave.updated_at } };
+          } else if (recordSave && recordSave.status === "unchanged") {
+            response = { error: null, data: { updated_at: remoteWorkspaceUpdatedAt } };
+          } else if (recordSave && recordSave.status === "conflict") {
+            response = { error: null, data: null };
+          } else {
+            response = await supabaseClient.rpc("ps_workspace_save", {
+              w: WORKSPACE_ID,
+              expected: remoteWorkspaceUpdatedAt || null,
+              snapshot: localSnapshot
+            });
+          }
           if (!response.error && !response.data) {
             workspaceSyncConflict = true;
             updateOfflineStatus();
@@ -1268,6 +1296,7 @@ const seed = {
           }
           if (response.error) throw response.error;
           remoteWorkspaceUpdatedAt = response.data.updated_at;
+          workspaceRemoteRaw = localSnapshot;
           sharedWorkspaceReady = true;
           window.__POOL_SHED_SHARED_READY__ = true;
           workspaceBaseSnapshot = clone(localSnapshot);
@@ -1300,6 +1329,182 @@ const seed = {
       }
 
       let workspaceRefreshInFlight = false;
+
+      // v1.49 delta refresh. Record keys must match ps_section_items() in database/015 exactly.
+      function workspaceKeyText(value) {
+        if (value === null || value === undefined) return null;
+        if (typeof value === "string") return value;
+        if (typeof value === "boolean") return String(value);
+        if (typeof value === "number" && Number.isSafeInteger(value)) return String(value);
+        throw new Error("Unsupported key value");
+      }
+      function workspaceSectionKeys(section, items) {
+        const counts = new Map();
+        return (Array.isArray(items) ? items : []).map(function(item) {
+          let key = null;
+          if (item && typeof item === "object" && !Array.isArray(item)) {
+            if (Object.prototype.hasOwnProperty.call(item, "id") && (typeof item.id === "string" || typeof item.id === "number")) key = "id:" + workspaceKeyText(item.id);
+            else if (section === "stock") key = "stock:" + (workspaceKeyText(item.productId) || "") + "|" + (workspaceKeyText(item.locationId) ?? workspaceKeyText(item.location) ?? "");
+            else {
+              const name = workspaceKeyText(item.name) ?? workspaceKeyText(item.label) ?? "";
+              if (name !== "") key = "name:" + name;
+            }
+          } else if (typeof item === "string") key = "text:" + item;
+          if (key === null) throw new Error("Record without a stable key in " + section);
+          const seen = (counts.get(key) || 0) + 1;
+          counts.set(key, seen);
+          return seen === 1 ? key : key + "#" + seen;
+        });
+      }
+      async function workspaceSha256Hex(text) {
+        const bytes = await crypto.subtle.digest("SHA-256", new TextEncoder().encode(text));
+        return Array.from(new Uint8Array(bytes)).map(function(b) { return b.toString(16).padStart(2, "0"); }).join("");
+      }
+      // Applies a ps_records_changes result to the exact server copy. Never mutates `raw`.
+      // Throws if anything does not line up; the caller then falls back to a full download.
+      async function applyWorkspaceDelta(raw, delta) {
+        const out = Object.assign({}, raw);
+        for (const part of delta.sections || []) {
+          const section = part.s;
+          if (part.kind === "settings") { out[section] = part.data; continue; }
+          if (part.kind === "absent") { delete out[section]; continue; }
+          if (part.kind !== "list") throw new Error("Unknown section kind");
+          const base = Array.isArray(raw[section]) ? raw[section] : [];
+          const baseKeys = workspaceSectionKeys(section, base);
+          const byKey = new Map(baseKeys.map(function(key, index) { return [key, base[index]]; }));
+          (part.records || []).forEach(function(pair) { byKey.set(pair[0], pair[1]); });
+          const order = Array.isArray(part.keys) ? part.keys : baseKeys;
+          const next = order.map(function(key) {
+            if (!byKey.has(key)) throw new Error("Missing record " + key + " in " + section);
+            return byKey.get(key);
+          });
+          if (!Array.isArray(part.keys) && (part.records || []).some(function(pair) { return baseKeys.indexOf(pair[0]) < 0; })) {
+            throw new Error("New record without a key list in " + section);
+          }
+          const check = await workspaceSha256Hex(workspaceSectionKeys(section, next).join("\n"));
+          if (check !== part.keys_sha) throw new Error("Record order check failed in " + section);
+          out[section] = next;
+        }
+        return out;
+      }
+      // Returns { raw, updated_at } for the server's current state, built from the change feed; or
+      // { unchanged: true }; or null when the feed cannot be used (the caller then downloads in full).
+      async function fetchWorkspaceByDelta(since, raw) {
+        if (!raw || !since || !supabaseClient || typeof supabaseClient.rpc !== "function") return null;
+        if (!(window.crypto && crypto.subtle)) return null;
+        try {
+          const feed = await supabaseClient.rpc("ps_records_changes", { w: WORKSPACE_ID, since: since });
+          if (feed.error || !feed.data || feed.data.full) return null;
+          if (feed.data.unchanged) return { unchanged: true };
+          return { raw: await applyWorkspaceDelta(raw, feed.data), updated_at: feed.data.updated_at };
+        } catch (error) {
+          console.warn("Change feed unavailable; using a full download", error);
+          return null;
+        }
+      }
+      async function refreshSharedWorkspaceByDelta() {
+        const result = await fetchWorkspaceByDelta(remoteWorkspaceUpdatedAt, workspaceRemoteRaw);
+        if (!result) return null;
+        if (result.unchanged) return false;
+        if (workspaceFieldIsBeingEdited() || workspaceSaveInFlight || localStorage.getItem("poolshed:v172:pendingSync") === "1") return false;
+        await applyRemoteWorkspaceSnapshot({ data: clone(result.raw), updated_at: result.updated_at }, true, result.raw);
+        return true;
+      }
+
+      // v1.49 per-record saves. Order-independent equality: records from the server have their fields in a
+      // different order from the app's own copies.
+      function workspaceDeepEqual(a, b) {
+        if (a === b) return true;
+        if (a === null || b === null || typeof a !== "object" || typeof b !== "object") return false;
+        if (Array.isArray(a) !== Array.isArray(b)) return false;
+        if (Array.isArray(a)) {
+          if (a.length !== b.length) return false;
+          for (let i = 0; i < a.length; i += 1) if (!workspaceDeepEqual(a[i], b[i])) return false;
+          return true;
+        }
+        const ka = Object.keys(a).filter(function(k) { return a[k] !== undefined; });
+        const kb = Object.keys(b).filter(function(k) { return b[k] !== undefined; });
+        if (ka.length !== kb.length) return false;
+        for (const k of ka) if (!Object.prototype.hasOwnProperty.call(b, k) || !workspaceDeepEqual(a[k], b[k])) return false;
+        return true;
+      }
+      // What changed between the server copy and the app's copy, record by record. Throws when a section cannot be
+      // described record by record; the caller then uses the full save.
+      function computeWorkspaceChanges(raw, local) {
+        const sections = [];
+        const names = new Set(Object.keys(raw || {}).concat(Object.keys(local || {})));
+        names.forEach(function(name) {
+          const before = raw ? raw[name] : undefined;
+          const after = local[name];
+          if (after === undefined) { if (before !== undefined) throw new Error("Section removed: " + name); return; }
+          if (Array.isArray(after)) {
+            if (before !== undefined && !Array.isArray(before)) throw new Error("Section type changed: " + name);
+            const oldItems = Array.isArray(before) ? before : [];
+            const oldKeys = workspaceSectionKeys(name, oldItems);
+            const newKeys = workspaceSectionKeys(name, after);
+            const oldByKey = new Map(oldKeys.map(function(key, index) { return [key, oldItems[index]]; }));
+            const newSet = new Set(newKeys);
+            const upserts = [];
+            newKeys.forEach(function(key, index) {
+              if (!oldByKey.has(key) || !workspaceDeepEqual(oldByKey.get(key), after[index])) upserts.push([key, after[index]]);
+            });
+            const deletes = oldKeys.filter(function(key) { return !newSet.has(key); });
+            // The server keeps existing order, removes deletions and appends new records in the order sent, so the
+            // full key list is only needed when records moved or were inserted anywhere but the end.
+            const oldSet = new Set(oldKeys);
+            const expectedOrder = oldKeys.filter(function(key) { return newSet.has(key); })
+              .concat(newKeys.filter(function(key) { return !oldSet.has(key); }));
+            const orderChanged = expectedOrder.length !== newKeys.length || expectedOrder.some(function(key, index) { return key !== newKeys[index]; });
+            if (upserts.length || deletes.length || orderChanged) {
+              sections.push({ s: name, kind: "list", upserts: upserts, deletes: deletes, order: orderChanged ? newKeys : null });
+            }
+          } else if (!workspaceDeepEqual(before, after)) {
+            if (Array.isArray(before)) throw new Error("Section type changed: " + name);
+            sections.push({ s: name, kind: "settings", data: after });
+          }
+        });
+        return { sections: sections };
+      }
+      // Returns { status: "saved", updated_at, merged } | { status: "conflict" } | { status: "unchanged" } | null (use the full save).
+      async function saveWorkspaceRecords(localSnapshot) {
+        if (!workspaceRemoteRaw || !remoteWorkspaceUpdatedAt || !supabaseClient || typeof supabaseClient.rpc !== "function") return null;
+        let changes;
+        try { changes = computeWorkspaceChanges(workspaceRemoteRaw, localSnapshot); }
+        catch (error) { console.warn("Per-record save not possible; using a full save", error); return null; }
+        if (!changes.sections.length) return { status: "unchanged" };
+        const response = await supabaseClient.rpc("ps_workspace_save_changes", { w: WORKSPACE_ID, expected: remoteWorkspaceUpdatedAt, changes: changes });
+        if (response.error) { console.warn("Per-record save failed; using a full save", response.error); return null; }
+        const result = response.data || {};
+        if (result.fallback) return null;
+        if (Array.isArray(result.conflicts) && result.conflicts.length) return { status: "conflict", conflicts: result.conflicts };
+        if (!result.updated_at) return null;
+        return { status: "saved", updated_at: result.updated_at, merged: !!result.merged };
+      }
+      // After a per-record save that landed on top of other people's changes: bring their changes in,
+      // keeping anything this user typed while the save was in flight.
+      async function absorbOthersAfterRecordSave(savedSnapshot, oldStamp, oldRaw, newStamp) {
+        const remote = await fetchWorkspaceByDelta(oldStamp, oldRaw);
+        if (!remote || remote.unchanged || remote.updated_at !== newStamp) {
+          const merged = await resolveSharedWorkspaceConflict(clone(data), savedSnapshot);
+          if (merged) queueRemoteWorkspaceSave();
+          return;
+        }
+        const conflicts = [];
+        const merged = workspaceMergeValue(normalizeAppData(clone(savedSnapshot)), normalizeAppData(clone(data)), normalizeAppData(clone(remote.raw)), "", conflicts);
+        const unsavedLocalEdits = !workspaceDeepEqual(normalizeAppData(clone(data)), normalizeAppData(clone(savedSnapshot)));
+        if (!unsavedLocalEdits) {
+          await applyRemoteWorkspaceSnapshot({ data: clone(remote.raw), updated_at: remote.updated_at }, true, remote.raw);
+          localStorage.removeItem("poolshed:v172:pendingSync");
+          return;
+        }
+        data = normalizeAppData(merged);
+        remoteWorkspaceUpdatedAt = remote.updated_at;
+        workspaceRemoteRaw = remote.raw;
+        workspaceBaseSnapshot = normalizeAppData(clone(remote.raw));
+        try { localStorage.setItem("poolshed:v172:remoteRevision", remoteWorkspaceUpdatedAt); localStorage.setItem("poolshed:v172:pendingSync", "1"); } catch (error) { void error; }
+        render();
+        queueRemoteWorkspaceSave();
+      }
       async function refreshSharedWorkspaceFromRemote(options) {
         // v1.48: tab focus, the online event and the timer can fire together; only one refresh may run.
         if (workspaceRefreshInFlight) return false;
@@ -1323,6 +1528,10 @@ const seed = {
             return false;
           }
           if (workspaceFieldIsBeingEdited() || workspaceSaveInFlight || localStorage.getItem("poolshed:v172:pendingSync") === "1") return false;
+          // v1.49: ask for only the records that changed. null = feed unavailable, so download in full as before.
+          const delta = await refreshSharedWorkspaceByDelta();
+          if (delta === true) { if (!opts.silent) toast("Latest shared workspace loaded."); return true; }
+          if (delta === false) return false;
           const response = await supabaseClient.from("workspace_snapshots").select("data,updated_at").eq("workspace_id", WORKSPACE_ID).maybeSingle();
           if (response.error) throw response.error;
           const row = response.data;
@@ -1435,6 +1644,7 @@ const seed = {
           const base = await readOfflineSnapshot("shared-base");
           workspaceBaseSnapshot = base && base.data ? normalizeAppData(base.data) : null;
           remoteWorkspaceUpdatedAt = localStorage.getItem("poolshed:v172:remoteRevision") || null;
+          workspaceRemoteRaw = null;
           if (isAuthenticated) render();
           return true;
         }
@@ -2691,7 +2901,7 @@ const seed = {
           : effectiveMode === "mfa"
             ? '<button class="ps-login-link" type="button" data-login-cancel-mfa>Use a different account</button><span>Authenticator verification</span>'
             : effectiveMode === "denied" || effectiveMode === "workspace" ? '<span></span>' : '<button class="ps-login-link" type="button" data-login-mode="login">Back to sign in</button><span></span>';
-        screen.innerHTML = '<main class="ps-login-stage"><section class="ps-login-shell"><aside class="ps-login-brand"><div><div class="ps-login-lockup"><span class="ps-login-logo"><img src="' + DEFAULT_POOL_BROS_LOGO + '" alt="Pool Bros logo"></span><div><span class="ps-login-kicker">Pool Bros</span><strong>THE POOL SHED</strong></div></div><div class="ps-login-hero"><span class="ps-login-kicker">Operations Command System</span><h1>One secure place to <span>run the operation.</span></h1><p>Secure access to the Pool Bros operations workspace. Sign in to continue to your authorised tools, tasks and information.</p></div></div><div class="ps-login-staff-note"><strong>Pool Bros staff access</strong><span>Your workspace and available tools are tailored to your account after sign-in.</span></div></aside><section class="ps-login-auth"><div class="ps-login-card"><div class="ps-login-card-head"><span class="ps-login-kicker">' + escapeHtml(meta.eyebrow) + '</span><h2>' + escapeHtml(meta.heading) + '</h2><p>' + escapeHtml(meta.intro) + '</p></div><form id="loginForm">' + fields + '<div id="loginMessage" class="ps-login-message' + (good ? ' good' : '') + '">' + escapeHtml(message || '') + '</div></form><div class="ps-login-helper">' + helper + '</div></div></section></section><footer class="ps-login-footer">Pool Shed v1.48.0 · Pool Bros Ltd</footer></main>';
+        screen.innerHTML = '<main class="ps-login-stage"><section class="ps-login-shell"><aside class="ps-login-brand"><div><div class="ps-login-lockup"><span class="ps-login-logo"><img src="' + DEFAULT_POOL_BROS_LOGO + '" alt="Pool Bros logo"></span><div><span class="ps-login-kicker">Pool Bros</span><strong>THE POOL SHED</strong></div></div><div class="ps-login-hero"><span class="ps-login-kicker">Operations Command System</span><h1>One secure place to <span>run the operation.</span></h1><p>Secure access to the Pool Bros operations workspace. Sign in to continue to your authorised tools, tasks and information.</p></div></div><div class="ps-login-staff-note"><strong>Pool Bros staff access</strong><span>Your workspace and available tools are tailored to your account after sign-in.</span></div></aside><section class="ps-login-auth"><div class="ps-login-card"><div class="ps-login-card-head"><span class="ps-login-kicker">' + escapeHtml(meta.eyebrow) + '</span><h2>' + escapeHtml(meta.heading) + '</h2><p>' + escapeHtml(meta.intro) + '</p></div><form id="loginForm">' + fields + '<div id="loginMessage" class="ps-login-message' + (good ? ' good' : '') + '">' + escapeHtml(message || '') + '</div></form><div class="ps-login-helper">' + helper + '</div></div></section></section><footer class="ps-login-footer">Pool Shed v1.49.0 · Pool Bros Ltd</footer></main>';
         bindLoginScreen(effectiveMode);
       }
 
@@ -16556,5 +16766,5 @@ const seed = {
       window.addEventListener("load", function() {
         updateOfflineStatus();
         syncPendingOfflineData();
-        if ("serviceWorker" in navigator && location.protocol !== "file:") navigator.serviceWorker.register("./service-worker.js?v=1.48.0", { updateViaCache:"none" }).catch(function() {});
+        if ("serviceWorker" in navigator && location.protocol !== "file:") navigator.serviceWorker.register("./service-worker.js?v=1.49.0", { updateViaCache:"none" }).catch(function() {});
       });

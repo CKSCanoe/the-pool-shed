@@ -1,6 +1,6 @@
 # Phase 3 plan — from one shared document to per-record storage
 
-Status: **approved 20 Nov 2026** · 3.1 built and tested on staging · written 20 Nov 2026 · nothing in this plan has been built yet.
+Status: **approved 20 Nov 2026** · 3.1 live (mirror paused) · 3.2 + 3.3 built and tested on staging, released together as v1.49.0 · written 20 Nov 2026 · nothing in this plan has been built yet.
 
 Bound by the continuity promise (master guide §1): this is an upgrade of the existing system. Every record already entered stays in the app, in its usual place, at every step. No step starts from an empty database or asks staff to re-enter anything.
 
