@@ -36,4 +36,15 @@ end $$;
 revoke all on function public.ps_fleet_media_allowed(text,uuid,text) from public, anon;
 grant execute on function public.ps_fleet_media_allowed(text,uuid,text) to authenticated;
 
+-- The supplies list for a van (managers, or the van's engineer). Read-only: never starts a report.
+create or replace function public.ps_fleet_van_kit(w text, van uuid)
+returns table(item text, target_qty numeric, product_id text, sort integer)
+language plpgsql stable security definer set search_path=public as $$
+begin
+  if not ps_fleet_can_report(w, van) then raise exception 'You can only see the van assigned to you'; end if;
+  return query select k.item, k.target_qty, k.product_id, k.sort from ps_van_kit k where k.van_id = van order by k.sort, k.item;
+end $$;
+revoke all on function public.ps_fleet_van_kit(text,uuid) from public, anon;
+grant execute on function public.ps_fleet_van_kit(text,uuid) to authenticated;
+
 commit;

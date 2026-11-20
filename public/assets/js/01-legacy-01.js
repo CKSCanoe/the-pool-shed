@@ -91,6 +91,7 @@ const seed = {
         { id: "locations", label: "Inventory", title: "Inventory Tracker", intro: "Traffic-light stock by product, location, value, allocation and restock thresholds." },
         { id: "purchase", label: "Purchasing", title: "Purchasing and Forecasting", intro: "Purchase orders, supplier backorders, linked SO allocation and reorder suggestions." },
         { id: "warehouse", label: "Warehouse", title: "Warehouse Operations", intro: "Goods-in, QC, label printing, guided putaway, transfers, returns and stock counts." },
+        { id: "fleet", label: "Vans & Fleet", title: "Vans & Fleet", intro: "Vans, MOT, tax and insurance, monthly van reports with photos and sign-off, damage and van supplies." },
         { id: "fulfilment", label: "Fulfilment", title: "Print, Pick, Pack & Ship", intro: "Print picking lists first, then pick, pack and dispatch with full stock and courier history." },
         { id: "accounting", label: "Accounting", title: "Retail Accounting", intro: "Stock valuation, COGS, invoice-ready orders, Xero refs and supplier bill control." },
         { id: "analytics", label: "Analytics", title: "Data Insights", intro: "Retail analytics, stock value, margins, stock ageing, supplier and fulfilment performance." },
@@ -2957,7 +2958,7 @@ const seed = {
           : effectiveMode === "mfa"
             ? '<button class="ps-login-link" type="button" data-login-cancel-mfa>Use a different account</button><span>Authenticator verification</span>'
             : effectiveMode === "denied" || effectiveMode === "workspace" ? '<span></span>' : '<button class="ps-login-link" type="button" data-login-mode="login">Back to sign in</button><span></span>';
-        screen.innerHTML = '<main class="ps-login-stage"><section class="ps-login-shell"><aside class="ps-login-brand"><div><div class="ps-login-lockup"><span class="ps-login-logo"><img src="' + DEFAULT_POOL_BROS_LOGO + '" alt="Pool Bros logo"></span><div><span class="ps-login-kicker">Pool Bros</span><strong>THE POOL SHED</strong></div></div><div class="ps-login-hero"><span class="ps-login-kicker">Operations Command System</span><h1>One secure place to <span>run the operation.</span></h1><p>Secure access to the Pool Bros operations workspace. Sign in to continue to your authorised tools, tasks and information.</p></div></div><div class="ps-login-staff-note"><strong>Pool Bros staff access</strong><span>Your workspace and available tools are tailored to your account after sign-in.</span></div></aside><section class="ps-login-auth"><div class="ps-login-card"><div class="ps-login-card-head"><span class="ps-login-kicker">' + escapeHtml(meta.eyebrow) + '</span><h2>' + escapeHtml(meta.heading) + '</h2><p>' + escapeHtml(meta.intro) + '</p></div><form id="loginForm">' + fields + '<div id="loginMessage" class="ps-login-message' + (good ? ' good' : '') + '">' + escapeHtml(message || '') + '</div></form><div class="ps-login-helper">' + helper + '</div></div></section></section><footer class="ps-login-footer">Pool Shed v1.51.0 · Pool Bros Ltd</footer></main>';
+        screen.innerHTML = '<main class="ps-login-stage"><section class="ps-login-shell"><aside class="ps-login-brand"><div><div class="ps-login-lockup"><span class="ps-login-logo"><img src="' + DEFAULT_POOL_BROS_LOGO + '" alt="Pool Bros logo"></span><div><span class="ps-login-kicker">Pool Bros</span><strong>THE POOL SHED</strong></div></div><div class="ps-login-hero"><span class="ps-login-kicker">Operations Command System</span><h1>One secure place to <span>run the operation.</span></h1><p>Secure access to the Pool Bros operations workspace. Sign in to continue to your authorised tools, tasks and information.</p></div></div><div class="ps-login-staff-note"><strong>Pool Bros staff access</strong><span>Your workspace and available tools are tailored to your account after sign-in.</span></div></aside><section class="ps-login-auth"><div class="ps-login-card"><div class="ps-login-card-head"><span class="ps-login-kicker">' + escapeHtml(meta.eyebrow) + '</span><h2>' + escapeHtml(meta.heading) + '</h2><p>' + escapeHtml(meta.intro) + '</p></div><form id="loginForm">' + fields + '<div id="loginMessage" class="ps-login-message' + (good ? ' good' : '') + '">' + escapeHtml(message || '') + '</div></form><div class="ps-login-helper">' + helper + '</div></div></section></section><footer class="ps-login-footer">Pool Shed v1.52.0 · Pool Bros Ltd</footer></main>';
         bindLoginScreen(effectiveMode);
       }
 
@@ -3231,6 +3232,7 @@ const seed = {
         if (active === "audits") return renderCommercialAudits();
         if (active === "analytics") return renderAnalytics();
         if (active === "automation") return renderAutomation();
+        if (active === "fleet") return window.PoolShedFleetUI ? window.PoolShedFleetUI.render() : '<section class="panel"><p>Loading Vans & Fleet…</p></section>';
         if (active === "accounting") return renderAccounting();
         if (active === "settings") return renderSettings();
         if (active === "barcodes") return renderBarcodes();
@@ -16828,5 +16830,5 @@ const seed = {
       window.addEventListener("load", function() {
         updateOfflineStatus();
         syncPendingOfflineData();
-        if ("serviceWorker" in navigator && location.protocol !== "file:") navigator.serviceWorker.register("./service-worker.js?v=1.51.0", { updateViaCache:"none" }).catch(function() {});
+        if ("serviceWorker" in navigator && location.protocol !== "file:") navigator.serviceWorker.register("./service-worker.js?v=1.52.0", { updateViaCache:"none" }).catch(function() {});
       });
