@@ -25,6 +25,8 @@ function harness() {
   const store = new Map();
   const state = {
     remoteWorkspaceUpdatedAt: '2026-11-19T20:00:00Z',
+    workspaceRemoteRaw: null,
+    clone: v => JSON.parse(JSON.stringify(v)),
     workspaceSaveInFlight: false,
     workspacePollTimer: null,
     workspaceRealtimeChannel: null,

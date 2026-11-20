@@ -320,6 +320,9 @@ const seed = {
       let workspaceSaveInFlight = false;
       let sharedWorkspaceReady = false;
       let workspaceBaseSnapshot = null;
+      // v1.49: exact copy of the server data at remoteWorkspaceUpdatedAt (before normalisation), used to apply
+      // record-level changes from ps_records_changes. null means "unknown": the next refresh downloads in full.
+      let workspaceRemoteRaw = null;
       let workspaceLastLocalPayload = "";
       let workspaceDraftField = null;
       let remoteSaveTimer = null;
@@ -1100,6 +1103,7 @@ const seed = {
 
           data = normalizeAppData(merged);
           remoteWorkspaceUpdatedAt = response.data.updated_at || null;
+          workspaceRemoteRaw = response.data.data;
           workspaceBaseSnapshot = clone(remoteSnapshot);
           workspaceSyncConflict = false;
           sharedWorkspaceReady = true;
@@ -1126,8 +1130,10 @@ const seed = {
         }
       }
 
-      async function applyRemoteWorkspaceSnapshot(row, shouldRender) {
+      async function applyRemoteWorkspaceSnapshot(row, shouldRender, rawData) {
         if (!row || !row.data) return false;
+        // Keep the server's exact data before normalisation changes it in place (v1.49 delta refresh).
+        workspaceRemoteRaw = rawData || (typeof structuredClone === "function" ? structuredClone(row.data) : clone(row.data));
         data = normalizeAppData(row.data);
         remoteWorkspaceUpdatedAt = row.updated_at || null;
         // Serialize once: the same canonical JSON creates the immutable merge base
@@ -1212,6 +1218,7 @@ const seed = {
         // Preserve the local work in Recovery, then open the verified server master.
         if (pending && localBaseRevision && localBaseRevision === remoteRevision) {
           remoteWorkspaceUpdatedAt = remoteRevision;
+          workspaceRemoteRaw = response.data.data;
           workspaceBaseSnapshot = normalizeAppData(clone(response.data.data));
           if (await saveRemoteWorkspace(true)) return true;
 
@@ -1268,6 +1275,7 @@ const seed = {
           }
           if (response.error) throw response.error;
           remoteWorkspaceUpdatedAt = response.data.updated_at;
+          workspaceRemoteRaw = localSnapshot;
           sharedWorkspaceReady = true;
           window.__POOL_SHED_SHARED_READY__ = true;
           workspaceBaseSnapshot = clone(localSnapshot);
@@ -1300,6 +1308,80 @@ const seed = {
       }
 
       let workspaceRefreshInFlight = false;
+
+      // v1.49 delta refresh. Record keys must match ps_section_items() in database/015 exactly.
+      function workspaceKeyText(value) {
+        if (value === null || value === undefined) return null;
+        if (typeof value === "string") return value;
+        if (typeof value === "boolean") return String(value);
+        if (typeof value === "number" && Number.isSafeInteger(value)) return String(value);
+        throw new Error("Unsupported key value");
+      }
+      function workspaceSectionKeys(section, items) {
+        const counts = new Map();
+        return (Array.isArray(items) ? items : []).map(function(item) {
+          let key = null;
+          if (item && typeof item === "object" && !Array.isArray(item)) {
+            if (Object.prototype.hasOwnProperty.call(item, "id") && (typeof item.id === "string" || typeof item.id === "number")) key = "id:" + workspaceKeyText(item.id);
+            else if (section === "stock") key = "stock:" + (workspaceKeyText(item.productId) || "") + "|" + (workspaceKeyText(item.locationId) ?? workspaceKeyText(item.location) ?? "");
+            else {
+              const name = workspaceKeyText(item.name) ?? workspaceKeyText(item.label) ?? "";
+              if (name !== "") key = "name:" + name;
+            }
+          } else if (typeof item === "string") key = "text:" + item;
+          if (key === null) throw new Error("Record without a stable key in " + section);
+          const seen = (counts.get(key) || 0) + 1;
+          counts.set(key, seen);
+          return seen === 1 ? key : key + "#" + seen;
+        });
+      }
+      async function workspaceSha256Hex(text) {
+        const bytes = await crypto.subtle.digest("SHA-256", new TextEncoder().encode(text));
+        return Array.from(new Uint8Array(bytes)).map(function(b) { return b.toString(16).padStart(2, "0"); }).join("");
+      }
+      // Applies a ps_records_changes result to the exact server copy. Never mutates `raw`.
+      // Throws if anything does not line up; the caller then falls back to a full download.
+      async function applyWorkspaceDelta(raw, delta) {
+        const out = Object.assign({}, raw);
+        for (const part of delta.sections || []) {
+          const section = part.s;
+          if (part.kind === "settings") { out[section] = part.data; continue; }
+          if (part.kind === "absent") { delete out[section]; continue; }
+          if (part.kind !== "list") throw new Error("Unknown section kind");
+          const base = Array.isArray(raw[section]) ? raw[section] : [];
+          const baseKeys = workspaceSectionKeys(section, base);
+          const byKey = new Map(baseKeys.map(function(key, index) { return [key, base[index]]; }));
+          (part.records || []).forEach(function(pair) { byKey.set(pair[0], pair[1]); });
+          const order = Array.isArray(part.keys) ? part.keys : baseKeys;
+          const next = order.map(function(key) {
+            if (!byKey.has(key)) throw new Error("Missing record " + key + " in " + section);
+            return byKey.get(key);
+          });
+          if (!Array.isArray(part.keys) && (part.records || []).some(function(pair) { return baseKeys.indexOf(pair[0]) < 0; })) {
+            throw new Error("New record without a key list in " + section);
+          }
+          const check = await workspaceSha256Hex(workspaceSectionKeys(section, next).join("\n"));
+          if (check !== part.keys_sha) throw new Error("Record order check failed in " + section);
+          out[section] = next;
+        }
+        return out;
+      }
+      async function refreshSharedWorkspaceByDelta() {
+        if (!workspaceRemoteRaw || !remoteWorkspaceUpdatedAt || typeof supabaseClient.rpc !== "function") return null;
+        if (!(window.crypto && crypto.subtle)) return null;
+        try {
+          const feed = await supabaseClient.rpc("ps_records_changes", { w: WORKSPACE_ID, since: remoteWorkspaceUpdatedAt });
+          if (feed.error || !feed.data || feed.data.full) return null;
+          if (feed.data.unchanged) return false;
+          if (workspaceFieldIsBeingEdited() || workspaceSaveInFlight || localStorage.getItem("poolshed:v172:pendingSync") === "1") return false;
+          const rebuilt = await applyWorkspaceDelta(workspaceRemoteRaw, feed.data);
+          await applyRemoteWorkspaceSnapshot({ data: clone(rebuilt), updated_at: feed.data.updated_at }, true, rebuilt);
+          return true;
+        } catch (error) {
+          console.warn("Delta refresh fell back to a full download", error);
+          return null;
+        }
+      }
       async function refreshSharedWorkspaceFromRemote(options) {
         // v1.48: tab focus, the online event and the timer can fire together; only one refresh may run.
         if (workspaceRefreshInFlight) return false;
@@ -1323,6 +1405,10 @@ const seed = {
             return false;
           }
           if (workspaceFieldIsBeingEdited() || workspaceSaveInFlight || localStorage.getItem("poolshed:v172:pendingSync") === "1") return false;
+          // v1.49: ask for only the records that changed. null = feed unavailable, so download in full as before.
+          const delta = await refreshSharedWorkspaceByDelta();
+          if (delta === true) { if (!opts.silent) toast("Latest shared workspace loaded."); return true; }
+          if (delta === false) return false;
           const response = await supabaseClient.from("workspace_snapshots").select("data,updated_at").eq("workspace_id", WORKSPACE_ID).maybeSingle();
           if (response.error) throw response.error;
           const row = response.data;
@@ -1435,6 +1521,7 @@ const seed = {
           const base = await readOfflineSnapshot("shared-base");
           workspaceBaseSnapshot = base && base.data ? normalizeAppData(base.data) : null;
           remoteWorkspaceUpdatedAt = localStorage.getItem("poolshed:v172:remoteRevision") || null;
+          workspaceRemoteRaw = null;
           if (isAuthenticated) render();
           return true;
         }
@@ -2691,7 +2778,7 @@ const seed = {
           : effectiveMode === "mfa"
             ? '<button class="ps-login-link" type="button" data-login-cancel-mfa>Use a different account</button><span>Authenticator verification</span>'
             : effectiveMode === "denied" || effectiveMode === "workspace" ? '<span></span>' : '<button class="ps-login-link" type="button" data-login-mode="login">Back to sign in</button><span></span>';
-        screen.innerHTML = '<main class="ps-login-stage"><section class="ps-login-shell"><aside class="ps-login-brand"><div><div class="ps-login-lockup"><span class="ps-login-logo"><img src="' + DEFAULT_POOL_BROS_LOGO + '" alt="Pool Bros logo"></span><div><span class="ps-login-kicker">Pool Bros</span><strong>THE POOL SHED</strong></div></div><div class="ps-login-hero"><span class="ps-login-kicker">Operations Command System</span><h1>One secure place to <span>run the operation.</span></h1><p>Secure access to the Pool Bros operations workspace. Sign in to continue to your authorised tools, tasks and information.</p></div></div><div class="ps-login-staff-note"><strong>Pool Bros staff access</strong><span>Your workspace and available tools are tailored to your account after sign-in.</span></div></aside><section class="ps-login-auth"><div class="ps-login-card"><div class="ps-login-card-head"><span class="ps-login-kicker">' + escapeHtml(meta.eyebrow) + '</span><h2>' + escapeHtml(meta.heading) + '</h2><p>' + escapeHtml(meta.intro) + '</p></div><form id="loginForm">' + fields + '<div id="loginMessage" class="ps-login-message' + (good ? ' good' : '') + '">' + escapeHtml(message || '') + '</div></form><div class="ps-login-helper">' + helper + '</div></div></section></section><footer class="ps-login-footer">Pool Shed v1.48.0 · Pool Bros Ltd</footer></main>';
+        screen.innerHTML = '<main class="ps-login-stage"><section class="ps-login-shell"><aside class="ps-login-brand"><div><div class="ps-login-lockup"><span class="ps-login-logo"><img src="' + DEFAULT_POOL_BROS_LOGO + '" alt="Pool Bros logo"></span><div><span class="ps-login-kicker">Pool Bros</span><strong>THE POOL SHED</strong></div></div><div class="ps-login-hero"><span class="ps-login-kicker">Operations Command System</span><h1>One secure place to <span>run the operation.</span></h1><p>Secure access to the Pool Bros operations workspace. Sign in to continue to your authorised tools, tasks and information.</p></div></div><div class="ps-login-staff-note"><strong>Pool Bros staff access</strong><span>Your workspace and available tools are tailored to your account after sign-in.</span></div></aside><section class="ps-login-auth"><div class="ps-login-card"><div class="ps-login-card-head"><span class="ps-login-kicker">' + escapeHtml(meta.eyebrow) + '</span><h2>' + escapeHtml(meta.heading) + '</h2><p>' + escapeHtml(meta.intro) + '</p></div><form id="loginForm">' + fields + '<div id="loginMessage" class="ps-login-message' + (good ? ' good' : '') + '">' + escapeHtml(message || '') + '</div></form><div class="ps-login-helper">' + helper + '</div></div></section></section><footer class="ps-login-footer">Pool Shed v1.49.0 · Pool Bros Ltd</footer></main>';
         bindLoginScreen(effectiveMode);
       }
 
@@ -16556,5 +16643,5 @@ const seed = {
       window.addEventListener("load", function() {
         updateOfflineStatus();
         syncPendingOfflineData();
-        if ("serviceWorker" in navigator && location.protocol !== "file:") navigator.serviceWorker.register("./service-worker.js?v=1.48.0", { updateViaCache:"none" }).catch(function() {});
+        if ("serviceWorker" in navigator && location.protocol !== "file:") navigator.serviceWorker.register("./service-worker.js?v=1.49.0", { updateViaCache:"none" }).catch(function() {});
       });

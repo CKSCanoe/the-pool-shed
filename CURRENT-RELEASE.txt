@@ -1,3 +1,7 @@
+Pool Shed v1.49.0 - open tabs fetch only what changed
+
+When someone saves, other open tabs now download only the records that changed (typically 1-10 KB) instead of the whole 7 MB workspace. If anything does not line up, the tab downloads in full exactly as before. Also fixes false "Another user saved first" messages after two quick edits by the same person: the saved revision stamp now matches the one returned to the app.
+
 Pool Shed v1.48.0 - Supabase egress fix and lighter start-up
 
 Shared-workspace sync now checks only the tiny revision stamp every 8 seconds while the tab is visible, and downloads the workspace only when another user has saved. Hidden tabs make no requests; returning to a tab checks immediately.
