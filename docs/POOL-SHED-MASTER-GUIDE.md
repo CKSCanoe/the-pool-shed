@@ -29,6 +29,14 @@ Feature status words, used exactly and never mixed: **Working · Repaired · New
 4. **Behaviour, not text.** A feature is done when a test proves the behaviour (data saved, permission enforced, totals reconcile), not when a string exists in a file or a build passes.
 5. **Say exactly what is true.** "Deployed" is not "verified". "Code exists" is not "working". Integrations (Xero, email, Azzy) are only called live when shown working with real authorised records.
 
+### The continuity promise (owner's requirement, 20 Nov 2026)
+
+This is an upgrade of the existing system, **not a new system**. Every record staff have entered (customers, products, suppliers, sales and purchase orders, payments, stock and goods-in history, jobs, quotes, audits, notes) stays in the app and appears in its usual place after every phase. Concretely:
+- No phase starts from an empty database or asks staff to re-enter anything.
+- Every phase ends with `node scripts/phase0/continuity-check.mjs <previous snapshot> <current snapshot>`. It must print `PASS · every earlier record is still present`. New records and normal staff edits are allowed and listed; a missing record blocks the release until it is explained.
+- When data moves to new tables (Phase 3), the old snapshot stays as a read-only archive, and the screens are checked to show the same records with the same totals before the switch.
+- Only duplicate **safety copies** (old workspace revisions) are ever pruned, and only after a verified backup that contains them.
+
 ---
 
 ## 2. What Pool Shed actually is [Verified]
@@ -82,7 +90,7 @@ At the same time, a realtime subscription (`:1341`) on the same row pushes the f
 
 `database/002:23–34`. The read policy on `workspace_snapshots` checks only workspace membership. Any member (engineer included) downloads the full JSON, including supplier costs, margins, customer finances and supplier payments, and can see it in the browser's network tab. Role permissions only hide screens. This breaks the guide's own rule 16.
 
-**Fix path:** Phase 2 moves sensitive data (costs, margins, finance) behind role-checked server functions. Phase 3 completes it with per-table row-level security.
+**Fix path (revised 20 Nov 2026):** done in Phase 3 with per-table row-level security. Stripping fields from the single shared document (the original Phase 2 idea) is unsafe: an engineer's save would write the stripped copy back. Live has only Admin users today, so nobody is exposed; **do not issue Engineer accounts to people who must not see costs until Phase 3.**
 
 ### F4. One document means multi-user saves collide [Verified] — High
 
@@ -130,7 +138,7 @@ This is the root of the historic "lost changes / refresh data loss" reports. The
 
 ### F10. Live database is behind the code [Verified] — High
 
-The live `ps_workspace_save` is the pre-013 version. It has no "refuse to erase all customers/products" safety lock and no inactive-user block, and the `ps_workspace_revisions` index is missing. The realtime publication is empty. Applying migration 013 is a Phase 2 task, tested on staging first.
+The live `ps_workspace_save` is the pre-013 version. It has no "refuse to erase all customers/products" safety lock and no inactive-user block, and the `ps_workspace_revisions` index is missing. The realtime publication is empty. Phase 2 replaces 013 with `014`, which keeps the safety rules but leaves realtime off (v1.48 egress fix). Tested on staging 20 Nov 2026.
 
 ### F9. What is already good [Verified]
 
@@ -197,7 +205,7 @@ The pattern for each module (customers → products → suppliers → stock ledg
 3. **Dual-write:** the app writes both the snapshot and the table; a nightly job compares them and reports any difference.
 4. **Switch reads** to the table for that module only (paginated, searched server-side).
 5. After 2 clean weeks, **stop writing** that section to the snapshot. The snapshot stays as a read-only archive. Nothing is deleted.
-- **Proof per module:** fingerprint match, concurrency test (two users edit different records and both survive), permission test, reload test.
+- **Proof per module:** continuity check PASS (every existing record present), fingerprint match, concurrency test (two users edit different records and both survive), permission test, reload test.
 - **Rollback per module:** flip reads back to the snapshot, which dual-write kept current.
 
 ### Phase 4 — The new interface ("Deep End" design)

@@ -53,6 +53,22 @@ Note: the older per-entity tables (`customers`, `products`, `sales_orders`, `sto
 | 1.8a | Daily duplicate stock-count reminders forcing a full save | **Repaired · Tested on staging** | 45 duplicates in live data; key no longer includes the day |
 | 1.8b | Simultaneous refresh triggers downloading 2–3 times | **Repaired · Tested on staging** | single in-flight lock |
 | 1.8c | Committed `dist/` folder on GitHub is stale (older than `public/`); Vercel rebuilds it on deploy, so it is unused | **Outstanding** · remove from git in Phase 2 | found 20 Nov 2026 |
-| 1.9 | Deploy to production and measure Supabase egress for 48 h | **Outstanding** · after 1.8 | — |
+| 1.9 | Deploy to production and measure Supabase egress for 48 h | **Deployed 20 Nov 2026** · 48 h measurement **Outstanding** | PR #46 merged (`5453909`); live serves cache `pool-shed-v1.48.0-egress-r2`, 50 KB logo and the new sync code. Baseline at 08:20 UTC (stats since 19 Nov 16:26): 835 full-snapshot downloads and 11 stamp checks. Check again on 22 Nov: full downloads should grow only when someone saves; the stamp checks take over. |
 
 Measured on live data (read-only): one old check = 7.07 MB (0.49 MB gzip); one new check = 51 bytes. The 11.51 GB overage ≈ 34 tab-hours of the old poll.
+
+---
+
+## Phase 2 · Database safety and size · branch `phase-2-db-safety` · 20 Nov 2026
+
+| # | Change | Status | Evidence |
+|---|---|---|---|
+| 2.1 | Migration `014` replaces the never-applied `013`: keeps its safety rules (active-staff check, refuse to erase an established list, revisions index), **without** turning realtime back on | **New · Tested on staging** | `scripts/phase2/test-014-staging.sql`, run as a real staff account, every case rolled back: normal save, new customer and reordered receipts accepted; erase all customers, changed or removed receipt, duplicate receipt id, negative stock refused; stale save returns a conflict for the app to merge |
+| 2.2 | Goods-in history check by hash instead of comparing every entry with every other (F5) | **New · Tested on staging** | 5,000 entries: old check 26.6 s (saves would time out), new 0.08 s. Today's data: 0.24 s. Normal save 0.85 s |
+| 2.3 | Revision retention (F2): keep the newest 20, everything from 7 days, one a day to 90 days, one a month after; runs on the first save of each day | **New · Tested on staging** | Staging: 315 → 40 copies (oldest still 27 Sep); database 225 MB → **49 MB** after `VACUUM FULL`. One-off first run 11.6 s + 7.5 s vacuum, so on live it runs by hand at a quiet time |
+| 2.4 | Rollback | **Ready** | `database/014-rollback.sql`, captured from live before any change |
+| 2.5 | Hide costs and margins from Engineer accounts (F3) | **Deferred to Phase 3**, by decision | Live has 4 users, all Admin; nobody is exposed today. Stripping fields from one shared document is risky: an engineer's save would write the stripped copy back and could erase costs. Per-table security in Phase 3 does it properly. Until then: **do not give Engineer accounts to anyone who must not see costs** |
+| 2.6 | `dist/` no longer tracked in git (121 stale files) | **Done** | `scripts/build.sh` deletes and rebuilds it; Vercel builds on deploy |
+| 2.7 | Build-gate guard for 014 (no realtime, both save paths validated, prune staff-proof) | **New · Tested locally** | `scripts/test-migration-014.mjs` |
+| 2.8 | Apply 014 to live, run the first clean-up, measure | **Deployed · Verified in production** 20 Nov 2026, 09:15 UTC | Pre-checks: live functions identical to the rollback capture; every pruned copy predates 12 Nov, so all are in the 19 Nov pg_dump. Applied with no errors; 4 Admin memberships unchanged; realtime still off. Clean-up: 315 → 40 copies (oldest 27 Sep) in 23.9 s, `VACUUM FULL` 8.8 s. **Database 230 MB → 51 MB.** Snapshot identical before and after (same md5 and counts). Rolled-back test save as a real admin: 0.99 s, accepted; rolled-back wipe of all products: refused by the safety lock. Daily retention now runs on the first save of each day. |
+| 2.9 | Continuity check: every record from the 19 Nov backup still present on live | **PASS** 20 Nov 2026 | New `scripts/phase0/continuity-check.mjs` (allows new records and edits, fails on any missing record; tested against a copy with one customer removed). Live vs 19 Nov backup: 27 sections, 0 missing, including all customers, products, sales and purchase orders, receipts and audit history |
