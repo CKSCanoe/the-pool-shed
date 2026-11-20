@@ -10,7 +10,10 @@ import { loadEnv } from '../phase0/lib.mjs';
 
 loadEnv();
 const url = process.env.STAGING_SUPABASE_DB_URL || '';
-if (!url.includes('rcmbqegxardafopurwdu') || url.includes('bbbqwalsaikxoirczpng')) throw new Error('Refusing: staging only');
+// Project refs come from the private .env.phase0.local, so they never appear in this public repository.
+const refOf = u => (String(u || '').match(/https:\/\/([a-z0-9]+)\.supabase\.co/) || [])[1];
+const stagingRef = refOf(process.env.STAGING_SUPABASE_URL), liveRef = refOf(process.env.SUPABASE_URL);
+if (!stagingRef || !liveRef || stagingRef === liveRef || !url.includes(stagingRef) || url.includes(liveRef)) throw new Error('Refusing: staging only');
 const AS_STAFF = "select set_config('request.jwt.claims', json_build_object('sub',(select user_id from ps_workspace_members where role='admin' limit 1),'role','authenticated')::text, false);";
 const sql = q => execFileSync('/opt/homebrew/opt/libpq/bin/psql', [url, '-X', '-q', '-A', '-t', '-v', 'ON_ERROR_STOP=1', '-c', AS_STAFF, '-c', q], { encoding: 'utf8', maxBuffer: 1 << 28 })
   .split('\n').filter(l => l.trim() && !l.startsWith('{"sub"')).join('\n');
