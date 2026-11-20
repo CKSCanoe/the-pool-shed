@@ -72,3 +72,17 @@ Measured on live data (read-only): one old check = 7.07 MB (0.49 MB gzip); one n
 | 2.7 | Build-gate guard for 014 (no realtime, both save paths validated, prune staff-proof) | **New · Tested locally** | `scripts/test-migration-014.mjs` |
 | 2.8 | Apply 014 to live, run the first clean-up, measure | **Deployed · Verified in production** 20 Nov 2026, 09:15 UTC | Pre-checks: live functions identical to the rollback capture; every pruned copy predates 12 Nov, so all are in the 19 Nov pg_dump. Applied with no errors; 4 Admin memberships unchanged; realtime still off. Clean-up: 315 → 40 copies (oldest 27 Sep) in 23.9 s, `VACUUM FULL` 8.8 s. **Database 230 MB → 51 MB.** Snapshot identical before and after (same md5 and counts). Rolled-back test save as a real admin: 0.99 s, accepted; rolled-back wipe of all products: refused by the safety lock. Daily retention now runs on the first save of each day. |
 | 2.9 | Continuity check: every record from the 19 Nov backup still present on live | **PASS** 20 Nov 2026 | New `scripts/phase0/continuity-check.mjs` (allows new records and edits, fails on any missing record; tested against a copy with one customer removed). Live vs 19 Nov backup: 27 sections, 0 missing, including all customers, products, sales and purchase orders, receipts and audit history |
+
+---
+
+## Phase 3.1 · Per-record shadow store · migration `015` · 20 Nov 2026
+
+| # | Change | Status | Evidence |
+|---|---|---|---|
+| 3.1a | `ps_records` (each record stored exactly as written), `ps_settings`, per-record `ps_record_history`, `ps_record_sync_issues`; service role only | **New · Tested on staging** | Backfill: 14,443 records + 9 settings in 2.9 s; `ps_records_verify` ok on all 48 sections (same records, content and order) |
+| 3.1b | Trigger mirrors every save from every path, writing only changed records | **New · Tested on staging** | `scripts/phase3/test-015-staging.sql`, rolled back: edit, delete, add, reorder, setting change, id-less stock and supplier edits, Quote Studio path. History correct (one row per real change; none for reorders), versions increment, verify ok after each |
+| 3.1c | A broken mirror never blocks a save | **Tested on staging** | Record table hidden mid-test: save succeeded, problem logged |
+| 3.1d | Cost per save | **Measured** | Mirror step alone: ~0.2 s with nothing changed, ~0.25 s for a customer edit, ~0.45 s for a product edit (saves run in the background) |
+| 3.1e | Server functions read single records | **Moved** to 3.2 (project tools) and Phase 7 (Azzy) | See PHASE-3-PLAN.md §3.1 |
+| 3.1f | Build-gate guard | **New · Tested locally** | `scripts/test-migration-015.mjs` |
+| 3.1g | Apply to live | **Outstanding** · needs owner approval | — |

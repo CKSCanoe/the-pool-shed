@@ -1,6 +1,6 @@
 # Phase 3 plan — from one shared document to per-record storage
 
-Status: **proposal for owner approval** · written 20 Nov 2026 · nothing in this plan has been built yet.
+Status: **approved 20 Nov 2026** · 3.1 built and tested on staging · written 20 Nov 2026 · nothing in this plan has been built yet.
 
 Bound by the continuity promise (master guide §1): this is an upgrade of the existing system. Every record already entered stays in the app, in its usual place, at every step. No step starts from an empty database or asks staff to re-enter anything.
 
@@ -54,8 +54,8 @@ Each step is built and proven on staging (with a fresh copy of live) first. Each
 ### 3.1 Shadow store (no app change) — low risk
 - Create `ps_records`, `ps_record_history` and `ps_settings`, then backfill them from the live snapshot in one transaction.
 - A database trigger on `workspace_snapshots` keeps them in step on **every** save, from every path: the staff app, Quote Studio and recovery tools. It compares section hashes first, so unchanged sections (for example 13,586 product rows) cost almost nothing. Only changed records are written, and each change is added to history.
-- A built-in self-check: after each save, record counts and hashes must match the snapshot, or the save is refused (with an alert), never silently diverged.
-- Move the 9 server functions to read single records (`ps_records`) instead of the 7 MB document. This fixes Azzy timeouts and server-side data use.
+- A built-in self-check: `ps_records_verify()` proves every record and setting equals the snapshot, in the same order. **Revised:** a mirror problem never blocks a staff save. It is logged to `ps_record_sync_issues` instead, because in 3.1 the snapshot is still the source of truth.
+- ~~Move the 9 server functions to read single records.~~ **Revised 20 Nov 2026 after reading them:** the recovery, audit and health tools genuinely need the whole business and run rarely. Azzy answers questions about anything, so it needs per-question lookups (Phase 7), not a swapped source. Project review and extra-email need linked orders and costs across several sections and run a few times a day. These move to 3.2, which adds a "fetch these sections" read anyway. Swapping them now would add risk for little gain.
 - **Proof:** record-by-record equality with the snapshot after a week of normal use; Azzy, quote and project-email answers identical before and after.
 - **Rollback:** drop the trigger. The snapshot is untouched and still the source of truth.
 
