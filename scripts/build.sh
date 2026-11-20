@@ -40,6 +40,7 @@ run_node_stage "workspace and sales safety" \
   test-xero-ledger-push-v151.mjs \
   test-xero-handoff-ui-v151.mjs \
   test-migration-026.mjs \
+  test-fleet-media-v152.mjs \
   test-workspace-audit-v1451.mjs \
   test-commercial-audits-v146.mjs \
   test-audit-device-recovery.mjs \
