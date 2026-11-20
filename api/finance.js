@@ -1,5 +1,5 @@
 import {randomUUID,randomBytes} from 'node:crypto';
-import {hash,seal,unseal,validSignature,validateInvoice,db,eq,audit,tokenRequest,xero,applyRemote,XERO_SCOPES,xeroIntegrationReadiness,requireXeroLive} from '../server/accounting.js';
+import {hash,seal,unseal,validSignature,validateInvoice,db,eq,audit,tokenRequest,xero,applyRemote,XERO_SCOPES,xeroIntegrationReadiness,requireXeroLive} from '../server/accounting.js';import {pushLedgerOutbox} from '../server/xero-ledger-push.js';
 import {supabaseServerKey} from '../server/supabase-keys.js';
 import {appOriginAllowed} from '../server/origin-policy.js';
 export const config={api:{bodyParser:false},maxDuration:60};
@@ -87,7 +87,12 @@ export default async function handler(req,res){
    if(req.headers.authorization!=='Bearer '+process.env.CRON_SECRET)return send(res,401,{error:'Unauthorised'});
    // One workspace per invocation; configure a schedule per deployment.
    const w=process.env.FINANCE_WORKSPACE_ID||'pool-bros-main';
-   try{return send(res,200,await worker(w));}catch(e){await db('ps_finance_connections?workspace_id=eq.'+eq(w),{method:'PATCH',body:{last_error:e.message}});throw e;}
+   try{
+    const documents=await worker(w);
+    // v1.51: posted ledger bills and payments (only when the 'xero_push' switch is on; this cron path already requires the Xero live lock).
+    const ledger=await withConnection(w,c=>pushLedgerOutbox(w,c,{db,xero}));
+    return send(res,200,{...documents,ledger});
+   }catch(e){await db('ps_finance_connections?workspace_id=eq.'+eq(w),{method:'PATCH',body:{last_error:e.message}});throw e;}
   }
   const write=req.method==='POST';if(!['GET','POST'].includes(req.method))return send(res,405,{error:'Unsupported method'});
   if(write&&!appOriginAllowed(req,process.env))return send(res,403,{error:'Invalid origin'});
