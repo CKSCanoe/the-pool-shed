@@ -5,7 +5,7 @@ function save(){try{if(typeof global.saveAppData==='function')global.saveAppData
 function users(){try{if(typeof global.__POOL_SHED_ALL_USERS__==='function')return global.__POOL_SHED_ALL_USERS__()||[];}catch(_){}try{return JSON.parse(global.localStorage&&global.localStorage.getItem('poolshed:v169:users')||'[]')||[];}catch(_){return [];}}
 function current(){try{return global.__POOL_SHED_CURRENT_USER__?global.__POOL_SHED_CURRENT_USER__():users()[0]||null;}catch(_){return users()[0]||null;}}
 function roleId(role){try{if(global.PoolShedIdentity&&typeof global.PoolShedIdentity.normalizeRole==='function')return global.PoolShedIdentity.normalizeRole(role);}catch(_){}const r=String(role||'Office');if(r==='User')return 'Office';return ROLE_IDS.includes(r)?r:'Office';}
-const MODULES=['dashboard','mywork','crm','audits','jobs','salesorders','quotes','products','locations','purchase','warehouse','fulfilment','accounting','analytics','automation','settings'];
+const MODULES=['dashboard','mywork','crm','audits','jobs','salesorders','quotes','products','locations','purchase','warehouse','fleet','fulfilment','accounting','analytics','automation','settings'];
 const OPS=['view','create','edit','delete','export','approve','override','configure','fullSystemExport'];
 const ROLE_IDS=['Admin','Management','Accounts','Sales','Purchasing','Warehouse','Engineer','Office'];
 const ROLE_LABELS={Admin:'Admin',Management:'Management',Accounts:'Accounts',Sales:'Sales',Purchasing:'Purchasing',Warehouse:'Warehouse',Engineer:'Engineer',Office:'Office'};
@@ -20,6 +20,8 @@ function baseRoleMatrix(){
  const engineer={dashboard:perm(true),crm:perm(false),audits:perm(true,true,true,false,true),jobs:perm(true,false,true),salesorders:perm(false),quotes:perm(false),products:perm(false),locations:perm(true,false,false),purchase:perm(false),warehouse:perm(true,false,false),fulfilment:perm(true,false,false),accounting:perm(false),analytics:perm(false),automation:perm(true,false,false),settings:perm(true)};
  const office={dashboard:perm(true),crm:perm(true,true,true,false,true),audits:perm(true,true,true,false,true),jobs:perm(true,true,true,false,true),salesorders:perm(true,true,true,false,true),quotes:perm(true,true,true,false,true,false),products:perm(true),locations:perm(true),purchase:perm(true,false,false),warehouse:perm(true,false,false),fulfilment:perm(true,false,false),accounting:perm(false),analytics:perm(true,false,false,false,true),automation:perm(true,false,false),settings:perm(true)};
  accounts.mywork=perm(true,true,true,false,true,true);sales.mywork=perm(true,true,true,false,true,true);purchasing.mywork=perm(true,true,true,false,true,true);warehouse.mywork=perm(true,true,true,false,true,true);engineer.mywork=perm(true,true,true,false,true,false);office.mywork=perm(true,true,true,false,true,false);
+ // Vans & Fleet: everyone may open it; the database shows managers every van and everyone else only the van assigned to them.
+ [accounts,sales,purchasing,warehouse,engineer,office].forEach(function(r){r.fleet=perm(true,true,true,false,false);});
  return {Admin:all,Management:management,Accounts:accounts,Sales:sales,Purchasing:purchasing,Warehouse:warehouse,Engineer:engineer,Office:office};
 }
 const DEFAULT_FINANCE={

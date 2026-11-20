@@ -1,5 +1,5 @@
 import {db,eq,audit} from '../server/accounting.js';
-import {uploadBusinessMedia,listBusinessMedia,signBusinessMedia,signFinanceMedia,archiveBusinessMedia,parseMediaRef} from '../server/business-media.js';
+import {uploadBusinessMedia,listBusinessMedia,signBusinessMedia,signFinanceMedia,fleetMediaRows,signFleetRows,archiveBusinessMedia,parseMediaRef} from '../server/business-media.js';
 import {supabaseServerKey} from '../server/supabase-keys.js';
 import {appOriginAllowed} from '../server/origin-policy.js';
 export const config={api:{bodyParser:false},maxDuration:60};
@@ -9,6 +9,15 @@ async function identity(req,w,write=false){const auth=req.headers.authorization|
 const validOrigin=req=>appOriginAllowed(req,process.env);
 // v1.51: supplier invoices and receipts are finance documents: Admin, Management and Accounts only.
 const FINANCE_ROLES=new Set(['Admin','Management','Manager','Accounts']);
+// Vans & Fleet: the database decides, using the person's own sign-in (managers: any van; engineers: their own van).
+async function fleetAllowed(req,w,vanId,kind){
+  const key=supabaseServerKey(process.env);
+  const r=await fetch(process.env.SUPABASE_URL+'/rest/v1/rpc/ps_fleet_media_allowed',{method:'POST',signal:AbortSignal.timeout(10000),
+    headers:{apikey:process.env.SUPABASE_PUBLISHABLE_KEY||process.env.SUPABASE_ANON_KEY||key,Authorization:req.headers.authorization||'','Content-Type':'application/json'},
+    body:JSON.stringify({w,van:vanId,kind})});
+  if(!r.ok)return false;
+  return (await r.json())===true;
+}
 async function requireFinance(u){const [p]=await db('user_profiles?id=eq.'+eq(u.id)+'&select=role,active');if(!p||p.active===false||!FINANCE_ROLES.has(p.role))throw Object.assign(Error('Supplier invoices and receipts are for Admin, Management and Accounts'),{statusCode:403});return p}
 export default async function handler(req,res){res.setHeader('Cache-Control','no-store');res.setHeader('X-Content-Type-Options','nosniff');const origin=process.env.APP_ORIGIN||'http://localhost',url=new URL(req.url,origin),action=url.searchParams.get('action')||'',w=url.searchParams.get('workspace')||'pool-bros-main';try{if(!process.env.SUPABASE_URL||!supabaseServerKey(process.env))throw Object.assign(Error('Secure media backend is not configured'),{statusCode:503});
  if(action==='product-upload'||action==='customer-upload'){
@@ -32,11 +41,28 @@ export default async function handler(req,res){res.setHeader('Cache-Control','no
   const refs=String(url.searchParams.get('refs')||'').split(',').map(decodeURIComponent).filter(Boolean).slice(0,100);
   return send(res,200,{urls:await signFinanceMedia(w,refs,600)});
  }
+ if(action==='fleet-upload'){
+  if(req.method!=='POST')return send(res,405,{error:'POST required'});if(!validOrigin(req))return send(res,403,{error:'Invalid origin'});
+  const u=await identity(req,w,true),vanId=String(url.searchParams.get('vanId')||'').trim(),kind=String(url.searchParams.get('kind')||'damage_photo');
+  if(!/^[0-9a-f-]{36}$/i.test(vanId))throw Object.assign(Error('Van is required'),{statusCode:400});
+  if(!await fleetAllowed(req,w,vanId,kind))throw Object.assign(Error('You can only add photos to the van assigned to you'),{statusCode:403});
+  const mime=String(req.headers['content-type']||'').split(';')[0].trim().toLowerCase(),buffer=await rawBuffer(req);
+  const media=await uploadBusinessMedia({domain:'fleet',workspaceId:w,entityId:vanId,userId:u.id,kind,fileName:String(url.searchParams.get('name')||'photo'),mimeType:mime,buffer,title:String(url.searchParams.get('title')||'')});
+  await audit(w,u.id,'fleet_media_uploaded',{vanId,mediaId:media.id,kind,size:buffer.length});
+  return send(res,200,{ref:media.ref,previewUrl:media.previewUrl});
+ }
+ if(action==='fleet-sign'){
+  if(req.method!=='GET')return send(res,405,{error:'GET required'});await identity(req,w,false);
+  const refs=String(url.searchParams.get('refs')||'').split(',').map(decodeURIComponent).filter(Boolean).slice(0,100);
+  const rows=await fleetMediaRows(w,refs),allowed=[],seen=new Map();
+  for(const r of rows){const k=r.van_id+'|'+r.asset_kind;if(!seen.has(k))seen.set(k,await fleetAllowed(req,w,r.van_id,r.asset_kind));if(seen.get(k))allowed.push(r);}
+  return send(res,200,{urls:await signFleetRows(allowed,600)});
+ }
  if(action==='sign'){
   if(req.method!=='GET')return send(res,405,{error:'GET required'});await identity(req,w,false);const refs=String(url.searchParams.get('refs')||'').split(',').map(decodeURIComponent).filter(Boolean).slice(0,150),urls=await signBusinessMedia(w,refs,3600);return send(res,200,{urls});
  }
  if(action==='archive'){
-  if(req.method!=='POST')return send(res,405,{error:'POST required'});if(!validOrigin(req))return send(res,403,{error:'Invalid origin'});const u=await identity(req,w,true),ref=String(url.searchParams.get('ref')||''),parsed=parseMediaRef(ref);if(!parsed)throw Object.assign(Error('Invalid media reference'),{statusCode:400});if(parsed.domain==='finance')await requireFinance(u);await archiveBusinessMedia({domain:parsed.domain,workspaceId:w,id:parsed.id});await audit(w,u.id,parsed.domain+'_media_archived',{mediaId:parsed.id});return send(res,200,{archived:true,ref});
+  if(req.method!=='POST')return send(res,405,{error:'POST required'});if(!validOrigin(req))return send(res,403,{error:'Invalid origin'});const u=await identity(req,w,true),ref=String(url.searchParams.get('ref')||''),parsed=parseMediaRef(ref);if(!parsed)throw Object.assign(Error('Invalid media reference'),{statusCode:400});if(parsed.domain==='finance')await requireFinance(u);if(parsed.domain==='fleet'){const [row]=await db('ps_fleet_media?id=eq.'+eq(parsed.id)+'&select=van_id');if(!row||!await fleetAllowed(req,w,row.van_id,'other'))throw Object.assign(Error('Only Admin or Management can remove van files'),{statusCode:403});}await archiveBusinessMedia({domain:parsed.domain,workspaceId:w,id:parsed.id});await audit(w,u.id,parsed.domain+'_media_archived',{mediaId:parsed.id});return send(res,200,{archived:true,ref});
  }
  return send(res,404,{error:'Unknown media action'});
  }catch(e){return send(res,e.statusCode||500,{error:e.message||'Secure media operation failed'})}}
