@@ -137,3 +137,14 @@ Measured on live data (read-only): one old check = 7.07 MB (0.49 MB gzip); one n
 
 Note: staging now holds a few posted test documents (PINV-000001/2, SPAY-000001/2, RUN-000001). By design they cannot be deleted; they are labelled "(UI test)".
 | O1f | **Database released to live** 20 Nov 2026 (021–025), Xero **not linked** | **Deployed · verified on live** | Private data and schema backup; continuity PASS. 021–025 applied without errors; `xero_push` off; `finance-media` private. Ledger, purchase and Xero tests run on live and rolled back: every rule and control held, trial balance 0.00. Afterwards: 0 ledger documents, 0 runs, empty outbox; data unchanged. App v1.51 **deployed** via PR #51 (`0d57276`; live cache `pool-shed-v1.51.0-ledger-r1`, checks green). Live upload check: a test PDF uploaded to private finance storage, opened through a signed link, then archived; no ledger entry created; `xero_push` still off |
+
+---
+
+## Vans & Fleet · v1.52.0 · branch `fleet-vans`
+
+| # | Change | Status | Evidence |
+|---|---|---|---|
+| F1 | `026` van register, compliance (MOT, tax, insurance, service, breakdown), van supplies, monthly report, damage, sign-off | **New · Tested on staging** | `scripts/ops/test-026-fleet-staging.sql` (rolled back): plate formatting and duplicate refused; due states; engineers see only their van (no policy number) and cannot add vans; report needs mileage (never backwards), every check answered, notes on problems, damage photos, supplies counted, signature; locked after submit; send back needs a reason; sign-off by a different person; damage closed with a note |
+| F2 | `027` private van photo and document storage; per-van permission using the user's own sign-in; read-only supplies list | **New · Tested** | `test-fleet-media-v152` (engineers: own-van photos and signatures only; managers: documents and removal) |
+| F3 | v1.52.0 screens: Vans & Fleet menu; van register with compliance colours and UK-style plate; add and edit van with supplies list and documents; engineer's monthly report (OK / Problem checks, damage with photos, supplies count, signature pad); manager review, sign-off or send back; print / save as PDF | **New · Tested in a real browser on staging** | Added PB21 VAN through the form (plate formatted; tax overdue and MOT due soon shown). Report filled at speed: 18 checks, 1 problem with note, mileage, supplies all saved. Two bugs found and fixed: mileage cleared on redraw; quick edits overwriting each other's save. Signing and submitting use the upload service (Vercel only), so they are proven by the database tests and get a live check after release |
+| F4 | Release to live | **Outstanding** · owner approval | — |

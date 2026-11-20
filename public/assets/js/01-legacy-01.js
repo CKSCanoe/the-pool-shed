@@ -3232,7 +3232,11 @@ const seed = {
         if (active === "audits") return renderCommercialAudits();
         if (active === "analytics") return renderAnalytics();
         if (active === "automation") return renderAutomation();
-        if (active === "fleet") return window.PoolShedFleetUI ? window.PoolShedFleetUI.render() : '<section class="panel"><p>Loading Vans & Fleet…</p></section>';
+        if (active === "fleet") {
+          const fleetScreen = document.getElementById("screen-fleet");
+          if (fleetScreen) fleetScreen.innerHTML = window.PoolShedFleetUI ? window.PoolShedFleetUI.render() : '<section class="panel"><p>Loading Vans & Fleet…</p></section>';
+          return;
+        }
         if (active === "accounting") return renderAccounting();
         if (active === "settings") return renderSettings();
         if (active === "barcodes") return renderBarcodes();

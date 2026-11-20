@@ -170,10 +170,22 @@
     try { s.report = await rpc('ps_fleet_report_open', { w: W(), van: vanId, p: new Date().toISOString().slice(0, 10) }); } catch (e) { s.error = friendly(e); }
     rerender(); setTimeout(initPads, 50);
   }
-  var saveTimer = null;
+  // Changes are combined into one pending save, so a quick run of edits never loses an earlier one.
+  var saveTimer = null, pending = {};
   function queueSave(patch){
     var r = s.report && s.report.report; if (!r) return;
-    clearTimeout(saveTimer); saveTimer = setTimeout(function(){ rpc('ps_fleet_report_save', { w: W(), report: r.id, patch: patch }).catch(function(e){ notify(friendly(e)); }); }, 600);
+    Object.keys(patch).forEach(function(k){
+      if (k === 'checklist') pending.checklist = Object.assign({}, pending.checklist || {}, patch.checklist);
+      else pending[k] = patch[k];
+    });
+    clearTimeout(saveTimer);
+    saveTimer = setTimeout(flushSave, 600);
+  }
+  function flushSave(){
+    var r = s.report && s.report.report; clearTimeout(saveTimer);
+    if (!r || !Object.keys(pending).length) return Promise.resolve();
+    var p = pending; pending = {};
+    return rpc('ps_fleet_report_save', { w: W(), report: r.id, patch: p }).catch(function(e){ notify(friendly(e)); });
   }
   function initPads(){
     document.querySelectorAll('[data-fl-pad]').forEach(function(c){
@@ -195,7 +207,7 @@
     var b = e.target.closest && e.target.closest('[data-fl]'); if (!b) return;
     var a = b.dataset.fl, rep = s.report && s.report.report;
     if (a === 'refresh') return load(true);
-    if (a === 'back') { s.view = 'list'; s.editing = null; s.report = null; return load(true); }
+    if (a === 'back') { flushSave(); s.view = 'list'; s.editing = null; s.report = null; return load(true); }
     if (a === 'new') { s.view = 'edit'; s.editing = {}; return rerender(); }
     if (a === 'edit') { var v = (s.vans || []).find(function(x){ return x.id === b.dataset.van; }); s.view = 'edit'; s.editing = Object.assign({}, v, { kit: [] }); rerender();
       return rpc('ps_fleet_van_kit', { w: W(), van: v.id }).then(function(kit){ s.editing.kit = (kit || []).map(function(k){ return { item: k.item, target_qty: k.target_qty }; }); rerender(); }).catch(function(e){ notify(friendly(e)); }); }
@@ -205,7 +217,7 @@
       rep.checklist = Object.assign({}, rep.checklist); rep.checklist[code] = { ok: ok, note: ok ? '' : (cur.note || '') }; queueSave({ checklist: (function(o){ o[code] = rep.checklist[code]; return o; })({}) }); rerender(); setTimeout(initPads, 50); return; }
     if (a === 'clear-pad') { var c = document.querySelector('[data-fl-pad]'); if (c) { c.getContext('2d').clearRect(0, 0, c.width, c.height); delete c.dataset.inked; } return; }
     if (a === 'submit') return act(async function(){
-      clearTimeout(saveTimer);
+      await flushSave();
       await rpc('ps_fleet_report_save', { w: W(), report: rep.id, patch: { odometer: (document.querySelector('[data-fl-odo]') || {}).value, notes: (document.querySelector('[data-fl-notes]') || {}).value, checklist: rep.checklist, kit_counts: rep.kit_counts } });
       var blob = await padBlob(); if (!blob) throw new Error('Sign in the box before submitting.');
       var ref = await upload(s.report.van.id, 'signature', blob, 'engineer-signature.png');
@@ -225,8 +237,8 @@
     var t = e.target, rep = s.report && s.report.report; if (!rep) return;
     if (t.dataset.flNote) { var c = Object.assign({}, rep.checklist[t.dataset.flNote], { note: t.value }); rep.checklist[t.dataset.flNote] = c; var o = {}; o[t.dataset.flNote] = c; queueSave({ checklist: o }); }
     if (t.dataset.flCount != null) { var k = rep.kit_counts[Number(t.dataset.flCount)]; k.counted = t.value === '' ? null : Number(t.value); queueSave({ kit_counts: rep.kit_counts }); }
-    if (t.matches('[data-fl-odo]')) queueSave({ odometer: t.value });
-    if (t.matches('[data-fl-notes]')) queueSave({ notes: t.value });
+    if (t.matches('[data-fl-odo]')) { rep.odometer = t.value === '' ? null : Number(t.value); queueSave({ odometer: t.value }); }
+    if (t.matches('[data-fl-notes]')) { rep.notes = t.value; queueSave({ notes: t.value }); }
   });
   document.addEventListener('submit', function(e){
     var f = e.target.closest && e.target.closest('[data-fl-form]'); if (!f) return; e.preventDefault();
