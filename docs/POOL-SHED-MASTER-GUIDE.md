@@ -29,6 +29,14 @@ Feature status words, used exactly and never mixed: **Working · Repaired · New
 4. **Behaviour, not text.** A feature is done when a test proves the behaviour (data saved, permission enforced, totals reconcile), not when a string exists in a file or a build passes.
 5. **Say exactly what is true.** "Deployed" is not "verified". "Code exists" is not "working". Integrations (Xero, email, Azzy) are only called live when shown working with real authorised records.
 
+### The continuity promise (owner's requirement, 20 Nov 2026)
+
+This is an upgrade of the existing system, **not a new system**. Every record staff have entered (customers, products, suppliers, sales and purchase orders, payments, stock and goods-in history, jobs, quotes, audits, notes) stays in the app and appears in its usual place after every phase. Concretely:
+- No phase starts from an empty database or asks staff to re-enter anything.
+- Every phase ends with `node scripts/phase0/continuity-check.mjs <previous snapshot> <current snapshot>`. It must print `PASS · every earlier record is still present`. New records and normal staff edits are allowed and listed; a missing record blocks the release until it is explained.
+- When data moves to new tables (Phase 3), the old snapshot stays as a read-only archive, and the screens are checked to show the same records with the same totals before the switch.
+- Only duplicate **safety copies** (old workspace revisions) are ever pruned, and only after a verified backup that contains them.
+
 ---
 
 ## 2. What Pool Shed actually is [Verified]
@@ -197,7 +205,7 @@ The pattern for each module (customers → products → suppliers → stock ledg
 3. **Dual-write:** the app writes both the snapshot and the table; a nightly job compares them and reports any difference.
 4. **Switch reads** to the table for that module only (paginated, searched server-side).
 5. After 2 clean weeks, **stop writing** that section to the snapshot. The snapshot stays as a read-only archive. Nothing is deleted.
-- **Proof per module:** fingerprint match, concurrency test (two users edit different records and both survive), permission test, reload test.
+- **Proof per module:** continuity check PASS (every existing record present), fingerprint match, concurrency test (two users edit different records and both survive), permission test, reload test.
 - **Rollback per module:** flip reads back to the snapshot, which dual-write kept current.
 
 ### Phase 4 — The new interface ("Deep End" design)
