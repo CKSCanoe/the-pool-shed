@@ -101,3 +101,12 @@ Measured on live data (read-only): one old check = 7.07 MB (0.49 MB gzip); one n
 | 3.3c | App: exact server copy kept; changed records worked out with an order-independent comparison; full save and full download remain as fallbacks | **New · Tested locally and in a real browser** | `test-delta-refresh-v149`, `test-record-saves-v149`, guards `test-migration-016/017`; build gate passes |
 | 3.3d | Real browser on staging (owner's Chrome) | **Tested on staging · PASS** | Database timing: per-record saves avg 0.55 s (a full save of the same data: 8.0 s, timed out). Second tab picked up the change via the feed in 15 ms. Owner's two-window test: worked |
 | 3.3e | Deploy | **Database deployed · verified** 20 Nov 2026 ~11:58 UTC; app **deployed** via PR #49 (`c9b4cd8`): live serves cache `pool-shed-v1.49.0-delta-r1`; build and Vercel checks green; post-deploy: record copy exact, 0 sync issues, both switches on, data unchanged. First real saves still to be reviewed | Private before-copy; continuity check PASS; 016+017 applied with no errors; record copy exact; mirror switched back on; rolled-back live tests: per-record save 1.2 s (incl. safety copy), feed 1.5 KB, old-app full save 1.9 s with mirror on, 0 sync issues; data fingerprint unchanged (`abb0e2aa…` snapshot md5) |
+
+---
+
+## Phase 3.4 · role-based visibility · branch `phase-3-followups`
+
+| # | Change | Status | Evidence |
+|---|---|---|---|
+| 3.4a | `018`: staff cannot change their own role, permissions, active status or sign-in email (any signed-in user could previously make themselves Admin) | **Deployed · Verified in production** 20 Nov 2026 | Staging and live (rolled back): a temporary Engineer was refused promotion to Admin and could still edit their own details; admins unaffected; live profiles unchanged (4, all Admin, all active) |
+| 3.4b | Role-filtered load and change feed, safe restricted saves, server function checks, "Assigned engineers" on jobs | **Outstanding** · design agreed (PHASE-3-PLAN.md) | — |
