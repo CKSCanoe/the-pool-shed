@@ -313,6 +313,7 @@ const seed = {
         : null;
       const WORKSPACE_ID = "pool-bros-main";
       let remoteWorkspaceUpdatedAt = localStorage.getItem("poolshed:v172:remoteRevision") || null;
+      const SHARED_WORKSPACE_CHECK_MS = 8000; // v1.48: revision-stamp check interval while the tab is visible
       let workspaceSyncConflict = false;
       let workspaceLocalSaveFailed = false;
       let workspaceLocalRevisionCounter = Number(localStorage.getItem("poolshed:v172:localRevision") || 0);
@@ -1298,13 +1299,30 @@ const seed = {
         }
       }
 
+      let workspaceRefreshInFlight = false;
       async function refreshSharedWorkspaceFromRemote(options) {
+        // v1.48: tab focus, the online event and the timer can fire together; only one refresh may run.
+        if (workspaceRefreshInFlight) return false;
+        workspaceRefreshInFlight = true;
+        try { return await refreshSharedWorkspaceFromRemoteOnce(options); } finally { workspaceRefreshInFlight = false; }
+      }
+
+      async function refreshSharedWorkspaceFromRemoteOnce(options) {
         const opts = options || {};
         if (localStorage.getItem("poolshed:v172:recoveryHold") === "1") return false;
         if (workspaceFieldIsBeingEdited()) return false;
         if (!supabaseClient || !supabaseSession || !navigator.onLine || workspaceSaveInFlight) return false;
         if (localStorage.getItem("poolshed:v172:pendingSync") === "1") return false;
         try {
+          // v1.48 egress fix: ask only for the revision stamp (a few bytes). The multi-MB workspace
+          // is downloaded only when another user has actually saved a newer revision.
+          const head = await supabaseClient.from("workspace_snapshots").select("updated_at").eq("workspace_id", WORKSPACE_ID).maybeSingle();
+          if (head.error) throw head.error;
+          if (!head.data || !head.data.updated_at || head.data.updated_at === remoteWorkspaceUpdatedAt) {
+            if (!opts.silent) toast("Shared workspace is already up to date.");
+            return false;
+          }
+          if (workspaceFieldIsBeingEdited() || workspaceSaveInFlight || localStorage.getItem("poolshed:v172:pendingSync") === "1") return false;
           const response = await supabaseClient.from("workspace_snapshots").select("data,updated_at").eq("workspace_id", WORKSPACE_ID).maybeSingle();
           if (response.error) throw response.error;
           const row = response.data;
@@ -1335,29 +1353,14 @@ const seed = {
         stopSharedWorkspaceLiveSync();
         if (localStorage.getItem("poolshed:v172:recoveryHold") === "1") return;
         if (!supabaseClient || !supabaseSession) return;
-        try {
-          workspaceRealtimeChannel = supabaseClient
-            .channel("pool-shed-workspace-" + WORKSPACE_ID + "-" + supabaseSession.user.id)
-            .on("postgres_changes", {
-              event: "*",
-              schema: "public",
-              table: "workspace_snapshots",
-              filter: "workspace_id=eq." + WORKSPACE_ID
-            }, function(payload) {
-              const row = payload && payload.new;
-              if (!row || !row.data || row.updated_at === remoteWorkspaceUpdatedAt) return;
-              if (localStorage.getItem("poolshed:v172:pendingSync") === "1" || workspaceSaveInFlight || workspaceFieldIsBeingEdited()) return;
-              applyRemoteWorkspaceSnapshot(row, true).catch(function(error) {
-                console.warn("Realtime shared workspace refresh failed", error);
-              });
-            })
-            .subscribe();
-        } catch (error) {
-          console.warn("Realtime shared workspace subscription unavailable", error);
-        }
+        // v1.48 egress fix: no realtime subscription on workspace_snapshots. Postgres-changes pushed the
+        // complete multi-MB row to every open tab on every save. A lightweight revision check replaces it,
+        // and it is skipped while the tab is hidden; returning to the tab triggers an immediate check
+        // (see the visibilitychange listener).
         workspacePollTimer = setInterval(function() {
+          if (document.hidden) return;
           refreshSharedWorkspaceFromRemote({ silent: true });
-        }, 5000);
+        }, SHARED_WORKSPACE_CHECK_MS);
       }
 
       function queueRemoteWorkspaceSave() {
@@ -2688,7 +2691,7 @@ const seed = {
           : effectiveMode === "mfa"
             ? '<button class="ps-login-link" type="button" data-login-cancel-mfa>Use a different account</button><span>Authenticator verification</span>'
             : effectiveMode === "denied" || effectiveMode === "workspace" ? '<span></span>' : '<button class="ps-login-link" type="button" data-login-mode="login">Back to sign in</button><span></span>';
-        screen.innerHTML = '<main class="ps-login-stage"><section class="ps-login-shell"><aside class="ps-login-brand"><div><div class="ps-login-lockup"><span class="ps-login-logo"><img src="' + DEFAULT_POOL_BROS_LOGO + '" alt="Pool Bros logo"></span><div><span class="ps-login-kicker">Pool Bros</span><strong>THE POOL SHED</strong></div></div><div class="ps-login-hero"><span class="ps-login-kicker">Operations Command System</span><h1>One secure place to <span>run the operation.</span></h1><p>Secure access to the Pool Bros operations workspace. Sign in to continue to your authorised tools, tasks and information.</p></div></div><div class="ps-login-staff-note"><strong>Pool Bros staff access</strong><span>Your workspace and available tools are tailored to your account after sign-in.</span></div></aside><section class="ps-login-auth"><div class="ps-login-card"><div class="ps-login-card-head"><span class="ps-login-kicker">' + escapeHtml(meta.eyebrow) + '</span><h2>' + escapeHtml(meta.heading) + '</h2><p>' + escapeHtml(meta.intro) + '</p></div><form id="loginForm">' + fields + '<div id="loginMessage" class="ps-login-message' + (good ? ' good' : '') + '">' + escapeHtml(message || '') + '</div></form><div class="ps-login-helper">' + helper + '</div></div></section></section><footer class="ps-login-footer">Pool Shed v1.47.6 · Pool Bros Ltd</footer></main>';
+        screen.innerHTML = '<main class="ps-login-stage"><section class="ps-login-shell"><aside class="ps-login-brand"><div><div class="ps-login-lockup"><span class="ps-login-logo"><img src="' + DEFAULT_POOL_BROS_LOGO + '" alt="Pool Bros logo"></span><div><span class="ps-login-kicker">Pool Bros</span><strong>THE POOL SHED</strong></div></div><div class="ps-login-hero"><span class="ps-login-kicker">Operations Command System</span><h1>One secure place to <span>run the operation.</span></h1><p>Secure access to the Pool Bros operations workspace. Sign in to continue to your authorised tools, tasks and information.</p></div></div><div class="ps-login-staff-note"><strong>Pool Bros staff access</strong><span>Your workspace and available tools are tailored to your account after sign-in.</span></div></aside><section class="ps-login-auth"><div class="ps-login-card"><div class="ps-login-card-head"><span class="ps-login-kicker">' + escapeHtml(meta.eyebrow) + '</span><h2>' + escapeHtml(meta.heading) + '</h2><p>' + escapeHtml(meta.intro) + '</p></div><form id="loginForm">' + fields + '<div id="loginMessage" class="ps-login-message' + (good ? ' good' : '') + '">' + escapeHtml(message || '') + '</div></form><div class="ps-login-helper">' + helper + '</div></div></section></section><footer class="ps-login-footer">Pool Shed v1.48.0 · Pool Bros Ltd</footer></main>';
         bindLoginScreen(effectiveMode);
       }
 
@@ -16553,5 +16556,5 @@ const seed = {
       window.addEventListener("load", function() {
         updateOfflineStatus();
         syncPendingOfflineData();
-        if ("serviceWorker" in navigator && location.protocol !== "file:") navigator.serviceWorker.register("./service-worker.js?v=1.47.6", { updateViaCache:"none" }).catch(function() {});
+        if ("serviceWorker" in navigator && location.protocol !== "file:") navigator.serviceWorker.register("./service-worker.js?v=1.48.0", { updateViaCache:"none" }).catch(function() {});
       });

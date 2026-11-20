@@ -21,6 +21,7 @@ run_node_stage() {
 run_node_stage "payment operations" test-payment-operations-v147.mjs
 
 run_node_stage "workspace and sales safety" \
+  test-egress-sync-v148.mjs \
   test-workspace-audit-v1451.mjs \
   test-commercial-audits-v146.mjs \
   test-audit-device-recovery.mjs \

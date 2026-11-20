@@ -1,3 +1,12 @@
+Pool Shed v1.48.0 - Supabase egress fix and lighter start-up
+
+Shared-workspace sync now checks only the tiny revision stamp every 8 seconds while the tab is visible, and downloads the workspace only when another user has saved. Hidden tabs make no requests; returning to a tab checks immediately.
+The realtime subscription on workspace_snapshots is removed. It pushed the complete multi-megabyte workspace row to every open tab on every save. Quote engagement refresh also pauses while the tab is hidden.
+The app logo is now 256 px (50 KB, was 1254 px / 420 KB). Design-lab mock-ups are no longer deployed (moved to docs/design-labs). Duplicate function entry removed from vercel.json.
+Stock-count reminders no longer re-create the same alert every day. Each copy forced a full workspace save and another full copy in ps_workspace_revisions; 45 duplicates had built up. Simultaneous refresh triggers (tab focus, online event, timer) now download at most once.
+
+No database migration, no data change. Behaviour test: scripts/test-egress-sync-v148.mjs (idle hour: 0 full downloads, was 720).
+
 Pool Shed v1.47.6 - confirmed audit library deletion with customer profile sync
 Pool Shed v1.47.5 - offline reload after Vercel redirects
 
