@@ -22,7 +22,7 @@ Started 20 Nov 2026 at the owner's request: *"recommend better processes and upd
 | Notifications | 383, none archived; **72% are internal notes** | Separate "needs attention" from the activity timeline | M |
 | Audit logs | Two separate logs (130 + 28) | Use the new per-record history as the one timeline | M |
 | Integrations | Xero, Quotient, WooCommerce, shipping: **none connected** | Xero first (Phase 6), for Accounts | L |
-| Unused modules | Tools, subscriptions, credits, automation rules, stock takes and more: **empty** | Hide by default; switch on per business need | S |
+| Unused modules | Tools, subscriptions, credits, automation rules, stock takes and more: **empty** | **Owner decision 20 Nov: don't hide; make them work** (see OPERATIONS-PLAN.md) | — |
 
 ---
 
@@ -36,7 +36,7 @@ Started 20 Nov 2026 at the owner's request: *"recommend better processes and upd
 1. **Quick-pick items (S–M):** a short list of the things actually sold (services, labour rates, chemical doses, delivery) as proper items with price and cost, offered first when adding a line. Fewer typed lines means consistent prices, reliable margins and searchable history. Chemical usage charges (29 so far) already follow a pattern and are the first candidates.
 2. **Accounts hand-off (M, ties to Phase 6):** "Invoice Ready" becomes Rach's queue (in the Deep End design). With Xero connected, one click creates the invoice, stores the real Xero number and brings payments back automatically, so "Invoiced" and "Paid" stop being typed by hand.
 3. **Fewer statuses (S):** show the 6–7 statuses that match how orders actually move; keep the rest available but hidden, without deleting any history.
-4. **Small fix (S):** the "price override reason" is filled automatically on every order with the price list used, so it isn't a real override. Rename it "Pricing note", so a genuine override stands out.
+4. ~~Rename "price override reason"~~: checked 20 Nov; the field is filled automatically but never shown to staff, so no change is needed.
 
 ## Purchasing
 
@@ -146,13 +146,13 @@ Started 20 Nov 2026 at the owner's request: *"recommend better processes and upd
 
 **Data:** empty sections: tools (assets, assignments, history), sales subscriptions, sales credits, automation rules, stock takes, goods notes, allocations, restock rules, quote templates, and the "sales" list.
 
-**Recommendation (S):** hide unused modules from the menus by default, with a switch per module in Settings, keeping all data. This directly addresses the "too much information for fresh eyes" feedback on the redesign.
+**Owner decision (20 Nov 2026): don't hide them; make them work and connect them.** The modules exist but sit empty because the first step of each chain never happens. The build-out is in `docs/OPERATIONS-PLAN.md`. (Superseded idea: hiding unused modules.)
 
 ---
 
 ## Suggested order (fits the existing phases)
 
-1. **Now, quick wins (S):** hide unused modules; rename the pricing note; tidy the duplicate reminders; supplier IDs and the duplicate merge; auto-archive informational notices.
+1. **Now, quick wins (S):** tidy the duplicate reminders; supplier IDs and the duplicate merge; auto-archive informational notices. (Hiding modules was replaced by the operations build-out.)
 2. **Phase 4 (redesign) with these built in:** quick-pick items; fewer statuses; the simple job view; customer timeline; the notifications/timeline split.
 3. **Phase 6 (Xero) before Phase 5 (quotes)**, unless quote volume says otherwise: the invoicing hand-off and automatic PO and payment status.
 4. **Products split (L):** our range versus supplier catalogue, alongside Phase 3.5c, because it is also the biggest remaining speed gain.
