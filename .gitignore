@@ -11,3 +11,6 @@ runtime/memory.json
 # Phase 0 backups contain live customer and financial data. Never commit them.
 backups/
 .claude/launch.json
+
+# Build output: Vercel rebuilds it on every deploy (Phase 2)
+dist/
