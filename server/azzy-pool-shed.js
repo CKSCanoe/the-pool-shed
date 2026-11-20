@@ -124,6 +124,24 @@ async function enrichFinance(workspace,workspaceId,authorization){
   copy.customerInvoices=[...arr(copy.customerInvoices),...rows.customerInvoices];
   return copy;
 }
+// v1.50 (Phase 3.4): Azzy reads the workspace AS THE SIGNED-IN USER through ps_workspace_load, so a restricted
+// role (e.g. Warehouse or Engineer) only ever gives Azzy the data that role may see. The service key is never
+// used for the workspace itself. Falls back to the user-authorised direct read on a database without 019.
+async function loadWorkspaceAsUser(workspaceId,authorization){
+  requireBackend();
+  if(!authorization)throw httpError('Sign in first.',401);
+  const r=await fetch(`${process.env.SUPABASE_URL}/rest/v1/rpc/ps_workspace_load`,{method:'POST',
+    headers:{apikey:apiKey(),Authorization:authorization,'Content-Type':'application/json',Accept:'application/json'},
+    body:JSON.stringify({w:workspaceId}),signal:AbortSignal.timeout(15000)});
+  if(r.ok){const body=await r.json();return body&&body.data?[{data:body.data,updated_at:body.updated_at,access:body.access||null}]:[];}
+  if(r.status===404){
+    const old=await fetch(`${process.env.SUPABASE_URL}/rest/v1/workspace_snapshots?workspace_id=eq.${enc(workspaceId)}&select=data,updated_at&limit=1`,
+      {headers:{apikey:apiKey(),Authorization:authorization,Accept:'application/json'},signal:AbortSignal.timeout(15000)});
+    if(old.ok)return old.json();
+  }
+  throw httpError('Pool Shed workspace data is unavailable.',r.status===401||r.status===403?403:503);
+}
+const FINANCE_ROLES=new Set(['Admin','Management','Manager','Accounts']);
 export async function loadAzzyPoolShedContext(req){
   const auth=await authUser(req),workspaceId=WORKSPACE_ID,authorization=requestAuthorization(req),hasServerAuthority=Boolean(supabaseServerKey(process.env));
   // workspace_snapshots is protected by ps_workspace_can_read(workspace_id).
@@ -136,7 +154,7 @@ export async function loadAzzyPoolShedContext(req){
   const [members,profiles,snapshots,revisions]=await Promise.all([
     memberPromise,
     rest(`user_profiles?id=eq.${enc(auth.id)}&select=id,full_name,email,role,active,permissions&limit=1`,{authorization,optional:true}),
-    rest(`workspace_snapshots?workspace_id=eq.${enc(workspaceId)}&select=data,updated_at&limit=1`,{authorization}),
+    loadWorkspaceAsUser(workspaceId,authorization),
     rest(`ps_workspace_revisions?workspace_id=eq.${enc(workspaceId)}&select=id&order=id.desc&limit=1`,{authorization,optional:true})
   ]);
   const member=members?.[0]||null;
@@ -147,7 +165,8 @@ export async function loadAzzyPoolShedContext(req){
   const user={id:auth.id,full_name:profile.full_name||auth.user_metadata?.full_name||auth.email||'Pool Shed user',email:profile.email||auth.email||'',role:resolvedRole,permissions:profile.permissions&&typeof profile.permissions==='object'?profile.permissions:{}};
   const permissions=deriveAzzyPermissions(snapshot.data,user),revisionRaw=Number(revisions?.[0]?.id),revision=Number.isFinite(revisionRaw)?revisionRaw+1:1;
   let workspace=snapshot.data;
-  if(permissions.includes('finance.read'))workspace=await enrichFinance(workspace,workspaceId,authorization);
+  // Finance documents only for roles that may see payments and finance (owner decision, Phase 3.4).
+  if(permissions.includes('finance.read')&&FINANCE_ROLES.has(String(profile.role||'')))workspace=await enrichFinance(workspace,workspaceId,authorization);
   return {workspaceId,workspace,user,permissions,revision,updatedAt:snapshot.updated_at,membershipRole:member?.role||'authenticated-workspace-member',accessMode:hasServerAuthority?'server-authority':'authenticated-rls'};
 }
 export function azzyOriginAllowed(req){return appOriginAllowed(req,process.env);}

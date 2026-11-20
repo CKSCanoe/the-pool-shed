@@ -1,3 +1,7 @@
+Pool Shed v1.50.0 - role-based visibility
+
+Each role now receives only what it may see, enforced by the database: Warehouse and Engineer accounts never receive costs or margins; only Admin, Management and Accounts receive payments and finance; Engineers see only the jobs they are assigned to (new "Assigned engineers" field on the job form) and those jobs' orders, without prices. A restricted user's saves can never erase hidden costs, payments or records. Azzy, the project AI review and Quote Studio follow the same rules. Admin and Management are unchanged.
+
 Pool Shed v1.49.0 - fast per-record saving and refresh
 
 Saving now sends only the records you changed (typically 1-3 KB) instead of the whole 7 MB workspace, so saves are several times faster and no longer hit the server time limit. When two people edit different records at the same time, both changes are kept; only two people changing the same record get a clash. Other open tabs download only the records that changed. If anything does not line up, the app falls back to the full save or download it used before. Also fixes false "Another user saved first" messages after two quick edits.

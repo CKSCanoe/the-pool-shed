@@ -1,0 +1,23 @@
+// Phase 3.4 guard: role visibility is enforced in the database and restricted saves cannot erase hidden data.
+import fs from 'node:fs';
+import assert from 'node:assert/strict';
+const code = fs.readFileSync('database/019-role-visibility.sql', 'utf8').replace(/--.*$/gm, '');
+const access = code.match(/function public\.ps_user_access\(\)[^]*?end \$\$;/)[0];
+assert(/p\.role in \('Admin','Management','Manager'\)/.test(access), 'only Admin and Management are unrestricted');
+assert(/costs\s*:= p\.role in \('Accounts','Sales','Purchasing','Office','Viewer'\)/.test(access), 'costs: owner decision');
+assert(/finance\s*:= p\.role in \('Accounts'\)/.test(access), 'finance: owner decision');
+assert(/not coalesce\(p\.active, false\)/.test(access), 'inactive users get nothing');
+const load = code.match(/function public\.ps_workspace_load[^]*?end \$\$;/)[0];
+assert(/ps_workspace_can_read\(w\)/.test(load) && /ps_redact_section/.test(load), 'load checks access and redacts');
+const feed = code.match(/function public\.ps_records_changes[^]*?end \$\$;/)[0];
+assert(/ps_section_hidden\(rs\.section, acc\)/.test(feed) && /ps_record_visible/.test(feed) && /ps_redact_item/.test(feed), 'feed applies the same rules');
+const rc = code.match(/function public\.ps_restricted_changes[^]*?end \$\$;/)[0];
+assert(/ps_unredact_value\(u->1, stored, pat\)/.test(rc), 'hidden fields restored from the stored record on save');
+assert(/Not permitted for your role/.test(rc), 'hidden sections and records cannot be changed');
+const full = code.match(/function public\.ps_workspace_save\(w text[^]*?end \$\$;/)[0];
+assert(/Full saves are not available for your role/.test(full), 'restricted roles cannot full-save');
+const sc = code.match(/function public\.ps_workspace_save_changes[^]*?end \$\$;/)[0];
+assert(/changes := ps_restricted_changes\(w, changes, ps_user_access\(\)\)/.test(sc), 'per-record saves pass through the safety step');
+assert(/names as materialized/.test(code), 'name test runs on distinct names (performance)');
+assert(fs.existsSync('database/019-rollback.sql'), 'rollback file exists');
+console.log('Migration 019 guard passed.');
