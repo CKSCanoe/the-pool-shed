@@ -82,7 +82,7 @@ At the same time, a realtime subscription (`:1341`) on the same row pushes the f
 
 `database/002:23–34`. The read policy on `workspace_snapshots` checks only workspace membership. Any member (engineer included) downloads the full JSON, including supplier costs, margins, customer finances and supplier payments, and can see it in the browser's network tab. Role permissions only hide screens. This breaks the guide's own rule 16.
 
-**Fix path:** Phase 2 moves sensitive data (costs, margins, finance) behind role-checked server functions. Phase 3 completes it with per-table row-level security.
+**Fix path (revised 20 Nov 2026):** done in Phase 3 with per-table row-level security. Stripping fields from the single shared document (the original Phase 2 idea) is unsafe: an engineer's save would write the stripped copy back. Live has only Admin users today, so nobody is exposed; **do not issue Engineer accounts to people who must not see costs until Phase 3.**
 
 ### F4. One document means multi-user saves collide [Verified] — High
 
@@ -130,7 +130,7 @@ This is the root of the historic "lost changes / refresh data loss" reports. The
 
 ### F10. Live database is behind the code [Verified] — High
 
-The live `ps_workspace_save` is the pre-013 version. It has no "refuse to erase all customers/products" safety lock and no inactive-user block, and the `ps_workspace_revisions` index is missing. The realtime publication is empty. Applying migration 013 is a Phase 2 task, tested on staging first.
+The live `ps_workspace_save` is the pre-013 version. It has no "refuse to erase all customers/products" safety lock and no inactive-user block, and the `ps_workspace_revisions` index is missing. The realtime publication is empty. Phase 2 replaces 013 with `014`, which keeps the safety rules but leaves realtime off (v1.48 egress fix). Tested on staging 20 Nov 2026.
 
 ### F9. What is already good [Verified]
 
