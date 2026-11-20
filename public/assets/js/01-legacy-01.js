@@ -477,6 +477,20 @@ const seed = {
         return users;
       }
 
+      function jobAssignedEngineersField(job) {
+        const chosen = new Set(Array.isArray(job && job.assignedUserIds) ? job.assignedUserIds.map(String) : []);
+        const engineers = allUsers().filter(function(user) { return user && user.id && String(user.role || "") === "Engineer" && user.status !== "Disabled"; });
+        if (!engineers.length && !chosen.size) {
+          return '<label class="full">Assigned engineers<small>No Engineer accounts yet. Engineers only see the jobs they are assigned to, and those jobs\' orders without prices.</small></label>';
+        }
+        const options = engineers.map(function(user) {
+          return '<option value="' + escapeHtml(user.id) + '"' + (chosen.has(String(user.id)) ? ' selected' : '') + '>' + escapeHtml(user.name || user.email || user.id) + '</option>';
+        }).join('') + Array.from(chosen).filter(function(id) { return !engineers.some(function(user) { return String(user.id) === id; }); })
+          .map(function(id) { return '<option value="' + escapeHtml(id) + '" selected>Former engineer</option>'; }).join('');
+        return '<label class="full">Assigned engineers<select name="assignedUserIds" multiple size="' + Math.min(5, Math.max(2, engineers.length)) + '">' + options + '</select>' +
+          '<small>Engineers only see jobs they are assigned to (or own), and those jobs\' orders without prices. Hold Ctrl or ⌘ to choose several.</small></label>';
+      }
+
       function currentUser() {
         return allUsers().find(function(user) { return user.id === activeUserId; }) || allUsers()[0] || defaultUsers[0];
       }
@@ -1084,7 +1098,7 @@ const seed = {
         let recoveryKey = preserveUnsyncedWorkspaceRecovery("multi-user-save-conflict");
         if (!recoveryKey) recoveryKey = await preserveLargeWorkspaceRecovery("multi-user-save-conflict");
         try {
-          const response = await supabaseClient.from("workspace_snapshots").select("data,updated_at").eq("workspace_id", WORKSPACE_ID).maybeSingle();
+          const response = await fetchWorkspaceMaster();
           if (response.error) throw response.error;
           if (!response.data || !response.data.data) throw new Error("Shared workspace master is unavailable.");
 
@@ -1172,7 +1186,7 @@ const seed = {
         let lastError = null;
 
         async function fetchSharedMaster() {
-          const result = await supabaseClient.from("workspace_snapshots").select("data,updated_at").eq("workspace_id", WORKSPACE_ID).maybeSingle();
+          const result = await fetchWorkspaceMaster();
           if (result.error) throw result.error;
           if (!result.data || !result.data.data) throw new Error("Shared workspace master is unavailable.");
           return result;
@@ -1271,6 +1285,9 @@ const seed = {
             response = { error: null, data: { updated_at: remoteWorkspaceUpdatedAt } };
           } else if (recordSave && recordSave.status === "conflict") {
             response = { error: null, data: null };
+          } else if (workspaceAccessRules && workspaceAccessRules.restricted) {
+            // Restricted roles save per record only; the database refuses a full save from them.
+            throw new Error("This change could not be shared yet. It is kept on this device and will be retried.");
           } else {
             response = await supabaseClient.rpc("ps_workspace_save", {
               w: WORKSPACE_ID,
@@ -1296,7 +1313,7 @@ const seed = {
           }
           if (response.error) throw response.error;
           remoteWorkspaceUpdatedAt = response.data.updated_at;
-          workspaceRemoteRaw = localSnapshot;
+          workspaceRemoteRaw = workspaceAccessView(localSnapshot);
           sharedWorkspaceReady = true;
           window.__POOL_SHED_SHARED_READY__ = true;
           workspaceBaseSnapshot = clone(localSnapshot);
@@ -1329,6 +1346,43 @@ const seed = {
       }
 
       let workspaceRefreshInFlight = false;
+      // v1.50 (Phase 3.4): what this user may see, from ps_workspace_load. null = unrestricted or not yet known.
+      let workspaceAccessRules = null;
+      // The whole workspace as this user may see it. Restricted roles receive a redacted copy from the database;
+      // unrestricted roles receive everything, exactly as before. Falls back to the direct read on an older database.
+      async function fetchWorkspaceMaster() {
+        if (typeof supabaseClient.rpc === "function") {
+          const loaded = await supabaseClient.rpc("ps_workspace_load", { w: WORKSPACE_ID });
+          if (!loaded.error) {
+            const body = loaded.data || null;
+            workspaceAccessRules = body && body.access && body.access.restricted ? body.access : null;
+            return { error: null, data: body ? { data: body.data, updated_at: body.updated_at } : null };
+          }
+          if (!/ps_workspace_load|PGRST202|42883/.test(String(loaded.error.code || "") + " " + String(loaded.error.message || ""))) {
+            return { error: loaded.error, data: null };
+          }
+        }
+        workspaceAccessRules = null;
+        return supabaseClient.from("workspace_snapshots").select("data,updated_at").eq("workspace_id", WORKSPACE_ID).maybeSingle();
+      }
+      // A copy of the workspace reduced to what this user may see (hidden sections and field names removed),
+      // so the app compares like with like when working out which records it changed.
+      function workspaceAccessView(value) {
+        const rules = workspaceAccessRules;
+        if (!rules || !rules.restricted) return value;
+        const hidden = new Set(Array.isArray(rules.hidden_sections) ? rules.hidden_sections : []);
+        const pattern = rules.keys ? new RegExp(rules.keys, "i") : null;
+        function strip(v) {
+          if (Array.isArray(v)) return v.map(strip);
+          if (!v || typeof v !== "object") return v;
+          const out = {};
+          Object.keys(v).forEach(function(k) { if (!pattern || !pattern.test(k)) out[k] = strip(v[k]); });
+          return out;
+        }
+        const out = {};
+        Object.keys(value || {}).forEach(function(section) { if (!hidden.has(section)) out[section] = strip(value[section]); });
+        return out;
+      }
 
       // v1.49 delta refresh. Record keys must match ps_section_items() in database/015 exactly.
       function workspaceKeyText(value) {
@@ -1469,7 +1523,7 @@ const seed = {
       async function saveWorkspaceRecords(localSnapshot) {
         if (!workspaceRemoteRaw || !remoteWorkspaceUpdatedAt || !supabaseClient || typeof supabaseClient.rpc !== "function") return null;
         let changes;
-        try { changes = computeWorkspaceChanges(workspaceRemoteRaw, localSnapshot); }
+        try { changes = computeWorkspaceChanges(workspaceRemoteRaw, workspaceAccessView(localSnapshot)); }
         catch (error) { console.warn("Per-record save not possible; using a full save", error); return null; }
         if (!changes.sections.length) return { status: "unchanged" };
         const response = await supabaseClient.rpc("ps_workspace_save_changes", { w: WORKSPACE_ID, expected: remoteWorkspaceUpdatedAt, changes: changes });
@@ -1532,7 +1586,7 @@ const seed = {
           const delta = await refreshSharedWorkspaceByDelta();
           if (delta === true) { if (!opts.silent) toast("Latest shared workspace loaded."); return true; }
           if (delta === false) return false;
-          const response = await supabaseClient.from("workspace_snapshots").select("data,updated_at").eq("workspace_id", WORKSPACE_ID).maybeSingle();
+          const response = await fetchWorkspaceMaster();
           if (response.error) throw response.error;
           const row = response.data;
           if (!row || !row.data || !row.updated_at || row.updated_at === remoteWorkspaceUpdatedAt) {
@@ -2901,7 +2955,7 @@ const seed = {
           : effectiveMode === "mfa"
             ? '<button class="ps-login-link" type="button" data-login-cancel-mfa>Use a different account</button><span>Authenticator verification</span>'
             : effectiveMode === "denied" || effectiveMode === "workspace" ? '<span></span>' : '<button class="ps-login-link" type="button" data-login-mode="login">Back to sign in</button><span></span>';
-        screen.innerHTML = '<main class="ps-login-stage"><section class="ps-login-shell"><aside class="ps-login-brand"><div><div class="ps-login-lockup"><span class="ps-login-logo"><img src="' + DEFAULT_POOL_BROS_LOGO + '" alt="Pool Bros logo"></span><div><span class="ps-login-kicker">Pool Bros</span><strong>THE POOL SHED</strong></div></div><div class="ps-login-hero"><span class="ps-login-kicker">Operations Command System</span><h1>One secure place to <span>run the operation.</span></h1><p>Secure access to the Pool Bros operations workspace. Sign in to continue to your authorised tools, tasks and information.</p></div></div><div class="ps-login-staff-note"><strong>Pool Bros staff access</strong><span>Your workspace and available tools are tailored to your account after sign-in.</span></div></aside><section class="ps-login-auth"><div class="ps-login-card"><div class="ps-login-card-head"><span class="ps-login-kicker">' + escapeHtml(meta.eyebrow) + '</span><h2>' + escapeHtml(meta.heading) + '</h2><p>' + escapeHtml(meta.intro) + '</p></div><form id="loginForm">' + fields + '<div id="loginMessage" class="ps-login-message' + (good ? ' good' : '') + '">' + escapeHtml(message || '') + '</div></form><div class="ps-login-helper">' + helper + '</div></div></section></section><footer class="ps-login-footer">Pool Shed v1.49.0 · Pool Bros Ltd</footer></main>';
+        screen.innerHTML = '<main class="ps-login-stage"><section class="ps-login-shell"><aside class="ps-login-brand"><div><div class="ps-login-lockup"><span class="ps-login-logo"><img src="' + DEFAULT_POOL_BROS_LOGO + '" alt="Pool Bros logo"></span><div><span class="ps-login-kicker">Pool Bros</span><strong>THE POOL SHED</strong></div></div><div class="ps-login-hero"><span class="ps-login-kicker">Operations Command System</span><h1>One secure place to <span>run the operation.</span></h1><p>Secure access to the Pool Bros operations workspace. Sign in to continue to your authorised tools, tasks and information.</p></div></div><div class="ps-login-staff-note"><strong>Pool Bros staff access</strong><span>Your workspace and available tools are tailored to your account after sign-in.</span></div></aside><section class="ps-login-auth"><div class="ps-login-card"><div class="ps-login-card-head"><span class="ps-login-kicker">' + escapeHtml(meta.eyebrow) + '</span><h2>' + escapeHtml(meta.heading) + '</h2><p>' + escapeHtml(meta.intro) + '</p></div><form id="loginForm">' + fields + '<div id="loginMessage" class="ps-login-message' + (good ? ' good' : '') + '">' + escapeHtml(message || '') + '</div></form><div class="ps-login-helper">' + helper + '</div></div></section></section><footer class="ps-login-footer">Pool Shed v1.50.0 · Pool Bros Ltd</footer></main>';
         bindLoginScreen(effectiveMode);
       }
 
@@ -6698,7 +6752,7 @@ const seed = {
           '<input type="hidden" name="id" value="' + escapeHtml(editing ? j.id : '') + '">' +
           '<div class="job-process-strip"><div class="step-blue active"><span>1</span><strong>Job details</strong><small>Identity and status</small></div><div class="step-yellow"><span>2</span><strong>Customer & owner</strong><small>Responsibility</small></div><div class="step-green"><span>3</span><strong>Stock & purchasing</strong><small>Job bin and materials</small></div><div class="step-red"><span>4</span><strong>Invoice review</strong><small>Scope and billing</small></div></div>' +
           '<section class="job-form-section blue"><div class="job-form-heading"><span>01</span><div><h3>Job details</h3><p>Create the reference and name used across Sales Orders, Purchase Orders and warehouse documents.</p></div></div><div class="form-grid two"><label>Job reference<input name="jobCode" value="' + escapeHtml(editing ? j.id : '') + '" placeholder="Automatically created if blank" ' + (editing ? 'readonly' : '') + '></label><label>Job / project name<input name="name" value="' + escapeHtml(j.name || '') + '" placeholder="Example: Amanda pool refurbishment" required></label><label>Job status<select name="status">' + optionList(statusOptions, j.status || 'Planning') + '</select></label><label>Customer PO / reference<input name="customerRef" value="' + escapeHtml(j.customerRef || '') + '" placeholder="Optional customer reference"></label></div></section>' +
-          '<section class="job-form-section yellow"><div class="job-form-heading"><span>02</span><div><h3>Customer and owner</h3><p>Choose who the job belongs to and who is responsible for progressing it.</p></div></div><div class="form-grid two"><label>Customer<select name="customerId" ' + (!data.customers.length ? 'disabled' : '') + '>' + customerOptions + '</select></label><label>Owner / project lead<input name="owner" value="' + escapeHtml(j.owner || j.createdBy || currentUser().name) + '" placeholder="Project owner"></label></div></section>' +
+          '<section class="job-form-section yellow"><div class="job-form-heading"><span>02</span><div><h3>Customer and owner</h3><p>Choose who the job belongs to and who is responsible for progressing it.</p></div></div><div class="form-grid two"><label>Customer<select name="customerId" ' + (!data.customers.length ? 'disabled' : '') + '>' + customerOptions + '</select></label><label>Owner / project lead<input name="owner" value="' + escapeHtml(j.owner || j.createdBy || currentUser().name) + '" placeholder="Project owner"></label>' + jobAssignedEngineersField(j) + '</div></section>' +
           '<section class="job-form-section green"><div class="job-form-heading"><span>03</span><div><h3>Stock and purchasing</h3><p>Link the job bin or site used for transfers, Purchase Orders and received stock.</p></div></div><div class="form-grid two"><label>Linked job bin / site<select name="locationId">' + locationOptions + '</select><small>You can create the job first and add its bin afterwards.</small></label><div class="job-step-help"><strong>How stock stays linked</strong><p>Sales Orders, POs and goods-in use this project reference so material cost and stock location remain traceable.</p></div></div></section>' +
           '<section class="job-form-section red"><div class="job-form-heading"><span>04</span><div><h3>Invoice review</h3><p>Record the scope, access notes and materials that must be reviewed before invoicing the customer.</p></div></div><div class="form-grid two"><label>Invoice stage<select name="invoiceStage">' + optionList(["Not reviewed", "Materials to review", "Ready to invoice", "Invoiced", "Do not invoice"], j.invoiceStage || 'Not reviewed') + '</select></label><div class="job-step-help invoice"><strong>Invoice control</strong><p>Move to Ready to invoice only after Sales Orders, PO receipts and job-bin materials have been checked.</p></div></div><label>Scope, site access and invoice notes<textarea name="notes" rows="5" placeholder="Scope of work, access instructions, materials to recharge and invoice notes">' + escapeHtml(j.notes || '') + '</textarea></label></section>' +
           (!data.customers.length ? '<div class="job-form-warning"><strong>A customer is required before this job can be saved.</strong><button type="button" class="secondary" data-safe-open-tab="crm">Create customer</button></div>' : '') +
@@ -6787,6 +6841,12 @@ const seed = {
         j.status = values.status || "Planning";
         j.locationId = values.locationId || "";
         j.owner = values.owner || currentUser().name;
+        // v1.50 (Phase 3.4): Engineer accounts only see jobs they are assigned to (or own), and those jobs' orders.
+        // Only when the form actually offers the field, so a job saved from elsewhere never loses its assignments.
+        const assignedField = form && typeof form.querySelector === "function" ? form.querySelector('[name="assignedUserIds"]') : null;
+        if (assignedField) {
+          j.assignedUserIds = Array.from(assignedField.selectedOptions || []).map(function(option) { return String(option.value); }).filter(Boolean);
+        }
         j.customerRef = values.customerRef || "";
         j.invoiceStage = values.invoiceStage || "Not reviewed";
         j.notes = values.notes || "";
@@ -16766,5 +16826,5 @@ const seed = {
       window.addEventListener("load", function() {
         updateOfflineStatus();
         syncPendingOfflineData();
-        if ("serviceWorker" in navigator && location.protocol !== "file:") navigator.serviceWorker.register("./service-worker.js?v=1.49.0", { updateViaCache:"none" }).catch(function() {});
+        if ("serviceWorker" in navigator && location.protocol !== "file:") navigator.serviceWorker.register("./service-worker.js?v=1.50.0", { updateViaCache:"none" }).catch(function() {});
       });

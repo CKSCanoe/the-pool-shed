@@ -40,7 +40,11 @@ function harness({ raw, feed, full }) {
     supabaseSession: { user: { id: 'U1' } },
     clone: v => JSON.parse(JSON.stringify(v)),
     supabaseClient: {
-      async rpc(name, args) { calls.push(['rpc', name, args.since]); return typeof feed === 'function' ? feed() : { data: feed, error: null }; },
+      async rpc(name, args) {
+        calls.push(['rpc', name, args.since]);
+        if (name === 'ps_workspace_load') return { data: { updated_at: 'B', data: full, access: { restricted: false } }, error: null };
+        return typeof feed === 'function' ? feed() : { data: feed, error: null };
+      },
       from() {
         let columns = '';
         const q = {
@@ -126,8 +130,8 @@ for (const [label, feed] of Object.entries(fallbackCases)) {
   const fullData = { customers: [{ id: 'C1' }] };
   const h = harness({ raw, feed, full: fullData });
   assert.equal(await h.state.refreshSharedWorkspaceFromRemote({ silent: true }), true, label);
-  assert.deepEqual(h.calls.map(c => c[1]), ['updated_at', 'ps_records_changes', 'data,updated_at'], label + ': full download');
-  assert.equal(h.applied[0].row.data, fullData, label);
+  assert.deepEqual(h.calls.map(c => c[1]), ['updated_at', 'ps_records_changes', 'ps_workspace_load'], label + ': full download (permitted view)');
+  assert.deepEqual(h.applied[0].row.data, fullData, label);
   assert.equal(JSON.stringify(raw), frozen, label + ': server copy never mutated');
 }
 
@@ -135,7 +139,7 @@ for (const [label, feed] of Object.entries(fallbackCases)) {
 {
   const h = harness({ raw: null, feed: null, full: { customers: [] } });
   await h.state.refreshSharedWorkspaceFromRemote({ silent: true });
-  assert.deepEqual(h.calls.map(c => c[1]), ['updated_at', 'data,updated_at']);
+  assert.deepEqual(h.calls.map(c => c[1]), ['updated_at', 'ps_workspace_load']);
 }
 
 // 5. The user starts typing while the feed is in flight: nothing is applied.
