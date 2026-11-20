@@ -53,6 +53,6 @@ Note: the older per-entity tables (`customers`, `products`, `sales_orders`, `sto
 | 1.8a | Daily duplicate stock-count reminders forcing a full save | **Repaired · Tested on staging** | 45 duplicates in live data; key no longer includes the day |
 | 1.8b | Simultaneous refresh triggers downloading 2–3 times | **Repaired · Tested on staging** | single in-flight lock |
 | 1.8c | Committed `dist/` folder on GitHub is stale (older than `public/`); Vercel rebuilds it on deploy, so it is unused | **Outstanding** · remove from git in Phase 2 | found 20 Nov 2026 |
-| 1.9 | Deploy to production and measure Supabase egress for 48 h | **Outstanding** · after 1.8 | — |
+| 1.9 | Deploy to production and measure Supabase egress for 48 h | **Deployed 20 Nov 2026** · 48 h measurement **Outstanding** | PR #46 merged (`5453909`); live serves cache `pool-shed-v1.48.0-egress-r2`, 50 KB logo and the new sync code. Baseline at 08:20 UTC (stats since 19 Nov 16:26): 835 full-snapshot downloads and 11 stamp checks. Check again on 22 Nov: full downloads should grow only when someone saves; the stamp checks take over. |
 
 Measured on live data (read-only): one old check = 7.07 MB (0.49 MB gzip); one new check = 51 bytes. The 11.51 GB overage ≈ 34 tab-hours of the old poll.
