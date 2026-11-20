@@ -173,6 +173,78 @@
       panel('Payment runs', 'Created by one person, approved by another, then paid. Paying records each supplier payment and settles the bills.', runsTable, '<button type="button" class="secondary" data-pp-action="refresh">Refresh</button>');
   }
 
+  // ---------- Xero hand-off (ready, NOT linked) ----------
+  var xs = { outbox: null, accounts: null, summary: null, loading: false, error: '', opening: null, openingResult: '' };
+  async function loadXero(force){
+    if (xs.loading || (!force && xs.outbox)) return;
+    xs.loading = true; xs.error = '';
+    try {
+      xs.summary = await rpc('ps_xero_prepare_all', { w: W() });
+      var res = await Promise.all([rpc('ps_xero_outbox_list', { w: W() }), rpc('ps_xero_accounts_list', { w: W() })]);
+      xs.outbox = res[0] || []; xs.accounts = res[1] || [];
+    } catch (e) { xs.error = friendly(e); }
+    xs.loading = false; rerender();
+  }
+  function xeroPanel(){
+    loadXero(false);
+    var sum = xs.summary || {}, box = xs.outbox || [];
+    var head = '<div class="pp-result ' + (sum.linked ? 'bad' : 'good') + '"><strong>' + (sum.linked ? 'Sending to Xero is ON.' : 'Not linked: nothing is sent to Xero.') + '</strong> ' +
+      'Each posted bill and supplier payment is prepared exactly as Xero would receive it and checked for problems, so linking later is a switch, not a project.</div>';
+    var rows = box.map(function(o){
+      return '<tr><td><strong>' + esc(o.doc_number) + '</strong><br><small>' + esc(o.kind === 'bill' ? 'Supplier bill' : 'Supplier payment') + '</small></td><td>' + esc(o.contact) + '</td><td>' + day(o.doc_date) + '</td>' +
+        '<td class="num">' + cash(o.amount) + '</td><td>' + pill(o.state === 'ready' ? 'Ready' : o.state === 'held' ? 'Held' : o.state, o.state === 'ready' ? 'good' : o.state === 'held' ? 'warn' : 'dark') + '</td>' +
+        '<td>' + ((o.problems || []).length ? '<small>' + (o.problems || []).map(esc).join('<br>') + '</small>' : '<small class="muted">No problems</small>') + '</td>' +
+        '<td><details><summary>What Xero receives</summary><pre class="pp-json">' + esc(JSON.stringify(o.payload, null, 2)) + '</pre></details></td></tr>'; }).join('');
+    var outbox = box.length ? '<table class="finance-table"><thead><tr><th>Document</th><th>Supplier</th><th>Date</th><th>Amount</th><th>Status</th><th>To fix before sending</th><th></th></tr></thead><tbody>' + rows + '</tbody></table>'
+                            : '<p class="muted">' + (xs.loading ? 'Preparing…' : 'Nothing posted yet.') + '</p>';
+    var acc = (xs.accounts || []).map(function(a){
+      return '<tr><td><strong>' + esc(a.code) + '</strong> ' + esc(a.name) + '</td><td><input class="pp-code" data-pp-xcode="' + esc(a.code) + '" value="' + esc(a.xero_code || '') + '" maxlength="10" placeholder="Xero code"></td>' +
+        '<td>' + (a.xero_confirmed ? pill('Confirmed', 'good') : pill('To confirm', 'warn')) + '</td><td><button type="button" class="secondary small" data-pp-action="confirm-code" data-code="' + esc(a.code) + '">Confirm</button></td></tr>'; }).join('');
+    var accounts = '<p class="muted">Suggested codes are Xero\'s UK defaults. Check each against your Xero chart of accounts (Accounting → Chart of accounts) and confirm.</p>' +
+      '<table class="finance-table"><thead><tr><th>Pool Shed account</th><th>Xero account code</th><th></th><th></th></tr></thead><tbody>' + acc + '</tbody></table>';
+    var op = xs.opening;
+    var opening = '<p class="muted">On the day Pool Shed takes over, load the supplier bills still unpaid in Xero (Xero → Reports → Aged Payables Detail → export to CSV). ' +
+      'They are recorded in Pool Shed so they can be paid in payment runs, and are <strong>never sent back to Xero</strong>.</p>' +
+      '<div class="form-grid three"><label>Balances as at<input type="date" data-pp-opening-date value="' + new Date().toISOString().slice(0, 10) + '"></label>' +
+      '<label class="full">CSV file (columns: Supplier, Invoice number, Invoice date, Due date, Amount outstanding)<input type="file" accept=".csv,text/csv" data-pp-opening-file></label></div>' +
+      (op ? '<p><strong>' + op.rows.length + ' bills, ' + cash(op.rows.reduce(function(t, r){ return t + Number(r.outstanding_gross || 0); }, 0)) + '</strong>' +
+            (op.unknown.length ? ' · <span class="bad">Not matched to a Pool Shed supplier: ' + esc(op.unknown.join(', ')) + '</span>' : '') + '</p>' +
+            '<button type="button" class="primary" data-pp-action="load-opening" ' + (op.rows.length ? '' : 'disabled') + '>Load opening balances</button>' : '') +
+      (xs.openingResult ? '<div class="pp-result">' + xs.openingResult + '</div>' : '');
+    return (xs.error ? '<div class="pp-result bad">' + esc(xs.error) + '</div>' : '') +
+      panel('Pool Shed ledger → Xero', 'Ready to link, not linked.', head + outbox, '<button type="button" class="secondary" data-pp-action="xero-prepare">Re-check</button>') +
+      panel('Xero account codes', 'Which Xero account each Pool Shed ledger account posts to.', accounts) +
+      panel('Opening balances from Xero', 'Only for the go-live day.', opening);
+  }
+  function parseCsv(text){
+    var rows = [], row = [], field = '', q = false;
+    for (var i = 0; i < text.length; i++) {
+      var ch = text[i];
+      if (q) { if (ch === '"' && text[i + 1] === '"') { field += '"'; i++; } else if (ch === '"') q = false; else field += ch; }
+      else if (ch === '"') q = true; else if (ch === ',') { row.push(field); field = ''; }
+      else if (ch === '\n' || ch === '\r') { if (ch === '\r' && text[i + 1] === '\n') i++; row.push(field); rows.push(row); row = []; field = ''; }
+      else field += ch;
+    }
+    if (field || row.length) { row.push(field); rows.push(row); }
+    return rows.filter(function(r){ return r.some(function(c){ return String(c).trim(); }); });
+  }
+  function ukDate(v){ var m = String(v || '').trim().match(/^(\d{1,2})[\/ -](\d{1,2}|[A-Za-z]{3})[\/ -](\d{2,4})$/); if (!m) return /^\d{4}-\d{2}-\d{2}$/.test(String(v).trim()) ? String(v).trim() : null;
+    var mon = isNaN(m[2]) ? ['jan','feb','mar','apr','may','jun','jul','aug','sep','oct','nov','dec'].indexOf(m[2].toLowerCase()) + 1 : Number(m[2]);
+    var y = Number(m[3]) < 100 ? 2000 + Number(m[3]) : Number(m[3]); return y + '-' + String(mon).padStart(2, '0') + '-' + String(m[1]).padStart(2, '0'); }
+  function readOpening(text){
+    var rows = parseCsv(text), header = (rows.shift() || []).map(function(h){ return String(h).toLowerCase(); });
+    var col = function(re){ return header.findIndex(function(h){ return re.test(h); }); };
+    var cs = col(/contact|supplier/), ci = col(/invoice number|number|reference/), cd = col(/invoice date|^date/), cdu = col(/due/), ca = col(/outstanding|due amount|amount due|balance/);
+    var byName = {}; suppliers().forEach(function(x){ byName[String(x.name).trim().toLowerCase()] = supplierKey(x); });
+    var out = [], unknown = [];
+    rows.forEach(function(r){
+      var name = String(r[cs] || '').trim(), amount = Number(String(r[ca] || '').replace(/[£,\s]/g, ''));
+      if (!name || !(amount > 0)) return;
+      var key = byName[name.toLowerCase()]; if (!key) { if (unknown.indexOf(name) < 0) unknown.push(name); return; }
+      out.push({ supplier_key: key, supplier_invoice_no: String(r[ci] || '').trim(), invoice_date: ukDate(r[cd]), due_date: ukDate(r[cdu]), outstanding_gross: Math.round(amount * 100) / 100 });
+    });
+    return { rows: out, unknown: unknown };
+  }
   async function act(fn, done){
     if (state.busy) return; state.busy = true; rerender();
     try { var r = await fn(); if (done) notify(done(r)); await load(true); } catch (e) { notify(friendly(e)); }
@@ -202,6 +274,10 @@
       act(async function(){ var ref = await uploadCopy(file, t.dataset.ppSupplier, 'supplier_invoice'); return rpc('ps_purchase_attach', { w: W(), doc_id: t.dataset.ppAttach, p_ref: ref }); },
           function(){ return 'Invoice copy attached.'; });
     }
+    if (t.matches && t.matches('[data-pp-opening-file]')) {
+      var of = t.files && t.files[0]; if (!of) return;
+      of.text().then(function(text){ xs.opening = readOpening(text); xs.openingResult = ''; rerender(); });
+    }
     if (t.matches && t.matches('[data-pp-select]')) { state.selected[t.dataset.ppSelect] = t.checked; rerender(); }
     if (t.matches && t.matches('[data-pp-dueby]')) { state.dueBy = t.value || isoDays(7); state.purchases = null; load(true); }
   });
@@ -223,8 +299,15 @@
       return act(function(){ return rpc('ps_payment_run_pay', { w: W(), run: b.dataset.run, paid_date: new Date().toISOString().slice(0, 10) }); }, function(r){ return 'Paid: ' + r.supplier_payments + ' supplier payment(s) recorded.'; }); }
     if (a === 'cancel-run') { if (!confirm('Cancel this payment run? Its bills go back to the list.')) return;
       return act(function(){ return rpc('ps_payment_run_cancel', { w: W(), run: b.dataset.run }); }, function(){ return 'Payment run cancelled.'; }); }
+    if (a === 'xero-prepare') return loadXero(true);
+    if (a === 'confirm-code') { var input = document.querySelector('[data-pp-xcode="' + b.dataset.code + '"]');
+      return act(function(){ return rpc('ps_xero_account_confirm', { w: W(), ledger_code: b.dataset.code, xero_code: input ? input.value : '' }); }, function(r){ return 'Account ' + r.code + ' → Xero ' + r.xero_code + ' confirmed.'; }).then(function(){ return loadXero(true); }); }
+    if (a === 'load-opening') { var dt = document.querySelector('[data-pp-opening-date]');
+      if (!confirm('Load ' + xs.opening.rows.length + ' opening supplier bills as at ' + (dt && dt.value) + '? They cannot be edited afterwards, only reversed.')) return;
+      return act(function(){ return rpc('ps_opening_supplier_bills', { w: W(), as_of: dt && dt.value, rows: xs.opening.rows }); },
+        function(r){ xs.openingResult = 'Loaded ' + r.loaded + ' bills (' + cash(r.total) + ').' + (r.problems && r.problems.length ? ' Not loaded: ' + esc(r.problems.join('; ')) : ''); xs.opening = null; return 'Opening balances loaded.'; }).then(function(){ return loadXero(true); }); }
     if (a === 'run-csv') return downloadRun(b.dataset.run, b.dataset.num).catch(function(err){ notify(friendly(err)); });
   });
 
-  global.PoolShedPurchasesUI = { recordPage: recordPage, runsPage: runsPage, reload: function(){ return load(true); }, _state: state, _supplierKey: supplierKey };
+  global.PoolShedPurchasesUI = { recordPage: recordPage, runsPage: runsPage, xeroPanel: xeroPanel, _readOpening: readOpening, _parseCsv: parseCsv, reload: function(){ return load(true); }, _state: state, _supplierKey: supplierKey };
 })(typeof window !== 'undefined' ? window : globalThis);

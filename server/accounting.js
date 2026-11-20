@@ -1,6 +1,7 @@
 import {createCipheriv,createDecipheriv,randomBytes,createHash,createHmac,timingSafeEqual} from 'node:crypto';
 import {supabaseServerKey,elevatedSupabaseHeaders} from './supabase-keys.js';
-export const XERO_SCOPES=['offline_access','accounting.invoices','accounting.contacts.read','accounting.settings.read','accounting.payments.read'];
+// v1.51: 'accounting.payments' lets the ledger send supplier payments; requested only when Xero is (later) connected.
+export const XERO_SCOPES=['offline_access','accounting.invoices','accounting.contacts.read','accounting.settings.read','accounting.payments.read','accounting.payments'];
 export function xeroIntegrationReadiness(env=process.env){
  const required=['SUPABASE_URL','APP_ORIGIN','XERO_CLIENT_ID','XERO_CLIENT_SECRET','XERO_TOKEN_KEY','CRON_SECRET','XERO_WEBHOOK_KEY'];
  const missing=required.filter(k=>!String(env[k]||'').trim());
