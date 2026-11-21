@@ -7,7 +7,7 @@
   function legacyRenderProducts(){const result=baseProductFormRenderer();document.getElementById('screen-products')?.classList?.add('ps-workspace-compat');return result;}
   const legacySidebarSubGroups=typeof sidebarSubGroups==='function'?sidebarSubGroups:null;
   const legacyOpenSidebarSubGroup=typeof openSidebarSubGroup==='function'?openSidebarSubGroup:null;
-  const sections=['Product Command','Catalogue','Replenishment','Product Groups','Bundle Studio','Imports','Catalogue Health'];
+  const sections=['Product Command','Catalogue','Core Stock','Replenishment','Product Groups','Bundle Studio','Imports','Catalogue Health'];
   const phState=global.poolShedProductHubV111State||{
     query:'',preset:'Core',category:'',supplier:'',type:'',health:'',sort:'name',quickProductId:'',productTab:'Overview',
     replenishmentSearch:'',replenishmentSupplier:'',replenishmentMode:'needs',replenishmentSelected:new Set(),replenishmentQty:{},
@@ -31,10 +31,12 @@
   function notify(message){if(typeof toast==='function')toast(message);}
 
   if(legacySidebarSubGroups){
-    sidebarSubGroups=function(tabId){if(tabId==='products')return sections.slice();return legacySidebarSubGroups(tabId);};
+    sidebarSubGroups=function(tabId){if(tabId==='products')return sections.slice();var g=legacySidebarSubGroups(tabId);if(tabId==='purchase'&&g.indexOf('Reorder List')<0)g=g.slice(0,1).concat(['Reorder List'],g.slice(1));return g;};
   }
   if(legacyOpenSidebarSubGroup){
     openSidebarSubGroup=function(tabId,subgroup){
+      // v1.60: Purchasing → Reorder List opens the reorder list (Product Hub → Replenishment).
+      if(tabId==='purchase'&&subgroup==='Reorder List'){tabId='products';subgroup='Replenishment';}
       if(tabId==='products'&&sections.includes(subgroup)){
         active='products';activeSubPage.products=subgroup;productView=subgroup==='Imports'?'bulk':subgroup==='Catalogue Health'?'health':'list';
         phState.quickProductId='';if(typeof render==='function')render();return;
@@ -115,7 +117,7 @@
     const section=currentSection()||'Product Command';
     if(section==='Imports'){productView='bulk';return legacyRenderProducts();}
     if(section==='Catalogue Health'){productView='health';return legacyRenderProducts();}
-    productView='list';let content='';if(section==='Catalogue')content=cataloguePage();else if(section==='Replenishment')content=replenishmentPage();else if(section==='Product Groups')content=groupsPage();else if(section==='Bundle Studio')content=bundlePage();else content=commandPage();const screen=document.getElementById('screen-products');if(screen)screen.innerHTML=content;return content;
+    productView='list';let content='';if(section==='Catalogue')content=cataloguePage();else if(section==='Core Stock')content=(global.PoolShedCoreStock?global.PoolShedCoreStock.page():commandPage());else if(section==='Replenishment')content=replenishmentPage();else if(section==='Product Groups')content=groupsPage();else if(section==='Bundle Studio')content=bundlePage();else content=commandPage();const screen=document.getElementById('screen-products');if(screen)screen.innerHTML=content;return content;
   };
 
   function syncPrimarySupplier(p){const d=dataStore();if(!Array.isArray(d.supplierProducts))d.supplierProducts=[];const supplier=p.preferredSupplier||p.supplier;if(!supplier)return;let offer=d.supplierProducts.find(function(o){return o.productId===p.id&&o.supplier===supplier;});if(!offer){offer={id:'SP-'+Date.now(),productId:p.id,supplier:supplier,available:true};d.supplierProducts.push(offer);}offer.supplierSku=p.supplierSku||p.sku;offer.cost=num(p.cost);offer.leadTimeDays=num(p.leadTimeDays);offer.minQty=Math.max(1,num(p.minimumOrderQuantity)||1);offer.packQty=Math.max(1,num(p.orderMultiple)||1);offer.lastUpdated=new Date().toISOString().slice(0,10);}

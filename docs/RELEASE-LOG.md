@@ -235,3 +235,14 @@ Owner approved the blueprint 21 Nov 2026 (eight areas; Pool Audits under My Work
 | B5d | Accounts home (money in, money out, the books, from the ledger; each figure opens its page) and the 18 tabs grouped the same way; earlier order-based overview kept folded; header "Record Payment" goes to the ledger page | **New · Tested in a real browser on staging** | Staging: 3 ready to invoice £3,158, 1 unpaid £254, ledger balanced, 4 documents for Xero (not linked); "unpaid invoices" opened Customer Invoices. Build gate passes |
 | B5e | **Database released to live** 21 Nov 2026 (032, read-only functions) | **Deployed · verified on live** | Schema backup first; data unchanged. On live (rolled back): Admin gets an empty, correct account (balance 0, no documents, terms Due on receipt); Sales refused; profiles unchanged (all Admin) |
 | B5f | App release | **Deployed · verified on live** 21 Nov 2026 via PR #59 (`4e0ff6d`; live cache `pool-shed-v1.59.0-accounts-r1`, Vercel check green) | Live site serves `customer-account.js` and `accounts-home.js` at v1.59.0; the statement PDF refuses requests without sign-in (401); data unchanged |
+
+---
+
+## Blueprint step 6 · core stock and the reorder list · v1.60.0 · branch `stock-control`
+
+Finding (live, read-only): 6,662 products count as stocked but only 18 hold any stock (17 units); none has a reorder level; 6,469 have a cost and all have a supplier. Pool Bros buys mostly to order. Existing features reused: Product Hub replenishment (projected stock with stock on order and orders waiting, pack sizes, grouped by supplier, draft POs) and automatic PO statuses from receiving. Not in this step (moved to step 7, profit): average and landed cost on goods in, and stock journals in the ledger.
+
+| # | Change | Status | Evidence |
+|---|---|---|---|
+| B6a | Core Stock page (Stock → Products): keep / stop keeping each line or a whole page, sales in 90 days and 12 months, on hand, cost, reorder point and order-up-to with suggestions from sales rounded to pack size; only kept lines can need ordering | **New · Tested in a real browser on staging** | `test-core-stock-v160`. Staging: top seller (42 sold in 90 days) kept with suggested 7 / 20; it appeared on the reorder list (1 already needed by an order, 21 suggested, £391.23); 62 Water Testing lines kept in one action (1 / 2, no sales) then released. Redraw cut from 1.2 s to 0.1 s by checking only kept lines |
+| B6b | Purchasing → Reorder List link; Home tile "core stock lines to reorder" (kept lines only) | **New · Tested in a real browser on staging** | Menu shows Reorder List, which opens Product Hub → Replenishment; Home showed "1 core stock line to reorder, £391 suggested". Build gate passes. No database change |
