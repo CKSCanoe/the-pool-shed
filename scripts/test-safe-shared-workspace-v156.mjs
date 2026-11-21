@@ -27,7 +27,7 @@ assert(loadStart>=0&&saveStart>loadStart,'workspace load/save functions must exi
 const load=app.slice(loadStart,saveStart);
 assert(load.indexOf('await fetchWorkspaceMaster()')>=0,'load must read server first');
 // v1.50 (Phase 3.4): the server read goes through ps_workspace_load (the permitted view for this user's role).
-const master=app.slice(app.indexOf('      async function fetchWorkspaceMaster()'),app.indexOf('      function workspaceAccessView('));
+const master=app.slice(app.indexOf('      async function fetchWorkspaceMasterOnce()'),app.indexOf('      function workspaceAccessView('));
 assert(master.indexOf('rpc("ps_workspace_load"')>=0&&master.indexOf('rpc("ps_workspace_load"')<master.indexOf('select("data,updated_at")'),'server read uses the role-filtered load first');
 assert(load.includes('localBaseRevision && localBaseRevision === remoteRevision'),'pending local edits may upload only from the exact server base');
 assert(!/return saveRemoteWorkspace\(true\);\s*if \(!supabaseClient/.test(load),'pending browser state must not upload before reading server');

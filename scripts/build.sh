@@ -49,6 +49,8 @@ run_node_stage "workspace and sales safety" \
   test-frame-v155.mjs \
   test-orders-v156.mjs \
   test-customer-emails-v157.mjs \
+  test-van-stock-v158.mjs \
+  test-workspace-load-v158.mjs \
   test-workspace-audit-v1451.mjs \
   test-commercial-audits-v146.mjs \
   test-audit-device-recovery.mjs \
