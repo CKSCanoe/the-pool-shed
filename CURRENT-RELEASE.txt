@@ -1,3 +1,7 @@
+Pool Shed v1.53.0 - Monthly van report reminders
+
+Engineers now see a reminder at the top of Pool Shed, and a count on Vans & Fleet in the menu, until this month's report for their van is submitted; if a report is sent back, the reminder shows the reviewer's comment. Admin and Management see how many reports are waiting for their sign-off and how many vans have not reported yet. The reminder can be hidden for the rest of the day. Optional reminder emails, which stay switched off until the owner turns them on: engineers on the 1st of the month and then every 3 days until they submit (and straight away if a report is sent back); Admin and Management on the 8th, 15th and 22nd with every van still outstanding. No one is emailed twice on the same day.
+
 Pool Shed v1.52.0 - Vans & Fleet
 
 New Vans & Fleet section. Add each van with its registration plate, make, model, year, colour, fuel, VIN, mileage and assigned engineer; MOT, road tax, insurance (insurer, policy, renewal), service and breakdown cover dates with due-soon and overdue warnings; V5, insurance and MOT documents; and the supplies that should be on board. Every month each engineer completes an electronic van report on their phone: mileage, an 18-point check (problems need a note), dents and scratches logged with photos and where they are, supplies counted, and their signature. Admin or Management review it and sign it off with their own signature, or send it back with comments. Engineers only ever see their own van. Damage stays on record until it is marked repaired.

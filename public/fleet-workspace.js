@@ -1,4 +1,4 @@
-/* Pool Shed v1.52.0 — Vans & Fleet.
+/* Pool Shed v1.53.0 — Vans & Fleet (monthly report reminders added in v1.53).
    Managers (Admin, Management): van register, MOT / tax / insurance / service, documents, supplies list, monthly report
    review and sign-off, damage register. Engineers: "My van" and the monthly report on their phone.
    Every rule (own van only, locked after submit, signatures, sign-off by someone else) is enforced by the database (026/027). */
@@ -273,9 +273,70 @@
       '.fleet-pad{width:100%;max-width:600px;height:160px;border:2px dashed #8aa;border-radius:8px;background:#fff;touch-action:none}' +
       '.fleet-sig{display:flex;gap:10px;align-items:center;margin:8px 0}.fleet-sig img{height:60px;background:#fff;border:1px solid #ddd;border-radius:6px}' +
       '.fleet-kit{display:grid;gap:6px}.fleet-kit-row{display:grid;grid-template-columns:1fr 90px;gap:6px}' +
+      '.fleet-badge{display:inline-flex;align-items:center;justify-content:center;min-width:18px;height:18px;padding:0 5px;margin-left:6px;border-radius:9px;background:#c0392b;color:#fff;font:700 11px/1 system-ui}' +
+      '.fleet-reminder{margin:12px 14px;display:grid;gap:6px}.fleet-reminder-row span{flex:1;min-width:0}.fleet-reminder [data-fl=dismiss-reminder]{justify-self:end;width:auto;min-height:0;padding:2px 4px;border:0;background:none;box-shadow:none;color:inherit;opacity:.7;font-size:12px;text-decoration:underline;cursor:pointer}.fleet-reminder-row{display:flex;justify-content:space-between;align-items:center;gap:10px;padding:10px 12px;border-radius:10px;border:1px solid #e0b84c;background:#fff8e1}.fleet-reminder-row.bad{border-color:#c0392b;background:#fdecea}' +
       '@media (max-width:700px){.fleet-check{grid-template-columns:1fr}.fleet-okfail button{flex:1}}' +
       '@media print{.sidebar,.topbar,.finance-row-actions,.fleet-pad,details.fleet-add-damage{display:none!important}}';
     document.head.appendChild(st);
   })();
-  global.PoolShedFleetUI = { render: render, reload: function(){ return load(true); }, _state: s };
+  // ---------- Reminders (v1.53): banner + menu count ----------
+  function me(){ return typeof global.__POOL_SHED_CURRENT_USER__ === 'function' ? (global.__POOL_SHED_CURRENT_USER__() || {}) : {}; }
+  function reminders(){
+    var vans = s.vans || [], uid = String(me().id || ''), dom = new Date().getDate(), mo = month(new Date().toISOString());
+    var mine = vans.filter(function(v){ return String(v.assigned_user || '') === uid && ['not started','draft','returned'].indexOf(v.report_status) >= 0; });
+    var out = { count: 0, items: [] };
+    mine.forEach(function(v){
+      out.items.push({ tone: v.report_status === 'returned' ? 'bad' : 'warn', van: v.id,
+        text: v.report_status === 'returned' ? 'Your ' + mo + ' van report for ' + v.registration + ' was sent back: ' + (v.report_review_note || 'please update it') + '.'
+                                             : 'Your ' + mo + ' van report for ' + v.registration + ' is due.', cta: v.report_status === 'draft' ? 'Continue report' : v.report_status === 'returned' ? 'Update report' : 'Start report' });
+    });
+    if (isManager()) {
+      var waiting = vans.filter(function(v){ return v.report_status === 'submitted'; }).length;
+      var missing = vans.filter(function(v){ return v.assigned_user && ['not started','draft'].indexOf(v.report_status) >= 0 && String(v.assigned_user) !== uid; }).length;
+      if (waiting) out.items.push({ tone: 'warn', text: waiting + ' van report' + (waiting > 1 ? 's are' : ' is') + ' waiting for your sign-off.', cta: 'Review', page: true });
+      if (missing && dom > 7) out.items.push({ tone: 'bad', text: missing + ' van' + (missing > 1 ? 's have' : ' has') + ' no ' + mo + ' report yet.', cta: 'View vans', page: true });
+    }
+    out.count = out.items.length;
+    return out;
+  }
+  function dismissKey(){ return 'poolshed:fleet-reminder-dismissed:' + new Date().toISOString().slice(0, 10); }
+  function paintReminders(){
+    if (typeof document === 'undefined') return;
+    var r = reminders(), main = document.getElementById('mainContent'), topbar = main && main.querySelector('.topbar');
+    var link = document.querySelector('#nav [data-tab="fleet"]');
+    if (link) {
+      var b = link.querySelector('.fleet-badge');
+      if (r.count && !b) { b = document.createElement('span'); b.className = 'fleet-badge'; link.appendChild(b); }
+      if (b) { if (r.count) { b.textContent = String(r.count); b.setAttribute('aria-label', r.count + ' van report reminder' + (r.count > 1 ? 's' : '')); } else b.remove(); }
+    }
+    var box = document.getElementById('fleet-reminder');
+    var hide = !r.count || (typeof localStorage !== 'undefined' && localStorage.getItem(dismissKey()) === '1');
+    if (hide) { if (box) box.remove(); return; }
+    if (!box && topbar) { box = document.createElement('div'); box.id = 'fleet-reminder'; box.setAttribute('role', 'status'); topbar.insertAdjacentElement('afterend', box); }
+    if (!box) return;
+    box.className = 'fleet-reminder';
+    box.innerHTML = r.items.map(function(i){ return '<div class="fleet-reminder-row ' + i.tone + '"><span>🚐 ' + esc(i.text) + '</span>' +
+      '<button type="button" class="primary small" data-fl="' + (i.van ? 'open-report' : 'go-fleet') + '"' + (i.van ? ' data-van="' + esc(i.van) + '"' : '') + '>' + esc(i.cta) + '</button></div>'; }).join('') +
+      '<button type="button" class="link small" data-fl="dismiss-reminder">Hide for today</button>';
+  }
+  var reminderStarted = false;
+  function startReminders(){
+    if (reminderStarted || typeof document === 'undefined') return; reminderStarted = true;
+    var ready = function(){ return typeof global.__POOL_SHED_WORKSPACE_READY__ === 'function' && global.__POOL_SHED_WORKSPACE_READY__() && DB(); };
+    var tick = function(){ if (!ready()) return setTimeout(tick, 2000); load(true).then(paintReminders); };
+    tick();
+    setInterval(function(){ if (!document.hidden && ready()) load(true).then(paintReminders); }, 10 * 60 * 1000);
+    var nav = document.getElementById('nav');
+    if (nav && typeof MutationObserver === 'function') new MutationObserver(function(){ if (!nav.querySelector('[data-tab="fleet"] .fleet-badge') && reminders().count) paintReminders(); }).observe(nav, { childList: true });
+    document.addEventListener('click', function(e){
+      var b = e.target.closest && e.target.closest('[data-fl]'); if (!b) return;
+      if (b.dataset.fl === 'dismiss-reminder') { try { localStorage.setItem(dismissKey(), '1'); } catch (_) {} paintReminders(); }
+      if (b.dataset.fl === 'go-fleet' && typeof global.__POOL_SHED_OPEN_TAB__ === 'function') { s.view = 'list'; global.__POOL_SHED_OPEN_TAB__('fleet'); }
+      if (b.dataset.fl === 'open-report' && typeof global.__POOL_SHED_OPEN_TAB__ === 'function' && b.closest('#fleet-reminder')) global.__POOL_SHED_OPEN_TAB__('fleet');
+    }, true);
+  }
+  if (typeof document !== 'undefined' && document.addEventListener) {
+    if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', startReminders); else setTimeout(startReminders, 0);
+  }
+  global.PoolShedFleetUI = { render: render, reload: function(){ return load(true); }, _state: s, _reminders: reminders, _paint: paintReminders };
 })(typeof window !== 'undefined' ? window : globalThis);
