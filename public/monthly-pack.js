@@ -1,4 +1,4 @@
-/* Pool Shed v1.65.0 — Monthly management pack (Reports → Monthly Pack).
+/* Pool Shed v1.66.0 — Monthly management pack (Reports → Monthly Pack).
    One page per month to read, print or save as PDF: sales and profit (against last month and the same month last
    year), the six-month trend, best customers and products, money owed to us and by us, stock value (warehouse and
    each van), purchasing, quotes, projects and contracts, and a short list of things to look at.

@@ -238,6 +238,17 @@ Owner approved the blueprint 21 Nov 2026 (eight areas; Pool Audits under My Work
 
 ---
 
+## Navigation and page tidy-up · v1.66.0 · branch `navigation`
+
+Owner: the navigation, the flow and the placement of tabs and buttons were not good. Audit on staging: 17 sections and about 100 pages; 8 things listed in two places (suppliers, counts, transfers, vans, invoices, credits, reorder list, approvals); three different kinds of menu (side menu, Accounts' 18 in-page buttons, Reports' 13-tab row); old internal names as page titles ("Inventory Tracker", "Data Insights", "Finance Command"); titles repeated in page banners; "Back to Dashboard" everywhere.
+
+| # | Change | Status | Evidence |
+|---|---|---|---|
+| N1 | Side menu: 11 areas with at most 7 pages each, every page in one place, the rest under each area's "More"; sections added later still show; the menu follows each person's permissions; "Classic menu" kept | **New · Tested in a real browser on staging** | Every main page opened from the menu with the right title and highlight, mostly in about 0.6 s. "Reorder list" highlights Purchasing (it opens the stock replenishment screen). "Catalogue" (draws all 6,800 products, about 10 s) moved under More. Classic switch works both ways |
+| N2 | One title per page ("Area › Page"); Back to Dashboard, repeated banner titles, Accounts' button block, the Reports and Quote Studio tab rows hidden; van reminder banner on Home only; Orders list without the duplicate count boxes | **New · Tested in a real browser on staging** | Accounts home: one title, and work starts at the top. Orders: the list starts about 100 px higher. No console errors |
+| N3 | "+ New" at the top of the menu: sales order, quote, customer, purchase order, product, contract, project | **New · Tested in a real browser on staging** | Contract opened the new contract form; the quote and product start buttons and the order functions were found |
+| N4 | Tests | **New** | `test-navigation-v166` (every existing page reachable, each listed once, at most 7 per area, aliases, + New, tidy-up rules); `test-frame-v155` updated for the new menu. Build gate passes. No database change |
+
 ## Ready for the web shop (any platform) · v1.65.0 · branch `webshop-ready`
 
 Owner: the website is not built yet, so everything is ready to connect whichever platform is chosen. It starts switched off.
@@ -247,6 +258,7 @@ Owner: the website is not built yet, so everything is ready to connect whichever
 | W1 | Migration 035: shop settings (secret never readable by staff), web orders received once, dispatch outbox, stock feed (sell-online products, warehouse stock less allocations) | **New · Proven on staging (rolled back), then applied on staging** | `scripts/ops/test-035-web-shop.sql`, 18 checks: starts off; can't switch on without a secret; short secret refused; secret never returned; Sales can't open settings but can list orders; Warehouse can't; same order twice makes one row (payment updated); no lines refused; ignore needs a reason; no double import; can't ignore an imported order; outbox only for web orders; test order; stock feed counts warehouse stock less allocations and leaves vans out; receive and stock functions are server-only |
 | W2 | Server (`api/media.js`, no new function): `shop-order` (Shopify and WooCommerce webhooks, or any site signing with the secret) and `shop-stock` (Bearer secret); refused while switched off | **New · Unit tested** | `test-web-shop-v165`: signatures (right, wrong, body changed, unsigned, no secret); Shopify with VAT included, a discount and delivery; WooCommerce; generic. Prices before VAT per line after discounts |
 | W3 | Sales → Web Orders (customer matched by email or created, SKUs checked, custom lines only when ticked, delivery line, payment if paid, one click or all ready); Settings → Web Shop (switch, platform, secret, the two addresses, test order, sell-online marking, catalogue check, outbox); dispatch updates queued on ship, part ship and collection | **New · Tested in a real browser on staging** | Test order sent from Settings, then created as SO-2067 for a new customer: 2 stock lines, delivery and payment £195.36. The server priced it at £162.80 before VAT, matching the web order |
+| W4 | App and database release | **Deployed · verified on live** 21 Nov 2026 (035 applied after a schema backup; rolled-back live checks 18/18; Vercel check green; live cache `pool-shed-v1.65.0-webshop-r1`) | Live: the order and stock addresses both answer 503 "switched off" (nothing stored, 0 shop orders); data unchanged; switched off until the owner turns it on |
 
 ## Monthly management pack · v1.64.0 · branch `monthly-pack`
 

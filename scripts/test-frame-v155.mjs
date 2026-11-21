@@ -15,19 +15,23 @@ const ctx = { console, Date, Math, Number, String, JSON, Promise, Intl, Object, 
 ctx.window = ctx; vm.createContext(ctx); vm.runInContext(fs.readFileSync('public/back-office-frame.js', 'utf8'), ctx);
 const F = ctx.PoolShedFrame;
 
-// 1. Menu: every allowed section appears exactly once, grouped; unknown sections go under More; subpages only for the open one.
+// 1. Menu (v1.66): 11 areas; each page listed once; the open area shows its pages and a More list; unknown sections still reachable.
 const tabs = ['dashboard','mywork','audits','crm','salesorders','quotes','jobs','products','locations','purchase','warehouse','fleet','fulfilment','accounting','analytics','automation','settings','newthing'].map(id => ({ id, label: id }));
-const html = F.navHtml(tabs, 'salesorders', {}, id => id === 'salesorders' ? ['Sales Orders', 'Sales Credits'] : ['X'], () => '');
-for (const t of tabs) assert((html.match(new RegExp('data-tab="' + t.id + '"', 'g')) || []).length <= 1, 'section ' + t.id + ' at most once');
-assert(html.includes('data-tab="salesorders"') && html.includes('data-tab="quotes"'), 'open area lists its sections');
-for (const a of ['home','stock','settings']) assert(html.includes('data-nav-area="' + a + '"'), 'folded area ' + a + ' opens on click');
-for (const id of ['crm','jobs','purchase','fleet','accounting','analytics']) assert(html.includes('data-tab="' + id + '"'), 'single-section area ' + id + ' is a direct link');
-for (const label of ['Home &amp; My Work','Customers','Sales','Projects','Purchasing','Stock','Team &amp; Vans','Accounts','Reports','Settings','More']) assert(html.includes('>' + label + '</button>'), 'area ' + label);
-assert(html.includes('data-sidebar-subgroup="salesorders|Sales Credits"'), 'open section shows its pages');
-assert(!html.includes('data-sidebar-subgroup="crm|X"'), 'closed sections stay folded');
+const subs = id => ({ salesorders: ['Sales Orders', 'Contracts', 'Web Orders', 'Sales Credits', 'Invoices', 'Customer Orders'], crm: ['All Customers', 'Create Customer', 'Suppliers'], quotes: ['Quotes', 'Templates'] })[id] || [];
+const html = F.navHtml(tabs, 'salesorders', { salesorders: 'Contracts' }, subs, () => '');
+for (const label of ['Home','Sales','Customers','Projects','Purchasing','Stock','Warehouse','Team &amp; vans','Accounts','Reports','Settings','More']) assert(html.includes('>' + label + '</button>'), 'area ' + label);
+assert(html.includes('data-nav-page="salesorders|Contracts" aria-current="page"'), 'current page marked');
+for (const p of ['salesorders|Sales Orders', 'quotes|Quotes', 'salesorders|Web Orders', 'salesorders|Sales Credits']) assert(html.includes('data-nav-page="' + p + '"'), 'open area page ' + p);
+assert(html.includes('data-nav-more="sales"') && !html.includes('data-nav-page="quotes|Templates"'), 'less-used pages folded under More');
+assert(!html.includes('salesorders|Invoices') && !html.includes('crm|Suppliers'), 'duplicates are not listed');
+assert(!html.includes('data-nav-page="purchase|Suppliers"'), 'closed areas stay folded');
+assert(html.includes('data-nav-page="newthing|"'), 'unknown sections still reachable');
+assert(html.includes('data-nav-new') && html.includes('data-nav-create="sales-order"') && html.includes('data-nav-create="purchase-order"'), '+ New');
 assert(html.includes('data-menu-style="classic"'), 'classic menu switch');
 const limited = F.navHtml(tabs.filter(t => ['dashboard','salesorders'].includes(t.id)), 'dashboard', {}, () => [], () => '');
 assert(!limited.includes('>Accounts</button>') && limited.includes('>Sales</button>'), 'areas follow permissions');
+const pagesListed = {}; F.MENU.forEach(m => m.pages.forEach(p => { const k = p[0] + '|' + p[1]; assert(!pagesListed[k], 'listed once: ' + k); pagesListed[k] = 1; }));
+assert(F.MENU.every(m => m.pages.length <= 7), 'at most 7 pages per area');
 assert.equal(F.enabled(), true); store['poolshed:menu-style'] = 'classic'; assert.equal(F.enabled(), false); delete store['poolshed:menu-style'];
 
 // 2. Status chips and waiting too long.
