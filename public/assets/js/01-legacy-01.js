@@ -3070,7 +3070,7 @@ const seed = {
           : effectiveMode === "mfa"
             ? '<button class="ps-login-link" type="button" data-login-cancel-mfa>Use a different account</button><span>Authenticator verification</span>'
             : effectiveMode === "denied" || effectiveMode === "workspace" ? '<span></span>' : '<button class="ps-login-link" type="button" data-login-mode="login">Back to sign in</button><span></span>';
-        screen.innerHTML = '<main class="ps-login-stage"><section class="ps-login-shell"><aside class="ps-login-brand"><div><div class="ps-login-lockup"><span class="ps-login-logo"><img src="' + DEFAULT_POOL_BROS_LOGO + '" alt="Pool Bros logo"></span><div><span class="ps-login-kicker">Pool Bros</span><strong>THE POOL SHED</strong></div></div><div class="ps-login-hero"><span class="ps-login-kicker">Operations Command System</span><h1>One secure place to <span>run the operation.</span></h1><p>Secure access to the Pool Bros operations workspace. Sign in to continue to your authorised tools, tasks and information.</p></div></div><div class="ps-login-staff-note"><strong>Pool Bros staff access</strong><span>Your workspace and available tools are tailored to your account after sign-in.</span></div></aside><section class="ps-login-auth"><div class="ps-login-card"><div class="ps-login-card-head"><span class="ps-login-kicker">' + escapeHtml(meta.eyebrow) + '</span><h2>' + escapeHtml(meta.heading) + '</h2><p>' + escapeHtml(meta.intro) + '</p></div><form id="loginForm">' + fields + '<div id="loginMessage" class="ps-login-message' + (good ? ' good' : '') + '">' + escapeHtml(message || '') + '</div></form><div class="ps-login-helper">' + helper + '</div></div></section></section><footer class="ps-login-footer">Pool Shed v1.62.0 · Pool Bros Ltd</footer></main>';
+        screen.innerHTML = '<main class="ps-login-stage"><section class="ps-login-shell"><aside class="ps-login-brand"><div><div class="ps-login-lockup"><span class="ps-login-logo"><img src="' + DEFAULT_POOL_BROS_LOGO + '" alt="Pool Bros logo"></span><div><span class="ps-login-kicker">Pool Bros</span><strong>THE POOL SHED</strong></div></div><div class="ps-login-hero"><span class="ps-login-kicker">Operations Command System</span><h1>One secure place to <span>run the operation.</span></h1><p>Secure access to the Pool Bros operations workspace. Sign in to continue to your authorised tools, tasks and information.</p></div></div><div class="ps-login-staff-note"><strong>Pool Bros staff access</strong><span>Your workspace and available tools are tailored to your account after sign-in.</span></div></aside><section class="ps-login-auth"><div class="ps-login-card"><div class="ps-login-card-head"><span class="ps-login-kicker">' + escapeHtml(meta.eyebrow) + '</span><h2>' + escapeHtml(meta.heading) + '</h2><p>' + escapeHtml(meta.intro) + '</p></div><form id="loginForm">' + fields + '<div id="loginMessage" class="ps-login-message' + (good ? ' good' : '') + '">' + escapeHtml(message || '') + '</div></form><div class="ps-login-helper">' + helper + '</div></div></section></section><footer class="ps-login-footer">Pool Shed v1.63.0 · Pool Bros Ltd</footer></main>';
         bindLoginScreen(effectiveMode);
       }
 
@@ -3443,7 +3443,7 @@ const seed = {
 
       function sidebarSubGroups(tabId) {
         const groups = {
-          salesorders: ["Sales Orders", "Subscriptions", "Sales Credits", "Customer Orders", "Invoices"],
+          salesorders: ["Sales Orders", "Contracts", "Sales Credits", "Customer Orders", "Invoices"],
           quotes: ["Quotes", "Templates", "Engagement", "Approvals", "Settings"],
           products: ["Catalogue", "Create Product", "Import Catalogue", "Pricing", "Catalogue Health"],
           locations: ["Locations", "Transfers", "Van Top-Ups", "Location Thresholds", "Stock Take", "Missing Stock", "Audit Trail"],
@@ -3475,7 +3475,7 @@ const seed = {
           if (subgroup === "Catalogue Health") productView = "health";
         }
         if (tabId === "salesorders") {
-          if (subgroup === "Subscriptions") salesOrderView = "subscriptions";
+          if (subgroup === "Contracts" || subgroup === "Subscriptions") salesOrderView = "subscriptions";
           if (subgroup === "Sales Credits") salesOrderView = "credits";
           if (subgroup === "Sales Orders") salesOrderView = "list";
           if (subgroup === "Invoices") salesOrderFilter = "invoice";
@@ -7182,7 +7182,7 @@ const seed = {
         }
         const protectedSalesViews = ["detail", "goodsnote", "customerAccounting", "creditDetail", "subscriptions"];
         if (salesSubPage === "Sales Orders" && !protectedSalesViews.includes(salesOrderView)) salesOrderView = "list";
-        if (salesSubPage === "Subscriptions") salesOrderView = "subscriptions";
+        if (salesSubPage === "Contracts" || salesSubPage === "Subscriptions") salesOrderView = "subscriptions";
         if (salesSubPage === "Sales Credits" && salesOrderView !== "creditDetail") salesOrderView = "credits";
         if (salesSubPage === "Customer Orders" && salesOrderView !== "detail") salesOrderView = "customerOrders";
         const selected = salesOrder(selectedSalesOrderId) || data.salesOrders[0];
@@ -16970,5 +16970,5 @@ const seed = {
       window.addEventListener("load", function() {
         updateOfflineStatus();
         syncPendingOfflineData();
-        if ("serviceWorker" in navigator && location.protocol !== "file:") navigator.serviceWorker.register("./service-worker.js?v=1.62.0", { updateViaCache:"none" }).catch(function() {});
+        if ("serviceWorker" in navigator && location.protocol !== "file:") navigator.serviceWorker.register("./service-worker.js?v=1.63.0", { updateViaCache:"none" }).catch(function() {});
       });

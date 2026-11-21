@@ -7,7 +7,7 @@ const planner=fs.readFileSync('server/azzy/src/core/planner.js','utf8');
 const registry=fs.readFileSync('server/azzy/src/tools/registry.js','utf8');
 
 assert.match(legacy,/salesOrderSubscriptions:\s*\[\]/,'subscription collection missing from Pool Shed state');
-assert.match(legacy,/salesorders:\s*\["Sales Orders", "Subscriptions"/,'Subscriptions missing from Sales Orders navigation');
+assert.match(legacy,/salesorders:\s*\["Sales Orders", "Contracts"/,'Contracts (formerly Subscriptions) missing from Sales Orders navigation');
 assert.match(legacy,/function salesOrderSubscriptionsPage\(/,'subscription workspace missing');
 assert.match(legacy,/function createSalesOrderSubscriptionFromOrder\(/,'subscription template creation missing');
 assert.match(legacy,/function generateSubscriptionSalesOrder\(/,'manual recurring-order generation missing');
