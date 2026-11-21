@@ -1,4 +1,4 @@
-/* Pool Shed v1.55.0 — Sales invoicing in the Pool Shed ledger (Operations O3).
+/* Pool Shed v1.56.0 — Sales invoicing in the Pool Shed ledger (Operations O3).
    Accounting → Invoice Ready · Customer Invoices · Payments & Allocations · Credit Control · Credits & Returns.
    Every money rule (prices, what may be invoiced, credits, payments) is enforced by the database (database/029);
    these screens only collect, show and confirm. Invoices are never edited: corrections are credit notes. */
@@ -39,9 +39,37 @@
     } catch (e) { s.error = friendly(e); }
     s.loading = false; rerender();
   }
-  async function act(fn){ if (s.busy) return; s.busy = true; s.last = null; rerender();
+  async function act(fn){ if (s.busy) return; s.busy = true; s.last = null; rerender(); paintModal();
     try { await fn(); } catch (e) { s.last = { ok: false, html: esc(friendly(e)) }; }
-    s.busy = false; await load(true); }
+    s.busy = false; await load(true); paintModal(); }
+
+  // ---------- In place on the order page (v1.56): invoice or take a payment without leaving the order ----------
+  function modalBox(){ var m = document.getElementById('si-modal');
+    if (!m) { m = document.createElement('div'); m.id = 'si-modal'; m.className = 'si-modal'; m.setAttribute('role', 'dialog'); m.setAttribute('aria-modal', 'true'); document.body.appendChild(m); }
+    return m; }
+  function closeModal(){ var m = document.getElementById('si-modal'); if (m) m.remove(); s.modal = null; s.review = null; s.last = null; rerender(); }
+  function paintModal(){
+    if (!s.modal || typeof document === 'undefined') return;
+    var m = modalBox(), body = '';
+    if (s.modal === 'invoice') body = s.review ? reviewPanel() : result() + (s.last ? '' : '<p class="muted">Loading the invoice…</p>');
+    else if (s.modal === 'payment') body = result() + paymentForm(true);
+    m.innerHTML = '<div class="si-modal-card"><button type="button" class="si-modal-close" data-si-action="close-modal" aria-label="Close">×</button>' + body + '</div>';
+  }
+  function inlineInvoice(orderId){
+    if (!(typeof global.__POOL_SHED_CAN_ACCESS__ === 'function' && global.__POOL_SHED_CAN_ACCESS__('accounting'))) { notify('Invoices are raised by Accounts.'); return; }
+    s.modal = 'invoice'; s.review = null; s.last = null; s.part = null; paintModal();
+    rpc('ps_sales_order_preview', { w: W(), order_id: orderId }).then(function(r){
+      if (r.state !== 'ready') { s.last = { ok: false, html: esc(r.state === 'invoiced' ? orderId + ' is already invoiced.' : r.state === 'before_ledger' ? orderId + ' was invoiced before the ledger.' : orderId + ' is not delivered yet. Raise a deposit invoice from Accounts → Invoice Ready if needed.') }; }
+      else s.review = r;
+      paintModal();
+    }).catch(function(e){ s.last = { ok: false, html: esc(friendly(e)) }; paintModal(); });
+  }
+  function inlinePayment(order){
+    if (!(typeof global.__POOL_SHED_CAN_ACCESS__ === 'function' && global.__POOL_SHED_CAN_ACCESS__('accounting'))) { notify('Payments are recorded by Accounts.'); return; }
+    var c = (DATA().customers || []).find(function(x){ return String(x.id) === String(order.customerId); });
+    s.payCustomer = c ? 'id:' + c.id : ''; s.modal = 'payment'; s.last = null; paintModal();
+    load(!s.docs).then(paintModal);
+  }
 
   // Keep the order in step (status and invoice number) so the Sales screens show the ledger invoice.
   function markOrder(orderId, docNumber, docDate){
@@ -221,8 +249,7 @@
   }
 
   // ---------- Payments & Allocations ----------
-  function paymentsPage(){
-    load(false);
+  function paymentForm(compact){
     var docs = s.docs || [], custs = {}, cust = s.payCustomer;
     docs.forEach(function(d){ if (!custs[d.customer_key]) custs[d.customer_key] = { name: d.customer, open: 0 }; if (d.doc_type === 'sales_invoice') custs[d.customer_key].open += Number(d.open || 0); });
     (DATA().customers || []).forEach(function(c){ var k = 'id:' + c.id; if (!custs[k]) custs[k] = { name: c.companyName || c.name || ((c.firstName || '') + ' ' + (c.lastName || '')).trim() || c.id, open: 0 }; });
@@ -239,13 +266,18 @@
       (cust ? (open.length ? '<p class="muted">Applied to the oldest invoices first; change the amounts if the customer said otherwise. Anything not applied stays on their account as credit.</p><table class="finance-table"><thead><tr><th>Invoice</th><th>Left to pay</th><th>Status</th><th>Apply (£)</th></tr></thead><tbody>' + invRows + '</tbody></table>'
                          : '<p class="muted">This customer has no unpaid invoices: the payment will stay on their account as credit (for example a payment before the invoice).</p>') : '') +
       '<div class="finance-row-actions"><button type="submit" class="primary"' + (s.busy ? ' disabled' : '') + '>Record payment</button></div></form>';
+    return panel('Record a customer payment', compact ? 'Applied to this customer\u2019s oldest invoices first.' : 'Money received from a customer, applied to their invoices. It is never typed onto an order by hand.', form);
+  }
+  function paymentsPage(){
+    load(false);
+    var docs = s.docs || [];
     var unused = docs.filter(function(d){ return d.doc_type !== 'sales_invoice' && Number(d.open) > 0; });
     var uRows = unused.map(function(u){ var targets = docs.filter(function(d){ return d.customer_key === u.customer_key && d.doc_type === 'sales_invoice' && Number(d.open) > 0; });
       return '<tr><td><strong>' + esc(u.doc_number) + '</strong><br><small>' + esc(docLabel(u.doc_type)) + ' · ' + day(u.doc_date) + '</small></td><td>' + esc(u.customer) + '</td><td class="num">' + cash(u.open) + '</td><td>' +
         (targets.length ? '<form class="si-inline" data-si-form="apply" data-from="' + esc(u.id) + '"><select name="to">' + targets.map(function(t){ return '<option value="' + esc(t.id) + '" data-open="' + esc(t.open) + '">' + esc(t.doc_number) + ' · ' + cash(t.open) + '</option>'; }).join('') + '</select><input name="amount" inputmode="decimal" value="' + Math.min(Number(u.open), Number(targets[0].open)).toFixed(2) + '"><button type="submit" class="secondary small">Apply</button></form>' : '<small class="muted">No unpaid invoices</small>') +
         (s.profile && s.profile.can_edit ? '<form class="si-inline" data-si-form="refund" data-from="' + esc(u.id) + '"><input name="amount" inputmode="decimal" value="' + Number(u.open).toFixed(2) + '"><select name="method"><option value="bank_transfer">Bank transfer</option><option value="card">Card</option><option value="cash">Cash</option></select><button type="submit" class="secondary small">Refund</button></form>' : '') + '</td></tr>'; }).join('');
     return (s.error ? '<div class="pp-result bad">' + esc(s.error) + '</div>' : '') + result() +
-      panel('Record a customer payment', 'Money received from a customer, applied to their invoices. It is never typed onto an order by hand.', form) +
+      paymentForm(false) +
       panel('Money on account', 'Payments and credit notes not yet used: apply them to an invoice, or refund the customer (Admin or Management).',
         unused.length ? '<table class="finance-table"><thead><tr><th>From</th><th>Customer</th><th>Unused</th><th>Apply or refund</th></tr></thead><tbody>' + uRows + '</tbody></table>' : '<p class="muted">Nothing on account.</p>');
   }
@@ -307,8 +339,9 @@
     var b = e.target.closest && e.target.closest('[data-si-action]'); if (!b) return;
     var a = b.dataset.siAction, id = b.dataset.id;
     if (a === 'refresh') { s.last = null; load(true); return; }
-    if (a === 'cancel') { s.review = null; s.part = null; rerender(); return; }
+    if (a === 'cancel') { if (s.modal) { closeModal(); return; } s.review = null; s.part = null; rerender(); return; }
     if (a === 'close-doc') { s.doc = null; rerender(); return; }
+    if (a === 'close-modal') { closeModal(); return; }
     if (a === 'filter') { s.filter = b.dataset.f; rerender(); return; }
     if (a === 'go') { openSub(b.dataset.page); return; }
     if (a === 'pay-for') { s.payCustomer = b.dataset.key || ''; s.doc = null; openSub('Payments & Allocations'); return; }
@@ -339,7 +372,7 @@
 
   document.addEventListener('change', function(e){
     var t = e.target;
-    if (t.matches && t.matches('[data-si-paycust]')) { s.payCustomer = t.value; rerender(); return; }
+    if (t.matches && t.matches('[data-si-paycust]')) { s.payCustomer = t.value; rerender(); paintModal(); return; }
     if (t.matches && t.matches('[data-si-opening]') && t.files && t.files[0]) { t.files[0].text().then(function(txt){ s.opening = readOpening(txt); rerender(); }); return; }
     if (t.matches && t.matches('[data-si-form="part"] select[name="phase"]')) { var opt = t.selectedOptions[0], f = t.form;
       if (opt && opt.dataset.amount) f.net.value = Number(opt.dataset.amount).toFixed(2); if (opt && opt.dataset.name && !f.description.value) f.description.value = opt.dataset.name; return; }
@@ -396,9 +429,11 @@
     var st = document.createElement('style'); st.id = 'si-styles';
     st.textContent = '.si-focus td{background:rgba(24,124,140,.08)}.si-details{padding:12px 16px}.si-details>summary{cursor:pointer;font-weight:600}.si-list{margin:6px 0 0 18px}' +
       '.si-act{margin-top:10px;border-top:1px solid rgba(0,0,0,.08);padding-top:8px}.si-act>summary{cursor:pointer;font-weight:600}.si-inline{display:inline-flex;gap:6px;align-items:center;margin:2px 6px 2px 0}.si-inline input{width:90px}.si-inline select{max-width:190px}' +
+      '.si-modal{position:fixed;inset:0;z-index:1000;background:rgba(10,28,33,.45);display:grid;place-items:start center;padding:6vh 12px;overflow:auto}.si-modal-card{position:relative;background:var(--surface,#fff);color:inherit;border-radius:14px;max-width:760px;width:100%;padding:10px 16px 8px;box-shadow:0 20px 60px rgba(0,0,0,.25)}' +
+      '.si-modal-close{position:absolute;top:8px;right:10px;border:0;background:none;font-size:26px;line-height:1;cursor:pointer;min-height:0;color:inherit;z-index:1}' +
       '.si-alloc{width:110px}.si-bad{color:#b9474f;font-weight:600}.si-filters{flex-wrap:wrap;margin-bottom:8px}.si-review-head{margin-bottom:8px}';
     document.head.appendChild(st);
   }
   global.PoolShedSalesUI = { readyPage: readyPage, invoicesPage: function(){ return invoicesPage(false); }, creditsPage: function(){ return invoicesPage(true); },
-    paymentsPage: paymentsPage, agedPage: agedPage, openForOrder: openForOrder, payForOrder: payForOrder, reload: function(){ return load(true); }, _state: s, _readOpening: readOpening };
+    paymentsPage: paymentsPage, agedPage: agedPage, openForOrder: openForOrder, payForOrder: payForOrder, inlineInvoice: inlineInvoice, inlinePayment: inlinePayment, reload: function(){ return load(true); }, _state: s, _readOpening: readOpening };
 })(typeof window !== 'undefined' ? window : globalThis);

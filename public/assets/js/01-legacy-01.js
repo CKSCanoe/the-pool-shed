@@ -111,6 +111,33 @@ const seed = {
       window.__POOL_SHED_IS_ADMIN__ = function(){ return isAdminUser(currentUser()); };
       window.__POOL_SHED_OPEN_TAB__ = function(tabId){ if(!tabs.some(function(t){return t.id===tabId;})) return false; if(!canAccessTab(tabId)) return false; active=tabId; render(); return true; };
       window.__POOL_SHED_ACTIVE_SUBPAGE__ = function(tabId){ return activeSubPage[tabId] || ""; };
+      // v1.56: start a new order from an existing one (same customer, items and agreed prices; nothing allocated, picked or invoiced).
+      window.__POOL_SHED_COPY_SALES_ORDER__ = function(orderId){
+        const source = salesOrder(orderId); if (!source) { toast("Order not found."); return false; }
+        const c = customer(source.customerId); if (!c) { toast("The customer on " + source.id + " no longer exists."); return false; }
+        const id = nextSalesOrderId("SO"), today = new Date(), due = new Date(today.getTime() + 7 * 86400000);
+        const keep = ["productId","qty","unitPrice","specialPrice","priceNote","customProductName","customVariant","variantDescription","description","lineType","chargeType","shippingMethod","taxCode","accountCode","unitCost","sourceSku","customerDiscountExempt"];
+        const lines = (source.lines || []).map(function(line){ const copy = {}; keep.forEach(function(k){ if (line[k] !== undefined) copy[k] = clone(line[k]); });
+          copy.allocated = line.lineType === "shipping" ? Number(line.qty || 1) : 0; copy.picked = 0; copy.packed = 0; return copy; });
+        const order = { id: id, customerId: source.customerId, quoteRef: "Copied from " + source.id, xeroRef: "Draft", source: "Manual", status: "Needs Review",
+          tags: ["Manual", "Copied"], channel: source.channel || "Phone Order", priceList: source.priceList || c.priceList || "rrp",
+          customerDiscountRate: typeof source.customerDiscountRate === "number" ? source.customerDiscountRate : normaliseSalesOrderDiscountRate(c.discount),
+          priceOverrideReason: "Copied from " + source.id + " with the same agreed prices", shipTo: source.shipTo || addressText(c, "delivery"),
+          addresses: source.addresses ? clone(source.addresses) : undefined, created: today.toISOString().slice(0, 10), due: due.toISOString().slice(0, 10),
+          carrier: source.carrier || "Main Warehouse A1", lines: lines, payments: [], statusUpdatedAt: today.toISOString() };
+        if (order.addresses === undefined) delete order.addresses;
+        data.salesOrders.unshift(order);
+        active = "salesorders"; activeSubPage.salesorders = "Sales Orders"; selectedSalesOrderId = id; salesOrderView = "detail"; salesOrderTab = "products"; salesOrderFilter = "active";
+        addSalesOrderNotification(order, "Sales order created", id + " copied from " + source.id + ". Check quantities and prices before allocating.", "Internal note");
+        saveAppData(); toast(id + " created from " + source.id + ". Check it, then allocate."); render(); return id;
+      };
+      // v1.56: move an order to a status from the order page's next-step button (recorded like a manual change).
+      window.__POOL_SHED_SET_ORDER_STATUS__ = function(orderId, status, note){
+        const order = salesOrder(orderId); if (!order) return false;
+        const who = currentUser(); order.status = status; order.statusUpdatedAt = new Date().toISOString(); order.statusUpdatedBy = who && who.name || ""; order.updatedAt = order.statusUpdatedAt;
+        addSalesOrderNotification(order, "Status changed", order.id + ": " + (note || status), "Internal note");
+        saveAppData(); toast(order.id + " is now " + status + "."); render(); return true;
+      };
       window.__POOL_SHED_SALES_FILTER__ = function(status){ salesOrderListStatus = String(status || ""); if (salesOrderFilter.indexOf("status:") === 0 || salesOrderFilter === "completed") salesOrderFilter = "active"; if (active !== "salesorders" && canAccessTab("salesorders")) active = "salesorders"; render(); return true; };
       window.__POOL_SHED_OPEN_SUBPAGE__ = function(tabId, sub){ if(!tabs.some(function(t){return t.id===tabId;})) return false; if(!canAccessTab(tabId)) return false; activeSubPage[tabId]=sub; active=tabId; render(); return true; };
       window.__POOL_SHED_WORKSPACE_ID__ = function(){ return WORKSPACE_ID; };
@@ -2961,7 +2988,7 @@ const seed = {
           : effectiveMode === "mfa"
             ? '<button class="ps-login-link" type="button" data-login-cancel-mfa>Use a different account</button><span>Authenticator verification</span>'
             : effectiveMode === "denied" || effectiveMode === "workspace" ? '<span></span>' : '<button class="ps-login-link" type="button" data-login-mode="login">Back to sign in</button><span></span>';
-        screen.innerHTML = '<main class="ps-login-stage"><section class="ps-login-shell"><aside class="ps-login-brand"><div><div class="ps-login-lockup"><span class="ps-login-logo"><img src="' + DEFAULT_POOL_BROS_LOGO + '" alt="Pool Bros logo"></span><div><span class="ps-login-kicker">Pool Bros</span><strong>THE POOL SHED</strong></div></div><div class="ps-login-hero"><span class="ps-login-kicker">Operations Command System</span><h1>One secure place to <span>run the operation.</span></h1><p>Secure access to the Pool Bros operations workspace. Sign in to continue to your authorised tools, tasks and information.</p></div></div><div class="ps-login-staff-note"><strong>Pool Bros staff access</strong><span>Your workspace and available tools are tailored to your account after sign-in.</span></div></aside><section class="ps-login-auth"><div class="ps-login-card"><div class="ps-login-card-head"><span class="ps-login-kicker">' + escapeHtml(meta.eyebrow) + '</span><h2>' + escapeHtml(meta.heading) + '</h2><p>' + escapeHtml(meta.intro) + '</p></div><form id="loginForm">' + fields + '<div id="loginMessage" class="ps-login-message' + (good ? ' good' : '') + '">' + escapeHtml(message || '') + '</div></form><div class="ps-login-helper">' + helper + '</div></div></section></section><footer class="ps-login-footer">Pool Shed v1.55.0 · Pool Bros Ltd</footer></main>';
+        screen.innerHTML = '<main class="ps-login-stage"><section class="ps-login-shell"><aside class="ps-login-brand"><div><div class="ps-login-lockup"><span class="ps-login-logo"><img src="' + DEFAULT_POOL_BROS_LOGO + '" alt="Pool Bros logo"></span><div><span class="ps-login-kicker">Pool Bros</span><strong>THE POOL SHED</strong></div></div><div class="ps-login-hero"><span class="ps-login-kicker">Operations Command System</span><h1>One secure place to <span>run the operation.</span></h1><p>Secure access to the Pool Bros operations workspace. Sign in to continue to your authorised tools, tasks and information.</p></div></div><div class="ps-login-staff-note"><strong>Pool Bros staff access</strong><span>Your workspace and available tools are tailored to your account after sign-in.</span></div></aside><section class="ps-login-auth"><div class="ps-login-card"><div class="ps-login-card-head"><span class="ps-login-kicker">' + escapeHtml(meta.eyebrow) + '</span><h2>' + escapeHtml(meta.heading) + '</h2><p>' + escapeHtml(meta.intro) + '</p></div><form id="loginForm">' + fields + '<div id="loginMessage" class="ps-login-message' + (good ? ' good' : '') + '">' + escapeHtml(message || '') + '</div></form><div class="ps-login-helper">' + helper + '</div></div></section></section><footer class="ps-login-footer">Pool Shed v1.56.0 · Pool Bros Ltd</footer></main>';
         bindLoginScreen(effectiveMode);
       }
 
@@ -16859,5 +16886,5 @@ const seed = {
       window.addEventListener("load", function() {
         updateOfflineStatus();
         syncPendingOfflineData();
-        if ("serviceWorker" in navigator && location.protocol !== "file:") navigator.serviceWorker.register("./service-worker.js?v=1.55.0", { updateViaCache:"none" }).catch(function() {});
+        if ("serviceWorker" in navigator && location.protocol !== "file:") navigator.serviceWorker.register("./service-worker.js?v=1.56.0", { updateViaCache:"none" }).catch(function() {});
       });
