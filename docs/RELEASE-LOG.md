@@ -238,6 +238,15 @@ Owner approved the blueprint 21 Nov 2026 (eight areas; Pool Audits under My Work
 
 ---
 
+## Monthly management pack · v1.64.0 · branch `monthly-pack`
+
+Finding: Reports already had a "Monthly Management Pack" card, but it only exported the report builder's current view. The new pack is a real page; the card now opens it.
+
+| # | Change | Status | Evidence |
+|---|---|---|---|
+| M1 | Reports → Monthly Pack: any of the last 13 months. Sales and profit from delivered or invoiced orders, against last month and the same month last year, with a six-month trend. Best customers and best sellers. "Worth a look" list. Money from the ledger (finance roles only) plus what is owed from before the ledger. Stock value at average cost by place (each van listed). Purchasing, quotes, projects and contracts. Print or save as PDF (A4 print layout); CSV | **New · Tested in a real browser on staging** | Staging October 2026 drew in full: 13 orders, 47.0% margin, best customers and sellers, ledger money with the largest balances, and "worth a look" flagged 3 orders missing a cost, 1 core line to reorder and 1 low-margin project. Stock showed £0, which is correct for staging, where all positive stock rows are custom charges (not stock) |
+| M2 | Tests | **New** | `test-monthly-pack-v164`: month maths and the default month, comparisons, stock by place (vans, negative bins ignored, no-cost lines counted), purchasing (drafts and cancelled excluded), quotes, contracts, ledger money (invoices less credits, receipts, aged buckets, overdue bills), money shown to finance roles only. Analytics tests still pass; build gate passes. No database change |
+
 ## Contracts · recurring maintenance and repeat orders · v1.63.0 · branch `contracts`
 
 Finding: Sales → Subscriptions already existed (repeat orders), but it only repeated stock products, so service lines were dropped. It counted in days rather than calendar months and created one order at a time. Live has none, so the same records are upgraded in place. Owner decisions: billing is per contract (fixed fee or per visit); due contracts are listed and created with one click, never automatically.
@@ -246,6 +255,7 @@ Finding: Sales → Subscriptions already existed (repeat orders), but it only re
 |---|---|---|---|
 | C1 | Sales → Contracts (old menu name still opens it): maintenance (fixed fee in advance or arrears, or per visit) or repeat order; service and product lines at the agreed price (customer discount not applied); weekly to yearly on the calendar; start, end, renewal, site and PO | **New · Tested in a real browser on staging** | Contract saved for a staging customer with a 5% discount; listed as due today; "Create 1 order" made an order straight to Invoice Ready with the period on the line; the server's invoice preview showed the full contract price with no discount |
 | C2 | One click for everything due; the same period is never created twice; contracts stop after their end date; pause, resume, end; renewals in 60 days with a price change; monthly and yearly value; Home tile "contracts due" | **New · Unit tested** | `test-contracts-v163`: month-end and leap-year dates, arrears labels, older day-based subscriptions still create orders, a second order for the same period is refused, an ended contract creates nothing, a 5% renewal moves the line and its charge product; nothing runs on a timer. Build gate passes. No database change |
+| C3 | App release | **Deployed · verified on live** 21 Nov 2026 (Vercel check green; live cache `pool-shed-v1.63.0-contracts-r1`) | Live site serves `contracts.js` at v1.63.0 with Sales → Contracts. Data fingerprint changed once since v1.62: on 21 Nov at 20:08 the owner's session (the post-020 live check) saved the 9 purchase-order status settings with `remindDays: 0` added (the v1.55 "no reminder" default). No other records changed; earlier values are in `ps_record_history` |
 
 ## Phase 3.4 finish · every read through the role rules (020 + 034) · v1.62.0 · branch `close-direct-reads`
 

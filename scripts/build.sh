@@ -56,6 +56,7 @@ run_node_stage "workspace and sales safety" \
   test-profit-v161.mjs \
   test-locked-reads-v162.mjs \
   test-contracts-v163.mjs \
+  test-monthly-pack-v164.mjs \
   test-workspace-audit-v1451.mjs \
   test-commercial-audits-v146.mjs \
   test-audit-device-recovery.mjs \
