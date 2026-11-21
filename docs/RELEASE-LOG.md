@@ -238,6 +238,16 @@ Owner approved the blueprint 21 Nov 2026 (eight areas; Pool Audits under My Work
 
 ---
 
+## Ready for the web shop (any platform) · v1.65.0 · branch `webshop-ready`
+
+Owner: the website is not built yet, so everything is ready to connect whichever platform is chosen. It starts switched off.
+
+| # | Change | Status | Evidence |
+|---|---|---|---|
+| W1 | Migration 035: shop settings (secret never readable by staff), web orders received once, dispatch outbox, stock feed (sell-online products, warehouse stock less allocations) | **New · Proven on staging (rolled back), then applied on staging** | `scripts/ops/test-035-web-shop.sql`, 18 checks: starts off; can't switch on without a secret; short secret refused; secret never returned; Sales can't open settings but can list orders; Warehouse can't; same order twice makes one row (payment updated); no lines refused; ignore needs a reason; no double import; can't ignore an imported order; outbox only for web orders; test order; stock feed counts warehouse stock less allocations and leaves vans out; receive and stock functions are server-only |
+| W2 | Server (`api/media.js`, no new function): `shop-order` (Shopify and WooCommerce webhooks, or any site signing with the secret) and `shop-stock` (Bearer secret); refused while switched off | **New · Unit tested** | `test-web-shop-v165`: signatures (right, wrong, body changed, unsigned, no secret); Shopify with VAT included, a discount and delivery; WooCommerce; generic. Prices before VAT per line after discounts |
+| W3 | Sales → Web Orders (customer matched by email or created, SKUs checked, custom lines only when ticked, delivery line, payment if paid, one click or all ready); Settings → Web Shop (switch, platform, secret, the two addresses, test order, sell-online marking, catalogue check, outbox); dispatch updates queued on ship, part ship and collection | **New · Tested in a real browser on staging** | Test order sent from Settings, then created as SO-2067 for a new customer: 2 stock lines, delivery and payment £195.36. The server priced it at £162.80 before VAT, matching the web order |
+
 ## Monthly management pack · v1.64.0 · branch `monthly-pack`
 
 Finding: Reports already had a "Monthly Management Pack" card, but it only exported the report builder's current view. The new pack is a real page; the card now opens it.
