@@ -238,6 +238,16 @@ Owner approved the blueprint 21 Nov 2026 (eight areas; Pool Audits under My Work
 
 ---
 
+## Ready for the web shop (any platform) · v1.65.0 · branch `webshop-ready`
+
+Owner: the website is not built yet, so everything is ready to connect whichever platform is chosen. It starts switched off.
+
+| # | Change | Status | Evidence |
+|---|---|---|---|
+| W1 | Migration 035: shop settings (secret never readable by staff), web orders received once, dispatch outbox, stock feed (sell-online products, warehouse stock less allocations) | **New · Proven on staging (rolled back), then applied on staging** | `scripts/ops/test-035-web-shop.sql`, 18 checks: starts off; can't switch on without a secret; short secret refused; secret never returned; Sales can't open settings but can list orders; Warehouse can't; same order twice makes one row (payment updated); no lines refused; ignore needs a reason; no double import; can't ignore an imported order; outbox only for web orders; test order; stock feed counts warehouse stock less allocations and leaves vans out; receive and stock functions are server-only |
+| W2 | Server (`api/media.js`, no new function): `shop-order` (Shopify and WooCommerce webhooks, or any site signing with the secret) and `shop-stock` (Bearer secret); refused while switched off | **New · Unit tested** | `test-web-shop-v165`: signatures (right, wrong, body changed, unsigned, no secret); Shopify with VAT included, a discount and delivery; WooCommerce; generic. Prices before VAT per line after discounts |
+| W3 | Sales → Web Orders (customer matched by email or created, SKUs checked, custom lines only when ticked, delivery line, payment if paid, one click or all ready); Settings → Web Shop (switch, platform, secret, the two addresses, test order, sell-online marking, catalogue check, outbox); dispatch updates queued on ship, part ship and collection | **New · Tested in a real browser on staging** | Test order sent from Settings, then created as SO-2067 for a new customer: 2 stock lines, delivery and payment £195.36. The server priced it at £162.80 before VAT, matching the web order |
+
 ## Monthly management pack · v1.64.0 · branch `monthly-pack`
 
 Finding: Reports already had a "Monthly Management Pack" card, but it only exported the report builder's current view. The new pack is a real page; the card now opens it.
@@ -246,6 +256,7 @@ Finding: Reports already had a "Monthly Management Pack" card, but it only expor
 |---|---|---|---|
 | M1 | Reports → Monthly Pack: any of the last 13 months. Sales and profit from delivered or invoiced orders, against last month and the same month last year, with a six-month trend. Best customers and best sellers. "Worth a look" list. Money from the ledger (finance roles only) plus what is owed from before the ledger. Stock value at average cost by place (each van listed). Purchasing, quotes, projects and contracts. Print or save as PDF (A4 print layout); CSV | **New · Tested in a real browser on staging** | Staging October 2026 drew in full: 13 orders, 47.0% margin, best customers and sellers, ledger money with the largest balances, and "worth a look" flagged 3 orders missing a cost, 1 core line to reorder and 1 low-margin project. Stock showed £0, which is correct for staging, where all positive stock rows are custom charges (not stock) |
 | M2 | Tests | **New** | `test-monthly-pack-v164`: month maths and the default month, comparisons, stock by place (vans, negative bins ignored, no-cost lines counted), purchasing (drafts and cancelled excluded), quotes, contracts, ledger money (invoices less credits, receipts, aged buckets, overdue bills), money shown to finance roles only. Analytics tests still pass; build gate passes. No database change |
+| M3 | App release | **Deployed · verified on live** 21 Nov 2026 (Vercel check green; live cache `pool-shed-v1.64.0-pack-r1`) | Live site serves `monthly-pack.js` at v1.64.0 with Reports → Monthly Pack; data unchanged since the v1.63 check |
 
 ## Contracts · recurring maintenance and repeat orders · v1.63.0 · branch `contracts`
 

@@ -4,6 +4,7 @@ import {supabaseServerKey} from '../server/supabase-keys.js';
 import {appOriginAllowed} from '../server/origin-policy.js';
 import {invoicePdf,invoiceEmailText,statementPdf} from '../server/invoice-pdf.js';
 import {customerEmail} from '../server/customer-email.js';
+import {verify as verifyShop,normalise as normaliseShop} from '../server/shop-orders.js';
 export const config={api:{bodyParser:false},maxDuration:60};
 const send=(res,status,value)=>res.status(status).json(value);
 async function rawBuffer(req,max=26214400){let chunks=[],n=0;for await(const b of req){n+=b.length;if(n>max)throw Object.assign(Error('Request too large'),{statusCode:413});chunks.push(b)}return Buffer.concat(chunks)}
@@ -132,6 +133,22 @@ export default async function handler(req,res){res.setHeader('Cache-Control','no
  }
  if(action==='sign'){
   if(req.method!=='GET')return send(res,405,{error:'GET required'});await identity(req,w,false);const refs=String(url.searchParams.get('refs')||'').split(',').map(decodeURIComponent).filter(Boolean).slice(0,150),urls=await signBusinessMedia(w,refs,3600);return send(res,200,{urls});
+ }
+ // v1.65 web shop (any platform): orders in, stock levels out. Server to server: no sign-in, the shop secret instead.
+ if(action==='shop-order'||action==='shop-stock'){
+  const [cfg]=await db('ps_shop_settings?workspace_id=eq.'+eq(w)+'&select=enabled,secret');
+  if(!cfg||!cfg.enabled)return send(res,503,{error:'The web shop connection is switched off in Pool Shed'});
+  if(action==='shop-stock'){
+   if(req.method!=='GET')return send(res,405,{error:'GET required'});
+   const auth=String(req.headers.authorization||'');const ok=verifyShop({authorization:auth},Buffer.alloc(0),cfg.secret);if(!ok.ok)return send(res,401,{error:'Key does not match'});
+   return send(res,200,await db('rpc/ps_shop_stock',{method:'POST',body:{w}}));
+  }
+  if(req.method!=='POST')return send(res,405,{error:'POST required'});
+  const raw=await rawBuffer(req,2097152),check=verifyShop(req.headers,raw,cfg.secret);if(!check.ok)return send(res,401,{error:check.error});
+  let body;try{body=JSON.parse(raw.toString('utf8'))}catch{return send(res,200,{ok:true,ping:true})} // WooCommerce sends a non-JSON ping when a webhook is created
+  const order=normaliseShop(check.platform,body);
+  const out=await db('rpc/ps_shop_order_receive',{method:'POST',body:{w,platform:check.platform,o:order,raw:body,is_test:false}});
+  return send(res,200,{ok:true,id:out&&out.id,duplicate:!!(out&&out.duplicate)});
  }
  if(action==='archive'){
   if(req.method!=='POST')return send(res,405,{error:'POST required'});if(!validOrigin(req))return send(res,403,{error:'Invalid origin'});const u=await identity(req,w,true),ref=String(url.searchParams.get('ref')||''),parsed=parseMediaRef(ref);if(!parsed)throw Object.assign(Error('Invalid media reference'),{statusCode:400});if(parsed.domain==='finance')await requireFinance(u);if(parsed.domain==='fleet'){const [row]=await db('ps_fleet_media?id=eq.'+eq(parsed.id)+'&select=van_id');if(!row||!await fleetAllowed(req,w,row.van_id,'other'))throw Object.assign(Error('Only Admin or Management can remove van files'),{statusCode:403});}await archiveBusinessMedia({domain:parsed.domain,workspaceId:w,id:parsed.id});await audit(w,u.id,parsed.domain+'_media_archived',{mediaId:parsed.id});return send(res,200,{archived:true,ref});
