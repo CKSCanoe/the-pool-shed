@@ -149,7 +149,12 @@ export function invoicePdf(inv) {
   text(foot, M, 30, 8, false, MUTED);
   pages.push(ops);
 
-  // Assemble the file: catalog, page tree, fonts, then one page + content stream per page.
+  return assemblePdf(pages, title + ' ' + inv.doc_number);
+}
+
+// Assemble the file: catalog, page tree, fonts, then one page + content stream per page (shared by every document).
+function assemblePdf(pages, docTitle) {
+  const A4W = 595.28, A4H = 841.89, M = 48;
   const objs = [];
   const add = s => { objs.push(s); return objs.length; };
   const catalog = add(null), tree = add(null);
@@ -163,13 +168,64 @@ export function invoicePdf(inv) {
   });
   objs[catalog - 1] = '<< /Type /Catalog /Pages ' + tree + ' 0 R >>';
   objs[tree - 1] = '<< /Type /Pages /Kids [' + kids.map(k => k + ' 0 R').join(' ') + '] /Count ' + kids.length + ' >>';
-  const info = add('<< /Title ' + pdfString(title + ' ' + inv.doc_number) + ' /Producer (Pool Shed) /CreationDate (D:' + new Date().toISOString().replace(/[-:T]/g, '').slice(0, 14) + 'Z) >>');
+  const info = add('<< /Title ' + pdfString(docTitle) + ' /Producer (Pool Shed) /CreationDate (D:' + new Date().toISOString().replace(/[-:T]/g, '').slice(0, 14) + 'Z) >>');
   let out = '%PDF-1.4\n%\xE2\xE3\xCF\xD3\n'; const offs = [];
   objs.forEach((o, i) => { offs.push(Buffer.byteLength(out, 'latin1')); out += (i + 1) + ' 0 obj\n' + o + '\nendobj\n'; });
   const xref = Buffer.byteLength(out, 'latin1');
   out += 'xref\n0 ' + (objs.length + 1) + '\n0000000000 65535 f \n' + offs.map(o => String(o).padStart(10, '0') + ' 00000 n \n').join('');
   out += 'trailer\n<< /Size ' + (objs.length + 1) + ' /Root ' + catalog + ' 0 R /Info ' + info + ' 0 R >>\nstartxref\n' + xref + '\n%%EOF\n';
   return new Uint8Array(Buffer.from(out, 'latin1'));
+}
+
+// v1.59 customer statement: opening balance, each transaction with a running balance, closing balance, ageing.
+// acct: from ps_customer_account; company: from ps_invoice_profile_get (profile + company).
+export function statementPdf(acct, company) {
+  const A4W = 595.28, A4H = 841.89, M = 48, BRAND = [0.106, 0.302, 0.337], INK = [0.11, 0.13, 0.15], MUTED = [0.42, 0.46, 0.5], RULE = [0.85, 0.87, 0.89];
+  const pages = []; let ops = [];
+  const co = Object.assign({}, company && company.company, company && company.profile), cu = acct.customer || {}, st = acct.statement || {};
+  const colour = (c, stroke) => ops.push(c.map(v => v.toFixed(3)).join(' ') + (stroke ? ' RG' : ' rg'));
+  const text = (s, x, y, size = 9.5, bold = false, c = INK) => { colour(c); ops.push('BT /' + (bold ? 'F2' : 'F1') + ' ' + size + ' Tf ' + x.toFixed(2) + ' ' + y.toFixed(2) + ' Td ' + pdfString(s) + ' Tj ET'); };
+  const right = (s, xr, y, size, bold, c) => text(s, xr - width(s, size || 9.5, bold), y, size, bold, c);
+  const rect = (x, y, w, h, c) => { colour(c); ops.push(x.toFixed(2) + ' ' + y.toFixed(2) + ' ' + w.toFixed(2) + ' ' + h.toFixed(2) + ' re f'); };
+  const line = (x1, y1, x2, y2, c = RULE) => { colour(c, true); ops.push('0.6 w ' + x1.toFixed(2) + ' ' + y1.toFixed(2) + ' m ' + x2.toFixed(2) + ' ' + y2.toFixed(2) + ' l S'); };
+  const TYPE = { sales_invoice: 'Invoice', sales_credit: 'Credit note', customer_receipt: 'Payment', manual_journal: 'Refund' };
+  const cols = { date: M, doc: 118, type: 205, ref: 272, debit: 350, credit: 425, bal: A4W - M };
+  function head(first) {
+    rect(0, A4H - 10, A4W, 10, BRAND);
+    let y = A4H - 58;
+    text(co.legal_name || co.name || 'Pool Bros', M, y, 18, true, BRAND); right('STATEMENT', A4W - M, y, 18, true);
+    y -= 16;
+    addressLines(co.address).concat([co.phone, co.email].filter(Boolean)).slice(0, 6).forEach((s, i) => text(s, M, y - i * 12, 8.5, false, MUTED));
+    [['Customer', cu.name || ''], ['Period', ukDate(st.from) + ' to ' + ukDate(st.to)], ['Terms', acct.terms || ''], ['Balance due', money(st.closing)]]
+      .forEach(([k, v], i) => { text(k, 360, y - i * 13, 8.5, false, MUTED); right(String(v), A4W - M, y - i * 13, 9, true); });
+    y -= 6 * 13 + 4;
+    if (first) { text('STATEMENT FOR', M, y, 8, true, MUTED); text(cu.name || '', M, y - 14, 10.5, true);
+      addressLines(cu.address).slice(0, 5).forEach((s, i) => text(s, M, y - 27 - i * 12, 9)); y -= 27 + Math.min(addressLines(cu.address).length, 5) * 12 + 14; }
+    rect(M, y - 6, A4W - 2 * M, 20, [0.95, 0.96, 0.97]);
+    text('Date', cols.date + 6, y, 8.5, true, MUTED); text('Document', cols.doc, y, 8.5, true, MUTED); text('Type', cols.type, y, 8.5, true, MUTED); text('Reference', cols.ref, y, 8.5, true, MUTED);
+    right('Charges', cols.debit + 40, y, 8.5, true, MUTED); right('Credits', cols.credit + 40, y, 8.5, true, MUTED); right('Balance', cols.bal - 6, y, 8.5, true, MUTED);
+    return y - 20;
+  }
+  let y = head(true);
+  text('Opening balance ' + ukDate(st.from), cols.date + 6, y, 9, false, MUTED); right(money(st.opening), cols.bal - 6, y, 9, true); y -= 16; line(M, y + 8, A4W - M, y + 8);
+  for (const l of st.lines || []) {
+    if (y < 150) { pages.push(ops); ops = []; y = head(false); }
+    text(ukDate(l.date), cols.date + 6, y, 9); text(String(l.doc_number || ''), cols.doc, y, 9, true); text(TYPE[l.doc_type] || l.doc_type || '', cols.type, y, 9);
+    text(String(l.reference || '').slice(0, 22), cols.ref, y, 9, false, MUTED);
+    if (Number(l.debit)) right(money(l.debit), cols.debit + 40, y, 9); if (Number(l.credit)) right(money(l.credit), cols.credit + 40, y, 9);
+    right(money(l.balance), cols.bal - 6, y, 9, true); y -= 16; line(M, y + 8, A4W - M, y + 8);
+  }
+  if (!(st.lines || []).length) { text('No transactions in this period.', cols.date + 6, y, 9, false, MUTED); y -= 16; }
+  y -= 6; rect(340, y - 6, A4W - M - 334, 22, [0.93, 0.96, 0.96]); text('Balance due', 348, y, 12, true); right(money(st.closing), A4W - M - 6, y, 12, true); y -= 34;
+  const ag = acct.aged || {};
+  if (y < 120) { pages.push(ops); ops = []; y = A4H - 120; }
+  text('How late (from due dates, today)', M, y, 9, true, BRAND); y -= 14;
+  [['Not yet due', ag.not_due], ['1 to 30 days', ag.d1_30], ['31 to 60', ag.d31_60], ['61 to 90', ag.d61_90], ['Over 90', ag.d90_plus]].forEach(([k, v], i) => {
+    const x = M + i * 98; text(k, x, y, 8.5, false, MUTED); text(money(v || 0), x, y - 12, 9.5, true); });
+  y -= 34;
+  if (co.sort_code && co.account_number) text('Pay by bank transfer to ' + (co.account_name || co.legal_name || co.name || '') + ', sort code ' + co.sort_code + ', account ' + co.account_number + '. Please quote your invoice numbers.', M, Math.max(y, 50), 8.5, false, MUTED);
+  pages.push(ops);
+  return assemblePdf(pages, 'Statement ' + (cu.name || ''));
 }
 
 export function invoiceEmailText(inv) {
