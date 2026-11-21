@@ -2,7 +2,7 @@ import {db,eq,audit} from '../server/accounting.js';
 import {uploadBusinessMedia,listBusinessMedia,signBusinessMedia,signFinanceMedia,fleetMediaRows,signFleetRows,archiveBusinessMedia,parseMediaRef} from '../server/business-media.js';
 import {supabaseServerKey} from '../server/supabase-keys.js';
 import {appOriginAllowed} from '../server/origin-policy.js';
-import {invoicePdf,invoiceEmailText} from '../server/invoice-pdf.js';
+import {invoicePdf,invoiceEmailText,statementPdf} from '../server/invoice-pdf.js';
 import {customerEmail} from '../server/customer-email.js';
 export const config={api:{bodyParser:false},maxDuration:60};
 const send=(res,status,value)=>res.status(status).json(value);
@@ -119,6 +119,16 @@ export default async function handler(req,res){res.setHeader('Cache-Control','no
   if(!r.ok)return send(res,502,{error:out.message||('The email provider refused the email ('+r.status+')')});
   await userRpc(req,'ps_customer_email_sent',{w,order_id:orderId,goods_note_id:note,trig,sent_to:to,subject:mail.subject,provider_id:out.id||null});
   return send(res,200,{sent:true,to,subject:mail.subject});
+ }
+ if(action==='statement-pdf'){
+  // v1.59 customer statement (finance roles; the database checks the person's own role).
+  if(req.method!=='GET')return send(res,405,{error:'GET required'});if(!req.headers.authorization)return send(res,401,{error:'Sign in first'});
+  const key=String(url.searchParams.get('customer')||'').slice(0,120),from=String(url.searchParams.get('from')||''),to=String(url.searchParams.get('to')||'');
+  const iso=/^\d{4}-\d{2}-\d{2}$/;if(!key)return send(res,400,{error:'Customer required'});
+  const acct=await userRpc(req,'ps_customer_account',{w,customer_key:key,period_from:iso.test(from)?from:null,period_to:iso.test(to)?to:null});
+  const prof=await userRpc(req,'ps_invoice_profile_get',{w});const pdf=statementPdf(acct,prof);
+  res.setHeader('Content-Type','application/pdf');res.setHeader('Content-Disposition','inline; filename="statement-'+String((acct.customer&&acct.customer.name)||'customer').replace(/[^A-Za-z0-9-]+/g,'-').slice(0,40)+'.pdf"');
+  return res.status(200).send(Buffer.from(pdf));
  }
  if(action==='sign'){
   if(req.method!=='GET')return send(res,405,{error:'GET required'});await identity(req,w,false);const refs=String(url.searchParams.get('refs')||'').split(',').map(decodeURIComponent).filter(Boolean).slice(0,150),urls=await signBusinessMedia(w,refs,3600);return send(res,200,{urls});

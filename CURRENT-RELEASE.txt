@@ -1,3 +1,7 @@
+Pool Shed v1.59.0 - Customer account and statements; Accounts home (blueprint step 5)
+
+Each customer's page has a new Account tab (Admin, Management and Accounts only): balance, how much is overdue, terms and credit limit (with a warning when over it), money on account, every invoice, credit note and payment from the Pool Shed ledger with its status, and a statement for any period with a running balance, as a PDF to print or send. "Record a payment" opens straight from there. Accounts now opens on what needs doing (money in, money out, the books), each figure opening the page to act on, and the long row of 18 tabs is grouped the same way. The earlier order-based overview is kept below, folded, for reference. "Record Payment" at the top of Accounts now records payments in the ledger.
+
 Pool Shed v1.58.0 - Van stock (blueprint step 4, Team & Vans)
 
 Pool Shed now opens much faster and no longer risks being stuck on the "could not confirm the shared master" screen when the database is slow. Each device keeps an exact copy of the shared workspace; on opening, Pool Shed asks only for what changed since (usually a few KB instead of about 8 MB) and checks the person's access has not changed, otherwise it loads in full as before. Parts of the app that ask for the workspace at the same moment now share one load, and retries wait longer instead of piling up. Also fixed: van and location minimums (restock rules) forced every save to send the whole workspace; they now save one record at a time like everything else.
