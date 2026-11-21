@@ -111,6 +111,7 @@ const seed = {
       window.__POOL_SHED_IS_ADMIN__ = function(){ return isAdminUser(currentUser()); };
       window.__POOL_SHED_OPEN_TAB__ = function(tabId){ if(!tabs.some(function(t){return t.id===tabId;})) return false; if(!canAccessTab(tabId)) return false; active=tabId; render(); return true; };
       window.__POOL_SHED_ACTIVE_SUBPAGE__ = function(tabId){ return activeSubPage[tabId] || ""; };
+      window.__POOL_SHED_OPEN_SUBPAGE__ = function(tabId, sub){ if(!tabs.some(function(t){return t.id===tabId;})) return false; if(!canAccessTab(tabId)) return false; activeSubPage[tabId]=sub; active=tabId; render(); return true; };
       window.__POOL_SHED_WORKSPACE_ID__ = function(){ return WORKSPACE_ID; };
       window.__POOL_SHED_WORKSPACE_READY__ = function(){ return sharedWorkspaceReady; };
       // v1.51: the signed-in database client, for the ledger screens (Record a purchase, Payment runs).
@@ -2958,7 +2959,7 @@ const seed = {
           : effectiveMode === "mfa"
             ? '<button class="ps-login-link" type="button" data-login-cancel-mfa>Use a different account</button><span>Authenticator verification</span>'
             : effectiveMode === "denied" || effectiveMode === "workspace" ? '<span></span>' : '<button class="ps-login-link" type="button" data-login-mode="login">Back to sign in</button><span></span>';
-        screen.innerHTML = '<main class="ps-login-stage"><section class="ps-login-shell"><aside class="ps-login-brand"><div><div class="ps-login-lockup"><span class="ps-login-logo"><img src="' + DEFAULT_POOL_BROS_LOGO + '" alt="Pool Bros logo"></span><div><span class="ps-login-kicker">Pool Bros</span><strong>THE POOL SHED</strong></div></div><div class="ps-login-hero"><span class="ps-login-kicker">Operations Command System</span><h1>One secure place to <span>run the operation.</span></h1><p>Secure access to the Pool Bros operations workspace. Sign in to continue to your authorised tools, tasks and information.</p></div></div><div class="ps-login-staff-note"><strong>Pool Bros staff access</strong><span>Your workspace and available tools are tailored to your account after sign-in.</span></div></aside><section class="ps-login-auth"><div class="ps-login-card"><div class="ps-login-card-head"><span class="ps-login-kicker">' + escapeHtml(meta.eyebrow) + '</span><h2>' + escapeHtml(meta.heading) + '</h2><p>' + escapeHtml(meta.intro) + '</p></div><form id="loginForm">' + fields + '<div id="loginMessage" class="ps-login-message' + (good ? ' good' : '') + '">' + escapeHtml(message || '') + '</div></form><div class="ps-login-helper">' + helper + '</div></div></section></section><footer class="ps-login-footer">Pool Shed v1.53.0 · Pool Bros Ltd</footer></main>';
+        screen.innerHTML = '<main class="ps-login-stage"><section class="ps-login-shell"><aside class="ps-login-brand"><div><div class="ps-login-lockup"><span class="ps-login-logo"><img src="' + DEFAULT_POOL_BROS_LOGO + '" alt="Pool Bros logo"></span><div><span class="ps-login-kicker">Pool Bros</span><strong>THE POOL SHED</strong></div></div><div class="ps-login-hero"><span class="ps-login-kicker">Operations Command System</span><h1>One secure place to <span>run the operation.</span></h1><p>Secure access to the Pool Bros operations workspace. Sign in to continue to your authorised tools, tasks and information.</p></div></div><div class="ps-login-staff-note"><strong>Pool Bros staff access</strong><span>Your workspace and available tools are tailored to your account after sign-in.</span></div></aside><section class="ps-login-auth"><div class="ps-login-card"><div class="ps-login-card-head"><span class="ps-login-kicker">' + escapeHtml(meta.eyebrow) + '</span><h2>' + escapeHtml(meta.heading) + '</h2><p>' + escapeHtml(meta.intro) + '</p></div><form id="loginForm">' + fields + '<div id="loginMessage" class="ps-login-message' + (good ? ' good' : '') + '">' + escapeHtml(message || '') + '</div></form><div class="ps-login-helper">' + helper + '</div></div></section></section><footer class="ps-login-footer">Pool Shed v1.54.0 · Pool Bros Ltd</footer></main>';
         bindLoginScreen(effectiveMode);
       }
 
@@ -13413,6 +13414,16 @@ const seed = {
           modal.innerHTML = "";
           return;
         }
+        // v1.54: invoices are posted in the Pool Shed ledger (Accounting → Invoice Ready), never numbered here.
+        if (window.PoolShedSalesUI && typeof window.PoolShedSalesUI.openForOrder === "function") {
+          const handOff = invoiceConfirmOrderId;
+          invoiceConfirmOrderId = "";
+          modal.classList.remove("show");
+          modal.innerHTML = "";
+          if (canAccessTab("accounting")) setTimeout(function(){ window.PoolShedSalesUI.openForOrder(handOff); }, 0);
+          else toast("Invoices are raised by Accounts in Accounting → Invoice Ready.");
+          return;
+        }
         const order = salesOrder(invoiceConfirmOrderId);
         if (!order) {
           invoiceConfirmOrderId = "";
@@ -16834,5 +16845,5 @@ const seed = {
       window.addEventListener("load", function() {
         updateOfflineStatus();
         syncPendingOfflineData();
-        if ("serviceWorker" in navigator && location.protocol !== "file:") navigator.serviceWorker.register("./service-worker.js?v=1.53.0", { updateViaCache:"none" }).catch(function() {});
+        if ("serviceWorker" in navigator && location.protocol !== "file:") navigator.serviceWorker.register("./service-worker.js?v=1.54.0", { updateViaCache:"none" }).catch(function() {});
       });
