@@ -1,4 +1,4 @@
-/* Pool Shed v1.61.0 — van stock (blueprint step 4, Team & Vans).
+/* Pool Shed v1.62.0 — van stock (blueprint step 4, Team & Vans).
    Engineers: "My van stock" with a quick count on the phone (only differences need a touch). The count goes to the office.
    Office (Admin, Management): every van's stock, value and shortfalls; set up van stock (a stock location per van);
    apply or discard submitted counts (applying adjusts stock and logs a movement); minimums from the van supplies list;
