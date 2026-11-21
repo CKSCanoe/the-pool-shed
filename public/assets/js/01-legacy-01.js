@@ -111,6 +111,7 @@ const seed = {
       window.__POOL_SHED_IS_ADMIN__ = function(){ return isAdminUser(currentUser()); };
       window.__POOL_SHED_OPEN_TAB__ = function(tabId){ if(!tabs.some(function(t){return t.id===tabId;})) return false; if(!canAccessTab(tabId)) return false; active=tabId; render(); return true; };
       window.__POOL_SHED_ACTIVE_SUBPAGE__ = function(tabId){ return activeSubPage[tabId] || ""; };
+      window.__POOL_SHED_SALES_FILTER__ = function(status){ salesOrderListStatus = String(status || ""); if (salesOrderFilter.indexOf("status:") === 0 || salesOrderFilter === "completed") salesOrderFilter = "active"; if (active !== "salesorders" && canAccessTab("salesorders")) active = "salesorders"; render(); return true; };
       window.__POOL_SHED_OPEN_SUBPAGE__ = function(tabId, sub){ if(!tabs.some(function(t){return t.id===tabId;})) return false; if(!canAccessTab(tabId)) return false; activeSubPage[tabId]=sub; active=tabId; render(); return true; };
       window.__POOL_SHED_WORKSPACE_ID__ = function(){ return WORKSPACE_ID; };
       window.__POOL_SHED_WORKSPACE_READY__ = function(){ return sharedWorkspaceReady; };
@@ -2065,7 +2066,8 @@ const seed = {
           "On Hold": "#B9474F",
           "Cancelled": "#5C6971"
         };
-        const colour = colours[name] || "#5C6971";
+        const chosen = window.PoolShedStatusAuthority && typeof window.PoolShedStatusAuthority.colour === "function" ? window.PoolShedStatusAuthority.colour("purchase", name) : "";
+        const colour = chosen || colours[name] || "#5C6971";
         return '--status-bg:' + colour + ';--status-fg:' + textColourFor(colour);
       }
 
@@ -2959,7 +2961,7 @@ const seed = {
           : effectiveMode === "mfa"
             ? '<button class="ps-login-link" type="button" data-login-cancel-mfa>Use a different account</button><span>Authenticator verification</span>'
             : effectiveMode === "denied" || effectiveMode === "workspace" ? '<span></span>' : '<button class="ps-login-link" type="button" data-login-mode="login">Back to sign in</button><span></span>';
-        screen.innerHTML = '<main class="ps-login-stage"><section class="ps-login-shell"><aside class="ps-login-brand"><div><div class="ps-login-lockup"><span class="ps-login-logo"><img src="' + DEFAULT_POOL_BROS_LOGO + '" alt="Pool Bros logo"></span><div><span class="ps-login-kicker">Pool Bros</span><strong>THE POOL SHED</strong></div></div><div class="ps-login-hero"><span class="ps-login-kicker">Operations Command System</span><h1>One secure place to <span>run the operation.</span></h1><p>Secure access to the Pool Bros operations workspace. Sign in to continue to your authorised tools, tasks and information.</p></div></div><div class="ps-login-staff-note"><strong>Pool Bros staff access</strong><span>Your workspace and available tools are tailored to your account after sign-in.</span></div></aside><section class="ps-login-auth"><div class="ps-login-card"><div class="ps-login-card-head"><span class="ps-login-kicker">' + escapeHtml(meta.eyebrow) + '</span><h2>' + escapeHtml(meta.heading) + '</h2><p>' + escapeHtml(meta.intro) + '</p></div><form id="loginForm">' + fields + '<div id="loginMessage" class="ps-login-message' + (good ? ' good' : '') + '">' + escapeHtml(message || '') + '</div></form><div class="ps-login-helper">' + helper + '</div></div></section></section><footer class="ps-login-footer">Pool Shed v1.54.0 · Pool Bros Ltd</footer></main>';
+        screen.innerHTML = '<main class="ps-login-stage"><section class="ps-login-shell"><aside class="ps-login-brand"><div><div class="ps-login-lockup"><span class="ps-login-logo"><img src="' + DEFAULT_POOL_BROS_LOGO + '" alt="Pool Bros logo"></span><div><span class="ps-login-kicker">Pool Bros</span><strong>THE POOL SHED</strong></div></div><div class="ps-login-hero"><span class="ps-login-kicker">Operations Command System</span><h1>One secure place to <span>run the operation.</span></h1><p>Secure access to the Pool Bros operations workspace. Sign in to continue to your authorised tools, tasks and information.</p></div></div><div class="ps-login-staff-note"><strong>Pool Bros staff access</strong><span>Your workspace and available tools are tailored to your account after sign-in.</span></div></aside><section class="ps-login-auth"><div class="ps-login-card"><div class="ps-login-card-head"><span class="ps-login-kicker">' + escapeHtml(meta.eyebrow) + '</span><h2>' + escapeHtml(meta.heading) + '</h2><p>' + escapeHtml(meta.intro) + '</p></div><form id="loginForm">' + fields + '<div id="loginMessage" class="ps-login-message' + (good ? ' good' : '') + '">' + escapeHtml(message || '') + '</div></form><div class="ps-login-helper">' + helper + '</div></div></section></section><footer class="ps-login-footer">Pool Shed v1.55.0 · Pool Bros Ltd</footer></main>';
         bindLoginScreen(effectiveMode);
       }
 
@@ -3300,7 +3302,9 @@ const seed = {
       function renderNav() {
         const nav = document.getElementById("nav");
         ensureActiveAllowed();
-        nav.innerHTML = visibleTabs().map(function(tab) {
+        if (window.PoolShedFrame && window.PoolShedFrame.enabled()) {
+          nav.innerHTML = window.PoolShedFrame.navHtml(visibleTabs(), active, activeSubPage, sidebarSubGroups, defaultSubPage);
+        } else nav.innerHTML = (window.PoolShedFrame ? window.PoolShedFrame.classicSwitch() : "") + visibleTabs().map(function(tab) {
           const subgroups = active === tab.id ? sidebarSubGroups(tab.id) : [];
           const activeSub = activeSubPage[tab.id] || defaultSubPage(tab.id);
           return '<div><button type="button" class="' + (active === tab.id ? "active" : "") + '" data-tab="' + tab.id + '">' + escapeHtml(tab.label) + '</button>' + (subgroups.length ? '<div class="nav-subgroups">' + subgroups.map(function(item) { return '<button type="button" class="' + (activeSub === item ? "active" : "") + '" data-sidebar-subgroup="' + tab.id + '|' + item + '">' + escapeHtml(item) + '</button>'; }).join("") + '</div>' : '') + '</div>';
@@ -4132,6 +4136,7 @@ const seed = {
 
         document.getElementById("screen-dashboard").innerHTML =
           '<div class="dashboard-reference-page dashboard-final-page">' +
+            (window.PoolShedFrame ? '<div id="home-queues" class="home-queues">' + window.PoolShedFrame.homeHtml() + '</div>' : '') +
             '<div class="dashboard-final-layout">' +
               '<main class="dashboard-final-main">' +
                 hero +
@@ -7226,7 +7231,8 @@ const seed = {
         const status = externalStatus || salesOrderListStatus;
         return data.salesOrders.filter(function(order) {
           if (!salesOrderMatchesPrimaryFilter(order)) return false;
-          if (status && order.status !== status) return false;
+          if (status === "__late") { if (!(window.PoolShedFrame && window.PoolShedFrame.isLate(order, "sales"))) return false; }
+          else if (status && order.status !== status) return false;
           const due = salesOrderDueMeta(order);
           if (salesOrderListDue === "today" && due.diff !== 0) return false;
           if (salesOrderListDue === "overdue" && !(due.diff !== null && due.diff < 0)) return false;
@@ -7348,6 +7354,7 @@ const seed = {
           '</div>' +
           '<div class="so-list-card">' +
             '<div class="so-list-tabs" role="tablist" aria-label="Sales order queue">' + filterTabs + '</div>' +
+            (window.PoolShedFrame ? window.PoolShedFrame.statusBar("sales", activeOrders, selectedStatus) : "") +
             '<div class="so-list-filters">' +
               '<label class="so-list-search"><span>Smart search</span><input type="search" data-so-list-search value="' + escapeHtml(salesOrderListSearch) + '" placeholder="Order, customer, PO ref, product or Goods Note" autocomplete="off"></label>' +
               '<label><span>Status</span><select data-so-list-status>' + statusOptions + '</select></label>' +
@@ -16852,5 +16859,5 @@ const seed = {
       window.addEventListener("load", function() {
         updateOfflineStatus();
         syncPendingOfflineData();
-        if ("serviceWorker" in navigator && location.protocol !== "file:") navigator.serviceWorker.register("./service-worker.js?v=1.54.0", { updateViaCache:"none" }).catch(function() {});
+        if ("serviceWorker" in navigator && location.protocol !== "file:") navigator.serviceWorker.register("./service-worker.js?v=1.55.0", { updateViaCache:"none" }).catch(function() {});
       });
