@@ -8024,6 +8024,13 @@ const seed = {
 
         document.querySelectorAll("[data-open-payment]").forEach(function(button) {
           button.addEventListener("click", function() {
+            // v1.54: an order invoiced in the Pool Shed ledger is paid through the ledger (Payments & Allocations), never typed here.
+            const ledgerOrder = salesOrder(button.dataset.openPayment);
+            if (ledgerOrder && ledgerOrder.invoiceSource === "Ledger" && window.PoolShedSalesUI && typeof window.PoolShedSalesUI.payForOrder === "function") {
+              if (canAccessTab("accounting")) window.PoolShedSalesUI.payForOrder(ledgerOrder);
+              else toast("Payments for invoiced orders are recorded by Accounts in Accounting → Payments & Allocations.");
+              return;
+            }
             paymentOrderId = button.dataset.openPayment;
             renderPaymentModal();
           });

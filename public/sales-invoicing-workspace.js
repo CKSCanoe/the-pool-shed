@@ -52,6 +52,25 @@
     try { if (typeof global.__POOL_SHED_SAVE_APP_DATA__ === 'function') global.__POOL_SHED_SAVE_APP_DATA__(); } catch (_) {}
   }
 
+  // Ledger payments are copied onto the order (marked as from the ledger) so the order's own balance and "Paid" are right.
+  function copyPaymentToOrders(receiptNumber, date, method, reference, allocs){
+    var changed = false;
+    allocs.forEach(function(a){
+      var inv = (s.docs || []).find(function(d){ return d.id === a.document_id; }); if (!inv || inv.source_type !== 'sales_order') return;
+      var o = (DATA().salesOrders || []).find(function(x){ return String(x.id) === String(inv.source_id); }); if (!o) return;
+      o.payments = Array.isArray(o.payments) ? o.payments : [];
+      var id = receiptNumber + '-' + inv.doc_number; if (o.payments.some(function(p){ return p.id === id; })) return;
+      o.payments.push({ id: id, amount: a.amount, type: METHODS[method] || 'Other', reference: (receiptNumber + ' → ' + inv.doc_number + (reference ? ' · ' + reference : '')).slice(0, 120), date: date, ledger: true });
+      if (Number(inv.open) - a.amount <= 0.004) { o.tags = Array.isArray(o.tags) ? o.tags : []; if (o.tags.indexOf('Paid') < 0) o.tags.push('Paid'); }
+      changed = true;
+    });
+    if (changed) try { if (typeof global.__POOL_SHED_SAVE_APP_DATA__ === 'function') global.__POOL_SHED_SAVE_APP_DATA__(); } catch (_) {}
+  }
+  function payForOrder(order){
+    var c = (DATA().customers || []).find(function(x){ return String(x.id) === String(order.customerId); });
+    s.payCustomer = c ? 'id:' + c.id : ''; s.doc = null; s.last = null; openSub('Payments & Allocations');
+  }
+
   // ---------- Invoice Ready ----------
   function readyPage(){
     load(false);
@@ -354,8 +373,11 @@
         s.doc = null; s.last = { ok: true, html: 'Emailed <strong>' + esc(b.doc_number) + '</strong> to ' + esc(b.to) + ' with the PDF attached.' }; }); return; }
     if (kind === 'payment') { var allocs = []; document.querySelectorAll('[data-si-alloc]').forEach(function(inp){ var v = money(inp.value); if (v > 0) allocs.push({ document_id: inp.dataset.siAlloc, amount: v }); });
       act(async function(){ var x = await rpc('ps_customer_receipt_record', { w: W(), p: { customer_key: String(fd.get('customer') || ''), amount: money(fd.get('amount')), date: fd.get('date'), method: String(fd.get('method') || ''), reference: String(fd.get('reference') || ''), allocations: allocs } });
+        copyPaymentToOrders(x.doc_number, fd.get('date'), String(fd.get('method') || ''), String(fd.get('reference') || ''), allocs);
         s.last = { ok: true, html: 'Recorded payment <strong>' + esc(x.doc_number) + '</strong>: ' + cash(x.applied) + ' applied to invoices' + (Number(x.on_account) > 0 ? ', ' + cash(x.on_account) + ' left on account' : '') + '.' }; f.reset(); }); return; }
     if (kind === 'apply') { act(async function(){ var x = await rpc('ps_customer_apply_credit', { w: W(), from_doc: f.dataset.from, to_doc: String(fd.get('to')), amount: money(fd.get('amount')) });
+        var from = (s.docs || []).find(function(d){ return d.id === f.dataset.from; });
+        if (from && from.doc_type === 'customer_receipt') copyPaymentToOrders(from.doc_number, today(), from.method, 'applied from account', [{ document_id: String(fd.get('to')), amount: Number(x.applied) }]);
         s.last = { ok: true, html: 'Applied ' + cash(x.applied) + '. ' + cash(x.invoice_left) + ' left on that invoice.' }; }); return; }
     if (kind === 'refund') { act(async function(){ var x = await rpc('ps_customer_refund', { w: W(), from_doc: f.dataset.from, amount: money(fd.get('amount')), method: String(fd.get('method')), reference: null });
         s.last = { ok: true, html: 'Refund ' + esc(x.doc_number) + ' of ' + cash(x.refunded) + ' recorded. Make sure the money is actually sent from the bank.' }; }); return; }
@@ -378,5 +400,5 @@
     document.head.appendChild(st);
   }
   global.PoolShedSalesUI = { readyPage: readyPage, invoicesPage: function(){ return invoicesPage(false); }, creditsPage: function(){ return invoicesPage(true); },
-    paymentsPage: paymentsPage, agedPage: agedPage, openForOrder: openForOrder, reload: function(){ return load(true); }, _state: s, _readOpening: readOpening };
+    paymentsPage: paymentsPage, agedPage: agedPage, openForOrder: openForOrder, payForOrder: payForOrder, reload: function(){ return load(true); }, _state: s, _readOpening: readOpening };
 })(typeof window !== 'undefined' ? window : globalThis);

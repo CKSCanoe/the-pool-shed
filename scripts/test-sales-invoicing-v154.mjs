@@ -78,6 +78,9 @@ assert(/Already invoiced before the ledger \(1\)/.test(html) && /INV-2042/.test(
 assert(/add the <strong>invoice details<\/strong>: VAT registration number/.test(html), 'missing invoice details flagged');
 st.review = { order_id: 'SO-1', next_number: 'INV-2049', customer: { name: 'Acme Pools' }, terms: 'Due on receipt', lines: [{ description: 'Pump', qty: 1, unit_net: 100, vat_rate: 20, net: 100 }], billed: {}, remaining_net: 100, remaining_gross: 120 };
 html = ui.readyPage(); assert(/Invoice INV-2049 for SO-1/.test(html) && /has no email address/.test(html) && /I have checked the customer, the lines and the total/.test(html), 'review panel');
+// Payments are copied onto the order so its own balance is right.
+ctx.__POOL_SHED_GET_DATA__ = () => ({ customers: [{ id: 'C1', companyName: 'Acme Pools' }, { id: 'C2', firstName: 'Jo', lastName: 'Bloggs' }], salesOrders: [{ id: 'SO-1', customerId: 'C1', payments: [], tags: [] }] });
+assert(/copyPaymentToOrders\(x\.doc_number/.test(fs.readFileSync('public/sales-invoicing-workspace.js', 'utf8')), 'payment copied to the order after recording');
 html = ui.agedPage(); assert(/Aged debtors/.test(html) && /Acme Pools/.test(html) && /si-bad/.test(html), 'aged debtors');
 const o = ui._readOpening('Contact,Invoice Number,Invoice Date,Due Date,Due\nAcme Pools,INV-1001,01/10/2026,31/10/2026,"1,200.00"\nJo Bloggs,INV-1002,2026-11-01,2026-11-15,50\nUnknown Ltd,INV-9,01/11/2026,01/11/2026,10');
 assert.equal(o.rows.length, 2); assert.equal(o.rows[0].customer_key, 'id:C1'); assert.equal(o.rows[0].outstanding_gross, 1200); assert.equal(o.rows[0].invoice_date, '2026-10-01'); assert.equal(JSON.stringify(o.unknown), '["Unknown Ltd"]');
@@ -85,6 +88,7 @@ assert.equal(o.rows.length, 2); assert.equal(o.rows[0].customer_key, 'id:C1'); a
 // 4. Wiring.
 const fc = fs.readFileSync('public/finance-command-workspace.js', 'utf8'), legacy = fs.readFileSync('public/assets/js/01-legacy-01.js', 'utf8');
 for (const p of ['readyPage', 'invoicesPage', 'paymentsPage', 'agedPage', 'creditsPage']) assert(fc.includes('PoolShedSalesUI.' + p + '()'), 'Accounting page ' + p);
+assert(/ledgerOrder\.invoiceSource === "Ledger"[\s\S]{0,200}PoolShedSalesUI\.payForOrder\(ledgerOrder\)/.test(legacy), 'ledger-invoiced orders are paid through the ledger');
 assert(/window\.PoolShedSalesUI\.openForOrder\(handOff\)/.test(legacy) && /__POOL_SHED_OPEN_SUBPAGE__ = function/.test(legacy), 'order Invoice button hands over to the ledger');
 const index = fs.readFileSync('public/index.html', 'utf8'), sw = fs.readFileSync('public/service-worker.js', 'utf8');
 assert(/sales-invoicing-workspace\.js\?v=\d+\.\d+\.\d+/.test(index) && /sales-invoicing-workspace\.js\?v=\d+\.\d+\.\d+/.test(sw), 'script loaded and cached');
