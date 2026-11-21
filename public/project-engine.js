@@ -243,7 +243,7 @@ function psProjectCloseoutBlockers(j,source,finance,now){
  if((p.tasks||[]).some(t=>t.status!=='Done'))add('OPEN_TASK','Project tasks remain incomplete.');
  if(p.billingMode==='phases'||(p.phases||[]).length){
   const fullPlan=(p.phases||[]).length>0&&s.phaseTotal===s.revenue,allQueued=fullPlan&&(p.phases||[]).every(ph=>ph.invoiceRequested);
-  let accountingOk=true;const docs=Array.isArray(finance.documents)?finance.documents:null;if(docs&&allQueued)accountingOk=(p.phases||[]).every(ph=>docs.some(d=>d.source_id==='PROJECT:'+j.id+':'+ph.id&&['AUTHORISED','PAID'].includes(d.status)));
+  let accountingOk=true;const docs=Array.isArray(finance.documents)?finance.documents:null;if(docs&&allQueued)accountingOk=(p.phases||[]).every(ph=>!!ph.ledgerInvoice||docs.some(d=>d.source_id==='PROJECT:'+j.id+':'+ph.id&&['AUTHORISED','PAID'].includes(d.status)));
   if(!fullPlan||!allQueued||!accountingOk)add('BILLING_INCOMPLETE','Project billing is not fully planned, queued and reconciled with accounting.');
  }else if(s.revenue>0)add('BILLING_INCOMPLETE','Create and reconcile the Project invoice plan before closure.');
  const health=psProjectHealth(j,s),reviewAt=Date.parse(p.forecastReviewedAt||'');if(health.level==='Critical'&&(!Number.isFinite(reviewAt)||now-reviewAt>86400000))add('COMMERCIAL_REVIEW','Critical margin position requires a fresh manager commercial review before closure.');

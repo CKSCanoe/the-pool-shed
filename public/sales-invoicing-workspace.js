@@ -1,4 +1,4 @@
-/* Pool Shed v1.60.0 — Sales invoicing in the Pool Shed ledger (Operations O3).
+/* Pool Shed v1.61.0 — Sales invoicing in the Pool Shed ledger (Operations O3).
    Accounting → Invoice Ready · Customer Invoices · Payments & Allocations · Credit Control · Credits & Returns.
    Every money rule (prices, what may be invoiced, credits, payments) is enforced by the database (database/029);
    these screens only collect, show and confirm. Invoices are never edited: corrections are credit notes. */
@@ -53,6 +53,7 @@
     var m = modalBox(), body = '';
     if (s.modal === 'invoice') body = s.review ? reviewPanel() : result() + (s.last ? '' : '<p class="muted">Loading the invoice…</p>');
     else if (s.modal === 'payment') body = result() + paymentForm(true);
+    else if (s.modal === 'stage') body = result() + (s.part ? partPanel() : s.last ? '' : '<p class="muted">Loading the project…</p>');
     m.innerHTML = '<div class="si-modal-card"><button type="button" class="si-modal-close" data-si-action="close-modal" aria-label="Close">×</button>' + body + '</div>';
   }
   function inlineInvoice(orderId){
@@ -63,6 +64,28 @@
       else s.review = r;
       paintModal();
     }).catch(function(e){ s.last = { ok: false, html: esc(friendly(e)) }; paintModal(); });
+  }
+  // v1.61: invoice a project stage from the project page, on the ledger (replaces the old Xero draft queue).
+  function inlineStage(jobId, phaseId){
+    if (!(typeof global.__POOL_SHED_CAN_ACCESS__ === 'function' && global.__POOL_SHED_CAN_ACCESS__('accounting'))) { notify('Stage invoices are raised by Accounts.'); return; }
+    s.modal = 'stage'; s.review = null; s.last = null; s.part = null; paintModal();
+    load(true).then(function(){
+      var row = ((s.queue || {}).jobs || []).find(function(j){ return j.job_id === jobId; });
+      if (!row) s.last = { ok: false, html: 'This project is not billed by stage, so it has no stage invoices. Set its billing to stages first.' };
+      else if (!(Number(row.remaining_net) > 0)) s.last = { ok: false, html: 'Everything agreed on this project is already invoiced.' };
+      else s.part = { source: 'job', id: jobId, label: row.name || jobId, left: row.remaining_net, phases: row.phases || [], phase: phaseId || '' };
+      paintModal();
+    });
+  }
+  // Keep the project's stage in step with the ledger so the project screens show the invoice number.
+  function markPhase(jobId, phaseId, docNumber, docDate){
+    if (!phaseId) return;
+    var j = (DATA().jobs || []).find(function(x){ return String(x.id) === String(jobId); }), ph = j && j.project && (j.project.phases || []).find(function(x){ return x.id === phaseId; });
+    if (!ph) return;
+    ph.invoiceRequested = true; ph.ledgerInvoice = docNumber; ph.invoicedAt = docDate || today();
+    if (Array.isArray(j.project.audit)) j.project.audit.push({ id: 'A-' + Date.now().toString(36), action: 'stage_invoice_posted', at: new Date().toISOString(),
+      user: (typeof global.__POOL_SHED_CURRENT_USER__ === 'function' && (global.__POOL_SHED_CURRENT_USER__() || {}).name) || '', details: { phase: phaseId, document: docNumber } });
+    try { if (typeof global.__POOL_SHED_SAVE_APP_DATA__ === 'function') global.__POOL_SHED_SAVE_APP_DATA__(); } catch (_) {}
   }
   function inlinePayment(order){
     if (!(typeof global.__POOL_SHED_CAN_ACCESS__ === 'function' && global.__POOL_SHED_CAN_ACCESS__('accounting'))) { notify('Payments are recorded by Accounts.'); return; }
@@ -153,13 +176,16 @@
   }
   function partPanel(){
     var p = s.part, job = p.source === 'job', phases = job ? (p.phases || []) : [];
-    var phaseSel = phases.length ? '<label>Stage<select name="phase"><option value="">Choose…</option>' + phases.map(function(ph){ return '<option value="' + esc(ph.id) + '" data-amount="' + esc(ph.amount_net == null ? '' : ph.amount_net) + '" data-name="' + esc(ph.name || '') + '">' + esc((ph.name || ph.id) + (ph.amount_net != null ? ' · ' + cash(ph.amount_net) : '')) + '</option>'; }).join('') + '</select></label>' : '';
+    var pick = job ? phases.find(function(ph){ return ph.id === p.phase && !(Number(ph.billed_net) > 0); }) : null;
+    var phaseSel = phases.length ? '<label>Stage<select name="phase"><option value="">Choose…</option>' + phases.map(function(ph){ var done = Number(ph.billed_net) > 0;
+      return '<option value="' + esc(ph.id) + '" data-amount="' + esc(ph.amount_net == null ? '' : ph.amount_net) + '" data-name="' + esc(ph.name || '') + '"' + (done ? ' disabled' : '') + (pick && pick.id === ph.id ? ' selected' : '') + '>' +
+        esc((ph.name || ph.id) + (ph.amount_net != null ? ' · ' + cash(ph.amount_net) : '') + (done ? ' · invoiced ' + (ph.invoices || []).join(', ') : '')) + '</option>'; }).join('') + '</select></label>' : '';
     return panel((job ? 'Stage invoice: ' : 'Deposit invoice: ') + p.label, (job ? 'Up to ' + cash(p.left) + ' net is left to bill on this project.' : 'Up to ' + cash(p.left) + ' net is left on this order. The final invoice deducts this automatically.'),
       '<form class="pp-form" data-si-form="part"><div class="form-grid two">' + phaseSel +
       (job ? '' : '<label>Deposit %<input name="pct" inputmode="decimal" placeholder="e.g. 30"><small>Or type the amount.</small></label>') +
-      '<label>Amount before VAT (£)<input name="net" required inputmode="decimal" pattern="[0-9]+([.][0-9]{1,2})?"></label>' +
+      '<label>Amount before VAT (£)<input name="net" required inputmode="decimal" pattern="[0-9]+([.][0-9]{1,2})?"' + (pick && pick.amount_net != null ? ' value="' + Number(pick.amount_net).toFixed(2) + '"' : '') + '></label>' +
       '<label>VAT<select name="rate"><option value="20">20%</option><option value="5">5%</option><option value="0">0% / zero-rated</option></select></label>' +
-      '<label class="full">Shown on the invoice as<input name="description" required maxlength="200" value="' + esc(job ? '' : 'Deposit') + '" placeholder="' + (job ? 'e.g. Stage 2: shell and plumbing' : 'e.g. 30% deposit') + '"></label>' +
+      '<label class="full">Shown on the invoice as<input name="description" required maxlength="200" value="' + esc(job ? (pick ? pick.name || '' : '') : 'Deposit') + '" placeholder="' + (job ? 'e.g. Stage 2: shell and plumbing' : 'e.g. 30% deposit') + '"></label>' +
       '<label>Invoice date<input type="date" name="date" value="' + today() + '" max="' + today() + '" required></label>' +
       '<label class="full inline"><input type="checkbox" name="ok" required> I have checked the customer and the amount</label></div>' +
       '<div class="finance-row-actions"><button type="submit" class="primary"' + (s.busy ? ' disabled' : '') + '>Post invoice</button><button type="button" class="secondary" data-si-action="cancel">Cancel</button></div></form>', '', 'si-part');
@@ -394,6 +420,7 @@
     if (kind === 'part') { var p = s.part; if (!p) return;
       act(async function(){ var x = await rpc('ps_sales_invoice_create', { w: W(), p: { source: p.source, id: p.id, kind: p.source === 'job' ? 'stage' : 'deposit', net: money(fd.get('net')), vat_rate: Number(fd.get('rate')),
           description: String(fd.get('description') || ''), phase_id: String(fd.get('phase') || '') || null, invoice_date: fd.get('date') } });
+        if (p.source === 'job') markPhase(p.id, String(fd.get('phase') || ''), x.doc_number, fd.get('date'));
         s.part = null; s.last = { ok: true, html: 'Posted <strong>' + esc(x.doc_number) + '</strong> for ' + cash(x.gross) + '. <button type="button" class="link" data-si-action="pdf" data-id="' + esc(x.id) + '">Download PDF</button> · <button type="button" class="link" data-si-action="view" data-id="' + esc(x.id) + '">Open to email</button>' }; }); return; }
     if (kind === 'credit') { var full = !!fd.get('full'), net = money(fd.get('net'));
       if (!full && !(net > 0)) return notify('Tick "credit the whole invoice" or enter the amount to credit.');
@@ -430,10 +457,11 @@
     st.textContent = '.si-focus td{background:rgba(24,124,140,.08)}.si-details{padding:12px 16px}.si-details>summary{cursor:pointer;font-weight:600}.si-list{margin:6px 0 0 18px}' +
       '.si-act{margin-top:10px;border-top:1px solid rgba(0,0,0,.08);padding-top:8px}.si-act>summary{cursor:pointer;font-weight:600}.si-inline{display:inline-flex;gap:6px;align-items:center;margin:2px 6px 2px 0}.si-inline input{width:90px}.si-inline select{max-width:190px}' +
       '.si-modal{position:fixed;inset:0;z-index:1000;background:rgba(10,28,33,.45);display:grid;place-items:start center;padding:6vh 12px;overflow:auto}.si-modal-card{position:relative;background:var(--surface,#fff);color:inherit;border-radius:14px;max-width:760px;width:100%;padding:10px 16px 8px;box-shadow:0 20px 60px rgba(0,0,0,.25)}' +
+      '.si-modal label.inline{display:flex;flex-direction:row;align-items:center;gap:8px}.si-modal label.inline input{width:18px;height:18px;margin:0}.si-modal .form-grid .full{grid-column:1/-1}' +
       '.si-modal-close{position:absolute;top:8px;right:10px;border:0;background:none;font-size:26px;line-height:1;cursor:pointer;min-height:0;color:inherit;z-index:1}' +
       '.si-alloc{width:110px}.si-bad{color:#b9474f;font-weight:600}.si-filters{flex-wrap:wrap;margin-bottom:8px}.si-review-head{margin-bottom:8px}';
     document.head.appendChild(st);
   }
   global.PoolShedSalesUI = { readyPage: readyPage, invoicesPage: function(){ return invoicesPage(false); }, creditsPage: function(){ return invoicesPage(true); },
-    paymentsPage: paymentsPage, agedPage: agedPage, openForOrder: openForOrder, payForOrder: payForOrder, inlineInvoice: inlineInvoice, inlinePayment: inlinePayment, reload: function(){ return load(true); }, _state: s, _readOpening: readOpening };
+    paymentsPage: paymentsPage, agedPage: agedPage, openForOrder: openForOrder, payForOrder: payForOrder, inlineInvoice: inlineInvoice, inlinePayment: inlinePayment, inlineStage: inlineStage, reload: function(){ return load(true); }, _state: s, _readOpening: readOpening };
 })(typeof window !== 'undefined' ? window : globalThis);
