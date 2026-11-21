@@ -238,6 +238,15 @@ Owner approved the blueprint 21 Nov 2026 (eight areas; Pool Audits under My Work
 
 ---
 
+## Contracts · recurring maintenance and repeat orders · v1.63.0 · branch `contracts`
+
+Finding: Sales → Subscriptions already existed (repeat orders), but it only repeated stock products, so service lines were dropped. It counted in days rather than calendar months and created one order at a time. Live has none, so the same records are upgraded in place. Owner decisions: billing is per contract (fixed fee or per visit); due contracts are listed and created with one click, never automatically.
+
+| # | Change | Status | Evidence |
+|---|---|---|---|
+| C1 | Sales → Contracts (old menu name still opens it): maintenance (fixed fee in advance or arrears, or per visit) or repeat order; service and product lines at the agreed price (customer discount not applied); weekly to yearly on the calendar; start, end, renewal, site and PO | **New · Tested in a real browser on staging** | Contract saved for a staging customer with a 5% discount; listed as due today; "Create 1 order" made an order straight to Invoice Ready with the period on the line; the server's invoice preview showed the full contract price with no discount |
+| C2 | One click for everything due; the same period is never created twice; contracts stop after their end date; pause, resume, end; renewals in 60 days with a price change; monthly and yearly value; Home tile "contracts due" | **New · Unit tested** | `test-contracts-v163`: month-end and leap-year dates, arrears labels, older day-based subscriptions still create orders, a second order for the same period is refused, an ended contract creates nothing, a 5% renewal moves the line and its charge product; nothing runs on a timer. Build gate passes. No database change |
+
 ## Phase 3.4 finish · every read through the role rules (020 + 034) · v1.62.0 · branch `close-direct-reads`
 
 Finding (live, read-only): besides the raw workspace table that 020 closes, 41 tables and views from the first design (products, sales_orders, purchase_orders, suppliers, quotes, stock and more) were open to any signed-in user to read and change, and 8 of them to anonymous visitors. Pool Shed has never used them. They are empty apart from a few setting and log rows, and no app or server code touches them. One app feature still read the raw table: the iPad Pool Audit handover check.
@@ -246,7 +255,8 @@ Finding (live, read-only): besides the raw workspace table that 020 closes, 41 t
 |---|---|---|---|
 | L1 | Migration 034: `ps_record_get` (one record, same role rules as the app load); first-design tables closed to signed-in and anonymous users, nothing dropped; exact rollback recorded from live grants (`034-rollback.sql`) | **New · Proven on staging (rolled back), then applied on staging** | `scripts/ops/test-034-lock-direct-access.sql`: Admin product has cost; Warehouse same product without cost; Engineer refused an unassigned job; no user refused; old products read and sales_orders write refused; raw workspace refused; change stamp, user profiles and the app load still work; anonymous view refused |
 | L2 | App: the Pool Audit handover check reads the audit through `ps_record_get` | **New · Tested in a real browser on staging** (020 + 034 on) | Staging loaded normally with raw reads refused. Handover passed for both audits without photos; audits with photos stopped only at the server photo check, which has no local `/api`. `test-commercial-audits-v146` updated, new `test-locked-reads-v162`, build gate passes |
-| L3 | 020 on live | **Pending** · apply after the v1.62 app is live | Azzy and server code are unaffected: Azzy uses `ps_workspace_load`, and server routes use the service key |
+| L3 | 020 on live | **Deployed · verified on live** 21 Nov 2026, after the v1.62 app was live | Staff can no longer read the raw workspace data; the change stamp is still readable; the app load works. Azzy and server code are unaffected: Azzy uses `ps_workspace_load`, and server routes use the service key |
+| L4 | App and database release | **Deployed · verified on live** 21 Nov 2026 (034 applied after a schema backup; rolled-back live checks 13/13; Vercel check green; live cache `pool-shed-v1.62.0-locked-r1`) | Live app in a real browser after 020: signed in, loaded and synced, no console errors; data unchanged. Staff can now be given their real roles |
 
 ## Blueprint step 7 · project stage invoices, average cost and Profit · v1.61.0 · branch `profit`
 

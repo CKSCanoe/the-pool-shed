@@ -1,4 +1,4 @@
-/* Pool Shed v1.62.0 — back-office frame (blueprint step 1).
+/* Pool Shed v1.63.0 — back-office frame (blueprint step 1).
    1. The menu grouped into eight areas (plus Reports and Settings). Every existing page stays where it was, under its area;
       a "Classic menu" switch brings back the old flat menu for anyone who prefers it.
    2. Home queues: what needs doing today, by role, each opening the list to act on.
@@ -127,6 +127,10 @@
     if (['Purchasing', 'Warehouse', 'Admin', 'Management', 'Manager'].indexOf(role) >= 0 && global.PoolShedCoreStock && global.PoolShedCoreStock.needsOrder) {
       var low = global.PoolShedCoreStock.needsOrder();
       out.push({ n: low.length, label: 'core stock lines to reorder', sub: low.length ? money(low.reduce(function(t, r){ return t + Number(r.suggestedCost || 0); }, 0)) + ' suggested' : 'at or below reorder point', hot: low.length > 0, go: ['products', 'Replenishment'] });
+    }
+    if (role !== 'Engineer' && role !== 'Warehouse' && global.PoolShedContracts && global.PoolShedContracts.due) {
+      var cdue = global.PoolShedContracts.due();
+      out.push({ n: cdue.length, label: 'contracts due', sub: cdue.length ? money(cdue.reduce(function(t, c){ return t + global.PoolShedContracts.periodNet(c); }, 0)) + ' to create' : 'maintenance and repeat orders', hot: cdue.length > 0, go: ['salesorders', 'Contracts'] });
     }
     var fleet = global.PoolShedFleetUI && global.PoolShedFleetUI._reminders ? global.PoolShedFleetUI._reminders() : null;
     if (fleet && fleet.count) out.push({ n: fleet.count, label: 'van report reminders', sub: fleet.items[0] ? fleet.items[0].text.replace(/\.$/, '') : '', go: ['fleet', ''] });
