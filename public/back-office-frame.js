@@ -1,4 +1,4 @@
-/* Pool Shed v1.65.0 — back-office frame (blueprint step 1).
+/* Pool Shed v1.66.0 — back-office frame (blueprint step 1).
    1. The menu grouped into eight areas (plus Reports and Settings). Every existing page stays where it was, under its area;
       a "Classic menu" switch brings back the old flat menu for anyone who prefers it.
    2. Home queues: what needs doing today, by role, each opening the list to act on.
@@ -32,32 +32,98 @@
   function money(v){ return new Intl.NumberFormat('en-GB', { style: 'currency', currency: 'GBP', maximumFractionDigits: 0 }).format(Number(v || 0)); }
   function areaOf(tabId){ for (var i = 0; i < AREAS.length; i++) if (AREAS[i].tabs.indexOf(tabId) >= 0) return AREAS[i]; return null; }
 
-  // ---------- 1. Menu ----------
-  // tabs: the person's allowed tabs in their saved order; subGroups(tabId) gives the existing sub-pages.
+  // ---------- 1. Menu (v1.66): 11 areas, each page in one place, everything else under the area's "More" ----------
+  // Each page is [section, sub-page, label]. Pages open through the existing screens, so nothing moves or is lost.
+  var MENU = [
+    { id: 'home', label: 'Home', pages: [['dashboard', '', 'Today'], ['mywork', '', 'My work'], ['audits', 'All Audits', 'Pool audits']] },
+    { id: 'sales', label: 'Sales', pages: [['salesorders', 'Sales Orders', 'Orders'], ['quotes', 'Quotes', 'Quotes'], ['salesorders', 'Contracts', 'Contracts'], ['salesorders', 'Web Orders', 'Web orders'], ['salesorders', 'Sales Credits', 'Returns & credits']] },
+    { id: 'customers', label: 'Customers', pages: [['crm', 'All Customers', 'Customers']] },
+    { id: 'projects', label: 'Projects', pages: [['jobs', 'Projects', 'Projects'], ['jobs', 'Tool Register', 'Tool register']] },
+    { id: 'purchasing', label: 'Purchasing', pages: [['purchase', 'Purchase Orders', 'Purchase orders'], ['purchase', 'Reorder List', 'Reorder list'], ['purchase', 'Suppliers', 'Suppliers'], ['purchase', 'Supplier Returns & Credits', 'Supplier returns']] },
+    { id: 'stock', label: 'Stock', pages: [['products', 'Product Command', 'Products'], ['locations', 'Stock', 'Stock levels'], ['products', 'Core Stock', 'Core stock'], ['locations', 'Cycle Counts', 'Counts'], ['locations', 'Transfers & Top-Ups', 'Transfers'], ['locations', 'Stock Movements', 'Movements']] },
+    { id: 'warehouse', label: 'Warehouse', pages: [['warehouse', 'Work Queue', 'Today’s work'], ['warehouse', 'Inbound', 'Goods in'], ['fulfilment', 'Pick Queue', 'Pick & pack'], ['fulfilment', 'Dispatch', 'Dispatch & collections'], ['warehouse', 'Returns & Quarantine', 'Returns & quarantine'], ['fulfilment', 'Delivery Exceptions', 'Problems']] },
+    { id: 'team', label: 'Team & vans', pages: [['fleet', '', 'Vans'], ['locations', 'Engineer Vans', 'Van stock']] },
+    { id: 'accounts', label: 'Accounts', pages: [['accounting', 'Overview', 'Accounts home'], ['accounting', 'Invoice Ready', 'Ready to invoice'], ['accounting', 'Customer Invoices', 'Invoices'], ['accounting', 'Payments & Allocations', 'Payments'], ['accounting', 'Credit Control', 'Credit control'], ['accounting', 'Supplier Bills', 'Bills'], ['accounting', 'Payment Runs', 'Payment runs']] },
+    { id: 'reports', label: 'Reports', pages: [['analytics', 'Monthly Pack', 'Monthly pack'], ['accounting', 'Order Profit', 'Profit'], ['analytics', 'Overview', 'Overview'], ['analytics', 'Sales', 'Sales'], ['analytics', 'Inventory', 'Stock'], ['analytics', 'Projects', 'Projects'], ['analytics', 'Reports & Data Export', 'Export']] },
+    { id: 'settings', label: 'Settings', pages: [['settings', 'Company Settings', 'Company'], ['settings', 'Users', 'Users'], ['settings', 'Roles & Permissions', 'Roles'], ['settings', 'Statuses', 'Statuses'], ['settings', 'Notifications', 'Emails & alerts'], ['settings', 'Web Shop', 'Web shop'], ['settings', 'Integrations', 'Integrations']] }
+  ];
+  // Which area each section belongs to (for "More" and for pages opened from elsewhere).
+  var OWNER = { dashboard: 'home', mywork: 'home', audits: 'home', salesorders: 'sales', quotes: 'sales', crm: 'customers', jobs: 'projects', purchase: 'purchasing',
+    products: 'stock', locations: 'stock', warehouse: 'warehouse', fulfilment: 'warehouse', fleet: 'team', accounting: 'accounts', analytics: 'reports', settings: 'settings', automation: 'settings' };
+  // Sub-pages these screens have but do not list in the old side menu.
+  var EXTRA = { accounting: ['Month End', 'Customer Accounts', 'Credits & Returns', 'Record a Purchase', 'Payables', 'Supplier Accounts', 'Three-Way Match', 'Xero Sync', 'Reconciliation', 'Reports'],
+    analytics: ['Business Performance', 'Operations', 'Purchasing & Suppliers', 'Finance', 'Customers', 'Products', 'Metric Library'] };
+  // Duplicates and actions that are not pages: kept working, not listed twice.
+  var SKIP = { 'products|Replenishment': 1, 'crm|Suppliers': 1, 'crm|Create Customer': 1, 'salesorders|Invoices': 1, 'salesorders|Customer Orders': 1, 'warehouse|Counts': 1, 'warehouse|Transfers': 1, 'fulfilment|Collections': 1 };
+  var moreOpen = {};
+  function pageKey(tab, sub){ return tab + '|' + (sub || ''); }
+  // Pages that open another screen under a different name (Purchasing → Reorder list shows the stock replenishment screen).
+  var ALIAS = { 'products|Replenishment': ['purchase', 'Reorder List'] };
+  function findPage(active, sub){
+    var al = ALIAS[active + '|' + sub]; if (al) { active = al[0]; sub = al[1]; }
+    for (var i = 0; i < MENU.length; i++) for (var j = 0; j < MENU[i].pages.length; j++) { var p = MENU[i].pages[j]; if (p[0] === active && (!p[1] || p[1] === sub)) return { area: MENU[i], page: p }; }
+    return null;
+  }
+  function currentPlace(){
+    var a = typeof active !== 'undefined' ? active : '', s = '';
+    try { s = (activeSubPage && activeSubPage[a]) || (typeof defaultSubPage === 'function' ? defaultSubPage(a) : ''); } catch (_) {}
+    var hit = findPage(a, s), area = hit ? hit.area : MENU.filter(function(m){ return m.id === OWNER[a]; })[0];
+    return { tab: a, sub: s, area: area || null, label: hit ? hit.page[2] : (s || '') };
+  }
   function navHtml(tabs, active, activeSub, subGroups, defaultSub){
     var allowed = {}; tabs.forEach(function(t){ allowed[t.id] = t; });
-    var placed = {};
-    var areas = AREAS.map(function(a){
-      var own = tabs.filter(function(t){ return a.tabs.indexOf(t.id) >= 0; }).sort(function(x, y){ return a.tabs.indexOf(x.id) - a.tabs.indexOf(y.id); });
-      own.forEach(function(t){ placed[t.id] = true; });
-      return { a: a, own: own };
-    });
-    // Any section not listed in an area (added later) still shows, so nothing becomes unreachable.
-    var extra = tabs.filter(function(t){ return !placed[t.id]; });
-    if (extra.length) areas.push({ a: { id: 'more', label: 'More' }, own: extra });
-    var activeArea = areaOf(active);
-    var subs = function(tabId){ var list = subGroups(tabId) || [], cur = activeSub[tabId] || defaultSub(tabId);
-      return list.length ? '<div class="nav-subgroups">' + list.map(function(item){ return '<button type="button" class="' + (cur === item ? 'active' : '') + '" data-sidebar-subgroup="' + esc(tabId + '|' + item) + '">' + esc(item) + '</button>'; }).join('') + '</div>' : ''; };
-    var html = areas.filter(function(x){ return x.own.length; }).map(function(x){
-      var open = (activeArea && activeArea.id === x.a.id) || (x.a.id === 'more' && extra.some(function(t){ return t.id === active; }));
-      if (x.own.length === 1) {   // single-section area: the area button is the section itself
-        var t = x.own[0];
-        return '<div class="nav-area' + (open ? ' open' : '') + '"><button type="button" class="nav-area-head' + (active === t.id ? ' active' : '') + '" data-tab="' + esc(t.id) + '">' + esc(x.a.label) + '</button>' + (active === t.id ? subs(t.id) : '') + '</div>';
-      }
-      return '<div class="nav-area' + (open ? ' open' : '') + '"><button type="button" class="nav-area-head' + (open ? ' current' : '') + '" data-nav-area="' + esc(x.a.id) + '" aria-expanded="' + open + '">' + esc(x.a.label) + '</button>' +
-        (open ? '<div class="nav-area-items">' + x.own.map(function(t){ return '<div><button type="button" class="' + (active === t.id ? 'active' : '') + '" data-tab="' + esc(t.id) + '">' + esc(LABELS[t.id] || t.label) + '</button>' + (active === t.id ? subs(t.id) : '') + '</div>'; }).join('') + '</div>' : '') + '</div>';
+    var cur = activeSub[active] || defaultSub(active), here = findPage(active, cur), hereArea = here ? here.area.id : OWNER[active];
+    var listed = {}; MENU.forEach(function(m){ m.pages.forEach(function(p){ listed[pageKey(p[0], p[1])] = 1; }); });
+    var btn = function(tab, sub, label, on){ return '<button type="button" class="' + (on ? 'active' : '') + '" data-nav-page="' + esc(pageKey(tab, sub)) + '"' + (on ? ' aria-current="page"' : '') + '>' + esc(label) + '</button>'; };
+    var html = MENU.map(function(m){
+      var pages = m.pages.filter(function(p){ return allowed[p[0]]; }); if (!pages.length) return '';
+      var open = hereArea === m.id, ownTabs = Object.keys(OWNER).filter(function(t){ return OWNER[t] === m.id && allowed[t]; });
+      var more = []; ownTabs.forEach(function(t){
+        var subs = (subGroups(t) || []).concat(EXTRA[t] || []);
+        if (!subs.length && !m.pages.some(function(p){ return p[0] === t; })) more.push([t, '', LABELS[t] || allowed[t].label]);
+        subs.forEach(function(s){ if (!listed[pageKey(t, s)] && !SKIP[pageKey(t, s)] && !more.some(function(x){ return x[0] === t && x[1] === s; })) more.push([t, s, s]); }); });
+      var inMore = !here && open && more.some(function(x){ return x[0] === active && (x[1] === cur || !x[1]); });
+      var first = pages[0];
+      return '<div class="nav-area' + (open ? ' open' : '') + '"><button type="button" class="nav-area-head' + (open ? ' current' : '') + '" data-nav-page="' + esc(pageKey(first[0], first[1])) + '" aria-expanded="' + open + '">' + esc(m.label) + '</button>' +
+        (open ? '<div class="nav-area-items">' + pages.map(function(p){ return btn(p[0], p[1], p[2], here && here.page === p); }).join('') +
+          (more.length ? '<button type="button" class="nav-more-toggle" data-nav-more="' + esc(m.id) + '" aria-expanded="' + !!(moreOpen[m.id] || inMore) + '">More ' + (moreOpen[m.id] || inMore ? '▾' : '▸') + '</button>' +
+            (moreOpen[m.id] || inMore ? '<div class="nav-more">' + more.map(function(x){ return btn(x[0], x[1], x[2], active === x[0] && (x[1] === cur || !x[1]) && !here); }).join('') + '</div>' : '') : '') + '</div>' : '') + '</div>';
     }).join('');
-    return html + '<div class="nav-style-switch"><button type="button" class="link" data-menu-style="classic">Classic menu</button></div>';
+    // Any section added later that no area knows about still shows, so nothing becomes unreachable.
+    var unknown = tabs.filter(function(t){ return !OWNER[t.id]; });
+    if (unknown.length) html += '<div class="nav-area' + (unknown.some(function(t){ return t.id === active; }) ? ' open' : '') + '"><button type="button" class="nav-area-head" data-nav-page="' + esc(pageKey(unknown[0].id, '')) + '">More</button>' +
+      (unknown.some(function(t){ return t.id === active; }) ? '<div class="nav-area-items">' + unknown.map(function(t){ return btn(t.id, '', t.label, t.id === active); }).join('') + '</div>' : '') + '</div>';
+    return '<div class="nav-new"><button type="button" class="nav-new-btn" data-nav-new aria-expanded="false">+ New</button><div class="nav-new-menu" hidden>' +
+      [['sales-order', 'Sales order'], ['quote', 'Quote'], ['customer', 'Customer'], ['purchase-order', 'Purchase order'], ['product', 'Product'], ['contract', 'Contract'], ['project', 'Project']].map(function(x){ return '<button type="button" data-nav-create="' + x[0] + '">' + x[1] + '</button>'; }).join('') + '</div></div>' +
+      html + '<div class="nav-style-switch"><button type="button" class="link" data-menu-style="classic">Classic menu</button></div>';
+  }
+  function openPage(tab, sub){
+    if (sub && typeof global.openSidebarSubGroup === 'function') { global.openSidebarSubGroup(tab, sub); return; }
+    if (sub && typeof global.__POOL_SHED_OPEN_SUBPAGE__ === 'function') { global.__POOL_SHED_OPEN_SUBPAGE__(tab, sub); return; }
+    if (typeof global.__POOL_SHED_OPEN_TAB__ === 'function') global.__POOL_SHED_OPEN_TAB__(tab);
+  }
+  function create(kind){
+    var click = function(sel){ setTimeout(function(){ var b = document.querySelector(sel); if (b) b.click(); }, 250); };
+    if (kind === 'sales-order' && typeof global.createNewSalesOrder === 'function') return global.createNewSalesOrder();
+    if (kind === 'customer') return openPage('crm', 'Create Customer');
+    if (kind === 'project') return openPage('jobs', 'Create Job');
+    if (kind === 'purchase-order' && typeof global.createDraftPurchaseOrder === 'function') { try { active = 'purchase'; activeSubPage.purchase = 'Purchase Orders'; } catch (_) {} return global.createDraftPurchaseOrder(); }
+    if (kind === 'quote') { openPage('quotes', 'Quotes'); return click('[data-qs-action="new-quote"]'); }
+    if (kind === 'product') { openPage('products', 'Product Command'); return click('[data-ph-new-product]'); }
+    if (kind === 'contract') { openPage('salesorders', 'Contracts'); return click('[data-ct-new]'); }
+  }
+  // After each screen draw: one title ("Area › Page") in the top bar, no repeated page titles, no second menus.
+  function tidy(){
+    if (!enabled() || typeof document === 'undefined' || !document.body) { if (document && document.body) document.body.classList.remove('ps-areas'); return; }
+    document.body.classList.add('ps-areas');
+    var p = currentPlace(); document.body.classList.toggle('ps-on-home', p.tab === 'dashboard'); var h1 = document.getElementById('pageTitle'), crumb = document.querySelector('.topbar .breadcrumb');
+    if (p.area && h1) { h1.textContent = p.label || p.area.label; document.title = (p.label || p.area.label) + ' · The Pool Shed'; }
+    if (p.area && crumb) crumb.innerHTML = '<span>' + esc(p.area.label) + '</span>' + (p.label && p.label !== p.area.label ? ' <span aria-hidden="true">›</span> <span>' + esc(p.label) + '</span>' : '');
+    var screen = document.getElementById('screen-' + p.tab), title = String(h1 ? h1.textContent : '').trim().toLowerCase();
+    if (screen) [].slice.call(screen.querySelectorAll('h1,h2')).slice(0, 3).forEach(function(h){
+      var r = h.getBoundingClientRect(), t = String(h.textContent || '').trim().toLowerCase();
+      if (r.top < 420 && t && (t === title || t === (p.sub || '').toLowerCase() || /^(finance command|analytics command|settings control|automation command|warehouse operations desk|precision stock control|fulfilment)$/.test(t))) h.classList.add('ps-dup-title');
+    });
   }
   function classicSwitch(){ return '<div class="nav-style-switch"><button type="button" class="link" data-menu-style="areas">New grouped menu</button></div>'; }
 
@@ -158,6 +224,11 @@
     document.addEventListener('click', function(e){
       var t = e.target; if (!t || !t.closest) return;
       var area = t.closest('[data-nav-area]'); if (area) { e.preventDefault(); e.stopPropagation(); openArea(area.dataset.navArea); return; }
+      var pg = t.closest('[data-nav-page]'); if (pg) { e.preventDefault(); e.stopPropagation(); var k = pg.dataset.navPage.split('|'); openPage(k[0], k.slice(1).join('|')); return; }
+      var mo = t.closest('[data-nav-more]'); if (mo) { e.preventDefault(); e.stopPropagation(); moreOpen[mo.dataset.navMore] = mo.getAttribute('aria-expanded') !== 'true'; if (typeof global.render === 'function') global.render(); return; }
+      var nb = t.closest('[data-nav-new]'); if (nb) { e.preventDefault(); e.stopPropagation(); var menu = nb.parentNode.querySelector('.nav-new-menu'), show = menu.hidden; menu.hidden = !show; nb.setAttribute('aria-expanded', String(show)); return; }
+      var nc = t.closest('[data-nav-create]'); if (nc) { e.preventDefault(); e.stopPropagation(); var m2 = nc.closest('.nav-new-menu'); if (m2) m2.hidden = true; create(nc.dataset.navCreate); return; }
+      if (!t.closest('.nav-new')) [].slice.call(document.querySelectorAll('.nav-new-menu')).forEach(function(x){ x.hidden = true; });
       var style = t.closest('[data-menu-style]'); if (style) { e.preventDefault(); try { global.localStorage.setItem(PREF, style.dataset.menuStyle); } catch (_) {} if (typeof global.render === 'function') global.render(); return; }
       var chip = t.closest('[data-status-chip]'); if (chip) { e.preventDefault(); var p = chip.dataset.statusChip.split('|'), kind = p[0], key = p.slice(1).join('|');
         if (kind === 'sales' && typeof global.__POOL_SHED_SALES_FILTER__ === 'function') global.__POOL_SHED_SALES_FILTER__(key);
@@ -171,6 +242,19 @@
       }
     }, true);
   }
+  // Wrap the screen draw once the app and every add-on have loaded, so the tidy-up runs last.
+  function installTidy(){
+    if (typeof global.render !== 'function' || global.render.__psTidy) return;
+    var baseRender = global.render;
+    var tidyRender = function(){ var out = baseRender.apply(this, arguments); try { tidy(); } catch (_) {} return out; };
+    tidyRender.__psTidy = true;
+    try { render = tidyRender; } catch (_) {} global.render = tidyRender;
+    try { tidy(); } catch (_) {}
+  }
+  if (typeof document !== 'undefined' && document.addEventListener) {
+    if (document.readyState !== 'complete') document.addEventListener('DOMContentLoaded', installTidy); else if (typeof setTimeout === 'function') setTimeout(installTidy, 0);
+    if (global.addEventListener) global.addEventListener('load', installTidy);
+  }
   if (typeof document !== 'undefined' && document.head && !document.getElementById('frame-styles')) {
     var st = document.createElement('style'); st.id = 'frame-styles';
     st.textContent =
@@ -183,8 +267,14 @@
       '.home-queues.home-queues-head{display:flex;justify-content:space-between;align-items:center;margin-bottom:8px}.home-queues-head strong{font-size:1.05em}.home-queues-head .link{background:none;border:0;text-decoration:underline;cursor:pointer;color:inherit;min-height:0}' +
       '.home-queue-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(170px,1fr));gap:10px}.home-queue{display:flex;flex-direction:column;align-items:flex-start;gap:2px;text-align:left;border:1px solid rgba(15,76,87,.18);border-radius:12px;padding:12px 14px;background:rgba(15,76,87,.04);cursor:pointer;color:inherit;min-height:0}' +
       '.home-queue b{font-size:26px;line-height:1.1;color:#0f4c57}.home-queue.hot b{color:#d8432c}.home-queue span{font-weight:700}.home-queue small{opacity:.75}.home-queue.clear{opacity:.6}.home-queue:hover,.home-queue:focus-visible{border-color:#0f4c57;outline:none}' +
-      '[data-theme="dark"] .home-queue b,.dark .home-queue b{color:#7fd3df}';
+      '[data-theme="dark"] .home-queue b,.dark .home-queue b{color:#7fd3df}' +
+      '.nav-more-toggle{opacity:.75;font-size:.9em!important}.nav-more{margin:2px 0 4px 8px;padding-left:8px;border-left:1px dashed rgba(255,255,255,.2)}.nav-more button{font-size:.9em!important;opacity:.9}' +
+      '.nav-new{position:relative;margin:4px 0 10px}.nav-new-btn{width:100%;font-weight:700!important;border:1px solid rgba(255,255,255,.35)!important;border-radius:10px!important;justify-content:center!important;text-align:center!important}' +
+      '.nav-new-menu{display:flex;flex-direction:column;gap:2px;margin-top:4px;padding:6px;border-radius:10px;background:rgba(255,255,255,.08)}.nav-new-menu[hidden]{display:none}.nav-new-menu button{font-size:.92em!important}' +
+      '.ps-areas #pageBackRow,.ps-areas .ps-dup-title,.ps-areas .ah-nav,.ps-areas .analytics-subnav,.ps-areas .qs-globalbar-tabs,.ps-areas .analytics-eyebrow,.ps-areas .settings-eyebrow{display:none!important}' +
+      '.ps-areas :has(> .ah-nav:only-child){display:none!important}.ps-areas .finance-command-head > div:first-child{display:none!important}.ps-areas .finance-command-head{justify-content:flex-end!important;padding-top:8px!important;padding-bottom:8px!important}' +
+      '.ps-areas:not(.ps-on-home) #fleet-reminder{display:none!important}.ps-areas .so-list-command-copy > span,.ps-areas .so-list-command-copy > strong{display:none!important}.ps-areas section.so-list-page[aria-label="Sales order queue"] > .so-list-kpis{display:none!important}';
     document.head.appendChild(st);
   }
-  global.PoolShedFrame = { enabled: enabled, navHtml: navHtml, classicSwitch: classicSwitch, statusBar: statusBar, isLate: isLate, paintHome: paintHome, homeHtml: homeHtml, tiles: tiles, AREAS: AREAS, _cache: cache };
+  global.PoolShedFrame = { enabled: enabled, navHtml: navHtml, MENU: MENU, OWNER: OWNER, findPage: findPage, currentPlace: currentPlace, tidy: tidy, create: create, openPage: openPage, classicSwitch: classicSwitch, statusBar: statusBar, isLate: isLate, paintHome: paintHome, homeHtml: homeHtml, tiles: tiles, AREAS: AREAS, _cache: cache };
 })(typeof window !== 'undefined' ? window : globalThis);
