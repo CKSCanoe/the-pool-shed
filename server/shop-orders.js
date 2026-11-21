@@ -1,4 +1,4 @@
-// Pool Shed v1.65.0 — web shop messages (any platform), checked and put into one shape.
+// Pool Shed v1.66.0 — web shop messages (any platform), checked and put into one shape.
 // Shopify and WooCommerce sign each webhook with the shop secret (HMAC-SHA256 of the exact body, base64). Any other
 // website can sign the same way (X-PoolShed-Signature) or send the secret as a Bearer token. Prices are worked out
 // before VAT per line after discounts, so the sales order matches what the customer paid.

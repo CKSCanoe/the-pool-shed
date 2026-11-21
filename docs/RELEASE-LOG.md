@@ -254,6 +254,7 @@ Owner: the navigation, the flow and the placement of tabs and buttons were not g
 | N2 | One title per page ("Area › Page"); Back to Dashboard, repeated banner titles, Accounts' button block, the Reports and Quote Studio tab rows hidden; van reminder banner on Home only; Orders list without the duplicate count boxes | **New · Tested in a real browser on staging** | Accounts home: one title, and work starts at the top. Orders: the list starts about 100 px higher. No console errors |
 | N3 | "+ New" at the top of the menu: sales order, quote, customer, purchase order, product, contract, project | **New · Tested in a real browser on staging** | Contract opened the new contract form; the quote and product start buttons and the order functions were found |
 | N4 | Tests | **New** | `test-navigation-v166` (every existing page reachable, each listed once, at most 7 per area, aliases, + New, tidy-up rules); `test-frame-v155` updated for the new menu. Build gate passes. No database change |
+| N5 | App release | **Deployed · verified on live** 21 Nov 2026 (Vercel check green; live cache `pool-shed-v1.66.0-nav-r1`) | Live site serves the new menu (`back-office-frame.js` v1.66.0); data unchanged |
 
 ## Ready for the web shop (any platform) · v1.65.0 · branch `webshop-ready`
 
