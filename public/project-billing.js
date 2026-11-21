@@ -1,24 +1,43 @@
+/* Pool Shed v1.61.0 — project stage invoices on the Pool Shed ledger (blueprint step 7).
+   "Raise invoice" on a ready stage opens the same invoice form Accounts uses, posts a numbered invoice (INV-…) on the
+   ledger and marks the stage. The server refuses a second invoice for a stage that is still billed, and never bills
+   more than the accepted quote plus approved extras. Stages queued to Xero before this release keep their status. */
 async function psProjectInvoiceReview(jobId,phaseId){
  const j=data.jobs.find(j=>j.id===jobId),p=j?.project,ph=p?.phases.find(ph=>ph.id===phaseId);if(!ph)throw Error('Invoice stage not found');
  const recommendation=psProjectSummary(j).recommendations.find(r=>r.id===phaseId);if(!recommendation?.ready)throw Error('Confirm the accepted quote, agreed stage and completed tasks before invoicing.');
- const refs=await psFinanceRequest('lookups'),esc=v=>escapeHtml(String(v??''));
- const choices=(values,label)=>'<option value="">'+label+'</option>'+values.map(v=>'<option value="'+esc(v.id)+'">'+esc(v.name)+'</option>').join('');
- document.getElementById('psProjectInvoiceReview').innerHTML='<form id="psProjectPhaseInvoice"><h3>Review '+esc(ph.name)+' · '+money(ph.amountNet)+' net</h3><input type="hidden" name="jobId" value="'+esc(jobId)+'"><input type="hidden" name="phaseId" value="'+esc(phaseId)+'"><div class="ps-project-fields"><label>Xero customer<select name="contact" required>'+choices(refs.contacts.map(c=>({id:c.ContactID,name:c.Name})),'Choose customer')+'</select></label><label>Income account<select name="account" required>'+choices(refs.accounts.filter(a=>a.Status==='ACTIVE'&&['REVENUE','SALES','OTHERINCOME'].includes(a.Type)).map(a=>({id:a.Code,name:a.Code+' · '+a.Name})),'Choose account')+'</select></label><label>Tax treatment<select name="tax" required>'+choices(refs.taxes.filter(t=>t.Status==='ACTIVE').map(t=>({id:t.TaxType,name:t.Name})),'Choose tax')+'</select></label><label>Invoice date<input type="date" name="date" value="'+todayIso()+'" required></label><label>Payment due date<input type="date" name="due" required></label></div><label class="ps-project-check"><input type="checkbox" required> I confirm the agreed stage is billable, the customer is correct and no duplicate invoice exists.</label><p><button type="submit">Queue reviewed stage draft</button></p><p class="muted">A Xero draft will be created; approve and send it in Xero. The server checks the contract limit and existing project billing.</p></form>';
+ if(!window.PoolShedSalesUI||typeof window.PoolShedSalesUI.inlineStage!=='function')throw Error('Invoicing is still loading. Try again in a moment.');
+ if(!await saveRemoteWorkspace(true))throw Error('Sync the project successfully before invoicing. Resolve any shared-workspace conflict first.');
+ window.PoolShedSalesUI.inlineStage(jobId,phaseId);
 }
-document.addEventListener('submit',async e=>{
- if(e.target.id!=='psProjectPhaseInvoice')return;e.preventDefault();const button=e.target.querySelector('button[type="submit"]');if(button.disabled)return;button.disabled=true;
- try{
-  const v=Object.fromEntries(new FormData(e.target)),j=data.jobs.find(j=>j.id===v.jobId),ph=j?.project?.phases.find(ph=>ph.id===v.phaseId);
-  if(!ph||!psProjectSummary(j).recommendations.find(r=>r.id===ph.id)?.ready)throw Error('Stage is no longer ready for invoicing.');
-  if(!await saveRemoteWorkspace(true))throw Error('Sync the project successfully before queuing an invoice. Resolve any shared-workspace conflict first.');
-  const response=await psFinanceRequest('queue',{source:'PROJECT:'+j.id+':'+ph.id,invoice:{Type:'ACCREC',Contact:{ContactID:v.contact},Date:v.date,DueDate:v.due,CurrencyCode:'GBP',LineItems:[{Description:j.name+' — '+ph.name,Quantity:1,UnitAmount:ph.amountNet,AccountCode:v.account,TaxType:v.tax}]}});
-  ph.invoiceRequested=true;ph.financeDocumentId=response.id;j.project.audit.push({id:crypto.randomUUID(),action:'stage_invoice_queued',at:new Date().toISOString(),user:currentUser().name,details:{phase:ph.id,document:response.id}});
-  if(saveAppData()===false)throw Error('The invoice is queued on the server, but local status could not be saved. Refresh accounting before retrying.');
-  await psFinanceRefresh();render();toast('Stage draft queued. Xero approval is still required.');
- }catch(e){toast(e.message);button.disabled=false;}
-});
-// Update only financial labels, so an in-progress form is never rebuilt by polling.
-setInterval(async()=>{
- if(document.hidden||active!=='jobs'||selectedSubPage('jobs')!=='Projects'||!supabaseSession?.access_token)return;
- try{const state=await psFinanceRefresh();document.querySelectorAll('[data-project-payment]').forEach(el=>{const d=state.documents?.find(d=>d.source_id==='PROJECT:'+psProjectSelected+':'+el.dataset.projectPayment);if(d)el.textContent=d.status+' · '+(d.xero_number||'Awaiting number')+' · Paid '+(d.amount_paid??'—')+' · Due '+(d.amount_due??'—')+' '+(d.currency||'')+' including VAT';});}catch{/* Current amounts remain labelled with their status; manual refresh reports errors. */}
-},60000);
+// Ledger position for the open project: each stage's invoice, what is paid and what is still owed.
+const psProjectLedger={job:null,at:0,data:null,busy:false};
+async function psProjectLedgerLoad(jobId,force){
+ if(psProjectLedger.busy||!jobId||!(typeof canAccessTab==='function'&&canAccessTab('accounting')))return null;
+ if(!force&&psProjectLedger.job===jobId&&Date.now()-psProjectLedger.at<60000)return psProjectLedger.data;
+ const db=typeof window.__POOL_SHED_DB__==='function'?window.__POOL_SHED_DB__():null;if(!db||typeof db.rpc!=='function')return null;
+ psProjectLedger.busy=true;
+ try{const w=typeof window.__POOL_SHED_WORKSPACE_ID__==='function'?window.__POOL_SHED_WORKSPACE_ID__():'pool-bros-main',r=await db.rpc('ps_job_billing',{w,job_id:jobId});if(r.error)throw r.error;Object.assign(psProjectLedger,{job:jobId,at:Date.now(),data:r.data});}
+ catch{Object.assign(psProjectLedger,{job:jobId,at:Date.now(),data:null});}
+ finally{psProjectLedger.busy=false;}
+ return psProjectLedger.data;
+}
+function psProjectLedgerPaint(){
+ const b=psProjectLedger.data;if(!b||psProjectLedger.job!==psProjectSelected)return;
+ const cash=n=>'£'+Number(n||0).toLocaleString('en-GB',{minimumFractionDigits:2,maximumFractionDigits:2}),docs=b.documents||[];
+ document.querySelectorAll('[data-project-payment]').forEach(el=>{
+  const mine=docs.filter(d=>d.phase_id===el.dataset.projectPayment&&d.doc_type==='sales_invoice');
+  if(!mine.length)return;const open=mine.reduce((n,d)=>n+Number(d.open||0),0);
+  el.textContent=mine.map(d=>d.doc_number).join(', ')+' · '+(open>0?cash(open)+' still owed':'paid or credited');
+ });
+ const box=document.getElementById('psProjectLedgerSummary');if(!box)return;
+ const paid=Math.max(0,Number(b.billed_gross||0)-Number(b.open_gross||0));
+ box.innerHTML='<div class="project-360-exposure"><span>Agreed (before VAT)</span><strong>'+cash(b.contract_net)+'</strong><span>Invoiced (before VAT)</span><strong>'+cash(b.billed_net)+'</strong><span>Paid</span><strong>'+cash(paid)+'</strong><span>Still owed</span><strong>'+cash(b.open_gross)+'</strong></div>'+
+  (docs.length?'<ul class="ps-ledger-docs">'+docs.map(d=>'<li><strong>'+escapeHtml(d.doc_number)+'</strong> '+escapeHtml(String(d.date||''))+' · '+escapeHtml(d.description||d.kind||'')+' · '+cash(d.gross)+(d.doc_type==='sales_invoice'?(Number(d.open)>0?' · '+cash(d.open)+' owed':' · paid'):'')+'</li>').join('')+'</ul>':'<p class="muted">No invoices on the ledger for this project yet.</p>');
+}
+// Repaint after each screen draw; reload the ledger after an invoice is posted (the form's modal closes).
+(function(){
+ if(typeof render!=='function')return;const original=render;
+ render=function(){const out=original.apply(this,arguments);try{if(active==='jobs'&&selectedSubPage('jobs')==='Projects'&&psProjectSelected){psProjectLedgerPaint();psProjectLedgerLoad(psProjectSelected,false).then(psProjectLedgerPaint);}}catch{}return out;};
+ window.render=render;
+ document.addEventListener('click',e=>{const t=e.target&&e.target.closest&&e.target.closest('[data-si-action="close-modal"],[data-project-finance-refresh]');if(t&&psProjectSelected)setTimeout(()=>psProjectLedgerLoad(psProjectSelected,true).then(psProjectLedgerPaint),300);});
+})();

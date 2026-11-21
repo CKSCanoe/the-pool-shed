@@ -238,6 +238,17 @@ Owner approved the blueprint 21 Nov 2026 (eight areas; Pool Audits under My Work
 
 ---
 
+## Blueprint step 7 · project stage invoices, average cost and Profit · v1.61.0 · branch `profit`
+
+Finding: the project page already works out budget against actual (materials, linked POs, labour, tools, approved extras), but stage invoices still went to the old Xero draft queue. The Profit page only counted PO lines linked to an order, so anything sold from stock or entered as a custom line showed as 100% margin. Goods in never updated a product's cost. Not in this step: stock and cost-of-sales journals in the ledger. They wait for Xero go-live, so the books are set up once, against the chosen chart of accounts.
+
+| # | Change | Status | Evidence |
+|---|---|---|---|
+| B7a | Migration 033: each stage lists its ledger invoices; a stage still billed cannot be invoiced again (credit it first); `ps_job_billing` gives one project's invoices, paid and owed (finance roles only) | **New · Proven on staging (rolled back)** | `scripts/ops/test-033-stage-billing.sql`: contract 10,500 including the approved extra; stage invoiced; second invoice for it refused; another stage still bills; full credit frees it; re-invoiced; totals 7,000 net; contract limit still applies; no user refused; numbering back to its value after the rollback |
+| B7b | Project page: "Raise invoice" on a ready stage opens the Accounts invoice form on the ledger (the ready checks are kept); the stage shows its invoice number; a "Billed on the ledger" box shows agreed, invoiced, paid and owed with each invoice; close-out accepts ledger stage invoices | **New · Tested in a real browser on staging** | Test stage on a staging project: form filled from the stage, posted INV-2051 (£1,800), stage showed "INV-2051 · £1,800.00 still owed", box updated; after a reload the stage could not be picked again |
+| B7c | Goods in: running average cost per product, with delivery, carriage, freight and duty lines on the PO spread by value (project charges stay on the project); the cost price is never changed; each receipt keeps unit, landed and before/after average | **New · Unit tested** | `test-profit-v161`: 4 at £120 plus £80 delivery on an £800 PO comes to £132 landed; with 2 on hand at £100 the average is £121.33; crane hire and site delivery are left out; non-stock lines are untouched. The wrapper is active in the browser |
+| B7d | Accounts → Order Profit becomes Profit: by order, project, customer and month; period and "delivered or invoiced only"; stock at average cost, custom lines at their line cost, lines bought in at PO cost; a missing cost is flagged (never 100%); CSV for every view | **New · Tested in a real browser on staging** | Staging: every tab, period and filter drawn; orders with a custom line and no cost entered are flagged "check cost". Before the custom-line fix the overall margin was badly overstated (custom lines were skipped) |
+
 ## Blueprint step 6 · core stock and the reorder list · v1.60.0 · branch `stock-control`
 
 Finding (live, read-only): 6,662 products count as stocked but only 18 hold any stock (17 units); none has a reorder level; 6,469 have a cost and all have a supplier. Pool Bros buys mostly to order. Existing features reused: Product Hub replenishment (projected stock with stock on order and orders waiting, pack sizes, grouped by supplier, draft POs) and automatic PO statuses from receiving. Not in this step (moved to step 7, profit): average and landed cost on goods in, and stock journals in the ledger.
