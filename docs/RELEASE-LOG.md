@@ -238,6 +238,15 @@ Owner approved the blueprint 21 Nov 2026 (eight areas; Pool Audits under My Work
 
 ---
 
+## Monthly management pack · v1.64.0 · branch `monthly-pack`
+
+Finding: Reports already had a "Monthly Management Pack" card, but it only exported the report builder's current view. The new pack is a real page; the card now opens it.
+
+| # | Change | Status | Evidence |
+|---|---|---|---|
+| M1 | Reports → Monthly Pack: any of the last 13 months. Sales and profit from delivered or invoiced orders, against last month and the same month last year, with a six-month trend. Best customers and best sellers. "Worth a look" list. Money from the ledger (finance roles only) plus what is owed from before the ledger. Stock value at average cost by place (each van listed). Purchasing, quotes, projects and contracts. Print or save as PDF (A4 print layout); CSV | **New · Tested in a real browser on staging** | Staging October 2026 drew in full: 13 orders, 47.0% margin, best customers and sellers, ledger money with the largest balances, and "worth a look" flagged 3 orders missing a cost, 1 core line to reorder and 1 low-margin project. Stock showed £0, which is correct for staging, where all positive stock rows are custom charges (not stock) |
+| M2 | Tests | **New** | `test-monthly-pack-v164`: month maths and the default month, comparisons, stock by place (vans, negative bins ignored, no-cost lines counted), purchasing (drafts and cancelled excluded), quotes, contracts, ledger money (invoices less credits, receipts, aged buckets, overdue bills), money shown to finance roles only. Analytics tests still pass; build gate passes. No database change |
+
 ## Contracts · recurring maintenance and repeat orders · v1.63.0 · branch `contracts`
 
 Finding: Sales → Subscriptions already existed (repeat orders), but it only repeated stock products, so service lines were dropped. It counted in days rather than calendar months and created one order at a time. Live has none, so the same records are upgraded in place. Owner decisions: billing is per contract (fixed fee or per visit); due contracts are listed and created with one click, never automatically.

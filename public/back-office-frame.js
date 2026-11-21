@@ -1,4 +1,4 @@
-/* Pool Shed v1.63.0 — back-office frame (blueprint step 1).
+/* Pool Shed v1.64.0 — back-office frame (blueprint step 1).
    1. The menu grouped into eight areas (plus Reports and Settings). Every existing page stays where it was, under its area;
       a "Classic menu" switch brings back the old flat menu for anyone who prefers it.
    2. Home queues: what needs doing today, by role, each opening the list to act on.
