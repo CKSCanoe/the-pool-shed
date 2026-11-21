@@ -3,6 +3,7 @@ import {uploadBusinessMedia,listBusinessMedia,signBusinessMedia,signFinanceMedia
 import {supabaseServerKey} from '../server/supabase-keys.js';
 import {appOriginAllowed} from '../server/origin-policy.js';
 import {invoicePdf,invoiceEmailText} from '../server/invoice-pdf.js';
+import {customerEmail} from '../server/customer-email.js';
 export const config={api:{bodyParser:false},maxDuration:60};
 const send=(res,status,value)=>res.status(status).json(value);
 async function rawBuffer(req,max=26214400){let chunks=[],n=0;for await(const b of req){n+=b.length;if(n>max)throw Object.assign(Error('Request too large'),{statusCode:413});chunks.push(b)}return Buffer.concat(chunks)}
@@ -97,6 +98,27 @@ export default async function handler(req,res){res.setHeader('Cache-Control','no
   if(!r.ok)return send(res,502,{error:out.message||('The email provider refused the email ('+r.status+')')});
   await userRpc(req,'ps_sales_invoice_sent',{w,doc_id:id,sent_to:to,provider_id:out.id||null});
   return send(res,200,{sent:true,to,doc_number:inv.doc_number});
+ }
+ if(action==='customer-email'||action==='customer-email-preview'){
+  // v1.57: picked / packed / shipped / collected emails. Recipient = the order's customer email from the database.
+  if(req.method!=='POST')return send(res,405,{error:'POST required'});if(!validOrigin(req))return send(res,403,{error:'Invalid origin'});
+  const body=JSON.parse((await rawBuffer(req,20000)).toString('utf8')||'{}');
+  const orderId=String(body.orderId||'').slice(0,80),trig=String(body.trigger||''),note=String(body.goodsNoteId||'').slice(0,80);
+  if(!orderId)return send(res,400,{error:'Order required'});
+  const ctx=await userRpc(req,'ps_customer_email_context',{w,order_id:orderId,trig});
+  const mail=customerEmail(ctx,{courier:String(body.courier||'').slice(0,80),tracking:String(body.tracking||'').slice(0,80),goodsNote:note});
+  const to=ctx.customer&&ctx.customer.email;
+  if(action==='customer-email-preview')return send(res,200,{to:to||null,subject:mail.subject,text:mail.text,emails_on:!!ctx.emails_on,sent_before:ctx.sent_before||0});
+  if(!ctx.emails_on)return send(res,409,{error:'Customer emails are switched off. The step is saved; nothing was sent.'});
+  if(!to||!EMAIL_RE.test(to))return send(res,400,{error:'The customer has no valid email address on their record.'});
+  if(!process.env.RESEND_API_KEY||!process.env.QUOTE_FROM_EMAIL)return send(res,503,{error:'Email is not set up on the server'});
+  const r=await fetch('https://api.resend.com/emails',{method:'POST',signal:AbortSignal.timeout(20000),
+    headers:{Authorization:'Bearer '+process.env.RESEND_API_KEY,'Content-Type':'application/json','Idempotency-Key':('cust-'+orderId+'-'+note+'-'+trig+'-'+(body.attempt||'1')).slice(0,250)},
+    body:JSON.stringify({from:process.env.QUOTE_FROM_EMAIL,to:[to],reply_to:(ctx.company&&ctx.company.email)||undefined,subject:mail.subject,text:mail.text})});
+  const out=await r.json().catch(()=>({}));
+  if(!r.ok)return send(res,502,{error:out.message||('The email provider refused the email ('+r.status+')')});
+  await userRpc(req,'ps_customer_email_sent',{w,order_id:orderId,goods_note_id:note,trig,sent_to:to,subject:mail.subject,provider_id:out.id||null});
+  return send(res,200,{sent:true,to,subject:mail.subject});
  }
  if(action==='sign'){
   if(req.method!=='GET')return send(res,405,{error:'GET required'});await identity(req,w,false);const refs=String(url.searchParams.get('refs')||'').split(',').map(decodeURIComponent).filter(Boolean).slice(0,150),urls=await signBusinessMedia(w,refs,3600);return send(res,200,{urls});
