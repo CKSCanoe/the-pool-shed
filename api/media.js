@@ -2,6 +2,7 @@ import {db,eq,audit} from '../server/accounting.js';
 import {uploadBusinessMedia,listBusinessMedia,signBusinessMedia,signFinanceMedia,fleetMediaRows,signFleetRows,archiveBusinessMedia,parseMediaRef} from '../server/business-media.js';
 import {supabaseServerKey} from '../server/supabase-keys.js';
 import {appOriginAllowed} from '../server/origin-policy.js';
+import {invoicePdf,invoiceEmailText} from '../server/invoice-pdf.js';
 export const config={api:{bodyParser:false},maxDuration:60};
 const send=(res,status,value)=>res.status(status).json(value);
 async function rawBuffer(req,max=26214400){let chunks=[],n=0;for await(const b of req){n+=b.length;if(n>max)throw Object.assign(Error('Request too large'),{statusCode:413});chunks.push(b)}return Buffer.concat(chunks)}
@@ -18,6 +19,17 @@ async function fleetAllowed(req,w,vanId,kind){
   if(!r.ok)return false;
   return (await r.json())===true;
 }
+// v1.54 sales invoices: the database checks the person's own role (Admin, Management, Accounts) on every call.
+async function userRpc(req,fn,body){
+  const key=supabaseServerKey(process.env);
+  const r=await fetch(process.env.SUPABASE_URL+'/rest/v1/rpc/'+fn,{method:'POST',signal:AbortSignal.timeout(15000),
+    headers:{apikey:process.env.SUPABASE_PUBLISHABLE_KEY||process.env.SUPABASE_ANON_KEY||key,Authorization:req.headers.authorization||'','Content-Type':'application/json'},
+    body:JSON.stringify(body)});
+  const data=await r.json().catch(()=>null);
+  if(!r.ok)throw Object.assign(Error((data&&data.message)||'Request refused'),{statusCode:r.status===401?401:403});
+  return data;
+}
+const EMAIL_RE=/^[^\s@<>,;]+@[^\s@<>,;]+\.[^\s@<>,;]+$/;
 async function requireFinance(u){const [p]=await db('user_profiles?id=eq.'+eq(u.id)+'&select=role,active');if(!p||p.active===false||!FINANCE_ROLES.has(p.role))throw Object.assign(Error('Supplier invoices and receipts are for Admin, Management and Accounts'),{statusCode:403});return p}
 export default async function handler(req,res){res.setHeader('Cache-Control','no-store');res.setHeader('X-Content-Type-Options','nosniff');const origin=process.env.APP_ORIGIN||'http://localhost',url=new URL(req.url,origin),action=url.searchParams.get('action')||'',w=url.searchParams.get('workspace')||'pool-bros-main';try{if(!process.env.SUPABASE_URL||!supabaseServerKey(process.env))throw Object.assign(Error('Secure media backend is not configured'),{statusCode:503});
  if(action==='product-upload'||action==='customer-upload'){
@@ -57,6 +69,34 @@ export default async function handler(req,res){res.setHeader('Cache-Control','no
   const rows=await fleetMediaRows(w,refs),allowed=[],seen=new Map();
   for(const r of rows){const k=r.van_id+'|'+r.asset_kind;if(!seen.has(k))seen.set(k,await fleetAllowed(req,w,r.van_id,r.asset_kind));if(seen.get(k))allowed.push(r);}
   return send(res,200,{urls:await signFleetRows(allowed,600)});
+ }
+ if(action==='invoice-pdf'){
+  if(req.method!=='GET')return send(res,405,{error:'GET required'});if(!req.headers.authorization)return send(res,401,{error:'Sign in first'});
+  const id=String(url.searchParams.get('id')||'');if(!/^[0-9a-f-]{36}$/i.test(id))return send(res,400,{error:'Invoice id required'});
+  const inv=await userRpc(req,'ps_sales_invoice_get',{w,doc_id:id});const pdf=invoicePdf(inv);
+  res.setHeader('Content-Type','application/pdf');res.setHeader('Content-Disposition','inline; filename="'+String(inv.doc_number).replace(/[^A-Za-z0-9-]/g,'')+'.pdf"');
+  return res.status(200).send(Buffer.from(pdf));
+ }
+ if(action==='invoice-email'){
+  if(req.method!=='POST')return send(res,405,{error:'POST required'});if(!validOrigin(req))return send(res,403,{error:'Invalid origin'});
+  const body=JSON.parse((await rawBuffer(req,20000)).toString('utf8')||'{}'),id=String(body.id||'');
+  if(!/^[0-9a-f-]{36}$/i.test(id))return send(res,400,{error:'Invoice id required'});
+  const inv=await userRpc(req,'ps_sales_invoice_get',{w,doc_id:id});
+  if(!inv.emails_on)return send(res,409,{error:'Invoice emails are switched off. Download the PDF and send it yourself, or ask the owner to switch them on.'});
+  const prof=await userRpc(req,'ps_invoice_profile_get',{w});
+  if((prof.missing||[]).length)return send(res,409,{error:'Add the invoice details first: '+prof.missing.join(', ')});
+  if(!process.env.RESEND_API_KEY||!process.env.QUOTE_FROM_EMAIL)return send(res,503,{error:'Email is not set up on the server'});
+  const to=String(body.to||(inv.customer&&inv.customer.email)||'').trim();
+  if(!EMAIL_RE.test(to))return send(res,400,{error:'The customer has no valid email address; enter one'});
+  const mail=invoiceEmailText(inv),pdf=Buffer.from(invoicePdf(inv));
+  const r=await fetch('https://api.resend.com/emails',{method:'POST',signal:AbortSignal.timeout(20000),
+    headers:{Authorization:'Bearer '+process.env.RESEND_API_KEY,'Content-Type':'application/json','Idempotency-Key':'invoice-'+id+'-'+to+'-'+(body.attempt||'1')},
+    body:JSON.stringify({from:process.env.QUOTE_FROM_EMAIL,to:[to],reply_to:(inv.company&&inv.company.email)||undefined,subject:mail.subject,text:mail.text,
+      attachments:[{filename:inv.doc_number+'.pdf',content:pdf.toString('base64')}]})});
+  const out=await r.json().catch(()=>({}));
+  if(!r.ok)return send(res,502,{error:out.message||('The email provider refused the email ('+r.status+')')});
+  await userRpc(req,'ps_sales_invoice_sent',{w,doc_id:id,sent_to:to,provider_id:out.id||null});
+  return send(res,200,{sent:true,to,doc_number:inv.doc_number});
  }
  if(action==='sign'){
   if(req.method!=='GET')return send(res,405,{error:'GET required'});await identity(req,w,false);const refs=String(url.searchParams.get('refs')||'').split(',').map(decodeURIComponent).filter(Boolean).slice(0,150),urls=await signBusinessMedia(w,refs,3600);return send(res,200,{urls});
