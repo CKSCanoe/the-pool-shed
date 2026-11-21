@@ -1197,7 +1197,9 @@ const seed = {
         try { window.dispatchEvent(new CustomEvent("pool-shed:workspace-ready", { detail:{ revision:remoteWorkspaceUpdatedAt || "" } })); } catch (error) { void error; }
         // Browser recovery/offline copies are important, but writing a 5MB+ cache
         // must not keep the verified shared workspace behind the loading screen.
+        const keepRaw = workspaceRemoteRaw, keepStamp = remoteWorkspaceUpdatedAt;
         setTimeout(function(){
+          writeServerCopy(keepRaw, keepStamp);
           try { cacheWorkspaceLocally(payload, false); } catch (error) { void error; }
           queueOfflineSnapshot(workspaceBaseSnapshot, false, "verified-shared-master");
           writeOfflineSnapshot(false, "shared-base", "verified-merge-base", workspaceBaseSnapshot).catch(function(){});
@@ -1217,7 +1219,9 @@ const seed = {
         let response = null;
         let lastError = null;
 
-        async function fetchSharedMaster() {
+        async function fetchSharedMaster(preferDeviceCopy) {
+          const fast = preferDeviceCopy ? await fetchWorkspaceFromDeviceCopy() : null;
+          if (fast) { console.info("Workspace opened from the " + fast.source + "."); return fast; }
           const result = await fetchWorkspaceMaster();
           if (result.error) throw result.error;
           if (!result.data || !result.data.data) throw new Error("Shared workspace master is unavailable.");
@@ -1225,7 +1229,7 @@ const seed = {
         }
 
         try {
-          response = await fetchSharedMaster();
+          response = await fetchSharedMaster(true);
           // RLS has authorised the master read. Do not hold the UI open while the
           // idempotent membership endpoint finishes its housekeeping work.
           const userId = String(supabaseSession.user && supabaseSession.user.id || "");
@@ -1245,7 +1249,8 @@ const seed = {
             } catch (retryError) {
               lastError = retryError;
               response = null;
-              if (attempt < 2) await new Promise(function(resolve){ setTimeout(resolve, 300 * (attempt + 1)); });
+              // v1.59: give a slow database room to recover instead of piling up full loads.
+              if (attempt < 2) await new Promise(function(resolve){ setTimeout(resolve, 2000 * (attempt + 1) + Math.floor(Math.random() * 800)); });
             }
           }
         }
@@ -1382,7 +1387,83 @@ const seed = {
       let workspaceAccessRules = null;
       // The whole workspace as this user may see it. Restricted roles receive a redacted copy from the database;
       // unrestricted roles receive everything, exactly as before. Falls back to the direct read on an older database.
-      async function fetchWorkspaceMaster() {
+      // v1.59: one full load at a time. Callers that ask while a load is running share it (they get their own copy,
+      // because the first caller normalises its copy in place).
+      let workspaceMasterInFlight = null;
+      function fetchWorkspaceMaster() {
+        if (workspaceMasterInFlight) {
+          return workspaceMasterInFlight.then(function(result) {
+            if (!result || result.error || !result.data) return result;
+            const copy = typeof structuredClone === "function" ? structuredClone(result.data) : clone(result.data);
+            return { error: null, data: copy };
+          });
+        }
+        const flight = fetchWorkspaceMasterOnce();
+        workspaceMasterInFlight = flight;
+        const clear = function() { if (workspaceMasterInFlight === flight) workspaceMasterInFlight = null; };
+        flight.then(clear, clear);
+        return flight;
+      }
+
+      // v1.59: start-up from the exact server copy kept on this device plus the change feed (usually a few KB),
+      // instead of downloading the whole workspace every time. Anything that does not line up uses the full load.
+      const SERVER_COPY_DB = "poolshed-server-copy";
+      function serverCopyStore(mode) {
+        return new Promise(function(resolve, reject) {
+          if (!window.indexedDB) { reject(new Error("IndexedDB unavailable")); return; }
+          const req = indexedDB.open(SERVER_COPY_DB, 1);
+          req.onupgradeneeded = function() { req.result.createObjectStore("copies"); };
+          req.onerror = function() { reject(req.error); };
+          req.onsuccess = function() { const db = req.result; const tx = db.transaction("copies", mode); resolve({ db: db, tx: tx, store: tx.objectStore("copies") }); };
+        });
+      }
+      function serverCopyKey(userId) { return WORKSPACE_ID + "|" + userId; }
+      async function currentAccessFingerprint() {
+        if (!supabaseClient || typeof supabaseClient.rpc !== "function") return null;
+        const r = await supabaseClient.rpc("ps_user_access");
+        if (r.error || !r.data) return null;
+        return JSON.stringify(r.data);
+      }
+      async function writeServerCopy(raw, updatedAt) {
+        try {
+          const userId = String(supabaseSession && supabaseSession.user && supabaseSession.user.id || "");
+          if (!userId || !raw || !updatedAt) return;
+          const access = await currentAccessFingerprint();
+          if (!access) return;
+          const o = await serverCopyStore("readwrite");
+          o.store.put({ userId: userId, workspace: WORKSPACE_ID, updated_at: updatedAt, access: access, raw: raw, savedAt: Date.now() }, serverCopyKey(userId));
+          o.tx.oncomplete = function() { o.db.close(); };
+        } catch (error) { console.warn("Could not keep the server copy on this device", error); }
+      }
+      async function readServerCopy(userId) {
+        const o = await serverCopyStore("readonly");
+        return new Promise(function(resolve) {
+          const get = o.store.get(serverCopyKey(userId));
+          get.onsuccess = function() { resolve(get.result || null); o.db.close(); };
+          get.onerror = function() { resolve(null); o.db.close(); };
+        });
+      }
+      async function fetchWorkspaceFromDeviceCopy() {
+        try {
+          const userId = String(supabaseSession && supabaseSession.user && supabaseSession.user.id || "");
+          if (!userId) return null;
+          const copy = await readServerCopy(userId);
+          if (!copy || !copy.raw || !copy.updated_at || copy.workspace !== WORKSPACE_ID) return null;
+          const access = await currentAccessFingerprint();
+          if (!access || access !== copy.access) return null;           // role or permissions changed: full load
+          const result = await fetchWorkspaceByDelta(copy.updated_at, copy.raw);
+          if (!result) return null;
+          const acc = JSON.parse(access);
+          workspaceAccessRules = acc && acc.restricted ? { restricted: true, role: acc.role, keys: acc.keys, hidden_sections: acc.hidden_sections } : null;
+          if (result.unchanged) return { error: null, data: { data: copy.raw, updated_at: copy.updated_at }, source: "device copy, unchanged" };
+          return { error: null, data: { data: result.raw, updated_at: result.updated_at }, source: "device copy plus changes" };
+        } catch (error) {
+          console.warn("Device copy not usable; using the full load", error);
+          return null;
+        }
+      }
+
+      async function fetchWorkspaceMasterOnce() {
         if (typeof supabaseClient.rpc === "function") {
           const loaded = await supabaseClient.rpc("ps_workspace_load", { w: WORKSPACE_ID });
           if (!loaded.error) {
@@ -1431,6 +1512,7 @@ const seed = {
           if (item && typeof item === "object" && !Array.isArray(item)) {
             if (Object.prototype.hasOwnProperty.call(item, "id") && (typeof item.id === "string" || typeof item.id === "number")) key = "id:" + workspaceKeyText(item.id);
             else if (section === "stock") key = "stock:" + (workspaceKeyText(item.productId) || "") + "|" + (workspaceKeyText(item.locationId) ?? workspaceKeyText(item.location) ?? "");
+            else if (section === "restockRules") key = "rule:" + (workspaceKeyText(item.productId) || "") + "|" + (workspaceKeyText(item.locationId) ?? workspaceKeyText(item.location) ?? "");
             else {
               const name = workspaceKeyText(item.name) ?? workspaceKeyText(item.label) ?? "";
               if (name !== "") key = "name:" + name;

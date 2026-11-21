@@ -160,4 +160,41 @@ end $$;
 revoke all on function public.ps_fleet_vans(text) from public, anon;
 grant execute on function public.ps_fleet_vans(text) to authenticated;
 
+-- Restock rules (van and location minimums) get a stable key, product + location, like stock rows. Without it every
+-- rule made the app fall back to saving the whole workspace. Must match workspaceSectionKeys() in the app exactly.
+create or replace function public.ps_section_items(section text, items jsonb)
+returns table(key text, ord integer, data jsonb, hash text)
+language sql immutable set search_path=public as $$
+  with e as (
+    select value as data, ordinality::integer as ord,
+      coalesce(
+        case when jsonb_typeof(value)='object' and value ? 'id' and jsonb_typeof(value->'id') in ('string','number') then 'id:'||(value->>'id') end,
+        case when section='stock' and jsonb_typeof(value)='object' then 'stock:'||coalesce(value->>'productId','')||'|'||coalesce(value->>'locationId',value->>'location','') end,
+        case when section='restockRules' and jsonb_typeof(value)='object' then 'rule:'||coalesce(value->>'productId','')||'|'||coalesce(value->>'locationId',value->>'location','') end,
+        case when jsonb_typeof(value)='object' and coalesce(value->>'name',value->>'label','')<>'' then 'name:'||coalesce(value->>'name',value->>'label') end,
+        case when jsonb_typeof(value)='string' then 'text:'||(value#>>'{}') end,
+        'hash:'||md5(value::text)
+      ) as base_key
+    from jsonb_array_elements(case when jsonb_typeof(items)='array' then items else '[]'::jsonb end) with ordinality
+  )
+  select case when row_number() over w = 1 then base_key else base_key||'#'||row_number() over w end,
+         ord, data, md5(data::text)
+  from e window w as (partition by base_key order by ord);
+$$;
+revoke all on function public.ps_section_items(text,jsonb) from public, anon, authenticated;
+-- Re-key any rules already stored (none on live at the time of writing). The current revision is pointed at the
+-- re-key's change number, so the change feed reports it to every app that opened an older revision; apps already on
+-- the current revision work out the same keys from the same content.
+do $$
+declare s record; v bigint;
+begin
+  for s in select workspace_id, updated_at, data from public.workspace_snapshots
+            where jsonb_typeof(data->'restockRules') = 'array' and jsonb_array_length(data->'restockRules') > 0 loop
+    v := nextval('public.ps_record_change_seq');
+    perform public.ps_records_sync(s.workspace_id, jsonb_build_object('restockRules', '[]'::jsonb),
+              jsonb_build_object('restockRules', s.data->'restockRules'), null::uuid, false, v);
+    update public.ps_snapshot_seq set seq = v where workspace_id = s.workspace_id and snapshot_updated_at = s.updated_at;
+  end loop;
+end $$;
+
 commit;
