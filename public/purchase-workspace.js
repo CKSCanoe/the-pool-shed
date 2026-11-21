@@ -7,6 +7,8 @@
 (function () {
   let purchaseCommandTab = 'items';
   const poListFilters={search:'',supplier:'all',status:'all',payment:'all',receiving:'all',health:'all',expected:'all',link:'all'};
+  // v1.55: the status chips above the list set the status filter (key '' = all, '__late' = waiting too long).
+  if(typeof window!=='undefined')window.PoolShedPurchaseFilter=function(key){poListFilters.status=!key?'all':(key==='__late'?'__late':((window.PoolShedStatusAuthority&&window.PoolShedStatusAuthority.purchaseDisplay)?window.PoolShedStatusAuthority.purchaseDisplay(key):key));if(typeof render==='function')render();};
   const legacyPurchaseOrderDetailPage = typeof purchaseOrderDetailPage === 'function' ? purchaseOrderDetailPage : null;
   const legacyPurchaseOrderListPage = typeof purchaseOrderListPage === 'function' ? purchaseOrderListPage : null;
   const legacyBindPurchase = typeof bindPurchase === 'function' ? bindPurchase : null;
@@ -1121,7 +1123,8 @@
       if(!haystack.includes(search))return false;
     }
     if(poListFilters.supplier!=='all'&&String(po.supplier||'')!==poListFilters.supplier)return false;
-    if(poListFilters.status!=='all'&&status!==poListFilters.status)return false;
+    if(poListFilters.status==='__late'){if(!(typeof window!=='undefined'&&window.PoolShedFrame&&window.PoolShedFrame.isLate(po,'purchase')))return false;}
+    else if(poListFilters.status!=='all'&&status!==poListFilters.status)return false;
     if(poListFilters.payment!=='all'&&payment!==poListFilters.payment)return false;
     if(poListFilters.health!=='all'&&health.tone!==poListFilters.health)return false;
     if(poListFilters.receiving!=='all'){
@@ -1156,7 +1159,9 @@
   function poListFilterBar(all,filtered){
     const suppliers=Array.from(new Set(all.map(function(po){return po.supplier||'Supplier to confirm';}))).sort();
     const statuses=Array.from(new Set(all.map(function(po){return poStatusText(po);}))).sort();
-    return '<section class="po-list-filter-shell">'+
+    const W_=typeof window!=='undefined'?window:{};const chipKey=poListFilters.status==='all'?'':(poListFilters.status==='__late'?'__late':((W_.PoolShedStatusAuthority&&(W_.PoolShedStatusAuthority.list('purchase')||[]).find(function(x){return x.name===poListFilters.status;})||{}).key||poListFilters.status));
+    const chipBar=W_.PoolShedFrame?W_.PoolShedFrame.statusBar('purchase',all.filter(function(po){return !['Received','Cancelled'].includes(String(po.status||''));}),chipKey):'';
+    return chipBar+'<section class="po-list-filter-shell">'+
       '<div class="po-list-filter-heading"><div><span>FILTER PURCHASE ORDERS</span><strong>Find exactly the orders you need</strong><small>Supplier, status, payment, receiving, health, due date and linked demand.</small></div><div class="po-list-filter-count"><strong>'+filtered.length+'</strong><span>of '+all.length+' shown</span></div></div>'+
       '<div class="po-list-filters">'+
         '<label class="po-filter-search"><span>Search</span><div><input id="poListFilterSearch" value="'+poEsc(poListFilters.search)+'" placeholder="PO, supplier, reference, Sales Order or Project"><button type="button" class="secondary" data-po-apply-filter-search="true">Search</button></div></label>'+

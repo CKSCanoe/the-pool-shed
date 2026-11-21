@@ -1,0 +1,544 @@
+<!DOCTYPE html>
+<html lang="en-GB">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Pool Shed Blueprint</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Outfit:wght@600;700;800&family=Figtree:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+/* VOICE work: a design proposal for the owner, decision first, calm and exact
+   IDEA a pool plant room: one water route through clearly labelled stations, pipework joining every area
+   PICTURE the business flow as one pipe from quote to profit, areas as tiled zones, the engineer app joining as a side feed
+   COLOUR pool white ground, deep pool teal #0f4c57, aqua #34b6c8 support, lifebuoy coral #f2553d accent; night #0a1c21
+   TYPE Outfit 700 display + Figtree text
+   LAYOUT title and verdict across the top, the pipe full width beneath; phone: pipe turns vertical */
+:root{color-scheme:light dark;--bg:light-dark(#ffffff,#0a1c21);--panel:light-dark(#f2f8f9,#11292f);--line:light-dark(#d5e6ea,#24444c);--ink:light-dark(#102a30,#e6f2f4);--soft:light-dark(#4d6a71,#9dbac1);--teal:light-dark(#0f4c57,#7fd3df);--aqua:light-dark(#34b6c8,#34b6c8);--coral:#f2553d;--band:light-dark(#0f4c57,#0c3940);--tile:light-dark(#e3f4f7,#123a42);--ok:light-dark(#1d7a4c,#5fd39a);--warn:light-dark(#a86200,#f0b450)}
+:root[data-theme=light]{color-scheme:light}
+:root[data-theme=dark]{color-scheme:dark}
+*{box-sizing:border-box;min-width:0}
+html{scroll-padding-top:64px}
+body{margin:0;background:var(--bg);color:var(--ink);font:16.5px/1.6 Figtree,system-ui,sans-serif;overflow-x:clip}
+h1,h2,h3{font-family:Outfit,system-ui,sans-serif;line-height:1.08;letter-spacing:-.02em;margin:0;text-wrap:balance}
+h1{font-size:clamp(34px,5vw,52px);font-weight:800;color:var(--teal)}
+h2{font-size:clamp(26px,3.2vw,34px);font-weight:700;color:var(--teal);margin-bottom:10px}
+h3{font-size:20px;font-weight:700;margin:0 0 6px}
+p{margin:0 0 12px;max-width:72ch}
+.band{padding:clamp(28px,4vw,56px) max(5vw,16px)}
+.wrap{max-width:1240px;margin:0 auto}
+.top{background:var(--band);color:#fff;padding-bottom:0}
+.top h1{color:#fff}
+.lede{font-size:18.5px;max-width:78ch;color:#e7f6f8;margin-top:14px}
+.facts{display:grid;grid-template-columns:repeat(auto-fit,minmax(10em,1fr));gap:10px;margin:22px 0 26px}
+.fact{background:rgba(255,255,255,.09);border:1px solid rgba(255,255,255,.18);border-radius:12px;padding:12px 14px}
+.fact b{display:block;font:700 clamp(24px,3vw,30px)/1.1 Outfit,sans-serif;white-space:nowrap}
+.fact span{font-size:14px;color:#cfeef2}
+.pipebox{background:var(--tile);border-radius:18px 18px 0 0;padding:6px 6px 0}
+.fig{position:relative;height:330px}
+.fig>svg{position:absolute;inset:0;width:100%;height:100%}
+.fig text{font-family:Figtree,sans-serif}
+.nav{position:sticky;top:0;z-index:5;background:var(--bg);border-bottom:1px solid var(--line);display:flex;gap:4px;overflow-x:auto;padding:8px max(5vw,16px)}
+.nav a{flex:none;color:var(--teal);text-decoration:none;font-weight:600;font-size:14.5px;padding:8px 12px;border-radius:999px}
+.nav a:hover,.nav a:focus-visible{background:var(--tile);outline:none}
+.grid2{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,460px),1fr));gap:22px;align-items:start}
+.grid3{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,300px),1fr));gap:16px}
+.card{background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:16px 18px}
+.card p{font-size:15.5px}
+.scroll{overflow-x:auto}
+table{border-collapse:collapse;width:100%;font-size:15px}
+th{text-align:left;font-weight:700;color:var(--soft);font-size:13.5px;border-bottom:2px solid var(--line);padding:8px 10px}
+td{border-bottom:1px solid var(--line);padding:9px 10px;vertical-align:top}
+td b{color:var(--teal)}
+.num{text-align:right;white-space:nowrap;font-variant-numeric:tabular-nums}
+.tag{display:inline-block;font-size:13px;font-weight:700;padding:2px 9px;border-radius:999px;background:var(--tile);color:var(--teal);white-space:nowrap}
+.tag.c{background:color-mix(in srgb,var(--coral) 16%,transparent);color:var(--coral)}
+.tag.g{background:color-mix(in srgb,var(--ok) 16%,transparent);color:var(--ok)}
+.tag.w{background:color-mix(in srgb,var(--warn) 18%,transparent);color:var(--warn)}
+.menu{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,270px),1fr));gap:14px}
+.area{border:1px solid var(--line);border-radius:14px;overflow:hidden;background:var(--bg)}
+.area header{background:var(--tile);padding:12px 16px}
+.area header h3{margin:0;color:var(--teal)}
+.area header small{color:var(--soft);font-size:14px}
+.area ul{margin:0;padding:10px 16px 14px 34px;font-size:15px}
+.area li{margin:3px 0}
+.from{font-size:13.5px;color:var(--soft);padding:0 16px 14px}
+/* app mock-ups */
+.app{border:1px solid var(--line);border-radius:14px;overflow:hidden;background:var(--bg);box-shadow:0 1px 0 var(--line)}
+.bar{display:flex;align-items:center;gap:10px;flex-wrap:wrap;background:var(--band);color:#fff;padding:10px 14px;font-size:14px}
+.bar b{font-family:Outfit,sans-serif;font-size:16px}
+.bar .sp{flex:1}
+.bar .s{background:rgba(255,255,255,.15);border-radius:8px;padding:5px 10px;white-space:nowrap}
+.appbody{padding:14px}
+.rail{display:flex;gap:4px;margin:4px 0 14px;flex-wrap:wrap}
+.rail span{flex:1 1 90px;text-align:center;font-size:13px;font-weight:700;padding:7px 4px;border-radius:8px;background:var(--panel);color:var(--soft);border:1px solid var(--line)}
+.rail .done{background:color-mix(in srgb,var(--aqua) 22%,var(--bg));color:var(--teal);border-color:transparent}
+.rail .now{background:var(--coral);color:#fff;border-color:transparent}
+.split{display:grid;grid-template-columns:minmax(0,1.7fr) minmax(0,1fr);gap:14px}
+.btn{display:inline-block;border:0;border-radius:10px;padding:10px 16px;font:700 15px Figtree,sans-serif;background:var(--coral);color:#fff;white-space:nowrap}
+.btn.q{background:var(--panel);color:var(--teal);border:1px solid var(--line)}
+.kv{display:grid;grid-template-columns:auto auto;gap:4px 12px;font-size:14.5px}
+.kv span{color:var(--soft)}
+.kv b{text-align:right;white-space:nowrap}
+.queues{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,170px),1fr));gap:10px}
+.queue{border:1px solid var(--line);border-radius:12px;padding:12px;background:var(--panel)}
+.queue b{display:block;font:700 28px/1.1 Outfit,sans-serif;color:var(--teal)}
+.queue.hot b{color:var(--coral)}
+.queue small{color:var(--soft);font-size:13.5px}
+.mini td,.mini th{padding:6px 8px;font-size:14px}
+.meter{height:10px;background:var(--panel);border-radius:6px;overflow:hidden;border:1px solid var(--line)}
+.meter i{display:block;height:100%;background:var(--aqua)}
+.steps{counter-reset:s;list-style:none;padding:0;margin:0;display:grid;gap:10px}
+.steps li{display:grid;grid-template-columns:auto 1fr;gap:12px;align-items:start}
+.steps li::before{counter-increment:s;content:counter(s);width:30px;height:30px;border-radius:50%;background:var(--band);color:#fff;display:grid;place-items:center;font-weight:700;font-size:14px}
+.note{font-size:14px;color:var(--soft)}
+.decide{border-left:4px solid var(--coral);background:var(--panel);border-radius:0 12px 12px 0;padding:14px 16px}
+.src{font-size:14px;columns:2 320px}
+.src a{color:var(--teal)}
+footer{font-size:14px;color:var(--soft)}
+@media(max-width:760px){.split{grid-template-columns:1fr}.fig{height:620px}}
+@media(max-width:600px){table{font-size:13.5px}th,td{padding:6px 5px}.stack thead{display:none}.stack tr{display:grid;padding-block:8px;border-bottom:1px solid var(--line)}.stack td{display:flex;justify-content:space-between;gap:12px;border:0;padding:3px 0}.stack td::before{content:attr(data-l);color:var(--soft);font-weight:600;flex:none}}
+@media(prefers-reduced-motion:reduce){.flow{animation:none!important}}
+</style>
+<script>new MutationObserver(()=>{for(const c of document.querySelectorAll('.stack td:not([data-l])')){let i=0,p=c;while(p=p.previousElementSibling)i+=p.colSpan;c.dataset.l=c.closest('table').rows[0].cells[i]?.textContent||''}}).observe(document,{childList:true,subtree:true})</script>
+</head>
+<body>
+
+<section class="band top">
+  <div class="wrap">
+    <h1>Pool Shed blueprint: one back office, built around the record</h1>
+    <p class="lede">Recommendation: rebuild the screens, not the data. Every order, customer, project, product and supplier gets one page where its next step is one obvious button, as in Brightpearl. Then add what Brightpearl lacks for a pool company: project stages and budgets (simPRO), parts ordered against jobs and stock on vans (Joblogic), reorder points and landed costs (Cin7, Unleashed), and custom statuses that organise sales orders and purchase orders the way Brightpearl does, each tied to its next step. Engineers get just two things here: their van report and their van stock. Jobs and pool readings stay in the engineer app; Pool Shed is the office.</p>
+    <div class="facts">
+      <div class="fact"><b>17 → 8</b><span>menu sections become 8 areas</span></div>
+      <div class="fact"><b>~80 → ~32</b><span>pages, with nothing lost</span></div>
+      <div class="fact"><b>1 button</b><span>the next step on every record</span></div>
+      <div class="fact"><b>0 records</b><span>moved or deleted: same data</span></div>
+    </div>
+    <div class="pipebox"><div class="fig" id="pipe" role="img" aria-label="Business flow from quote to profit through Sales, Purchasing, Stock and Accounts, with engineers and vans joining at delivery and fitting"></div></div>
+  </div>
+</section>
+
+<nav class="nav" aria-label="Sections">
+  <a href="#borrow">What we borrow</a><a href="#menu">New menu</a><a href="#statuses">Statuses</a><a href="#pages">Key pages</a><a href="#stock">Stock control</a><a href="#fulfil">Fulfilment</a><a href="#flows">Processes</a><a href="#better">Better than Brightpearl</a><a href="#engineer">Team & Vans</a><a href="#plan">Roll-out</a><a href="#decide">Decisions</a>
+</nav>
+
+<section class="band" id="borrow">
+  <div class="wrap">
+    <h2>Each leading system is best at one thing; Pool Bros needs all of them</h2>
+    <p>No single product fits a pool builder and maintenance firm that also sells stock. Pool-service apps (readings, dosing, routes) are left out on purpose: the engineer app covers them. Here is what each does best, what Pool Shed takes from it and what it avoids.</p>
+    <div class="scroll"><table class="stack">
+      <thead><tr><th>System</th><th>Best at</th><th>Pool Shed takes</th><th>Avoids</th></tr></thead>
+      <tbody>
+        <tr><td><b>Brightpearl</b><br><span class="note">retail order and accounts</span></td><td>Order-centred working: allocate, goods-out note, ship, invoice and pay from the order; custom statuses (own names, colours and order) that organise sales orders and purchase orders; rules that automate steps; accounts built in</td><td>One order page with a status rail and one next button; custom statuses for sales and purchase orders; goods notes; posted documents never edited; automation rules</td><td>Weak reporting (its most common complaint), high cost, settings that are hard for new users</td></tr>
+        <tr><td><b>Joblogic</b><br><span class="note">field service, UK</span></td><td>Quote turns into a job with no re-typing; parts ordered against the job; job shows "awaiting parts"; stock in warehouse and vans with minimum levels; supplier invoice matched to the PO</td><td>Quote → order or project in one click; buy for this job; awaiting-parts flag; van stock levels and top-ups; bill matching</td><td>Engineer scheduling and mobile jobs (your engineer app already does this)</td></tr>
+        <tr><td><b>simPRO</b><br><span class="note">projects for trades</span></td><td>Progress claims by stage and cost centre, retention, estimate against actual by cost centre while the job runs</td><td>Project page with stages, stage invoices, budget against actual for materials, labour and hire, live margin</td><td>Heavy setup and screens dense with options</td></tr>
+        <tr><td><b>Cin7 Core, Unleashed</b><br><span class="note">inventory</span></td><td>Reorder points per location that raise POs; landed costs (freight, duty) added to stock cost; bins; stock in transit</td><td>Reorder by location including vans; landed cost on goods-in; bins; average cost that feeds profit</td><td>Retail channel complexity Pool Bros doesn't need</td></tr>
+        <tr><td><b>Xero</b><br><span class="note">official books</span></td><td>Bank feeds, reconciliation, VAT return</td><td>Pool Shed posts finished documents to Xero (already built, unlinked)</td><td>Typing invoices twice</td></tr>
+      </tbody>
+    </table></div>
+  </div>
+</section>
+
+<section class="band" id="menu" style="background:var(--panel)">
+  <div class="wrap">
+    <h2>Eight areas replace seventeen sections</h2>
+    <p>Each area opens on a short list of what needs doing, not a strip of tabs. Search across everything stays at the top. Settings and Azzy sit apart from the menu.</p>
+    <div class="menu" id="areas"></div>
+  </div>
+</section>
+
+
+<section class="band" id="statuses">
+  <div class="wrap">
+    <h2>Custom statuses organise sales and purchase orders, and each one knows what happens next</h2>
+    <p>As in Brightpearl, you name, colour and order your own statuses, separately for sales orders and purchase orders, and lists can be filtered and grouped by them. Pool Shed goes further: every status belongs to a stage on the order's status rail, can move the order on automatically, sets the one next button, and reminds the owner if an order sits in it too long. Today Pool Shed already has 14 sales statuses with colours and reminders and 9 purchase statuses, but purchase colours are fixed in the code and nothing happens automatically. The rows below are examples of how they would be set.</p>
+    <div class="grid2">
+      <div class="app"><div class="bar"><b>Settings · Sales order statuses</b><span class="sp"></span><span class="s">Drag to reorder</span></div><div class="appbody"><div class="scroll"><table class="mini" id="so-st"></table></div></div></div>
+      <div class="app"><div class="bar"><b>Settings · Purchase order statuses</b><span class="sp"></span><span class="s">Drag to reorder</span></div><div class="appbody"><div class="scroll"><table class="mini" id="po-st"></table></div>
+        <p class="note" style="margin:10px 0 0">Billed and Paid come from the ledger automatically, so a PO always shows whether the supplier has been paid.</p></div></div>
+    </div>
+    <div class="grid3" style="margin-top:18px">
+      <div class="card"><h3>Lists by status</h3><p style="margin:0">Order and PO lists show a coloured count per status across the top; click one to filter. Saved views such as "my orders on hold" sit beside them.</p></div>
+      <div class="card"><h3>Automatic moves</h3><p style="margin:0">Raising a PO moves the order to Ordered; goods in moves the PO to Part received or Received; delivery moves the order to Invoice ready. Nobody has to remember.</p></div>
+      <div class="card"><h3>Reminders and owners</h3><p style="margin:0">Each status has a "remind after" time. When an order sits too long it appears in the owner's Home queue and on the daily email.</p></div>
+    </div>
+  </div>
+</section>
+
+<section class="band" id="pages">
+  <div class="wrap">
+    <h2>Every record gets one page, and every page has one next step</h2>
+    <p>These four pages do most of the work. The layout is the same each time: who and what at the top, a status rail, the work in the middle, money on the right, history at the bottom. Figures below are sample data.</p>
+
+    <h3>Sales orders: the current screens, improved</h3>
+    <p>The sales order screens were nearly right, so they are improved, not replaced. Every existing order, tag and goods note stays.</p>
+    <div class="grid2" style="margin-bottom:14px">
+      <div class="card"><h3>Keep</h3><p style="margin:0">Order queue with Active, Needs action, Ready, Backorders and Completed; smart search; stock and fulfilment columns; custom statuses and tags; goods notes; customer picker; WooCommerce and Quotient orders.</p></div>
+      <div class="card"><h3>Improve</h3><p style="margin:0">Cleaner list with a status count bar to filter; one order page instead of pop-ups; edit lines in place; the next step as one button; invoice and payments from the ledger; faster new order (quick-pick items, copy a previous order); works on a phone.</p></div>
+    </div>
+    <h3>Order page</h3>
+    <div class="app" style="margin-bottom:26px">
+      <div class="bar"><b>SO-2071</b><span>Acme Leisure Ltd · Site: Riverside Spa</span><span class="sp"></span><span class="s">Owner: Sam</span><span class="s">Due 28 Nov</span></div>
+      <div class="appbody">
+        <div class="rail"><span class="done">Quote accepted</span><span class="done">Stock allocated</span><span class="done">Picked</span><span class="now">Delivered</span><span>Invoiced</span><span>Paid</span></div>
+        <div class="split">
+          <div>
+            <div class="scroll"><table class="mini"><thead><tr><th>Item</th><th class="num">Qty</th><th>Stock</th><th class="num">Net</th></tr></thead><tbody>
+              <tr><td>Variable speed pump 1.5kW</td><td class="num">1</td><td><span class="tag g">Delivered</span></td><td class="num">£685.00</td></tr>
+              <tr><td>Sand filter 600mm</td><td class="num">1</td><td><span class="tag g">Delivered</span></td><td class="num">£540.00</td></tr>
+              <tr><td>Chlorine granules 5kg</td><td class="num">4</td><td><span class="tag g">Delivered</span></td><td class="num">£170.00</td></tr>
+              <tr><td>Installation, 1 day</td><td class="num">1</td><td><span class="tag">Service</span></td><td class="num">£325.00</td></tr>
+            </tbody></table></div>
+            <p class="note" style="margin-top:10px">Timeline: quote Q-1188 accepted 14 Nov · allocated from Warehouse A · goods note GN-0412 delivered 20 Nov by van PB21 · deposit INV-2050 paid</p>
+          </div>
+          <div class="card">
+            <div class="kv"><span>Order total</span><b>£2,064.00</b><span>Deposit invoiced</span><b>£619.20</b><span>Paid</span><b>£619.20</b><span>Left to invoice</span><b>£1,444.80</b><span>Margin</span><b>38%</b></div>
+            <p style="margin:14px 0 8px"><span class="btn">Invoice £1,444.80</span></p>
+            <p class="note" style="margin:0">Other actions: credit or return, email customer, duplicate, print</p>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="grid2">
+      <div>
+        <h3>Customer page</h3>
+        <div class="app">
+          <div class="bar"><b>Acme Leisure Ltd</b><span class="sp"></span><span class="s">Net 30</span><span class="s">Limit £10k</span></div>
+          <div class="appbody">
+            <div class="queues" style="margin-bottom:12px"><div class="queue hot"><b>£3,120</b><small>owed, £840 overdue</small></div><div class="queue"><b>3</b><small>open orders</small></div><div class="queue"><b>2</b><small>sites</small></div></div>
+            <div class="scroll"><table class="mini"><thead><tr><th>Site</th><th>Open work</th><th class="num">Owed</th></tr></thead><tbody>
+              <tr><td>Riverside Spa</td><td>SO-2071 delivered, P-118 stage 3</td><td class="num">£2,280</td></tr>
+              <tr><td>Park Hotel</td><td>Q-1201 sent 18 Nov</td><td class="num">£840</td></tr>
+            </tbody></table></div>
+            <p class="note" style="margin-top:10px">Tabs: Overview · Sites · Quotes · Orders · Projects · Invoices and payments · Statement · Notes</p>
+            <span class="btn">New quote</span> <span class="btn q">Send statement</span>
+          </div>
+        </div>
+      </div>
+      <div>
+        <h3>Project page</h3>
+        <div class="app">
+          <div class="bar"><b>P-118 New outdoor pool</b><span class="sp"></span><span class="s">Stage 3 of 5</span></div>
+          <div class="appbody">
+            <div class="scroll"><table class="mini"><thead><tr><th>Stage</th><th class="num">Value</th><th>State</th></tr></thead><tbody>
+              <tr><td>Deposit 20%</td><td class="num">£12,900</td><td><span class="tag g">Paid</span></td></tr>
+              <tr><td>Excavation</td><td class="num">£15,500</td><td><span class="tag g">Invoiced</span></td></tr>
+              <tr><td>Shell and plumbing</td><td class="num">£19,400</td><td><span class="tag c">Ready to invoice</span></td></tr>
+              <tr><td>Plant room</td><td class="num">£9,800</td><td><span class="tag">Not reached</span></td></tr>
+              <tr><td>Finishing and handover</td><td class="num">£6,991</td><td><span class="tag">Not reached</span></td></tr>
+            </tbody></table></div>
+            <p style="margin:10px 0 4px;font-size:14.5px"><b>Budget against actual</b>: £38,200 of £41,000 spent at 60% complete</p>
+            <div class="meter"><i style="width:93%"></i></div>
+            <p class="note" style="margin-top:6px">Materials £21,700 · labour £11,900 · hire £4,600 · margin heading for 19% (target 30%)</p>
+            <span class="btn">Invoice stage 3</span> <span class="btn q">Order materials</span>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <h3 style="margin-top:26px">Home, and the opening page of every area</h3>
+    <div class="app">
+      <div class="bar"><b>Good morning, Aaron</b><span class="sp"></span><span class="s">Search orders, customers, products, invoices</span></div>
+      <div class="appbody">
+        <div class="queues">
+          <div class="queue hot"><b>5</b><small>ready to invoice · £4,077</small></div>
+          <div class="queue hot"><b>3</b><small>invoices overdue · £2,410</small></div>
+          <div class="queue"><b>2</b><small>quotes awaiting reply</small></div>
+          <div class="queue"><b>4</b><small>orders awaiting parts</small></div>
+          <div class="queue"><b>6</b><small>bills to pay this week</small></div>
+          <div class="queue"><b>9</b><small>products below reorder</small></div>
+          <div class="queue"><b>1</b><small>van report to sign off</small></div>
+          <div class="queue"><b>£18.4k</b><small>gross profit this month · +6%</small></div>
+        </div>
+        <p class="note" style="margin-top:10px">Each tile opens a list you can act on. Tiles follow the person's role: Accounts sees money queues first, the warehouse sees goods in and picking.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+
+
+<section class="band" id="stock" style="background:var(--panel)">
+  <div class="wrap">
+    <h2>Complete stock control: every item counted by location, and a reorder threshold that raises the order</h2>
+    <p>Pool Shed already has the parts: stock by product and location, allocations, a movement log, and reorder, batch and serial fields on products. They are not switched on: none of the 6,837 products is set to track stock and no reorder rules exist. The plan switches tracking on in stages, starting with what you hold (pool equipment, chemicals, van kit), and makes the rest work around it. Figures below are sample data.</p>
+    <div class="grid2">
+      <div class="app">
+        <div class="bar"><b>Sand filter 600mm</b><span>SKU FLT-600</span><span class="sp"></span><span class="s">Avg cost £312.40</span></div>
+        <div class="appbody">
+          <div class="scroll"><table class="mini"><thead><tr><th>Location</th><th class="num">On hand</th><th class="num">Allocated</th><th class="num">Free</th><th class="num">On order</th><th class="num">Reorder at</th><th class="num">Order up to</th></tr></thead><tbody>
+            <tr><td>Warehouse, bin A3</td><td class="num">4</td><td class="num">3</td><td class="num">1</td><td class="num">6</td><td class="num">3</td><td class="num">10</td></tr>
+            <tr><td>Van PB21</td><td class="num">1</td><td class="num">0</td><td class="num">1</td><td class="num">—</td><td class="num">1</td><td class="num">1</td></tr>
+            <tr><td>Job P-118</td><td class="num">2</td><td class="num">2</td><td class="num">0</td><td class="num">—</td><td class="num">—</td><td class="num">—</td></tr>
+            <tr><td><b>Total</b></td><td class="num"><b>7</b></td><td class="num"><b>5</b></td><td class="num"><b>2</b></td><td class="num"><b>6</b></td><td></td><td></td></tr>
+          </tbody></table></div>
+          <p class="note" style="margin:10px 0 6px">Movements: 20 Nov goods in +6 (PO-0091) · 20 Nov transfer to Van PB21 −1 · 18 Nov allocated to SO-2071 · 12 Nov count +0 (Dave)</p>
+          <span class="btn q">Adjust with reason</span> <span class="btn q">Transfer</span> <span class="btn q">Count</span>
+        </div>
+      </div>
+      <div class="app">
+        <div class="bar"><b>Reorder list</b><span class="sp"></span><span class="s">Below threshold: 9</span></div>
+        <div class="appbody">
+          <div class="scroll"><table class="mini"><thead><tr><th>Supplier / item</th><th class="num">Free</th><th class="num">Reorder at</th><th class="num">Suggest</th></tr></thead><tbody>
+            <tr><td colspan="4"><b>Pool equipment supplier A</b> · lead time 3 days · min order £150</td></tr>
+            <tr><td>Sand filter 600mm</td><td class="num">1</td><td class="num">3</td><td class="num">3</td></tr>
+            <tr><td>Variable speed pump 1.5kW</td><td class="num">0</td><td class="num">2</td><td class="num">4</td></tr>
+            <tr><td colspan="4"><b>Chemicals supplier B</b> · lead time 2 days</td></tr>
+            <tr><td>Chlorine granules 5kg</td><td class="num">6</td><td class="num">12</td><td class="num">18</td></tr>
+            <tr><td>pH minus 3kg</td><td class="num">2</td><td class="num">6</td><td class="num">10</td></tr>
+          </tbody></table></div>
+          <p style="margin:10px 0 0"><span class="btn">Create 2 purchase orders</span> <span class="btn q">Van top-ups (3 vans)</span></p>
+        </div>
+      </div>
+    </div>
+    <div class="grid3" style="margin-top:18px">
+      <div class="card"><h3>Levels you can trust</h3><p style="margin:0">On hand, allocated, free and on order for every product in every location (warehouse bins, receiving, quarantine, each van, each job). Free stock is what can be sold.</p></div>
+      <div class="card"><h3>Every movement logged</h3><p style="margin:0">Goods in, put away, transfer, pick, ship, van use, return, damage and count. Each has who, when, why and a reference. Stock is never just typed over.</p></div>
+      <div class="card"><h3>Reorder thresholds</h3><p style="margin:0">Per product and location: reorder at, order up to, preferred supplier, pack size and lead time. When free stock plus on order drops to the threshold, the item joins the reorder list.</p></div>
+      <div class="card"><h3>One click to order</h3><p style="margin:0">The reorder list groups by supplier and suggests quantities; one click makes the purchase orders. Van thresholds make warehouse top-up lists instead.</p></div>
+      <div class="card"><h3>Counts and adjustments</h3><p style="margin:0">Cycle counts by bin or category, full stock takes, van counts on the phone. Adjustments need a reason; large ones need approval, and each posts to the ledger.</p></div>
+      <div class="card"><h3>Value and warnings</h3><p style="margin:0">Average cost including freight; stock value by location; slow and dead stock; batch and expiry for chemicals; serials for pumps and heaters.</p></div>
+    </div>
+  </div>
+</section>
+
+<section class="band" id="fulfil">
+  <div class="wrap">
+    <h2>Fulfilment tells the customer at each step, with a tick box every time</h2>
+    <p>With an online shop coming, pick, pack and ship need to run fast and keep the customer informed. Pool Shed already has goods notes, picking lists, pick, pack and ship screens, tracking fields and message templates for each step. What it lacks: those messages are only logged as "ready to send" and never actually emailed. The fix is to send them for real, always with a tick box so staff choose, and to pass status and tracking back to the shop.</p>
+    <div class="grid2">
+      <div class="app">
+        <div class="bar"><b>Ship GN-0418</b><span>SO-2088 · web order</span><span class="sp"></span><span class="s">2 parcels</span></div>
+        <div class="appbody">
+          <div class="rail"><span class="done">Picked</span><span class="done">Packed</span><span class="now">Shipped</span><span>Delivered</span></div>
+          <div class="kv" style="margin-bottom:12px"><span>Carrier</span><b>DPD next day</b><span>Tracking number</span><b>15501234567890</b><span>Weight</span><b>14.2 kg</b></div>
+          <div class="card" style="margin-bottom:12px"><label style="display:flex;gap:10px;align-items:center;font-weight:700"><input type="checkbox" checked style="width:20px;height:20px"> Email the customer that it has shipped</label>
+            <p class="note" style="margin:6px 0 0">To orders@example-customer.test · "Your Pool Bros order SO-2088 is on its way" with the DPD tracking link. <u>Preview</u></p></div>
+          <span class="btn">Mark shipped</span> <span class="btn q">Print label and packing slip</span>
+        </div>
+      </div>
+      <div>
+        <div class="scroll"><table class="stack">
+          <thead><tr><th>Step</th><th>Customer email</th><th>Tick box starts</th></tr></thead>
+          <tbody>
+            <tr><td><b>Picked</b></td><td>"We're preparing your order"</td><td>Unticked (optional)</td></tr>
+            <tr><td><b>Packed</b></td><td>"Your order is packed and ready to go"</td><td>Ticked</td></tr>
+            <tr><td><b>Shipped</b></td><td>"On its way" with carrier, tracking number and link</td><td>Ticked; tracking required</td></tr>
+            <tr><td><b>Part shipped</b></td><td>What has gone, what follows and when</td><td>Ticked</td></tr>
+            <tr><td><b>Collected / delivered</b></td><td>"Delivered, thank you" with the invoice if due</td><td>Unticked</td></tr>
+          </tbody>
+        </table></div>
+        <ul style="margin:12px 0 0 18px;font-size:15.5px">
+          <li>Wording for each email is set once in Settings; the defaults per step are your existing rules.</li>
+          <li>Every email sent shows on the order's timeline with the time and address, so anyone can answer "where is my order?".</li>
+          <li>Web orders: the shop gets the status and tracking automatically, so the customer sees it in their account too.</li>
+          <li>Batch working for busy days: pick several orders from one list, pack and ship each, tick boxes remembered.</li>
+          <li>Safety: customer emails have one master switch, off until you approve, like invoice emails.</li>
+        </ul>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section class="band" id="flows" style="background:var(--panel)">
+  <div class="wrap">
+    <h2>Four processes run the business, and each starts and ends on a record</h2>
+    <div class="grid2">
+      <div class="card"><h3>Sell</h3><ol class="steps">
+        <li><span><b>Quote</b> in Quote Studio, sent with the customer portal.</span></li>
+        <li><span><b>Accepted</b>: one click makes the order, or a project for builds. Nothing re-typed.</span></li>
+        <li><span><b>Allocated</b> from stock, or bought for this order (awaiting parts shows on the order).</span></li>
+        <li><span><b>Picked, packed and shipped</b> with a goods note and tracking, the customer emailed at each step if ticked; or fitted by an engineer.</span></li>
+        <li><span><b>Invoiced</b> from the order page; <b>paid</b> recorded once, matched to the invoice.</span></li></ol></div>
+      <div class="card"><h3>Build (projects)</h3><ol class="steps">
+        <li><span><b>Accepted quote</b> becomes the contract; stages and budget come from it.</span></li>
+        <li><span><b>Deposit</b> invoiced at once; each stage invoiced when reached.</span></li>
+        <li><span><b>Costs</b> arrive automatically: purchases, stock used from vans, labour days, hire.</span></li>
+        <li><span><b>Extras</b> quoted and approved add to the contract.</span></li>
+        <li><span><b>Margin</b> is live all the way, with a warning when it drifts below target.</span></li></ol></div>
+      <div class="card"><h3>Buy and pay</h3><ol class="steps">
+        <li><span><b>Need</b>: an order, a project stage, or stock below its reorder point (warehouse or van).</span></li>
+        <li><span><b>PO</b> raised and emailed; or <b>record a purchase</b> for things already bought.</span></li>
+        <li><span><b>Goods in</b> against the PO, with freight added to the cost.</span></li>
+        <li><span><b>Bill</b> matched to PO and goods in; differences flagged.</span></li>
+        <li><span><b>Payment run</b>: pro-forma paid up front, on-account on terms, approved by a second person.</span></li></ol></div>
+      <div class="card"><h3>Stock</h3><ol class="steps">
+        <li><span><b>Locations</b>: warehouse bins, receiving, quarantine, each van, each job.</span></li>
+        <li><span><b>Goods in</b> put away to a bin; <b>transfer</b> to a van by scan.</span></li>
+        <li><span><b>Used from the van</b>: shown by the van stock take (or a quick "used" entry), costed to the job when known.</span></li>
+        <li><span><b>Van below minimum</b>: top-up list for the warehouse, or a PO.</span></li>
+        <li><span><b>Counts</b>: weekly van checks and cycle counts; differences post to the ledger.</span></li></ol></div>
+    </div>
+  </div>
+</section>
+
+<section class="band" id="better">
+  <div class="wrap">
+    <h2>Where Pool Shed beats Brightpearl for Pool Bros</h2>
+    <div class="grid3" id="better-list"></div>
+  </div>
+</section>
+
+<section class="band" id="engineer" style="background:var(--panel)">
+  <div class="wrap">
+    <h2>Team & Vans gives engineers their van report and van stock, and admin sees every van</h2>
+    <p>Engineers do the monthly van report and keep their van stock right with a quick count on the phone. Admin sees every van, its stock and its value. Jobs, job sheets and pool readings stay in the engineer app; nothing here duplicates it.</p>
+    <div class="grid2">
+      <div>
+        <h3>On the engineer's phone</h3>
+        <div class="app" style="max-width:420px">
+          <div class="bar"><b>Morning, Dave</b><span class="sp"></span><span class="s">Van PB21 VAN</span></div>
+          <div class="appbody">
+            
+            <div class="queues"><div class="queue"><b>42</b><small>items on my van</small></div><div class="queue hot"><b>3</b><small>below minimum</small></div></div>
+            <p style="margin:10px 0 0"><span class="btn q">Count my van</span> <span class="btn q">Van report (due)</span></p>
+            <p class="note" style="margin:8px 0 0">Stock take: a list of the van's items with the expected count; tap + or − or scan, only differences need a touch. Takes about five minutes.</p>
+          </div>
+        </div>
+      </div>
+      <div>
+        <h3>For admin</h3>
+        <div class="app">
+          <div class="bar"><b>Vans and van stock</b><span class="sp"></span><span class="s">All vans</span></div>
+          <div class="appbody"><div class="scroll"><table class="mini stack"><thead><tr><th>Van</th><th>Engineer</th><th class="num">Stock value</th><th>Short</th><th>Last count</th><th>Report</th></tr></thead><tbody>
+            <tr><td><b>PB21 VAN</b></td><td>Dave</td><td class="num">£1,840</td><td><span class="tag c">3 items</span></td><td>18 Nov</td><td><span class="tag w">Due</span></td></tr>
+            <tr><td><b>PB22 VAN</b></td><td>Mitch</td><td class="num">£2,215</td><td><span class="tag g">None</span></td><td>20 Nov</td><td><span class="tag g">Signed off</span></td></tr>
+            <tr><td><b>PB23 VAN</b></td><td>Lee</td><td class="num">£960</td><td><span class="tag c">7 items</span></td><td>6 Nov</td><td><span class="tag c">Sent back</span></td></tr>
+          </tbody></table></div>
+          <p style="margin:10px 0 6px"><span class="btn">Build top-up list</span> <span class="btn q">Count differences</span></p>
+          <p class="note" style="margin:0">Each van is a stock location linked to its van record, so its stock, value, minimum levels, counts and top-ups all live in one place.</p></div>
+        </div>
+        
+      </div>
+    </div>
+    <p class="note" style="margin-top:12px">Figures are sample data.</p>
+  </div>
+</section>
+
+<section class="band" id="plan">
+  <div class="wrap">
+    <h2>Roll out in seven steps, each usable on its own, with the old screens kept until you approve the new ones</h2>
+    <div class="scroll"><table class="stack">
+      <thead><tr><th>Step</th><th>What changes</th><th>Builds on</th><th>Size</th></tr></thead>
+      <tbody id="plan-rows"></tbody>
+    </table></div>
+    <p class="note" style="margin-top:10px">Every step follows the same release routine as now: staging first, backup, live checks, and the continuity check that every record is still there. Ledger, invoicing, purchases, payment runs and Xero hand-off are already built and carry straight into the new Accounts area.</p>
+  </div>
+</section>
+
+<section class="band" id="decide" style="background:var(--panel)">
+  <div class="wrap">
+    <h2>Six decisions before building starts</h2>
+    <div class="grid2" id="decisions"></div>
+  </div>
+</section>
+
+<section class="band">
+  <div class="wrap">
+    <h3>Sources</h3>
+    <p class="note">Feature claims come mostly from vendor pages and review sites, checked on 21 Nov 2026; confirm details in a demo before copying any one feature exactly.</p>
+    <div class="src">
+      <p><a href="https://www.brightpearl.com/order-management-software">Brightpearl order management</a><br><a href="https://api-docs.brightpearl.com/warehouse/goods-out-note/">Brightpearl goods-out notes</a><br><a href="https://www.capterra.com/p/124180/Brightpearl/reviews/">Brightpearl reviews (Capterra)</a><br><a href="https://www.g2.com/products/brightpearl/reviews">Brightpearl reviews (G2)</a></p>
+      <p><a href="https://www.joblogic.com/features/quoting-software/">Joblogic quoting</a><br><a href="https://www.joblogic.com/purchase-order-software">Joblogic purchase orders</a><br><a href="https://www.joblogic.com/marketplace/sales-orders">Joblogic sales orders</a><br><a href="https://www.joblogic.com/joblogic-compared-to-the-competition">Joblogic comparisons</a></p>
+      <p><a href="https://helpguide.simprogroup.com/Content/Service-and-Enterprise/Progress-Claim.htm">simPRO progress claims</a><br><a href="https://www.simprogroup.com/blog/a-snapshot-of-project-invoicing-and-payments-in-simpro">simPRO project invoicing</a></p>
+      <p><a href="https://help.core.cin7.com/hc/en-us/articles/9034461557519-Introduction-to-the-Purchase-Module">Cin7 Core purchasing</a><br><a href="https://www.unleashedsoftware.com/product/purchases/purchase-costs/">Unleashed purchase costs</a></p>
+    </div>
+    <footer>Pool Shed blueprint for Pool Bros · draft for the owner's review · 21 Nov 2026</footer>
+  </div>
+</section>
+
+<script>
+{
+  const areas = [
+    ['Home and My Work', 'What needs doing today, by role', ['Queues: to invoice, overdue, to pay, awaiting parts, below reorder, to sign off', 'This month’s profit and cash', 'My Work: my approvals and tasks', 'Pool Audits: site inspections, evidence and action register'], 'Dashboard, My Work, Notifications, Pool Audits'],
+    ['Customers', 'Everyone you sell to', ['Customer list and page', 'Sites and delivery addresses', 'Statements and balances', 'Audits for this customer, linked from Pool Audits'], 'CRM'],
+    ['Sales', 'From enquiry to delivered', ['Quotes (Quote Studio, templates, portal)', 'Orders and the order page', 'Returns and credits', 'Recurring maintenance contracts'], 'Sales Orders, Quotes, part of Fulfilment'],
+    ['Projects', 'Builds and refurbishments', ['Project list and page', 'Stages, deposits and stage invoices', 'Budget against actual, live margin', 'Extras and variations'], 'Projects'],
+    ['Purchasing', 'Buying and suppliers', ['Purchase orders, awaiting delivery', 'Record a purchase', 'Suppliers and price lists', 'Reorder suggestions'], 'Purchasing, Supplier Catalogues, Forecasting'],
+    ['Stock', 'Where everything is', ['Products and prices (Product Hub)', 'Stock control: levels by location, every movement logged', 'Reorder thresholds and the reorder list', 'Locations: bins, vans, jobs', 'Goods in, put away, transfers, van top-ups', 'Fulfilment: pick, pack, ship with tracking; customer emails', 'Counts and adjustments'], 'Product Hub, Inventory, Warehouse, Fulfilment'],
+    ['Team & Vans', 'Engineers: vans and van stock', ['Van register, MOT, tax, insurance; monthly van reports and sign-off', 'Stock on each van; quick stock take on the phone', 'Admin: every van\u2019s stock, value, shortfalls and top-ups'], 'Vans & Fleet, Inventory engineer vans and van top-ups'],
+    ['Accounts', 'Money in, money out', ['To invoice, invoices, payments in, credit control', 'Bills, payment runs, money out', 'Ledger, VAT check, month end, Xero', 'Profit by order, job, customer'], 'Accounting (both menus), Analytics finance']
+  ];
+  document.getElementById('areas').innerHTML = areas.map(a => '<div class="area"><header><h3>' + a[0] + '</h3><small>' + a[1] + '</small></header><ul>' + a[2].map(x => '<li>' + x + '</li>').join('') + '</ul><div class="from">Replaces: ' + a[3] + '</div></div>').join('') +
+    '<div class="area"><header><h3>Reports and Settings</h3><small>Out of the way until needed</small></header><ul><li>Reports: sales, profit, stock value and ageing, aged debt, supplier spend, exports</li><li>Settings: users and roles, statuses, tags, automation rules, company, integrations</li><li>Azzy, the assistant, available on every page</li></ul><div class="from">Replaces: Analytics, Automation, Settings</div></div>';
+
+
+  const chip = c => '<span style="display:inline-block;width:14px;height:14px;border-radius:4px;vertical-align:-2px;margin-right:6px;background:' + c + '"></span>';
+  const soSt = [['#5C6971','New order','Accepted','Allocate stock','1 day'],['#C07A20','Needs review','Accepted','Owner checks prices','1 day'],['#C07A20','Part stock','Allocated','Buy the rest (raises a PO)','2 days'],['#397FA5','Ordered','Allocated','Set when a PO is raised','By due date'],['#187C8C','Ready to pick','Picked','Goes on the picking list','Same day'],['#27825B','Delivered','Delivered','Moves to Invoice ready','—'],['#f2553d','Invoice ready','Invoiced','Shows in Accounts queue','1 day'],['#0f4c57','Invoiced','Invoiced','Set by the ledger','Payment due date'],['#B9474F','On hold','Any','Owner chases','2 days']];
+  const poSt = [['#C07A20','Draft','Raised','Check and approve','1 day'],['#187C8C','Ready to order','Raised','Email to supplier','Same day'],['#397FA5','Sent','Sent','Set when emailed','2 days'],['#5C6971','Supplier confirmed','Sent','Delivery date recorded','By delivery date'],['#C07A20','Part received','Received','Set by goods in','3 days'],['#27825B','Received','Received','Set by goods in','—'],['#B9474F','On hold','Any','Owner chases','2 days'],['#9aa5ab','Cancelled','Closed','Releases linked order lines','—']];
+  const stTable = rows => '<thead><tr><th>Status</th><th>Rail step</th><th>What happens</th><th>Remind after</th></tr></thead><tbody>' + rows.map(r => '<tr><td style="white-space:nowrap">' + chip(r[0]) + '<b>' + r[1] + '</b></td><td>' + r[2] + '</td><td>' + r[3] + '</td><td>' + r[4] + '</td></tr>').join('') + '</tbody>';
+  document.getElementById('so-st').innerHTML = stTable(soSt);
+  document.getElementById('po-st').innerHTML = stTable(poSt);
+  const better = [
+    ['Statuses that do the work', 'Like Brightpearl you name, colour and order your own statuses for sales and purchase orders. Pool Shed adds: each status sets the next button, can trigger an action and reminds the owner when an order sits too long.'],
+    ['Projects as well as orders', 'Stages, deposits, retention-ready stage invoices and live budget against actual. Brightpearl has no project costing.'],
+    ['Reporting that answers questions', 'Profit by order, job, customer and month from the ledger, not a spreadsheet export. Reporting is Brightpearl’s weakest area in reviews.'],
+    ['One next button', 'Every record shows the single next step for its status, so new staff can’t take a wrong turn.'],
+    ['Queues, not reports', 'Home and each area open on counts of what needs doing, each opening a list you can act on in place.'],
+    ['Tight money controls', 'Second-person approval on payment runs and large purchases, nothing edited after posting, numbers only from the ledger. Already live.'],
+    ['Works on a phone', 'Engineers count their van and do the van report on their phone; office staff approve and look things up on the road.'],
+    ['Yours, at no licence cost per user', 'No per-seat fees, and every change is made for how Pool Bros works.'],
+    ['Azzy on every page', 'Ask "what does Acme owe?" or "draft the chase email" from anywhere, within each role’s permissions.']
+  ];
+  document.getElementById('better-list').innerHTML = better.map(b => '<div class="card"><h3>' + b[0] + '</h3><p style="margin:0">' + b[1] + '</p></div>').join('');
+
+  const plan = [
+    ['1. New frame and statuses', 'Eight-area menu, search, Home with role queues; custom statuses for sales and purchase orders with colours, rail steps and reminders; old pages still reachable', 'Today\u2019s pages', 'M'],
+    ['2. Sales orders improved', 'Cleaner order list with status counts; one order page with status rail and next button; invoice and payments in place; faster new order', 'Current sales screens, invoicing (v1.54)', 'L'],
+    ['3. Fulfilment and customer emails', 'Pick, pack, ship with tracking; customer emails really sent, with a tick box at each step; status and tracking back to the web shop', 'Current fulfilment screens and templates', 'M'],
+    ['4. Team & Vans', 'Each van a stock location; van stock and minimums; phone stock take; admin view of all vans; van reports moved here', 'Vans (v1.52\u20131.53), Inventory', 'M'],
+    ['5. Customer page and Accounts area', 'Customer page with sites, balance and statement; Accounts opening queues on clean pages', 'Ledger (v1.51\u20131.54)', 'M'],
+    ['6. Stock control and purchasing', 'Switch on tracking (equipment, chemicals, van kit first); levels by location; reorder thresholds and the reorder list to purchase orders; counts and adjustments; landed cost; PO statuses moving automatically', 'Warehouse and stock data', 'L'],
+    ['7. Project page and reports', 'Stages, stage invoices, budget against actual with van stock and labour; profit reports', 'All the above', 'L']
+  ];
+  document.getElementById('plan-rows').innerHTML = plan.map(r => '<tr><td><b>' + r[0] + '</b></td><td>' + r[1] + '</td><td>' + r[2] + '</td><td><span class="tag' + (r[3] === 'L' ? ' w' : '') + '">' + (r[3] === 'L' ? 'Large' : 'Medium') + '</span></td></tr>').join('');
+
+  const decisions = [
+    ['Approve the eight areas', 'Home, Customers, Sales, Projects, Purchasing, Stock, Team & Vans, Accounts, with Reports and Settings apart. Anything to split or rename?'],
+    ['Van stock: what to track', 'A standard kit list per van with minimums (recommended), or every product that goes on a van? How often should vans be counted: weekly or monthly?'],
+    ['Which stock to track first', 'Recommended: pool equipment, chemicals and van kit first (a few hundred products), with thresholds set for each; custom one-off items stay untracked.'],
+    ['Recurring maintenance', 'Do you bill regular servicing contracts (monthly or seasonal)? If so, Sales gets recurring invoices.'],
+    ['Web shop and carriers', 'Which shop platform (orders already arrive from WooCommerce), and which carriers you ship with, so tracking links and labels work.'],
+    ['Where to start', 'Recommended: step 1 (new frame and statuses) then step 2 (sales orders improved), because they change how every day feels soonest.']
+  ];
+  document.getElementById('decisions').innerHTML = decisions.map((d, i) => '<div class="decide"><h3>' + (i + 1) + '. ' + d[0] + '</h3><p style="margin:0">' + d[1] + '</p></div>').join('');
+
+  // The pipe: one water route from quote to profit, areas as tiled zones, engineer app joining as a side feed.
+  const box = document.getElementById('pipe');
+  const st = [['Quote', 0], ['Order or project', 0], ['Buy', 1], ['Stock', 2], ['Deliver or fit', 2], ['Invoice', 3], ['Paid', 3], ['Profit', 3]];
+  const zones = [['Sales', '#34b6c8'], ['Purchasing', '#7c9be0'], ['Stock', '#5fbf8f'], ['Accounts', '#f2553d']];
+  const draw = () => {
+    const W = box.clientWidth, H = box.clientHeight, vert = W < 700, cs = getComputedStyle(document.documentElement);
+    const ink = cs.getPropertyValue('--ink').trim() || '#102a30', teal = '#0f4c57';
+    const n = st.length, pad = vert ? 60 : 48;
+    const pos = i => vert ? [W * 0.36, pad + i * ((H - pad * 2 - 40) / (n - 1))] : [pad + i * ((W - pad * 2) / (n - 1)), H * 0.42];
+    let svg = '';
+    // zones
+    zones.forEach((z, zi) => {
+      const idx = st.map((s, i) => s[1] === zi ? i : -1).filter(i => i >= 0), a = pos(idx[0]), b = pos(idx[idx.length - 1]);
+      if (vert) svg += '<rect x="12" y="' + (a[1] - 30) + '" width="' + (W - 24) + '" height="' + (b[1] - a[1] + 60) + '" rx="14" fill="' + z[1] + '" fill-opacity=".13"/><text x="' + (W - 22) + '" y="' + (a[1] - 10) + '" text-anchor="end" font-size="14" font-weight="700" fill="' + z[1] + '">' + z[0] + '</text>';
+      else svg += '<rect x="' + (a[0] - 44) + '" y="18" width="' + (b[0] - a[0] + 88) + '" height="' + (H - 36) + '" rx="16" fill="' + z[1] + '" fill-opacity=".13"/><text x="' + (a[0] - 34) + '" y="42" font-size="14" font-weight="700" fill="' + z[1] + '">' + z[0] + '</text>';
+    });
+    // pipe
+    const p0 = pos(0), p1 = pos(n - 1);
+    svg += '<line x1="' + p0[0] + '" y1="' + p0[1] + '" x2="' + p1[0] + '" y2="' + p1[1] + '" stroke="' + teal + '" stroke-width="16" stroke-linecap="round" opacity=".9"/>';
+    svg += '<line class="flow" x1="' + p0[0] + '" y1="' + p0[1] + '" x2="' + p1[0] + '" y2="' + p1[1] + '" stroke="#bff0f6" stroke-width="4" stroke-dasharray="10 14" stroke-linecap="round" style="animation:flow 1.6s linear infinite"/>';
+    // engineer app side feed into "Deliver or fit"
+    const d = pos(4), e = vert ? [W * 0.78, d[1] + 70] : [d[0], H - 46];
+    svg += '<path d="M' + e[0] + ' ' + e[1] + (vert ? ' L' + e[0] + ' ' + d[1] + ' L' + d[0] : ' L' + d[0]) + ' ' + d[1] + '" fill="none" stroke="#f2553d" stroke-width="6" stroke-dasharray="2 9" stroke-linecap="round"/>';
+    svg += '<rect x="' + (e[0] - 82) + '" y="' + (e[1] - 4) + '" width="164" height="36" rx="18" fill="#f2553d"/><text x="' + e[0] + '" y="' + (e[1] + 19) + '" text-anchor="middle" font-size="14" font-weight="700" fill="#fff">Engineers & vans</text>';
+    // stations
+    st.forEach((s, i) => {
+      const [x, y] = pos(i), last = i === n - 1;
+      svg += '<circle cx="' + x + '" cy="' + y + '" r="' + (last ? 17 : 13) + '" fill="' + (last ? '#f2553d' : '#fff') + '" stroke="' + teal + '" stroke-width="4"/>';
+      const ly = vert ? y + 5 : (i % 2 ? y + 42 : y - 28), lx = vert ? x - 26 : x;
+      svg += '<text x="' + lx + '" y="' + ly + '" text-anchor="' + (vert ? 'end' : 'middle') + '" font-size="' + (W < 980 && !vert ? 13 : 15) + '" font-weight="700" fill="' + ink + '" style="paint-order:stroke;stroke:var(--tile);stroke-width:5px">' + s[0] + '</text>';
+    });
+    box.innerHTML = '<svg viewBox="0 0 ' + W + ' ' + H + '" aria-hidden="true">' + svg + '</svg>';
+  };
+  const st2 = document.createElement('style'); st2.textContent = '@keyframes flow{to{stroke-dashoffset:-24}}'; document.head.appendChild(st2);
+  const ro = new ResizeObserver(draw); ro.observe(box);
+}
+</script>
+</body>
+</html>
