@@ -11,7 +11,7 @@ const worker = read('public/service-worker.js');
 
 assert.match(shell, /id: "audits", label: "Pool Audits"/);
 assert.match(html, /id="screen-audits"/);
-assert.match(html, /commercial-audits\/embedded\.css\?v=1\.61\.0/);
+assert.match(html, /commercial-audits\/embedded\.css\?v=1\.62\.0/);
 assert.match(shell, /data-crm-profile-tab="audits"/);
 assert.match(shell, /data-new-pool-audit/);
 assert.match(shell, /data-open-pool-audit/);
@@ -138,12 +138,18 @@ ctx.workspaceSyncConflict = false;
 ctx.WORKSPACE_ID = 'test-workspace';
 ctx.flushSharedWorkspaceSave = async () => { localStore.delete('poolshed:v172:pendingSync'); return true; };
 let sharedAudit = JSON.parse(JSON.stringify(data.poolAudits.find(item => item.id === 'A1')));
-ctx.supabaseClient = { from: () => ({ select: () => ({ eq: () => ({ maybeSingle: async () => ({ data: { data: { poolAudits: [sharedAudit] } }, error: null }) }) }) }) };
+const recordReads = [];
+ctx.supabaseClient = { from: table => { throw new Error('handover must not read ' + table + ' directly'); },
+  rpc: async (name, args) => { recordReads.push([name, args]); return { data: args.record_id === sharedAudit.id ? { data: sharedAudit, updated_at: 'x' } : null, error: null }; } };
 ctx.PoolShedBusinessMedia = { refsFrom: value => [...JSON.stringify(value).matchAll(/customer-media:[0-9a-f-]{36}/g)].map(match => match[0]) };
 ctx.__POOL_SHED_AUTH_TOKEN__ = async () => 'test-token';
 ctx.fetch = async (_url, options) => options?.method === 'HEAD' ? { ok: true } : { ok: true, json: async () => ({ urls: { 'customer-media:00000000-0000-0000-0000-000000000001': 'https://example.test/photo' } }) };
 let handover = await bridge.verifyHandover('A1', 'C2');
 assert.equal(handover.photos, 0, 'shared audit without photos can be handed over');
+assert.deepEqual(JSON.parse(JSON.stringify(recordReads[0])), ['ps_record_get', { w: 'test-workspace', section: 'poolAudits', record_id: 'A1' }], 'v1.62: one role-filtered record read');
+sharedAudit = { ...sharedAudit, customerId: 'C9' };
+await assert.rejects(bridge.verifyHandover('A1', 'C2'), /not yet visible/, 'a shared copy under another customer is not accepted');
+sharedAudit = JSON.parse(JSON.stringify(data.poolAudits.find(item => item.id === 'A1')));
 sharedAudit = { ...sharedAudit, metadata: { ...sharedAudit.metadata, 'site-name': 'Stale shared copy' } };
 await assert.rejects(bridge.verifyHandover('A1', 'C2'), /does not yet match/, 'stale server copy is not called safe');
 sharedAudit = JSON.parse(JSON.stringify(data.poolAudits.find(item => item.id === 'A1')));

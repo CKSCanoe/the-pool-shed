@@ -238,6 +238,16 @@ Owner approved the blueprint 21 Nov 2026 (eight areas; Pool Audits under My Work
 
 ---
 
+## Phase 3.4 finish · every read through the role rules (020 + 034) · v1.62.0 · branch `close-direct-reads`
+
+Finding (live, read-only): besides the raw workspace table that 020 closes, 41 tables and views from the first design (products, sales_orders, purchase_orders, suppliers, quotes, stock and more) were open to any signed-in user to read and change, and 8 of them to anonymous visitors. Pool Shed has never used them. They are empty apart from a few setting and log rows, and no app or server code touches them. One app feature still read the raw table: the iPad Pool Audit handover check.
+
+| # | Change | Status | Evidence |
+|---|---|---|---|
+| L1 | Migration 034: `ps_record_get` (one record, same role rules as the app load); first-design tables closed to signed-in and anonymous users, nothing dropped; exact rollback recorded from live grants (`034-rollback.sql`) | **New · Proven on staging (rolled back), then applied on staging** | `scripts/ops/test-034-lock-direct-access.sql`: Admin product has cost; Warehouse same product without cost; Engineer refused an unassigned job; no user refused; old products read and sales_orders write refused; raw workspace refused; change stamp, user profiles and the app load still work; anonymous view refused |
+| L2 | App: the Pool Audit handover check reads the audit through `ps_record_get` | **New · Tested in a real browser on staging** (020 + 034 on) | Staging loaded normally with raw reads refused. Handover passed for both audits without photos; audits with photos stopped only at the server photo check, which has no local `/api`. `test-commercial-audits-v146` updated, new `test-locked-reads-v162`, build gate passes |
+| L3 | 020 on live | **Pending** · apply after the v1.62 app is live | Azzy and server code are unaffected: Azzy uses `ps_workspace_load`, and server routes use the service key |
+
 ## Blueprint step 7 · project stage invoices, average cost and Profit · v1.61.0 · branch `profit`
 
 Finding: the project page already works out budget against actual (materials, linked POs, labour, tools, approved extras), but stage invoices still went to the old Xero draft queue. The Profit page only counted PO lines linked to an order, so anything sold from stock or entered as a custom line showed as 100% margin. Goods in never updated a product's cost. Not in this step: stock and cost-of-sales journals in the ledger. They wait for Xero go-live, so the books are set up once, against the chosen chart of accounts.
