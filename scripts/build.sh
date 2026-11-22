@@ -59,6 +59,7 @@ run_node_stage "workspace and sales safety" \
   test-monthly-pack-v164.mjs \
   test-web-shop-v165.mjs \
   test-navigation-v166.mjs \
+  test-catalogue-paging-v167.mjs \
   test-workspace-audit-v1451.mjs \
   test-commercial-audits-v146.mjs \
   test-audit-device-recovery.mjs \

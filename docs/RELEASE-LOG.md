@@ -238,6 +238,12 @@ Owner approved the blueprint 21 Nov 2026 (eight areas; Pool Audits under My Work
 
 ---
 
+## Faster Catalogue page · v1.67.0 · branch `catalogue-speed`
+
+| # | Change | Status | Evidence |
+|---|---|---|---|
+| K1 | Catalogue draws 100 products at a time (it drew all ~6,800, about 10 s on staging); Previous / Next with "Showing x–y of n"; search, filters and sort still cover every product and go back to page 1 | **New · Tests pass; browser check pending** (Chrome extension disconnected) | `test-catalogue-paging-v167`; existing Product Hub tests pass; build gate passes. No database change |
+
 ## Navigation and page tidy-up · v1.66.0 · branch `navigation`
 
 Owner: the navigation, the flow and the placement of tabs and buttons were not good. Audit on staging: 17 sections and about 100 pages; 8 things listed in two places (suppliers, counts, transfers, vans, invoices, credits, reorder list, approvals); three different kinds of menu (side menu, Accounts' 18 in-page buttons, Reports' 13-tab row); old internal names as page titles ("Inventory Tracker", "Data Insights", "Finance Command"); titles repeated in page banners; "Back to Dashboard" everywhere.

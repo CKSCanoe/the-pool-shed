@@ -1,4 +1,4 @@
-/* Pool Shed v1.66.0 — sales order flow (blueprint step 2).
+/* Pool Shed v1.67.0 — sales order flow (blueprint step 2).
    Adds to the existing order page, without replacing it:
    - a status rail showing where the order is: Ordered → Allocated → Picked & packed → Delivered → Invoiced → Paid;
    - one highlighted next-step button that runs the existing action (allocate, fulfil, mark delivered, invoice, payment);

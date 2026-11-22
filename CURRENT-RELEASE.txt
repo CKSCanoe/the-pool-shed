@@ -1,3 +1,7 @@
+Pool Shed v1.67.0 - A faster Catalogue page
+
+Stock → More → Catalogue drew every product at once (about 6,800 rows, around 10 seconds). It now shows 100 at a time, with "Showing 1–100 of 6,837" and Previous / Next. Search, the filters and sorting still work across the whole catalogue, and changing any of them goes back to the first page.
+
 Pool Shed v1.66.0 - A simpler menu and tidier pages
 
 The side menu is now 11 areas (Home, Sales, Customers, Projects, Purchasing, Stock, Warehouse, Team & vans, Accounts, Reports, Settings), each showing at most seven pages, and every page appears in one place only (suppliers in Purchasing, invoices in Accounts, vans in Team & vans, counts and transfers in Stock; picking, packing, dispatch and goods in together under Warehouse). Less-used pages are under each area's "More", so nothing has gone. Accounts and Reports no longer have their own rows of page buttons: their pages are in the side menu. Each page has one title, shown as "Area › Page" at the top, without the "Back to Dashboard" button or a second copy of the title. A "+ New" button at the top of the menu starts a sales order, quote, customer, purchase order, product, contract or project from anywhere. The van report reminder shows on Home only, and the Orders list starts higher, without the count boxes that repeated its tabs. "Classic menu" at the bottom of the menu still switches back.
