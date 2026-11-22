@@ -238,6 +238,18 @@ Owner approved the blueprint 21 Nov 2026 (eight areas; Pool Audits under My Work
 
 ---
 
+## The new look everywhere · v1.76.0 · branch `look-rest`
+
+Owner: roll the look out to the remaining areas. Approach: switch every area on, then check every menu page against the old look on staging and fix what got worse.
+
+| # | Change | Status | Evidence |
+|---|---|---|---|
+| LK1 | Design kit on every area (17 screens); engineer and barcode screens and the quote editor excluded | **New · Tested in a real browser on staging** | All 100 menu pages opened with the look on and off and compared for overflow and unreadable text; 3 flagged: the customer record (a reading taken mid-draw; readable on inspection) and Stock › Imports / Catalogue Health (13px wider) |
+| LK2 | Underlined tabs on purchase order, supplier, project, product and customer records | **New · Tested in a real browser on staging** | Purchase order and customer tabs: open tab in the brand colour, others plain |
+| LK3 | Stock › Imports history column fits its cards (an old overflow) | **New · Tested in a real browser on staging** | Imports and Catalogue Health overflow 0 (was 41 before the look, 54 with it) |
+| LK4 | Dark mode | **Tested in a real browser on staging** | Invoices, Company settings, Stock levels, Today's work, Reports overview, Vans and Projects: no unreadable text |
+| LK5 | Two pilot tests that pinned "not converted yet" updated | **Changed** | `test-look-pilot-v169`, `test-look-sales-v170`; new `test-look-all-v176` |
+
 ## Quote Studio custom HTML · v1.75.0 · branch `quote-html`
 
 Release E, the last of four. Owner: HTML blocks plus a full HTML page, scripts removed, Pool Shed filling in price, choices and Accept.
@@ -247,6 +259,7 @@ Release E, the last of four. Owner: HTML blocks plus a full HTML page, scripts r
 | HT1 | Shared cleaner (`quote-html-safe.js`): allow-list of content tags; scripts, frames, forms, buttons, SVG and similar dropped with their content; no on… handlers, data- attributes or ids starting pc/ps/be/qs; links and pictures https only (plus mailto/tel and inline images); risky CSS removed; new-tab links get noopener | **New · Tested in a real browser on staging** | A payload with script, onclick, onerror, javascript: links, iframe, form, svg, @import and a clashing id came out with all of them removed and the safe parts kept (18 checks) |
 | HT2 | Custom HTML section and Full HTML page (Theme) with word placeholders (inserted as text) and live parts (the page's own HTML); cleaned when published and again when shown; older published versions unaffected; accept button added if left out | **New · Tested in a real browser on staging** | On Q-2026-0002: an HTML section showed the customer's name and total, with its script and onclick gone; a full page with a style block and {{pool_specs}} showed 2 live choices, and picking one changed {{total}} from £5,100 to £4,794; switched back off afterwards |
 | HT3 | Release test | **New · Unit tested** | `test-quote-html-v175` |
+| HT4 | App release (PR #74) | **Deployed · verified on live** 22 Nov 2026 (Vercel check green; live cache `pool-shed-v1.75.0-html-r1`) | Live serves `quote-html-safe.js` and the proposal page loads it; data unchanged. Quote Studio releases B to E complete |
 
 ## Quote Studio customer experience · v1.74.0 · branch `quote-customer-experience`
 

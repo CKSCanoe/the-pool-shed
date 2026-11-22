@@ -5,7 +5,7 @@
 import fs from 'node:fs';
 import assert from 'node:assert/strict';
 const kit = fs.readFileSync('public/assets/css/system/68-pool-shed-kit.css', 'utf8'), frame = fs.readFileSync('public/back-office-frame.js', 'utf8');
-assert(/var KIT_TABS = \{ salesorders: 1, quotes: 1 \};/.test(frame), 'whole Sales area on the kit');
+assert(/var KIT_TABS = \{ salesorders: 1, quotes: 1,/.test(frame), 'whole Sales area on the kit');
 assert(/screen\.querySelector\('\.qs-studio-root'\)\) kitOn = false/.test(frame) && /\.ps-kit-scope:not\(:has\(> \.qs-studio-root\)\)/.test(kit), 'quote editor excluded');
 assert(/body\.ps-kit:has\(#screen-quotes\.ps-kit-scope:not\(\.hidden\) > \.qs-root:not\(\.qs-studio-root\)\) \.sidebar \{ display: flex !important; \}/.test(kit), 'quotes list keeps the menu');
 assert(/:is\(#screen-dashboard, [^)]*#screen-salesorders[^)]*\)\.ps-kit-scope/.test(kit), 'kit rules anchored to screen ids');
