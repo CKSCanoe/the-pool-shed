@@ -247,6 +247,7 @@ Owner: custom items should all be one product code, not a product per one-off it
 | CI1 | createNonStockProduct no longer adds records; product() returns a stand-in from the line (code CUSTOM / SHIPPING, the line's name, price and cost); the start-up repair step skips one-off ids; old one-off records hidden from Stock levels | **New · Tested in a real browser on staging** | Two custom lines added to SO-2063: the product count stayed at 6,839, both show CUSTOM with their own names, and the server invoice preview named and priced them correctly (£95, £40). Found and fixed on the way: the repair step was recreating "Recovered product" placeholders |
 | CI2 | Quote deposit: "Raise deposit invoice" creates a ledger deposit invoice for the quote's own amount (against its sales order, or the project when billed by stage), replacing the old Xero queue that needed a Xero contact | **New · Unit tested** | `test-custom-items-v171` |
 | CI3 | Project invoice stage: "or % of the agreed value" fills in the amount and names it "50% deposit" | **New · Unit tested** | Build gate passes. No database change |
+| CI4 | App release (v1.69 + v1.70 + v1.71 together, PR #70) | **Deployed · verified on live** 22 Nov 2026 (Vercel check green; live cache `pool-shed-v1.71.0-custom-r1`) | Live serves the design kit (module 68) and the one-off product stand-in; data unchanged |
 
 ## Sales on the new look · v1.70.0 · branch `look-sales`
 
