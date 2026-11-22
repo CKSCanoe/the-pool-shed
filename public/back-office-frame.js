@@ -1,4 +1,4 @@
-/* Pool Shed v1.69.0 — back-office frame (blueprint step 1).
+/* Pool Shed v1.70.0 — back-office frame (blueprint step 1).
    1. The menu grouped into eight areas (plus Reports and Settings). Every existing page stays where it was, under its area;
       a "Classic menu" switch brings back the old flat menu for anyone who prefers it.
    2. Home queues: what needs doing today, by role, each opening the list to act on.
@@ -114,6 +114,17 @@
   }
   // After each screen draw: one title ("Area › Page") in the top bar, no repeated page titles, no second menus.
   var KIT_PAGES = { 'salesorders|Sales Orders': 1, 'purchase|Purchase Orders': 1, 'products|Product Command': 1 };
+  // v1.70: whole areas move to the kit as they are checked (Sales first: every order screen, contracts, web orders, returns).
+  var KIT_TABS = { salesorders: 1, quotes: 1 };
+  var INTRO = {
+    'salesorders|Sales Orders': 'Every customer order: what is waiting, ready to pick, to invoice and to be paid.',
+    'salesorders|Contracts': 'Maintenance contracts and repeat orders. Nothing is created until you click.',
+    'salesorders|Web Orders': 'Orders from the website, waiting to become sales orders.',
+    'salesorders|Sales Credits': 'Customer returns and credit notes: receive the goods, restock or quarantine, credit the customer.',
+    'quotes|Quotes': 'Quotes being written, sent and accepted.',
+    'purchase|Purchase Orders': 'Orders to suppliers: sent, confirmed, received, billed and paid.',
+    'products|Product Command': 'Your catalogue at a glance, with what needs attention first.'
+  };
   var LOOK = 'poolshed:new-look';
   function newLook(){ try { return !global.localStorage || global.localStorage.getItem(LOOK) !== 'off'; } catch (_) { return true; } }
   function tidy(){
@@ -121,10 +132,15 @@
     document.body.classList.add('ps-areas');
     var p = currentPlace(); document.body.classList.toggle('ps-on-home', p.tab === 'dashboard'); var h1 = document.getElementById('pageTitle'), crumb = document.querySelector('.topbar .breadcrumb');
     if (p.area && h1) { h1.textContent = p.label || p.area.label; document.title = (p.label || p.area.label) + ' · The Pool Shed'; }
+    // One short line under the title that describes this page (the old line described the whole section).
+    var intro = document.getElementById('pageIntro'), line = INTRO[p.tab + '|' + p.sub];
+    if (intro) { if (line) { intro.textContent = line; intro.style.display = ''; } else if (KIT_TABS[p.tab]) intro.style.display = 'none'; else intro.style.display = ''; }
     if (p.area && crumb) crumb.innerHTML = '<span>' + esc(p.area.label) + '</span>' + (p.label && p.label !== p.area.label ? ' <span aria-hidden="true">›</span> <span>' + esc(p.label) + '</span>' : '');
     var screen = document.getElementById('screen-' + p.tab), title = String(h1 ? h1.textContent : '').trim().toLowerCase();
     // v1.69 look pilot: the design kit on three pages first (switch off from the menu to compare).
-    var kitOn = newLook() && KIT_PAGES[p.tab + '|' + p.sub] && !(p.tab === 'salesorders' && typeof salesOrderView !== 'undefined' && salesOrderView !== 'list') && !(p.tab === 'purchase' && typeof purchaseOrderView !== 'undefined' && purchaseOrderView !== 'list');
+    var kitOn = newLook() && (KIT_TABS[p.tab] || (KIT_PAGES[p.tab + '|' + p.sub] && !(p.tab === 'purchase' && typeof purchaseOrderView !== 'undefined' && purchaseOrderView !== 'list')));
+    if (kitOn && p.tab === 'quotes' && screen && screen.querySelector('.qs-studio-root')) kitOn = false;   // the quote editor keeps its full-screen studio
+    if (kitOn && p.tab === 'quotes' && screen && typeof setTimeout === 'function') setTimeout(function(){ if (screen.querySelector('.qs-studio-root')) { screen.classList.remove('ps-kit-scope'); document.body.classList.remove('ps-kit'); } }, 0);
     document.body.classList.toggle('ps-kit', !!kitOn);
     [].slice.call(document.querySelectorAll('.ps-kit-scope')).forEach(function(el){ if (el !== screen || !kitOn) el.classList.remove('ps-kit-scope'); });
     if (screen && kitOn) screen.classList.add('ps-kit-scope');

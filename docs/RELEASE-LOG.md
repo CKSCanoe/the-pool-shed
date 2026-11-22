@@ -238,6 +238,15 @@ Owner approved the blueprint 21 Nov 2026 (eight areas; Pool Audits under My Work
 
 ---
 
+## Sales on the new look · v1.70.0 · branch `look-sales`
+
+| # | Change | Status | Evidence |
+|---|---|---|---|
+| LS1 | Whole Sales area on the kit (orders list and order page, quotes list, contracts, web orders, returns); kit rules anchored to screen ids so they outrank the older class rules | **New · Tested in a real browser on staging** | Order SO-2063 shown with the record layout. On a 1,512 px screen the cards sit in a row and the lines table fits with nothing clipped (forced minimum widths cleared). On 1,680 px and up the cards move to a right-hand column |
+| LS2 | Order page: duplicate Invoice button gone; progress current step in the brand colour; underline tabs; compact "+" add row; commercial check card hidden | **New · Tested in a real browser on staging** | Before and after screenshots |
+| LS3 | Quotes list inside the app (menu and title kept; Quote Studio's back button, tab row and banner hidden, its buttons kept); quote editor untouched and full-screen | **New · Tested in a real browser on staging** | Editor opened full-screen with its own styles (kit rules exclude `.qs-studio-root`) |
+| LS4 | One-line description per Sales page instead of the section's old subtitle | **New** | `test-look-sales-v170`; pilot test updated (order pages now included, PO pages not yet); build gate passes. No database change |
+
 ## Look pilot · v1.69.0 · branch `look-pilot`
 
 Audit: 3,057 `!important` overrides, 93 hard-coded colours, 112 corner styles, 181 text sizes, 29 button and 26 badge designs, 14 add-ons with their own styles. The pilot proves one kit on three pages before any rollout.

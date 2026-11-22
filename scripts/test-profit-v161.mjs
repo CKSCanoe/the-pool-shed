@@ -100,5 +100,5 @@ assert(/' disabled' : ''\) \+ \(pick && pick\.id === ph\.id/.test(si), 'invoiced
 assert(/!!ph\.ledgerInvoice\|\|docs\.some/.test(pe), 'close-out accepts ledger stage invoices');
 assert(/global\.PoolShedProfit\.page\(\)/.test(fc), 'Accounts → Order Profit shows the new Profit page');
 assert(index.indexOf('stock-costing.js') > index.indexOf('01-legacy-01.js') && index.indexOf('profit-report.js') > 0, 'loaded');
-assert(/stock-costing\.js\?v=1\.69\.0/.test(sw) && /profit-report\.js\?v=1\.69\.0/.test(sw), 'available offline');
+assert(/stock-costing\.js\?v=1\.70\.0/.test(sw) && /profit-report\.js\?v=1\.70\.0/.test(sw), 'available offline');
 console.log('Project billing and profit v1.61: one invoice per stage, average + landed cost on goods in, profit by order/project/customer/month.');
