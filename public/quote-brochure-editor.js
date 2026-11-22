@@ -1,4 +1,4 @@
-/* Pool Shed v1.75.0 Quote Studio brochure editor.
+/* Pool Shed Quote Studio brochure editor (from v1.72).
    Three panels like a website builder: the brochure's sections on the left, the customer's real page in the middle
    (click any words to change them), and the settings for what you clicked on the right. Every change saves itself
    and can be undone. */

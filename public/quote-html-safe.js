@@ -1,4 +1,4 @@
-/* Pool Shed v1.75.0 Custom HTML for Quote Studio brochures, made safe.
+/* Pool Shed Custom HTML (from v1.75) for Quote Studio brochures, made safe.
    Only plain page content is kept: no scripts, frames, forms, buttons, event handlers, javascript: links or
    data- attributes, and no ids that could clash with the proposal page's own. Placeholders such as {{total}}
    are filled in afterwards by the proposal page from its own values, never from the custom HTML. */

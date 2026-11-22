@@ -1,4 +1,4 @@
-/* v1.75.0 Quote Studio brochure editor: sections | live customer page | settings */
+/* v1.72 Quote Studio brochure editor: sections | live customer page | settings */
 #screen-quotes .qs-brochure-mode{min-height:0;background:var(--color-surface-canvas)}
 .be-root{display:flex;flex-direction:column;height:100vh;min-height:560px;background:var(--color-surface-canvas);color:var(--color-text-primary);font-size:13px}
 .be-top{display:flex;align-items:center;gap:10px;padding:8px 14px;border-bottom:1px solid var(--color-border-default);background:var(--color-surface-default);flex:0 0 auto;min-width:0}

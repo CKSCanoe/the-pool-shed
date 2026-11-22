@@ -1,4 +1,4 @@
-// v1.75.0 Custom HTML in Quote Studio: an HTML section and a full HTML page, cleaned (scripts removed) when published
+// v1.75 Custom HTML in Quote Studio: an HTML section and a full HTML page, cleaned (scripts removed) when published
 // and again when shown, with placeholders filled from the proposal page's own values.
 import fs from 'node:fs';
 import assert from 'node:assert/strict';

@@ -1,4 +1,4 @@
-// v1.75.0 Quote Studio brochure editor: ordered sections, click-to-edit preview, safe settings, framing only by Pool Shed.
+// v1.72 Quote Studio brochure editor: ordered sections, click-to-edit preview, safe settings, framing only by Pool Shed.
 import fs from 'node:fs';
 import assert from 'node:assert/strict';
 import vm from 'node:vm';
