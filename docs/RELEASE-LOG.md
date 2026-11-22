@@ -246,6 +246,7 @@ Owner: quicker everyday use. First of three (jump to anything, saved views and b
 |---|---|---|---|
 | JT1 | Ctrl/Command+K box (and "Jump to…" in the menu): pages from the menu (only those the role can open), records from the existing search plus quotes, "New …" actions; exact reference first, then people, quotes, projects, orders, POs, products; at most 5 per kind; old one-off products left out; last 8 opened shown when empty | **New · Tested in a real browser on staging** | "invoices" found the page; "SO-2063" + Enter opened that order; "thorp" listed the customer, quote Q-2026-0002 (Enter opened it in the editor), project and orders; "new quote" offered the action; search took about 1 ms per keystroke |
 | JT2 | Release test | **New · Unit tested** | `test-jump-to-v178` |
+| JT3 | App release (PR #77) | **Deployed · verified on live** 22 Nov 2026 (Vercel check green; live cache `pool-shed-v1.78.0-jump-r1`) | Live serves `jump-to.js`; data unchanged |
 
 ## Old styles removed · v1.77.0 · branch `css-cleanup`
 
