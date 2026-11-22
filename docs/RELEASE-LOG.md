@@ -238,6 +238,17 @@ Owner approved the blueprint 21 Nov 2026 (eight areas; Pool Audits under My Work
 
 ---
 
+## Quote Studio customer experience · v1.74.0 · branch `quote-customer-experience`
+
+Release D of four. Owner: show the bank details, and send a Xero request for the deposit, custom per project. Finding: typed signatures, the separate signing page and questions per option already existed; after accepting, the customer only saw "we will issue the request separately"; the server worked out the accepted deposit as a percentage only, ignoring fixed and full-payment quotes.
+
+| # | Change | Status | Evidence |
+|---|---|---|---|
+| CX1 | Thank-you page after acceptance: version and signer, deposit due now, bank details and reference, next steps, PDF copy, ask a question; "Accepted" bar on later visits | **New · Tested in a real browser on staging** | Customer page loaded with a mocked accepted answer: deposit £7,830, bank rows and reference Q-2026-0002 shown; banner on the main page |
+| CX2 | Server sends the payment details only once accepted (bank details only when sort code and account number are set; never the whole invoice profile); the deposit follows the quote's own rule (percentage, fixed, full or none) from the customer's final choices | **New · Unit tested** | `test-quote-customer-v174` (30% £3,600, 50% £6,000, fixed £2,500, full £12,000, none £0 on £10,000 + VAT; older versions keep their percentage) |
+| CX3 | "Save PDF" (printable copy without buttons and bars), "Ask a question" in the bottom bar, larger bottom-bar text, phone layout of the bar | **New · Tested in a real browser on staging** | Phone view in the editor: total and button on their own lines, nothing cut off |
+| CX4 | Deposit invoice still raised by staff in one click (v1.71) and sent to Xero once linked; no automatic Xero request on acceptance (needs Xero linked and a server-side invoice function, a database change for later) | **Unchanged · noted** | |
+
 ## Quote Studio pool specs · v1.73.0 · branch `quote-spec-configurator`
 
 Release C of four. Owner: choice groups per template, each choice with photo, description, price and cost, from the catalogue or typed in, adjustable per quote with a live price; accepted choices flow into the project, sales order and purchasing. Finding: catalogue choices already flowed into the sales order, project materials and draft purchase orders; typed-in choices reached the sales order with a blank product.

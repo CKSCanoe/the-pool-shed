@@ -1,4 +1,4 @@
-// v1.73.0 Pool spec configurator: choice photos, highlights, cost and margin, catalogue search, groups from templates,
+// v1.74.0 Pool spec configurator: choice photos, highlights, cost and margin, catalogue search, groups from templates,
 // and accepted choices reaching the sales order, project and purchasing with one product code for typed-in choices.
 import fs from 'node:fs';
 import assert from 'node:assert/strict';

@@ -88,7 +88,7 @@
 #pcAcceptanceHeading:focus{outline:none}
 @media(max-width:760px){.pc-next-page .pc-section-inner{flex-direction:column;align-items:stretch}.pc-next-page a.pc-primary{justify-content:center;white-space:normal}.pc-signing{padding:14px}.pc-project-bar .pc-review-btn:not(.pc-sign-next){display:none}.pc-project-bar .pc-sign-next{display:inline-flex}.pc-signature-methods button{padding:10px 8px}.pc-accept-top .pc-back-link{margin-bottom:20px}}
 
-/* v1.73.0 Brochure sections set in Quote Studio */
+/* v1.74.0 Brochure sections set in Quote Studio */
 .pc-rich{white-space:pre-line;font-size:15px;line-height:1.8;color:var(--color-text-secondary);max-width:760px;margin-top:18px}
 .pc-letter .pc-section-inner{max-width:820px}
 .pc-letter h2{font-family:var(--serif);font-size:clamp(30px,3.6vw,42px);line-height:1.1;letter-spacing:-.03em;font-weight:500;margin:0}
@@ -132,3 +132,49 @@
 .pc-editing [data-ps-field]:empty::before{content:"Click to add text";color:var(--color-text-muted)}
 .pc-editing [data-ps-field]:hover{box-shadow:0 0 0 1px color-mix(in srgb,var(--color-action-focus) 50%,transparent)}
 .pc-editing [data-ps-field]:focus{outline:none;box-shadow:0 0 0 2px var(--color-action-focus);background:color-mix(in srgb,var(--color-surface-default) 85%,transparent)}
+
+/* v1.74.0 Customer experience: readable bottom bar, after-acceptance payment details, PDF copy */
+.pc-nav-tools{display:flex;align-items:center;gap:14px}
+.pc-nav-btn{appearance:none;border:1px solid var(--color-border-default);background:transparent;color:inherit;font:600 12px/1 var(--sans);padding:8px 12px;border-radius:999px;cursor:pointer}
+.pc-nav-btn:hover{background:var(--color-hover-surface)}
+.pc-project-bar{gap:12px}
+.pc-project-bar .left b{font-size:13px}
+.pc-project-bar .left span{font-size:12px;display:block;max-width:44ch;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.pc-project-bar .total small{font-size:10px}
+.pc-project-bar .total strong{font-size:22px}
+.pc-project-bar .pc-review-btn{font-size:11px}
+.pc-ask-btn{appearance:none;background:transparent;color:inherit;cursor:pointer;font:inherit}
+.pc-accepted-banner{display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap;padding:12px 38px;background:var(--color-status-success-bg);color:var(--color-status-success-text);font-size:14px}
+.pc-accepted-banner a{font-weight:700;text-decoration:none}
+.pc-accepted-full{text-align:left;max-width:980px;margin:0 auto}
+.pc-accepted-full .tick{margin:0 0 12px}
+.pc-after-grid{display:grid;grid-template-columns:minmax(0,1.2fr) minmax(0,1fr);gap:22px;margin:26px 0 18px}
+.pc-paybox{border:1px solid var(--color-border-default);border-radius:14px;padding:22px;background:var(--color-surface-default);display:grid;gap:14px}
+.pc-paybox>b{font-size:16px}.pc-paybox>span{font-size:13px;color:var(--color-text-secondary)}
+.pc-paybox-head small{display:block;font-size:11px;text-transform:uppercase;letter-spacing:.12em;color:var(--color-text-muted)}
+.pc-paybox-head strong{display:block;font-family:var(--serif);font-size:40px;font-weight:500;line-height:1.1;margin:4px 0}
+.pc-paybox-head span{font-size:12px;color:var(--color-text-secondary)}
+.pc-bank{margin:0;display:grid;gap:0;border-top:1px solid var(--color-border-default)}
+.pc-bank div{display:flex;justify-content:space-between;gap:12px;padding:9px 0;border-bottom:1px solid var(--color-border-subtle)}
+.pc-bank dt{font-size:13px;color:var(--color-text-secondary)}.pc-bank dd{margin:0;font-weight:700;font-size:14px;font-variant-numeric:tabular-nums;text-align:right}
+.pc-bank-note{margin:0;font-size:12px;line-height:1.6;color:var(--color-text-secondary)}
+.pc-next-steps{padding:6px 4px}
+.pc-next-steps>b{font-size:16px}
+.pc-next-steps ol{margin:12px 0 18px;padding-left:20px;display:grid;gap:8px;font-size:14px;line-height:1.5;color:var(--color-text-secondary)}
+.pc-after-actions{display:flex;gap:10px;flex-wrap:wrap}
+@media(max-width:760px){.pc-after-grid{grid-template-columns:1fr}.pc-nav-btn{display:none}.pc-accepted-banner{padding:12px 20px}
+ .pc-project-bar{width:calc(100% - 20px);bottom:10px;padding:10px 12px;flex-wrap:wrap}.pc-project-bar .left{display:none}.pc-project-bar .total{margin:0;text-align:left;flex:1}.pc-project-bar .total strong{font-size:19px}.pc-project-bar .pc-ask-btn{display:none}}
+@media print{
+ @page{margin:14mm}
+ body{background:var(--color-surface-default)}
+ .pc-nav,.pc-project-bar,.pc-preview-flag,.pc-toast,.pc-scroll-cue,.pc-select,.pc-question-link,.pc-next-page,.pc-accepted-banner a,.pc-after-actions,.pc-back-link,.pc-modal,#pcQuestionModal,.pc-zone-tag{display:none!important}
+ .pc-section{padding:22px 0!important;break-inside:auto}
+ .pc-option,.pc-review,.pc-timeline li,.pc-paybox,.pc-doc,.pc-faq,.pc-gallery-grid figure{break-inside:avoid}
+ .pc-hero{min-height:0!important;padding:30px 0!important}
+ .pc-faq:not([open]) .pc-rich{display:block}
+ a[href^="http"]::after{content:" (" attr(href) ")";font-size:9px}
+}
+.pc-accepted-full>p,.pc-accepted-full .pc-bank-note{text-align:left}
+.pc-accepted-full>p{font-size:14px;color:var(--color-text-secondary);margin:6px 0 0}
+@media(max-width:760px){.pc-project-bar{gap:8px}.pc-project-bar .total{flex:1 1 100%;display:flex;align-items:baseline;justify-content:space-between;gap:8px}.pc-project-bar .total small{letter-spacing:.06em}.pc-project-bar .pc-sign-next,.pc-project-bar .pc-review-btn:not(.pc-ask-btn){flex:1 1 100%;justify-content:center;text-align:center}}
+.pc-shell.pc-editing~.pc-preview-flag{display:none}
