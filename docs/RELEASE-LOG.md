@@ -248,6 +248,7 @@ Audit on staging (owner: "I need everything a lot faster"): most pages redrew in
 | S2 | Stock levels: 100 at a time, products holding stock first; Movements lookups indexed | **New · Tested in a real browser on staging** | "Showing 1–100 of 6,839 (16 holding stock, listed first)"; page 2 works; 2.6 → 0.2 s |
 | S3 | My work rescans its sources at most once a minute (it rescanned and saved on every redraw); "… opened." message removed from menu clicks | **New · Tested** | My work 0.7 → 0.15 s |
 | S4 | Tests | **New** | `test-speed-v168` (same answers with the lookups; 3,000 products in well under a second; reset picks up changes; source guards); existing engine tests pass; build gate passes. `test-supplier-command-engine-v115` (not in the gate) already failed before this change. No database change |
+| S5 | App release | **Deployed · verified on live** 22 Nov 2026 (Vercel check green; live cache `pool-shed-v1.68.0-speed-r1`) | Live serves the faster engines; data unchanged |
 
 Not in this release: loading rarely used parts only when first opened (82 scripts, 3.4 MB load on every visit), and the CSV import loops that look products up by SKU row by row.
 
