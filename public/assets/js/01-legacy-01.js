@@ -1959,8 +1959,18 @@ const seed = {
         });
       }
 
+      // v1.68 speed: an index by id, rebuilt whenever the product list is replaced or changes length. A miss falls back
+      // to the full search, so a product is always found even if the index is out of step.
+      const productIndex = { list: null, len: -1, map: null };
       function product(id) {
-        return data.products.find(function(item) { return item.id === id; });
+        const list = data.products || [];
+        if (productIndex.list !== list || productIndex.len !== list.length) {
+          productIndex.map = new Map(); list.forEach(function(item) { if (item && !productIndex.map.has(item.id)) productIndex.map.set(item.id, item); });
+          productIndex.list = list; productIndex.len = list.length;
+        }
+        const hit = productIndex.map.get(id);
+        if (hit && hit.id === id) return hit;
+        return list.find(function(item) { return item.id === id; });
       }
 
       function locationById(id) {
@@ -3070,7 +3080,7 @@ const seed = {
           : effectiveMode === "mfa"
             ? '<button class="ps-login-link" type="button" data-login-cancel-mfa>Use a different account</button><span>Authenticator verification</span>'
             : effectiveMode === "denied" || effectiveMode === "workspace" ? '<span></span>' : '<button class="ps-login-link" type="button" data-login-mode="login">Back to sign in</button><span></span>';
-        screen.innerHTML = '<main class="ps-login-stage"><section class="ps-login-shell"><aside class="ps-login-brand"><div><div class="ps-login-lockup"><span class="ps-login-logo"><img src="' + DEFAULT_POOL_BROS_LOGO + '" alt="Pool Bros logo"></span><div><span class="ps-login-kicker">Pool Bros</span><strong>THE POOL SHED</strong></div></div><div class="ps-login-hero"><span class="ps-login-kicker">Operations Command System</span><h1>One secure place to <span>run the operation.</span></h1><p>Secure access to the Pool Bros operations workspace. Sign in to continue to your authorised tools, tasks and information.</p></div></div><div class="ps-login-staff-note"><strong>Pool Bros staff access</strong><span>Your workspace and available tools are tailored to your account after sign-in.</span></div></aside><section class="ps-login-auth"><div class="ps-login-card"><div class="ps-login-card-head"><span class="ps-login-kicker">' + escapeHtml(meta.eyebrow) + '</span><h2>' + escapeHtml(meta.heading) + '</h2><p>' + escapeHtml(meta.intro) + '</p></div><form id="loginForm">' + fields + '<div id="loginMessage" class="ps-login-message' + (good ? ' good' : '') + '">' + escapeHtml(message || '') + '</div></form><div class="ps-login-helper">' + helper + '</div></div></section></section><footer class="ps-login-footer">Pool Shed v1.67.0 · Pool Bros Ltd</footer></main>';
+        screen.innerHTML = '<main class="ps-login-stage"><section class="ps-login-shell"><aside class="ps-login-brand"><div><div class="ps-login-lockup"><span class="ps-login-logo"><img src="' + DEFAULT_POOL_BROS_LOGO + '" alt="Pool Bros logo"></span><div><span class="ps-login-kicker">Pool Bros</span><strong>THE POOL SHED</strong></div></div><div class="ps-login-hero"><span class="ps-login-kicker">Operations Command System</span><h1>One secure place to <span>run the operation.</span></h1><p>Secure access to the Pool Bros operations workspace. Sign in to continue to your authorised tools, tasks and information.</p></div></div><div class="ps-login-staff-note"><strong>Pool Bros staff access</strong><span>Your workspace and available tools are tailored to your account after sign-in.</span></div></aside><section class="ps-login-auth"><div class="ps-login-card"><div class="ps-login-card-head"><span class="ps-login-kicker">' + escapeHtml(meta.eyebrow) + '</span><h2>' + escapeHtml(meta.heading) + '</h2><p>' + escapeHtml(meta.intro) + '</p></div><form id="loginForm">' + fields + '<div id="loginMessage" class="ps-login-message' + (good ? ' good' : '') + '">' + escapeHtml(message || '') + '</div></form><div class="ps-login-helper">' + helper + '</div></div></section></section><footer class="ps-login-footer">Pool Shed v1.68.0 · Pool Bros Ltd</footer></main>';
         bindLoginScreen(effectiveMode);
       }
 
@@ -3502,7 +3512,7 @@ const seed = {
         if (tabId === "warehouse") {
           if (subgroup === "Goods In") warehousePoView = "list";
         }
-        toast(subgroup + " opened.");
+        // v1.68: no "… opened." message on every menu click (the page title already says where you are).
         render();
       }
 
@@ -6322,10 +6332,13 @@ const seed = {
           supplier.rating = Number(supplier.rating || 0);
           supplier.preferred = Boolean(supplier.preferred);
         });
+        // v1.68 speed: one set of existing product|supplier pairs instead of searching every price row per product.
+        const knownOffers = new Set(data.supplierProducts.map(function(row) { return row.productId + "\u0001" + row.supplier; }));
         data.products.forEach(function(p) {
           if (!p || !p.id || !p.supplier) return;
-          const exists = data.supplierProducts.some(function(row) { return row.productId === p.id && row.supplier === p.supplier; });
+          const exists = knownOffers.has(p.id + "\u0001" + p.supplier);
           if (!exists) {
+            knownOffers.add(p.id + "\u0001" + p.supplier);
             data.supplierProducts.push({
               id: "SP-" + String(data.supplierProducts.length + 1).padStart(5, "0"),
               productId: p.id,
@@ -6440,9 +6453,10 @@ const seed = {
         const candidates = data.products.filter(function(p) {
           return [p.name,p.sku,p.category,p.brand,p.barcode,p.supplierSku].join(' ').toLowerCase().includes(q);
         });
-        const rows = [];
+        const rows = [], offersByProduct = new Map();
+        data.supplierProducts.forEach(function(o) { if (!o || o.available === false) return; if (!offersByProduct.has(o.productId)) offersByProduct.set(o.productId, []); offersByProduct.get(o.productId).push(o); });
         candidates.forEach(function(p) {
-          const offers = data.supplierProducts.filter(function(o) { return o.productId === p.id && o.available !== false; });
+          const offers = offersByProduct.get(p.id) || [];
           (offers.length ? offers : [{productId:p.id,supplier:p.supplier,cost:p.cost,leadTimeDays:defaultSupplierLeadTime(p.supplier),minQty:1,packQty:1,available:true}]).forEach(function(o) {
             const supplier = supplierProfile(o.supplier);
             const sell = Number(p.rrp || 0);
@@ -16970,5 +16984,5 @@ const seed = {
       window.addEventListener("load", function() {
         updateOfflineStatus();
         syncPendingOfflineData();
-        if ("serviceWorker" in navigator && location.protocol !== "file:") navigator.serviceWorker.register("./service-worker.js?v=1.67.0", { updateViaCache:"none" }).catch(function() {});
+        if ("serviceWorker" in navigator && location.protocol !== "file:") navigator.serviceWorker.register("./service-worker.js?v=1.68.0", { updateViaCache:"none" }).catch(function() {});
       });

@@ -14423,6 +14423,9 @@ body #salesOrderProductResults .is-selected{
 @media(max-width:1080px){.inventory-control-v112 .inventory-detail-grid,.inventory-control-v112 .inventory-overview-grid{grid-template-columns:1fr}.inventory-control-v112 .inventory-metrics{grid-template-columns:repeat(3,minmax(0,1fr))}.inventory-control-v112 .inventory-location-metrics{grid-template-columns:repeat(4,minmax(0,1fr))}}
 @media(max-width:760px){.inventory-control-v112{gap:8px}.inventory-control-v112 .inventory-head{display:block;padding:10px}.inventory-control-v112 .inventory-head-actions{justify-content:flex-start;margin-top:10px}.inventory-control-v112 .inventory-toolbar{align-items:stretch;flex-direction:column}.inventory-control-v112 .inventory-search{min-width:0}.inventory-control-v112 .inventory-toolbar select{width:100%}.inventory-control-v112 .inventory-metrics,.inventory-control-v112 .inventory-location-metrics{grid-template-columns:1fr 1fr}.inventory-control-v112 .inventory-van-tool-grid{grid-template-columns:1fr}.inventory-control-v112 .inventory-profile-preview,.inventory-control-v112 .inventory-smart-min{align-items:flex-start;flex-direction:column}.inventory-control-v112 .inventory-alert{grid-template-columns:1fr}.inventory-control-v112 .inventory-alert-row{grid-template-columns:auto 1fr}.inventory-control-v112 .inventory-alert-row>div:last-child{grid-column:2}}
 
+/* v1.68 stock levels paging */
+.inventory-pager{display:flex;align-items:center;gap:10px;flex-wrap:wrap;padding:8px 2px;font-size:13px}.inventory-pager span:first-child{margin-right:auto;opacity:.8}.inventory-pager button{min-height:32px;padding:4px 12px}
+
 
 /* ===== MODULE: system/48-fulfilment-command.css ===== */
 /* Fulfilment Command visual authority, v1.14.0. Scoped to Fulfilment only. */

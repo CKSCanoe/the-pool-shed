@@ -7,8 +7,11 @@ function finance(){try{return typeof global.psFinanceSnapshot==='function'?(glob
 function arr(v){return Array.isArray(v)?v:[];}function num(v){const n=Number(v);return Number.isFinite(n)?n:0;}function text(v){return String(v==null?'':v);}function lower(v){return text(v).toLowerCase();}
 function dateValue(v){const t=Date.parse(v||'');return Number.isFinite(t)?t:null;}
 function isoDay(v){const t=dateValue(v);return t==null?'':new Date(t).toISOString().slice(0,10);}
-function product(id){return arr(data().products).find(p=>p&&text(p.id)===text(id))||null;}
-function customer(id){return arr(data().customers).find(c=>c&&text(c.id)===text(id))||null;}
+// v1.68 speed: product and customer lookups by index, built once per screen draw (cleared after the current task).
+let lookIx=null;function lookups(){if(!lookIx){const p=new Map(),c=new Map();arr(data().products).forEach(x=>{if(x&&!p.has(text(x.id)))p.set(text(x.id),x);});arr(data().customers).forEach(x=>{if(x&&!c.has(text(x.id)))c.set(text(x.id),x);});lookIx={p,c};(typeof global.queueMicrotask==='function'?global.queueMicrotask:f=>Promise.resolve().then(f))(()=>{lookIx=null;});}return lookIx;}
+function product(id){return lookups().p.get(text(id))||null;}
+function customer(id){return lookups().c.get(text(id))||null;}
+
 function orderDate(o){return dateValue(o&& (o.invoiceDate||o.invoicedAt||o.createdAt||o.created||o.orderDate||o.date));}
 function lineSell(line){const p=product(line&&line.productId)||{};return num(line&& (line.specialPrice!=null?line.specialPrice:(line.unitPrice!=null?line.unitPrice:(line.price!=null?line.price:p.rrp))));}
 function lineCost(line){const p=product(line&&line.productId)||{};return num(line&& (line.unitCost!=null?line.unitCost:(line.cost!=null?line.cost:p.cost)));}

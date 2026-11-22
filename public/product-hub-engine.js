@@ -31,6 +31,47 @@
     if (product.stockTracked === false || product.stockTracked === 'false') return false;
     return !['service','service / non-stock','non-stock','shipping charge','custom charge'].includes(type);
   }
+  // v1.68 speed: lookups built once per screen draw instead of once per product (6,800 products × 6,800 supplier
+  // prices was ~46 million comparisons a draw). Cleared at the start of every draw and after the current task, so
+  // figures are never stale.
+  let tickCache = null;
+  function resetCache(){ tickCache = null; }
+  function tick(){
+    if (!tickCache) { tickCache = {}; const later = typeof global.queueMicrotask === 'function' ? global.queueMicrotask : function(f){ Promise.resolve().then(f); }; later(resetCache); }
+    return tickCache;
+  }
+  function offersFor(productId){
+    const c = tick();
+    if (!c.offers) { c.offers = new Map(); (store().supplierProducts || []).forEach(function (o) { if (!o || o.available === false) return; const k = o.productId; if (!c.offers.has(k)) c.offers.set(k, []); c.offers.get(k).push(o); }); }
+    return c.offers.get(productId) || [];
+  }
+  function inboundMap(){
+    const c = tick(); if (c.inbound) return c.inbound;
+    const confirmed = new Set(['supplier confirmed','part received','received - partial','in transit','dispatched']), m = new Map();
+    (store().purchaseOrders || []).forEach(function (po) {
+      if (!po || ['cancelled','received','closed'].includes(lower(po.status))) return;
+      if (!confirmed.has(lower(po.status)) && !po.supplierConfirmedAt && !po.confirmedDate) return;
+      (po.lines || []).forEach(function (line) { if (!line) return; m.set(line.productId, (m.get(line.productId) || 0) + Math.max(0, number(line.confirmedQty != null ? line.confirmedQty : line.qty) - number(line.received))); });
+    });
+    return (c.inbound = m);
+  }
+  function demandMap(){
+    const c = tick(); if (c.demand) return c.demand;
+    const closed = new Set(['shipped','invoiced','cancelled','completed','complete']), m = new Map();
+    (store().salesOrders || []).forEach(function (order) {
+      if (!order || closed.has(lower(order.status))) return;
+      (order.lines || []).forEach(function (line) { if (!line || line.bundleRole === 'head') return;
+        const covered = Math.max(number(line.allocated), number(line.shipped), number(line.delivered), number(line.cancelledQty));
+        m.set(line.productId, (m.get(line.productId) || 0) + Math.max(0, number(line.qty) - covered)); });
+    });
+    return (c.demand = m);
+  }
+  function rulesFor(productId){
+    const c = tick();
+    if (!c.rules) { const d = store(); c.masterIds = new Set((d.locations || []).filter(function (l) { return l && (l.isMaster || lower(l.type) === 'warehouse' || lower(l.type) === 'main warehouse'); }).map(function (l) { return l.id; }));
+      c.rules = new Map(); (d.restockRules || []).forEach(function (r) { if (!r) return; if (!c.rules.has(r.productId)) c.rules.set(r.productId, []); c.rules.get(r.productId).push(r); }); }
+    return { rules: c.rules.get(productId) || [], masterIds: c.masterIds };
+  }
   function aliases(product) {
     const raw = product && (product.aliases || product.alias || product.oldCodes || product.oldSku || product.legacySku);
     if (Array.isArray(raw)) return raw.map(text).filter(Boolean);
@@ -85,7 +126,7 @@
     if (!product) return null;
     const d = store();
     const preferred = text(product.preferredSupplier || product.supplier);
-    const offers = (d.supplierProducts || []).filter(function (o) { return o && o.productId === product.id && o.available !== false; });
+    const offers = offersFor(product.id);
     const offer = offers.find(function (o) { return text(o.supplier) === preferred; }) || offers[0] || null;
     return offer || {
       productId:product.id, supplier:preferred || 'Supplier to confirm', supplierSku:product.supplierSku || product.sku || '',
@@ -93,34 +134,12 @@
       packQty:number(product.orderMultiple || product.packQty, 1), available:true
     };
   }
-  function confirmedInbound(productId) {
-    const confirmed = new Set(['supplier confirmed','part received','received - partial','in transit','dispatched']);
-    return (store().purchaseOrders || []).reduce(function (total, po) {
-      if (!po || ['cancelled','received','closed'].includes(lower(po.status))) return total;
-      if (!confirmed.has(lower(po.status)) && !po.supplierConfirmedAt && !po.confirmedDate) return total;
-      return total + (po.lines || []).filter(function (line) { return line && line.productId === productId; }).reduce(function (sum, line) {
-        return sum + Math.max(0, number(line.confirmedQty != null ? line.confirmedQty : line.qty) - number(line.received));
-      }, 0);
-    }, 0);
-  }
-  function salesDemand(productId) {
-    const closed = new Set(['shipped','invoiced','cancelled','completed','complete']);
-    return (store().salesOrders || []).reduce(function (total, order) {
-      if (!order || closed.has(lower(order.status))) return total;
-      return total + (order.lines || []).filter(function (line) { return line && line.productId === productId && line.bundleRole !== 'head'; }).reduce(function (sum, line) {
-        const qty = number(line.qty);
-        const covered = Math.max(number(line.allocated), number(line.shipped), number(line.delivered), number(line.cancelledQty));
-        return sum + Math.max(0, qty - covered);
-      }, 0);
-    }, 0);
-  }
+  function confirmedInbound(productId) { return inboundMap().get(productId) || 0; }
+  function salesDemand(productId) { return demandMap().get(productId) || 0; }
   function uncoveredDemand(productId) { return salesDemand(productId); }
   function masterRule(productId) {
-    const d = store();
-    const locations = d.locations || [];
-    const masterIds = new Set(locations.filter(function (l) { return l && (l.isMaster || lower(l.type) === 'warehouse' || lower(l.type) === 'main warehouse'); }).map(function (l) { return l.id; }));
-    const rules = (d.restockRules || []).filter(function (r) { return r && r.productId === productId; });
-    return rules.find(function (r) { return masterIds.has(r.locationId); }) || rules[0] || null;
+    const x = rulesFor(productId);
+    return x.rules.find(function (r) { return x.masterIds.has(r.locationId); }) || x.rules[0] || null;
   }
   function replenishmentSettings(product) {
     const offer = supplierOffer(product) || {};
@@ -167,7 +186,8 @@
   }
   function replenishmentRows(options) {
     const opts=options||{};
-    let rows=(store().products||[]).filter(function(p){return isStocked(p)&&!p.deleted;}).map(replenishmentRow).filter(Boolean);
+    const c=tick();if(!c.replenAll)c.replenAll=(store().products||[]).filter(function(p){return isStocked(p)&&!p.deleted;}).map(replenishmentRow).filter(Boolean);
+    let rows=c.replenAll.slice();
     if(opts.needsOrder) rows=rows.filter(function(r){return r.needsOrder;});
     if(opts.supplier) rows=rows.filter(function(r){return r.supplier===opts.supplier;});
     if(opts.category) rows=rows.filter(function(r){return r.product.category===opts.category;});
@@ -187,7 +207,7 @@
     return 'PO-' + String(Math.max(0,...ids)+1).padStart(4,'0');
   }
   function createDraftPurchaseOrders(selections) {
-    const d=store();if(!Array.isArray(d.purchaseOrders))d.purchaseOrders=[];
+    resetCache();const d=store();if(!Array.isArray(d.purchaseOrders))d.purchaseOrders=[];
     const bySupplier=new Map();
     (selections||[]).forEach(function(sel){const p=productById(sel.productId);if(!p)return;const row=replenishmentRow(p);const qty=Math.max(0,number(sel.qty != null ? sel.qty : row.suggestedQty));if(!qty)return;const supplier=text(sel.supplier||row.supplier||p.supplier||'Supplier to confirm');if(!bySupplier.has(supplier))bySupplier.set(supplier,[]);bySupplier.get(supplier).push({product:p,row:row,qty:qty});});
     const touched=[];
@@ -238,6 +258,6 @@
     supplierOffer:supplierOffer, confirmedInbound:confirmedInbound, uncoveredDemand:uncoveredDemand, replenishmentSettings:replenishmentSettings,
     replenishmentRow:replenishmentRow, replenishmentRows:replenishmentRows, groupReplenishmentBySupplier:groupReplenishmentBySupplier,
     roundOrderQuantity:roundOrderQuantity, createDraftPurchaseOrders:createDraftPurchaseOrders,
-    bundleMetrics:bundleMetrics, createBundle:createBundle, createProductGroup:createProductGroup, productHealth:productHealth, aliases:aliases
+    bundleMetrics:bundleMetrics, createBundle:createBundle, createProductGroup:createProductGroup, productHealth:productHealth, aliases:aliases, _resetCache:resetCache
   };
 })(globalThis);

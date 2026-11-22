@@ -5,7 +5,9 @@ function store(){return typeof global.__POOL_SHED_GET_DATA__==='function'?(globa
 function num(v,f){const n=Number(v);return Number.isFinite(n)?n:(f==null?0:f);}
 function text(v){return String(v==null?'':v).trim();}
 function lower(v){return text(v).toLowerCase();}
-function product(id){return (store().products||[]).find(p=>p&&p.id===id&&!p.deleted)||null;}
+// v1.68 speed: product lookups by index, built once per screen draw (cleared after the current task).
+let productIx=null;function productIndex(){if(!productIx){const m=new Map();(store().products||[]).forEach(p=>{if(p&&!p.deleted&&!m.has(p.id))m.set(p.id,p);});productIx=m;(typeof global.queueMicrotask==='function'?global.queueMicrotask:f=>Promise.resolve().then(f))(()=>{productIx=null;});}return productIx;}
+function product(id){return productIndex().get(id)||null;}
 function location(id){return (store().locations||[]).find(l=>l&&l.id===id)||null;}
 function availableRow(row){if(!row)return 0;const loc=location(row.locationId);if(loc&&['quarantine','receiving'].some(x=>lower(loc.type).includes(x)))return 0;return Math.max(0,num(row.qty)-num(row.allocated));}
 function rowsForLocation(id){return (store().stock||[]).filter(r=>r&&r.locationId===id&&num(r.qty)>0);}

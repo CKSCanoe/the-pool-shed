@@ -8,7 +8,9 @@
   function daysBetween(a,b){const da=day(a),db=day(b);if(!da||!db)return null;return Math.round((db-da)/86400000);}
   function todayValue(options){return iso(options&&options.today)||new Date().toISOString().slice(0,10);}
   function supplier(name){const d=getData()||{};return arr(d.suppliers).find(s=>s&&s.name===name)||null;}
-  function product(id){const d=getData()||{};return arr(d.products).find(p=>p&&p.id===id)||null;}
+  // v1.68 speed: product lookups by index, built once per screen draw (cleared after the current task).
+  let productIx=null;function productIndex(){if(!productIx){const m=new Map();arr((getData()||{}).products).forEach(p=>{if(p&&!m.has(p.id))m.set(p.id,p);});productIx=m;(typeof window.queueMicrotask==='function'?window.queueMicrotask:f=>Promise.resolve().then(f))(()=>{productIx=null;});}return productIx;}
+  function product(id){return productIndex().get(id)||null;}
   function supplierPos(name){const d=getData()||{};return arr(d.purchaseOrders).filter(po=>po&&po.supplier===name);}
   function lineCost(line){const p=product(line&&line.productId)||{};return num(line&&line.confirmedUnitCost!=null?line.confirmedUnitCost:line&&line.unitCost!=null?line.unitCost:p.cost);}
   function poOrderedValue(po){return arr(po&&po.lines).reduce((sum,line)=>sum+num(line.qty)*lineCost(line),0);}
