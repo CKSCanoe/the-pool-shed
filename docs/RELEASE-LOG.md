@@ -256,6 +256,7 @@ Not in this release: loading rarely used parts only when first opened (82 script
 | # | Change | Status | Evidence |
 |---|---|---|---|
 | K1 | Catalogue draws 100 products at a time (it drew all ~6,800, about 10 s on staging); Previous / Next with "Showing x–y of n"; search, filters and sort still cover every product and go back to page 1 | **New · Tested in a real browser on staging** | Draws 100 of 6,662 rows; opening Catalogue from Home went from about 10 s to about 2 s; redraws and page changes 0.15–0.75 s; search "chlorine" found 215 across the whole catalogue, and clearing it brought all 6,662 back. `test-catalogue-paging-v167`; existing Product Hub tests pass; build gate passes. No database change |
+| K2 | App release | **Deployed · verified on live** 22 Nov 2026 (live cache `pool-shed-v1.67.0-catalogue-r1`) | The first deploy attempt failed: the pager styles were in the generated app.css, which the CSS build overwrites. They were moved to `system/46-product-hub-command.css` and both checks passed. Live serves the pager code and styles; data unchanged |
 
 ## Navigation and page tidy-up · v1.66.0 · branch `navigation`
 
