@@ -238,6 +238,16 @@ Owner approved the blueprint 21 Nov 2026 (eight areas; Pool Audits under My Work
 
 ---
 
+## Saved list views and bulk export · v1.79.0 · branch `saved-views`
+
+Owner: quicker everyday use, second of three. Finding: Sales › Orders already had bulk actions (status, allocate, fulfil, invoice, delete); purchase orders and the catalogue had none; no list could keep a set of filters. Approach: a view records each list's own filter controls and restores them the way a person would, so the lists themselves are untouched. Bulk status changes on purchase orders were left out on purpose (they drive receiving and stock).
+
+| # | Change | Status | Evidence |
+|---|---|---|---|
+| SV1 | Views bar on sales orders, purchase orders and the catalogue; team views stored with the workspace (`savedViews`); highlight when the list matches; same name updates; delete asks first; missing filter options skipped | **New · Tested in a real browser on staging** | Sales orders: "Short stock" saved (3 of 12), cleared, re-applied (3 again, highlighted). Purchase orders: "Needs review" saved and highlighted. A view survived a reload and was in the staging database. Test views removed afterwards |
+| SV2 | Tick-boxes and "Export selected" (CSV, spreadsheet formulas neutralised) on purchase orders and the catalogue; ticks kept across filter changes | **New · Tested in a real browser on staging** | 2 POs ticked: bar showed "2 purchase orders selected"; export rows matched (PO-1052 £215.56 net); 100 catalogue rows got tick-boxes |
+| SV3 | Release test | **New · Unit tested** | `test-saved-views-v179` |
+
 ## Jump to anything · v1.78.0 · branch `jump-to`
 
 Owner: quicker everyday use. First of three (jump to anything, saved views and bulk actions, payment reminders). Finding: the top search already found orders, POs, products, customers, projects, stock locations, delivery notes and suppliers, and Ctrl+K only focused it; it did not cover pages, quotes or "new" actions.

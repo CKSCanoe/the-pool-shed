@@ -49,5 +49,6 @@ export const CSS_MODULES = Object.freeze([
   "system/67-sales-order-xero-lines.css",
   "system/69-quote-brochure-editor.css",
   "system/70-jump-to.css",
+  "system/71-saved-views.css",
   "system/68-pool-shed-kit.css",
 ]);
