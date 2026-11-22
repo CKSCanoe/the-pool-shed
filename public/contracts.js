@@ -1,4 +1,4 @@
-/* Pool Shed v1.67.0 — Contracts: recurring maintenance and repeat orders (Sales → Contracts).
+/* Pool Shed v1.68.0 — Contracts: recurring maintenance and repeat orders (Sales → Contracts).
    Upgrades the earlier "Subscriptions" page: the same records (salesOrderSubscriptions) are kept, and each one is now
    either a maintenance contract (billed as a fixed fee per period, or per visit) or a repeat order of products.
    Service lines are kept at the agreed contract price (customer discounts do not apply), frequencies follow the

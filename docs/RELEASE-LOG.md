@@ -238,11 +238,25 @@ Owner approved the blueprint 21 Nov 2026 (eight areas; Pool Audits under My Work
 
 ---
 
+## Speed · v1.68.0 · branch `speed`
+
+Audit on staging (owner: "I need everything a lot faster"): most pages redrew in 0.1–0.25 s, but Reorder list took 6.3 s, Reports 1.1–2.5 s, Products 2.1 s, Stock levels up to 2.6 s, Suppliers up to 3.4 s and My work 0.7 s. The cause, measured function by function, was full-list searches for every product: the app's product lookup, supplier prices (6,800 × 6,800), and the supplier price check that runs three times per draw. My work also rescanned and saved on every redraw.
+
+| # | Change | Status | Evidence |
+|---|---|---|---|
+| S1 | Lookups built once per screen draw (product engine: supplier offers, inbound, demand, restock rules, the full reorder list; Reports, supplier and inventory engines: product and customer lookups), reset at the start of every draw and after the task; the app's product lookup indexed, falling back to a full search; supplier price check uses a set | **New · Tested in a real browser on staging** | Every page in the menu redraws in at most 0.57 s (median 0.15 s). Reorder list 6.3 → 0.2 s, Products 2.1 → 0.2 s, Suppliers → under 0.2 s, Reports 2.5 → about 0.55 s. Same figures as before (needs ordering 1 / £391.23, catalogue issues 6878, 21 units suggested) |
+| S2 | Stock levels: 100 at a time, products holding stock first; Movements lookups indexed | **New · Tested in a real browser on staging** | "Showing 1–100 of 6,839 (16 holding stock, listed first)"; page 2 works; 2.6 → 0.2 s |
+| S3 | My work rescans its sources at most once a minute (it rescanned and saved on every redraw); "… opened." message removed from menu clicks | **New · Tested** | My work 0.7 → 0.15 s |
+| S4 | Tests | **New** | `test-speed-v168` (same answers with the lookups; 3,000 products in well under a second; reset picks up changes; source guards); existing engine tests pass; build gate passes. `test-supplier-command-engine-v115` (not in the gate) already failed before this change. No database change |
+
+Not in this release: loading rarely used parts only when first opened (82 scripts, 3.4 MB load on every visit), and the CSV import loops that look products up by SKU row by row.
+
 ## Faster Catalogue page · v1.67.0 · branch `catalogue-speed`
 
 | # | Change | Status | Evidence |
 |---|---|---|---|
 | K1 | Catalogue draws 100 products at a time (it drew all ~6,800, about 10 s on staging); Previous / Next with "Showing x–y of n"; search, filters and sort still cover every product and go back to page 1 | **New · Tested in a real browser on staging** | Draws 100 of 6,662 rows; opening Catalogue from Home went from about 10 s to about 2 s; redraws and page changes 0.15–0.75 s; search "chlorine" found 215 across the whole catalogue, and clearing it brought all 6,662 back. `test-catalogue-paging-v167`; existing Product Hub tests pass; build gate passes. No database change |
+| K2 | App release | **Deployed · verified on live** 22 Nov 2026 (live cache `pool-shed-v1.67.0-catalogue-r1`) | The first deploy attempt failed: the pager styles were in the generated app.css, which the CSS build overwrites. They were moved to `system/46-product-hub-command.css` and both checks passed. Live serves the pager code and styles; data unchanged |
 
 ## Navigation and page tidy-up · v1.66.0 · branch `navigation`
 

@@ -273,7 +273,7 @@
     active = 'warehouse';
     activeSubPage.warehouse = mapped;
     if (mapped === 'Inbound') warehousePoView = 'list';
-    if (typeof toast === 'function') toast(mapped + ' opened.');
+    // v1.68: no "… opened." message on every menu click.
     if (typeof render === 'function') render();
   };
 
