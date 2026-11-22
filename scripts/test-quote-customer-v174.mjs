@@ -1,4 +1,4 @@
-// v1.74.0 Customer experience: after acceptance the customer sees what is due and how to pay (bank details only after
+// v1.74 Customer experience: after acceptance the customer sees what is due and how to pay (bank details only after
 // acceptance, from the server), a PDF copy, a general question button, and a bottom bar that reads well on a phone.
 import fs from 'node:fs';
 import assert from 'node:assert/strict';
@@ -32,5 +32,5 @@ assert.ok(portal.includes("data-ask-general>Ask a question</button>"));
 assert.ok(portal.includes("window.addEventListener('beforeprint'"));
 assert.ok(/@media print\{[\s\S]*\.pc-nav,\.pc-project-bar/.test(css), 'PDF copy hides the buttons and bars');
 assert.ok(css.includes('.pc-project-bar .left b{font-size:13px}'), 'bottom bar text is readable');
-assert.ok(!/#[0-9a-f]{3,6}\b/i.test(css.slice(css.indexOf('/* v1.74.0'))), 'no fixed colours in the new styles');
+assert.ok(!/#[0-9a-f]{3,6}\b/i.test(css.slice(css.indexOf('/* v1.74 Customer experience'))), 'no fixed colours in the new styles');
 console.log('Quote customer experience v1.74: payment details after acceptance, deposit per quote, PDF copy, questions, phone bar.');

@@ -238,6 +238,16 @@ Owner approved the blueprint 21 Nov 2026 (eight areas; Pool Audits under My Work
 
 ---
 
+## Quote Studio custom HTML · v1.75.0 · branch `quote-html`
+
+Release E, the last of four. Owner: HTML blocks plus a full HTML page, scripts removed, Pool Shed filling in price, choices and Accept.
+
+| # | Change | Status | Evidence |
+|---|---|---|---|
+| HT1 | Shared cleaner (`quote-html-safe.js`): allow-list of content tags; scripts, frames, forms, buttons, SVG and similar dropped with their content; no on… handlers, data- attributes or ids starting pc/ps/be/qs; links and pictures https only (plus mailto/tel and inline images); risky CSS removed; new-tab links get noopener | **New · Tested in a real browser on staging** | A payload with script, onclick, onerror, javascript: links, iframe, form, svg, @import and a clashing id came out with all of them removed and the safe parts kept (18 checks) |
+| HT2 | Custom HTML section and Full HTML page (Theme) with word placeholders (inserted as text) and live parts (the page's own HTML); cleaned when published and again when shown; older published versions unaffected; accept button added if left out | **New · Tested in a real browser on staging** | On Q-2026-0002: an HTML section showed the customer's name and total, with its script and onclick gone; a full page with a style block and {{pool_specs}} showed 2 live choices, and picking one changed {{total}} from £5,100 to £4,794; switched back off afterwards |
+| HT3 | Release test | **New · Unit tested** | `test-quote-html-v175` |
+
 ## Quote Studio customer experience · v1.74.0 · branch `quote-customer-experience`
 
 Release D of four. Owner: show the bank details, and send a Xero request for the deposit, custom per project. Finding: typed signatures, the separate signing page and questions per option already existed; after accepting, the customer only saw "we will issue the request separately"; the server worked out the accepted deposit as a percentage only, ignoring fixed and full-payment quotes.
@@ -248,6 +258,7 @@ Release D of four. Owner: show the bank details, and send a Xero request for the
 | CX2 | Server sends the payment details only once accepted (bank details only when sort code and account number are set; never the whole invoice profile); the deposit follows the quote's own rule (percentage, fixed, full or none) from the customer's final choices | **New · Unit tested** | `test-quote-customer-v174` (30% £3,600, 50% £6,000, fixed £2,500, full £12,000, none £0 on £10,000 + VAT; older versions keep their percentage) |
 | CX3 | "Save PDF" (printable copy without buttons and bars), "Ask a question" in the bottom bar, larger bottom-bar text, phone layout of the bar | **New · Tested in a real browser on staging** | Phone view in the editor: total and button on their own lines, nothing cut off |
 | CX4 | Deposit invoice still raised by staff in one click (v1.71) and sent to Xero once linked; no automatic Xero request on acceptance (needs Xero linked and a server-side invoice function, a database change for later) | **Unchanged · noted** | |
+| CX5 | App release (PR #73) | **Deployed · verified on live** 22 Nov 2026 (Vercel check green; live cache `pool-shed-v1.74.0-customer-r1`) | Live serves the thank-you payment view; the quote server refuses an invalid link (404); data unchanged |
 
 ## Quote Studio pool specs · v1.73.0 · branch `quote-spec-configurator`
 
