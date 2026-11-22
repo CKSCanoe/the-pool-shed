@@ -249,6 +249,7 @@ Owner: roll the look out to the remaining areas. Approach: switch every area on,
 | LK3 | Stock › Imports history column fits its cards (an old overflow) | **New · Tested in a real browser on staging** | Imports and Catalogue Health overflow 0 (was 41 before the look, 54 with it) |
 | LK4 | Dark mode | **Tested in a real browser on staging** | Invoices, Company settings, Stock levels, Today's work, Reports overview, Vans and Projects: no unreadable text |
 | LK5 | Two pilot tests that pinned "not converted yet" updated | **Changed** | `test-look-pilot-v169`, `test-look-sales-v170`; new `test-look-all-v176` |
+| LK6 | App release (PR #75) | **Deployed · verified on live** 22 Nov 2026 (Vercel check green; live cache `pool-shed-v1.76.0-look-r1`) | Live serves the kit on every area and the Imports fix; data unchanged |
 
 ## Quote Studio custom HTML · v1.75.0 · branch `quote-html`
 
