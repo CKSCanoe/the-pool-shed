@@ -1,4 +1,4 @@
-/* Pool Shed v1.79.0 — Sales invoicing in the Pool Shed ledger (Operations O3).
+/* Pool Shed v1.80.0 — Sales invoicing in the Pool Shed ledger (Operations O3).
    Accounting → Invoice Ready · Customer Invoices · Payments & Allocations · Credit Control · Credits & Returns.
    Every money rule (prices, what may be invoiced, credits, payments) is enforced by the database (database/029);
    these screens only collect, show and confirm. Invoices are never edited: corrections are credit notes. */
@@ -308,6 +308,44 @@
         unused.length ? '<table class="finance-table"><thead><tr><th>From</th><th>Customer</th><th>Unused</th><th>Apply or refund</th></tr></thead><tbody>' + uRows + '</tbody></table>' : '<p class="muted">Nothing on account.</p>');
   }
 
+  // ---------- Payment reminders (v1.80): who to chase, a ready-made reminder, and when each invoice was last chased ----------
+  // Nothing is sent from Pool Shed: the reminder opens in your own email app or is copied. "Mark as chased" keeps the history.
+  function reminderLog(){ var d = DATA(); d.paymentReminders = Array.isArray(d.paymentReminders) ? d.paymentReminders : []; return d.paymentReminders; }
+  function chasedFor(docId){ return reminderLog().filter(function(r){ return r.doc_id === docId; }).sort(function(a, b){ return String(b.at).localeCompare(String(a.at)); }); }
+  function customerFor(key){ var id = String(key || '').replace(/^id:/, ''); return (DATA().customers || []).find(function(c){ return String(c.id) === id; }) || null; }
+  function stageFor(doc){ var n = chasedFor(doc.id).length, days = Number(doc.days_overdue || 0), byDays = days > 44 ? 3 : days > 14 ? 2 : 1; return Math.min(3, Math.max(byDays, n + 1)); }
+  var STAGE = { 1: 'Friendly reminder', 2: 'Second reminder', 3: 'Final reminder' };
+  function daysText(n){ n = Number(n || 0); return n + (n === 1 ? ' day' : ' days'); }
+  function ukDate(v){ var m = String(v || '').match(/^(\d{4})-(\d{2})-(\d{2})/); return m ? m[3] + '/' + m[2] + '/' + m[1] : String(v || ''); }
+  function reminderText(doc){ var c = customerFor(doc.customer_key) || {}, prof = (s.profile && s.profile.profile) || {}, co = (s.profile && s.profile.company) || {}, stage = stageFor(doc);
+    var name = (c.firstName || String(c.name || doc.customer || '').split(' ')[0] || 'there').trim(), biz = prof.legal_name || co.name || 'Pool Bros', amount = cash(doc.open), days = Number(doc.days_overdue || 0);
+    var subject = (stage === 3 ? 'Final reminder: ' : stage === 2 ? 'Second reminder: ' : 'Reminder: ') + 'invoice ' + doc.doc_number + ' (' + amount + ' outstanding)';
+    var lines = ['Hello ' + name + ',', ''];
+    if (stage === 1) lines.push('I hope all is well. This is a friendly reminder that invoice ' + doc.doc_number + ', dated ' + ukDate(doc.doc_date) + ', was due on ' + ukDate(doc.due_date || doc.doc_date) + ' and ' + amount + ' is still outstanding.', '', 'If you have already paid, thank you, and please ignore this message. If not, we would be grateful if you could arrange payment at your convenience.');
+    else if (stage === 2) lines.push('We have not yet received payment for invoice ' + doc.doc_number + ', dated ' + ukDate(doc.doc_date) + '. It is now ' + daysText(days) + ' overdue and ' + amount + ' is outstanding.', '', 'Please arrange payment within the next 7 days, or let us know if there is a problem with the invoice so we can help.');
+    else lines.push('Despite our earlier reminders, invoice ' + doc.doc_number + ', dated ' + ukDate(doc.doc_date) + ', remains unpaid. It is now ' + daysText(days) + ' overdue and ' + amount + ' is outstanding.', '', 'Please make payment within 7 days. If we do not hear from you, we may have to pause further work and supply on your account until it is settled. If there is a reason payment has been held up, please get in touch so we can resolve it.');
+    if (prof.sort_code && prof.account_number) lines.push('', 'Bank transfer details:', 'Account name: ' + (prof.account_name || biz), 'Sort code: ' + prof.sort_code, 'Account number: ' + prof.account_number, 'Reference: ' + doc.doc_number);
+    else lines.push('', 'Please quote ' + doc.doc_number + ' as the payment reference.');
+    lines.push('', 'Kind regards,', biz);
+    return { stage: stage, label: STAGE[stage], subject: subject, body: lines.join('\n'), to: String(c.email || '').trim() }; }
+  function chaseList(){ var docs = (s.docs || []).filter(function(d){ return d.doc_type === 'sales_invoice' && d.state === 'overdue' && Number(d.open) > 0; })
+      .sort(function(a, b){ return Number(b.days_overdue) - Number(a.days_overdue); });
+    if (!docs.length) return panel('Chase list', 'Overdue invoices, oldest first.', '<p class="muted">' + (s.loading ? 'Loading…' : 'Nothing overdue. Nobody to chase.') + '</p>');
+    var open = s.remind && docs.find(function(d){ return d.id === s.remind; });
+    var rows = docs.map(function(d){ var last = chasedFor(d.id)[0], st = stageFor(d), c = customerFor(d.customer_key);
+      return '<tr' + (open && open.id === d.id ? ' class="si-row-on"' : '') + '><td><strong>' + esc(d.doc_number) + '</strong><br><span class="muted">' + esc(d.customer || '') + '</span></td><td class="num si-bad">' + esc(daysText(d.days_overdue)) + '</td><td class="num"><strong>' + cash(d.open) + '</strong></td>' +
+        '<td>' + (last ? esc(STAGE[last.stage] || 'Chased') + '<br><span class="muted">' + esc(ukDate(last.at)) + ' · ' + esc(last.by || '') + '</span>' : '<span class="muted">Not chased yet</span>') + '</td>' +
+        '<td>' + (c && c.email ? '' : '<span class="muted">No email on file</span><br>') + '<span class="si-stage si-stage-' + st + '">' + esc(STAGE[st]) + ' next</span></td>' +
+        '<td class="finance-row-actions"><button type="button" class="secondary small" data-si-action="remind" data-id="' + esc(d.id) + '">Write reminder</button></td></tr>'; }).join('');
+    var letter = '';
+    if (open) { var r = reminderText(open);
+      letter = '<div class="si-reminder" id="si-reminder"><div class="si-reminder-head"><strong>' + esc(r.label) + ' · ' + esc(open.doc_number) + '</strong><span>' + (r.to ? 'To ' + esc(r.to) : 'No email address on file for this customer') + '</span></div>' +
+        '<label>Subject<input data-si-remind-subject value="' + esc(r.subject) + '"></label><label>Message<textarea data-si-remind-body rows="14">' + esc(r.body) + '</textarea></label>' +
+        '<div class="si-reminder-actions"><button type="button" class="primary" data-si-action="remind-mail" data-id="' + esc(open.id) + '"' + (r.to ? '' : ' disabled') + '>Open in my email</button><button type="button" class="secondary" data-si-action="remind-copy">Copy</button><button type="button" class="secondary" data-si-action="pdf" data-id="' + esc(open.id) + '">Invoice PDF</button>' +
+        '<button type="button" class="secondary" data-si-action="remind-mark" data-id="' + esc(open.id) + '" data-stage="' + r.stage + '">Mark as chased</button><button type="button" class="ghost" data-si-action="remind-close">Close</button></div>' +
+        '<p class="muted">Pool Shed does not send this. It opens in your own email app (attach the invoice PDF there), or copy it into a message. Then press “Mark as chased”.</p></div>'; }
+    return panel('Chase list', 'Overdue invoices, oldest first, with the reminder each one needs next: friendly, then second, then final.', letter + '<table class="finance-table"><thead><tr><th>Invoice</th><th>Overdue</th><th>Owed</th><th>Last chased</th><th>Next</th><th></th></tr></thead><tbody>' + rows + '</tbody></table>', '', 'si-chase'); }
+
   // ---------- Credit Control (aged debtors) ----------
   function agedPage(){
     load(false);
@@ -319,7 +357,7 @@
     var overdue = tot.d1_30 + tot.d31_60 + tot.d61_90 + tot.d90_plus;
     return (s.error ? '<div class="pp-result bad">' + esc(s.error) + '</div>' : '') +
       '<div class="finance-command-metrics">' + metric('Owed in total', cash(tot.total), a.length + ' customers') + metric('Overdue', cash(overdue), 'Chase these first') +
-      metric('Over 60 days', cash(tot.d61_90 + tot.d90_plus), 'Consider stopping supply') + metric('On account', cash(tot.on_account), 'Unused payments and credits') + '</div>' +
+      metric('Over 60 days', cash(tot.d61_90 + tot.d90_plus), 'Consider stopping supply') + metric('On account', cash(tot.on_account), 'Unused payments and credits') + '</div>' + chaseList() +
       panel('Aged debtors', 'What each customer owes, by how late it is (from the due date). From the Pool Shed ledger.',
         a.length ? '<table class="finance-table"><thead><tr><th>Customer</th><th>Not due</th><th>1–30 days</th><th>31–60</th><th>61–90</th><th>90+</th><th>On account</th><th>Total</th><th></th></tr></thead><tbody>' + rows + '</tbody>' +
           '<tfoot><tr><td><strong>Total</strong></td>' + cell(tot.not_due) + cell(tot.d1_30) + cell(tot.d31_60) + cell(tot.d61_90) + cell(tot.d90_plus) + cell(-tot.on_account) + '<td class="num"><strong>' + cash(tot.total) + '</strong></td><td></td></tr></tfoot></table>'
@@ -383,6 +421,17 @@
     if (a === 'view') { rpc('ps_sales_invoice_get', { w: W(), doc_id: id }).then(function(d){ s.doc = d; rerender(); scrollTo('si-doc'); })
       .catch(function(){ var d = (s.docs || []).find(function(x){ return x.id === id; }); if (d && d.doc_type === 'customer_receipt') notify(d.doc_number + ': ' + cash(d.gross) + ' from ' + d.customer + ' (' + (METHODS[d.method] || '') + '), ' + cash(d.open) + ' unused.'); }); return; }
     if (a === 'pdf') { openPdf(id).catch(function(err){ notify(friendly(err)); }); return; }
+    if (a === 'remind') { s.remind = id; rerender(); scrollTo('si-reminder'); return; }
+    if (a === 'remind-close') { s.remind = null; rerender(); return; }
+    if (a === 'remind-copy') { var sub0 = document.querySelector('[data-si-remind-subject]'), body0 = document.querySelector('[data-si-remind-body]'); if (!body0) return;
+      var txt = (sub0 ? sub0.value + '\n\n' : '') + body0.value; (navigator.clipboard ? navigator.clipboard.writeText(txt) : Promise.reject()).then(function(){ notify('Reminder copied.'); }).catch(function(){ body0.select(); notify('Select all and copy the message.'); }); return; }
+    if (a === 'remind-mail') { var doc1 = (s.docs || []).find(function(d){ return d.id === id; }); if (!doc1) return; var r1 = reminderText(doc1); if (!r1.to) return notify('Add an email address to this customer first.');
+      var sub1 = document.querySelector('[data-si-remind-subject]'), body1 = document.querySelector('[data-si-remind-body]');
+      global.location.href = 'mailto:' + encodeURIComponent(r1.to) + '?subject=' + encodeURIComponent(sub1 ? sub1.value : r1.subject) + '&body=' + encodeURIComponent(body1 ? body1.value : r1.body); return; }
+    if (a === 'remind-mark') { var doc2 = (s.docs || []).find(function(d){ return d.id === id; }); if (!doc2) return; var u = typeof global.__POOL_SHED_CURRENT_USER__ === 'function' ? (global.__POOL_SHED_CURRENT_USER__() || {}) : {};
+      reminderLog().push({ doc_id: doc2.id, doc_number: doc2.doc_number, customer_key: doc2.customer_key, stage: Number(b.dataset.stage) || stageFor(doc2), open: Number(doc2.open), at: today(), by: u.name || u.email || 'Team' });
+      try { if (global.__POOL_SHED_SAVE_APP_DATA__) global.__POOL_SHED_SAVE_APP_DATA__(); } catch (_) {}
+      s.remind = null; notify(doc2.doc_number + ' marked as chased.'); rerender(); return; }
     if (a === 'aged-csv') {
       var csv = [['Customer','Not due','1-30','31-60','61-90','90+','On account','Total']].concat((s.aged || []).map(function(r){ return [r.customer, r.not_due, r.d1_30, r.d31_60, r.d61_90, r.d90_plus, r.on_account, r.total]; }))
         .map(function(r){ return r.map(function(v){ return '"' + String(v == null ? '' : v).replace(/"/g, '""') + '"'; }).join(','); }).join('\r\n');
