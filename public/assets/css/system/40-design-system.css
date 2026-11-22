@@ -70,8 +70,8 @@ a:focus-visible { outline-color:var(--color-action-ink); }
   --ps-font-panel-title: 13px;
   --ps-font-body: 14px;
   --ps-font-table: 13px;
-  --ps-font-label: 11px;
-  --ps-font-micro: 10px;
+  --ps-font-label: 12px;
+  --ps-font-micro: 12px;
 
   /* Existing component contracts resolve to the selected foundation. */
   --workspace-gap: var(--ps-space-4);
@@ -127,7 +127,7 @@ a:focus-visible { outline-color:var(--color-action-ink); }
 }
 
 .sidebar .brand span {
-  font-size: 11px;
+  font-size: 12px;
   margin-top: 1px;
 }
 
@@ -1617,7 +1617,7 @@ table th {
 #screen-crm .crm-pagehead p{
   margin:3px 0 0;
   color:var(--color-text-secondary);
-  font-size:10px;
+  font-size:12px;
   line-height:1.4;
 }
 
@@ -1668,12 +1668,12 @@ table th {
 }
 #screen-crm .crm-hero-copy p{
   margin-top:4px;
-  font-size:10px;
+  font-size:12px;
 }
 #screen-crm .crm-relationship-meta{
   gap:12px;
   margin-top:7px;
-  font-size:9px;
+  font-size:12px;
 }
 #screen-crm .crm-hero-meta{
   gap:6px;
@@ -1682,7 +1682,7 @@ table th {
 #screen-crm .crm-pill{
   min-height:23px;
   padding:3px 7px;
-  font-size:9px;
+  font-size:12px;
 }
 #screen-crm .crm-profile-tabs{
   padding-inline:12px;
@@ -1691,7 +1691,7 @@ table th {
   min-height:42px;
   height:42px;
   padding:0 11px;
-  font-size:10px;
+  font-size:12px;
 }
 #screen-crm .crm-profile{
   gap:var(--ps-cohesion-workspace-gap);
@@ -1708,7 +1708,7 @@ table th {
   border-radius:7px;
 }
 #screen-crm .crm-stat span{
-  font-size:9px;
+  font-size:12px;
 }
 #screen-crm .crm-stat strong{
   font-size:20px;
@@ -1725,7 +1725,7 @@ table th {
 }
 #screen-crm .crm-cardhead p,
 #screen-crm .crm-depth-card header p{
-  font-size:10px;
+  font-size:12px;
 }
 #screen-crm .crm-cardbody,
 #screen-crm .crm-depth-body{
@@ -1739,7 +1739,7 @@ table th {
   font-size:16px;
 }
 #screen-crm .crm-section-kicker{
-  font-size:9px;
+  font-size:12px;
 }
 #screen-crm .crm-core-band-head{
   min-height:46px;
@@ -1788,7 +1788,7 @@ table th {
   padding:0 0 8px;
 }
 #screen-salesorders .sales-workspace.sales-command-page .so-card-heading span{
-  font-size:9px;
+  font-size:12px;
 }
 #screen-salesorders .sales-workspace.sales-command-page .so-card-heading strong{
   font-size:12px;
@@ -1800,7 +1800,7 @@ table th {
   min-height:40px !important;
   height:40px;
   padding-inline:11px !important;
-  font-size:10px !important;
+  font-size:12px !important;
 }
 
 #screen-salesorders .sales-workspace.sales-command-page .so-add-items, #screen-salesorders .sales-workspace.sales-command-page .so-line-composer {

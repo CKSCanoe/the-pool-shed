@@ -1,4 +1,4 @@
-/* Pool Shed v1.80.0 — "Email the customer?" at each fulfilment step (blueprint step 3).
+/* Pool Shed v1.81.0 — "Email the customer?" at each fulfilment step (blueprint step 3).
    Whenever an order is picked, packed, shipped (in full or in part) or collected, from any screen or batch action, a card
    asks whether to email the customer, with a tick box per order (starting ticked or not from Settings → customer
    notification rules) and a preview. The server sends to the order's customer email only, and logs it. Every choice is
@@ -89,11 +89,11 @@
   }
   if (typeof document !== 'undefined' && document.head && !document.getElementById('cec-styles')) {
     var st = document.createElement('style'); st.id = 'cec-styles';
-    st.textContent = '.cec{position:fixed;right:18px;bottom:18px;z-index:1100;width:min(420px,calc(100vw - 36px));max-height:70vh;overflow:auto;background:var(--surface,#fff);color:inherit;border:1px solid rgba(15,76,87,.25);border-radius:14px;box-shadow:0 16px 48px rgba(0,0,0,.22);padding:12px 14px}' +
+    st.textContent = '.cec{position:fixed;right:18px;bottom:18px;z-index:1100;width:min(420px,calc(100vw - 36px));max-height:70vh;overflow:auto;background:var(--color-surface-default);color:inherit;border:1px solid rgba(15,76,87,.25);border-radius:14px;box-shadow:0 16px 48px rgba(0,0,0,.22);padding:12px 14px}' +
       '.cec header{display:flex;justify-content:space-between;align-items:center;margin-bottom:6px}.cec-x{border:0;background:none;font-size:22px;cursor:pointer;min-height:0;color:inherit}' +
       '.cec ul{list-style:none;margin:0;padding:0}.cec li{padding:8px 0;border-top:1px solid rgba(0,0,0,.08)}.cec label{display:flex;gap:8px;align-items:flex-start;font-size:14px}.cec input[type=checkbox]{width:18px;height:18px;margin-top:2px}' +
-      '.cec .link{background:none;border:0;text-decoration:underline;cursor:pointer;font-size:13px;padding:2px 0 0 26px;min-height:0;color:inherit}.cec small{display:block;padding-left:26px;font-size:13px}.cec small.ok{color:#1d7a4c}.cec small.bad{color:#b9474f}' +
-      '.cec pre{white-space:pre-wrap;font:13px/1.45 inherit;background:rgba(15,76,87,.05);border-radius:8px;padding:8px;margin:6px 0 0 26px}.cec-warn{font-size:13.5px;background:rgba(168,98,0,.1);border-radius:8px;padding:8px;margin:0 0 6px}' +
+      '.cec .link{background:none;border:0;text-decoration:underline;cursor:pointer;font-size:13px;padding:2px 0 0 26px;min-height:0;color:inherit}.cec small{display:block;padding-left:26px;font-size:13px}.cec small.ok{color:var(--color-status-success-text)}.cec small.bad{color:var(--color-status-danger-text)}' +
+      '.cec pre{white-space:pre-wrap;font:13px/1.45 inherit;background:rgba(15,76,87,.05);border-radius:8px;padding:8px;margin:6px 0 0 26px}.cec-warn{font-size:13.5px;background:var(--color-status-attention-bg);border-radius:8px;padding:8px;margin:0 0 6px}' +
       '.cec footer{display:flex;gap:8px;margin-top:10px}';
     document.head.appendChild(st);
   }

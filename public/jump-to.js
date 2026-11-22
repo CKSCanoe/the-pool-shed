@@ -15,7 +15,7 @@ function frame(){ return global.PoolShedFrame || null; }
 function can(tab){ try { return typeof global.__POOL_SHED_CAN_ACCESS__ === 'function' ? global.__POOL_SHED_CAN_ACCESS__(tab) !== false : true; } catch (_) { return true; } }
 function recent(){ try { var r = JSON.parse(global.localStorage.getItem(RECENT) || '[]'); return Array.isArray(r) ? r.slice(0, MAX_RECENT) : []; } catch (_) { return []; } }
 function remember(item){ if (!item || item.kind === 'new') return; try { var key = item.kind + '|' + item.id, r = recent().filter(function(x){ return x.kind + '|' + x.id !== key; });
-  r.unshift({ kind: item.kind, id: item.id, title: String(item.title || '').slice(0, 120), type: item.type, tab: item.tab || '', sub: item.sub || '' }); global.localStorage.setItem(RECENT, JSON.stringify(r.slice(0, MAX_RECENT))); } catch (_) {} }
+  r.unshift({ kind: item.kind, action: item.action || '', id: item.id, title: String(item.title || '').slice(0, 120), type: item.type, tab: item.tab || '', sub: item.sub || '' }); global.localStorage.setItem(RECENT, JSON.stringify(r.slice(0, MAX_RECENT))); } catch (_) {} }
 function words(q){ return String(q || '').toLowerCase().split(/\s+/).filter(Boolean); }
 function hits(text, ws){ var t = String(text || '').toLowerCase(); return ws.every(function(w){ return t.indexOf(w) >= 0; }); }
 
@@ -77,5 +77,5 @@ function close(){ var root = document.getElementById('psJump'); if (root) root.r
 // Ctrl/Command+K opens the box from anywhere (it used to jump into the top search bar); a second press closes it.
 document.addEventListener('keydown', function(e){ if ((e.ctrlKey || e.metaKey) && !e.altKey && String(e.key).toLowerCase() === 'k') { e.preventDefault(); e.stopImmediatePropagation(); if (state.open) close(); else open(); } }, true);
 document.addEventListener('click', function(e){ var b = e.target && e.target.closest && e.target.closest('[data-jump-open]'); if (b) { e.preventDefault(); open(); } });
-global.PoolShedJump = { open: open, close: close, build: build, remember: remember };
+global.PoolShedJump = { open: open, close: close, build: build, remember: remember, go: go };
 })(typeof window !== 'undefined' ? window : globalThis);

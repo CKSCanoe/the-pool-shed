@@ -25,7 +25,7 @@
 .sales-table-scroll { overflow-x:auto; max-width:100%; border:1px solid var(--color-border-default); border-radius:var(--ps-radius-control); }
 .sales-workspace .order-lines-table { min-width:1100px; margin:0; }
 .sales-workspace .order-lines-table td { padding:14px 10px; vertical-align:top; }
-.sales-workspace .order-lines-table th { padding:12px 10px; font-size:11px; letter-spacing:.03em; }
+.sales-workspace .order-lines-table th { padding:12px 10px; font-size:12px; letter-spacing:.03em; }
 .sales-workspace .line-actions { display:flex; flex-direction:column; gap:6px; }
 .sales-workspace input:focus-visible,.sales-workspace button:focus-visible,.sales-workspace summary:focus-visible { outline:2px solid var(--color-status-info); outline-offset:3px; }
 @media(max-width:1100px) { .sales-workspace .record-shell { grid-template-columns:1fr 1fr; } .sales-workspace .customer-profile-compact { grid-column:1/-1; } }
@@ -47,7 +47,7 @@
 .sales-workspace .so-variant-chips span {
   display:inline-flex;align-items:center;min-height:18px;padding:0 5px;border-radius:999px;
   background:var(--color-surface-subtle);color:var(--color-text-secondary);
-  font-size:10px;font-style:normal;font-weight:800
+  font-size:12px;font-style:normal;font-weight:800
 }
 
 /* Goods notes stay discoverable without taking over the Sales Order. */
@@ -56,13 +56,13 @@
 }
 .sales-workspace .so-gn-directory-head{display:flex;align-items:center;gap:8px}
 .sales-workspace .so-gn-directory-head>div{display:grid;gap:2px;min-width:0}
-.sales-workspace .so-gn-directory-head span{font-size:10px;color:var(--color-text-secondary);font-weight:800;text-transform:uppercase;letter-spacing:.04em}
-.sales-workspace .so-gn-directory-head strong{font-size:10px}
-.sales-workspace .so-gn-directory-head small{font-size:10px;color:var(--color-text-secondary);line-height:1.35}
-.sales-workspace .so-gn-directory-head button{margin-left:auto;min-height:28px;padding:4px 7px;font-size:10px}
+.sales-workspace .so-gn-directory-head span{font-size:12px;color:var(--color-text-secondary);font-weight:800;text-transform:uppercase;letter-spacing:.04em}
+.sales-workspace .so-gn-directory-head strong{font-size:12px}
+.sales-workspace .so-gn-directory-head small{font-size:12px;color:var(--color-text-secondary);line-height:1.35}
+.sales-workspace .so-gn-directory-head button{margin-left:auto;min-height:28px;padding:4px 7px;font-size:12px}
 .sales-workspace .so-gn-panel{margin-top:7px;border:1px solid var(--color-border-default);border-radius:6px;background:var(--color-surface-default);overflow:hidden}
 .sales-workspace .so-gn-search{padding:7px;background:var(--color-surface-default);border-bottom:1px solid var(--color-border-default)}
-.sales-workspace .so-gn-search input{width:100%;min-height:30px;padding:5px 7px;font-size:10px}
+.sales-workspace .so-gn-search input{width:100%;min-height:30px;padding:5px 7px;font-size:12px}
 .sales-workspace .so-gn-list{max-height:190px;overflow:auto}
 .sales-workspace .so-gn-row{
   display:grid;grid-template-columns:minmax(0,1fr) 80px 74px 48px;gap:7px;align-items:center;width:100%;
@@ -70,10 +70,10 @@
 }
 .sales-workspace .so-gn-row:last-child{border-bottom:0}
 .sales-workspace .so-gn-row:hover{background:var(--color-surface-default)}
-.sales-workspace .so-gn-row strong{display:block;font-size:10px}
-.sales-workspace .so-gn-row small{display:block;margin-top:2px;color:var(--color-text-secondary);font-size:10px;line-height:1.3}
-.sales-workspace .so-gn-open{color:var(--color-action-ink);font-size:10px;font-weight:800;text-align:right}
-.sales-workspace .so-gn-empty{padding:12px;text-align:center;color:var(--color-text-secondary);font-size:10px}
+.sales-workspace .so-gn-row strong{display:block;font-size:12px}
+.sales-workspace .so-gn-row small{display:block;margin-top:2px;color:var(--color-text-secondary);font-size:12px;line-height:1.3}
+.sales-workspace .so-gn-open{color:var(--color-action-ink);font-size:12px;font-weight:800;text-align:right}
+.sales-workspace .so-gn-empty{padding:12px;text-align:center;color:var(--color-text-secondary);font-size:12px}
 
 /* Single-item smart product finder. The result panel is portalled to body by JS. */
 .sales-workspace .so-smart-add-controls{align-items:flex-start}
@@ -99,44 +99,44 @@ body.so-batch-open{overflow:hidden}
   display:flex;align-items:flex-start;gap:10px;padding:14px 16px 12px;background:var(--color-surface-default);border-bottom:1px solid var(--color-border-default)
 }
 .so-batch-head>div{display:grid;gap:2px}
-.so-batch-head span{font-size:10px;color:var(--color-text-secondary);font-weight:900;letter-spacing:.05em}
+.so-batch-head span{font-size:12px;color:var(--color-text-secondary);font-weight:900;letter-spacing:.05em}
 .so-batch-head strong{font-size:16px;line-height:1.2}
-.so-batch-head p{margin:0;color:var(--color-text-secondary);font-size:10px}
+.so-batch-head p{margin:0;color:var(--color-text-secondary);font-size:12px}
 .so-batch-head button{margin-left:auto}
 .so-batch-tools{padding:10px 14px 0;background:var(--color-surface-default);border-bottom:1px solid var(--color-border-default)}
 .so-batch-search-row{display:grid;grid-template-columns:minmax(0,1fr) 132px;gap:7px}
-.so-batch-search-row input,.so-batch-search-row select{min-height:38px;padding:7px 9px;border:1px solid var(--color-border-default);border-radius:5px;background:var(--color-surface-default);font-size:10px}
+.so-batch-search-row input,.so-batch-search-row select{min-height:38px;padding:7px 9px;border:1px solid var(--color-border-default);border-radius:5px;background:var(--color-surface-default);font-size:12px}
 .so-batch-tabs{display:flex;gap:4px;margin-top:7px}
-.so-batch-tabs button{min-height:30px;padding:5px 8px;border:0;border-bottom:2px solid transparent;border-radius:0;background:transparent;color:var(--color-text-secondary);font-size:10px;font-weight:800}
+.so-batch-tabs button{min-height:30px;padding:5px 8px;border:0;border-bottom:2px solid transparent;border-radius:0;background:transparent;color:var(--color-text-secondary);font-size:12px;font-weight:800}
 .so-batch-tabs button.active{color:var(--color-action-ink);border-bottom-color:var(--color-action-ink)}
 .so-batch-body{min-height:0;overflow:auto;padding:10px 14px 16px}
 .so-batch-hint{
-  display:flex;gap:7px;align-items:flex-start;margin-bottom:8px;padding:8px 9px;border:1px solid var(--color-border-default);border-radius:6px;background:var(--color-surface-default);font-size:10px;color:var(--color-text-secondary)
+  display:flex;gap:7px;align-items:flex-start;margin-bottom:8px;padding:8px 9px;border:1px solid var(--color-border-default);border-radius:6px;background:var(--color-surface-default);font-size:12px;color:var(--color-text-secondary)
 }
 .so-batch-hint strong{color:var(--color-status-info-text);white-space:nowrap}
 .so-batch-family{margin-bottom:8px;border:1px solid var(--color-border-default);border-radius:7px;background:var(--color-surface-default);overflow:hidden}
 .so-batch-family-head{display:flex;align-items:center;gap:8px;padding:8px 10px;background:var(--color-surface-default);border-bottom:1px solid var(--color-border-default)}
-.so-batch-family-head strong{font-size:11px}
-.so-batch-family-head span{margin-left:auto;color:var(--color-text-secondary);font-size:10px}
+.so-batch-family-head strong{font-size:12px}
+.so-batch-family-head span{margin-left:auto;color:var(--color-text-secondary);font-size:12px}
 .so-batch-row{
   display:grid;grid-template-columns:minmax(0,1fr) 80px 84px 104px;gap:9px;align-items:center;min-height:56px;
   padding:8px 10px;border-bottom:1px solid var(--color-border-default)
 }
 .so-batch-row:last-child{border-bottom:0}
 .so-batch-row:hover,.so-batch-row.selected{background:var(--color-surface-default)}
-.so-batch-product>strong{display:block;font-size:10px}
-.so-batch-product>small,.so-batch-stock small,.so-batch-price small{display:block;margin-top:2px;color:var(--color-text-secondary);font-size:10px}
-.so-batch-stock strong,.so-batch-price strong{display:block;font-size:10px}
+.so-batch-product>strong{display:block;font-size:12px}
+.so-batch-product>small,.so-batch-stock small,.so-batch-price small{display:block;margin-top:2px;color:var(--color-text-secondary);font-size:12px}
+.so-batch-stock strong,.so-batch-price strong{display:block;font-size:12px}
 .so-batch-stock .good{color:var(--color-status-success-text)}.so-batch-stock .warn{color:var(--color-status-attention-text)}.so-batch-stock .bad{color:var(--color-status-danger-text)}
 .so-batch-price{text-align:right}
 .so-batch-qty{display:grid;grid-template-columns:28px 38px 28px;gap:3px;justify-content:end;align-items:center}
 .so-batch-qty button{width:28px;min-height:28px;height:28px;padding:0;border:1px solid var(--color-border-default);background:var(--color-action-soft);font-size:14px}
-.so-batch-qty input{width:38px;min-height:28px;height:28px;padding:0;border:1px solid var(--color-border-default);border-radius:5px;text-align:center;font-size:10px}
+.so-batch-qty input{width:38px;min-height:28px;height:28px;padding:0;border:1px solid var(--color-border-default);border-radius:5px;text-align:center;font-size:12px}
 .so-batch-footer{
   display:flex;align-items:center;gap:10px;padding:10px 14px 12px;background:var(--color-surface-default);border-top:1px solid var(--color-border-default);box-shadow:0 -8px 18px var(--shadow-color)
 }
 .so-batch-footer>div{display:grid;gap:2px;margin-right:auto}
-.so-batch-footer strong{font-size:11px}.so-batch-footer small{color:var(--color-text-secondary);font-size:10px}
+.so-batch-footer strong{font-size:12px}.so-batch-footer small{color:var(--color-text-secondary);font-size:12px}
 .so-batch-empty{margin:0}
 
 @media(max-width:760px){
@@ -191,7 +191,7 @@ body.so-batch-open{overflow:hidden}
   min-height:34px;
   height:34px;
   padding:0 10px;
-  font-size:11px
+  font-size:12px
 }
 #screen-salesorders .sales-workspace.sales-command-page .detail-actions .so-action-save{
   background:var(--color-action-primary);
@@ -257,7 +257,7 @@ body.so-batch-open{overflow:hidden}
   font-size:12px
 }
 #screen-salesorders .sales-workspace.sales-command-page .so-customer-current small{
-  font-size:10px;
+  font-size:12px;
   line-height:1.35
 }
 
@@ -272,7 +272,7 @@ body.so-batch-open{overflow:hidden}
   border-bottom:1px solid var(--color-border-default)
 }
 #screen-salesorders .sales-workspace.sales-command-page .so-card-heading span{
-  font-size:10px;
+  font-size:12px;
   text-transform:uppercase;
   letter-spacing:.04em
 }
@@ -290,7 +290,7 @@ body.so-batch-open{overflow:hidden}
 #screen-salesorders .sales-workspace.sales-command-page .so-fulfilment-card select{
   min-height:34px!important;
   height:34px;
-  font-size:11px
+  font-size:12px
 }
 #screen-salesorders .sales-workspace.sales-command-page .so-progress-grid{
   gap:6px;
@@ -304,7 +304,7 @@ body.so-batch-open{overflow:hidden}
 }
 #screen-salesorders .sales-workspace.sales-command-page .so-progress-grid span,
 #screen-salesorders .sales-workspace.sales-command-page .so-progress-grid strong{
-  font-size:10px
+  font-size:12px
 }
 
 /* Flat Concept A tabs */
@@ -319,7 +319,7 @@ body.so-batch-open{overflow:hidden}
   min-height:38px!important;
   height:38px;
   padding:0 12px!important;
-  font-size:11px!important
+  font-size:12px!important
 }
 
 /* The working surface is intentionally one coherent module rather than nested legacy panels. */
@@ -356,7 +356,7 @@ body.so-batch-open{overflow:hidden}
 #screen-salesorders .sales-workspace.sales-command-page .po-add-copy span,
 #screen-salesorders .sales-workspace.sales-command-page .so-line-composer-head span{
   color:var(--color-text-secondary);
-  font-size:10px;
+  font-size:12px;
   font-weight:850;
   text-transform:uppercase;
   letter-spacing:.04em
@@ -371,7 +371,7 @@ body.so-batch-open{overflow:hidden}
 #screen-salesorders .sales-workspace.sales-command-page .so-line-composer-head p{
   margin:3px 0 0;
   color:var(--color-text-secondary);
-  font-size:10px;
+  font-size:12px;
   line-height:1.35
 }
 #screen-salesorders .sales-workspace.sales-command-page .so-smart-add-controls{
@@ -401,7 +401,7 @@ body.so-batch-open{overflow:hidden}
   height:38px;
   padding-inline:9px;
   white-space:nowrap;
-  font-size:10px
+  font-size:12px
 }
 #screen-salesorders .sales-workspace.sales-command-page .so-line-composer{
   overflow:hidden
@@ -423,7 +423,7 @@ body.so-batch-open{overflow:hidden}
   min-height:30px;
   height:30px;
   padding:0 7px;
-  font-size:9px
+  font-size:12px
 }
 #screen-salesorders .sales-workspace.sales-command-page .so-line-form{
   padding:9px 10px
@@ -434,7 +434,7 @@ body.so-batch-open{overflow:hidden}
   border-top:1px solid var(--color-status-info-line);
   border-radius:0;
   padding:7px 10px;
-  font-size:10px
+  font-size:12px
 }
 
 /* Search result portal: deliberately readable and always above the order workspace. */
@@ -455,19 +455,19 @@ body.so-batch-open{overflow:hidden}
 .so-batch-stock small,
 .so-batch-price small,
 .so-batch-footer small{
-  font-size:10px
+  font-size:12px
 }
 .so-batch-product>strong,
 .so-batch-stock strong,
 .so-batch-price strong{
-  font-size:11px
+  font-size:12px
 }
 .so-batch-row{
   min-height:60px
 }
 .so-batch-search-row input,
 .so-batch-search-row select{
-  font-size:11px
+  font-size:12px
 }
 
 @media(max-width:1100px){
@@ -548,7 +548,7 @@ body.so-batch-open{overflow:hidden}
 
 #screen-salesorders .so-list-command-copy>span{
   color:var(--color-text-secondary);
-  font-size:10px;
+  font-size:12px;
   font-weight:900;
   letter-spacing:.07em;
   text-transform:uppercase;
@@ -563,7 +563,7 @@ body.so-batch-open{overflow:hidden}
 
 #screen-salesorders .so-list-command-copy>small{
   color:var(--color-text-secondary);
-  font-size:11px;
+  font-size:12px;
   line-height:1.35;
 }
 
@@ -601,7 +601,7 @@ body.so-batch-open{overflow:hidden}
 #screen-salesorders .so-list-kpi>span{
   display:block;
   color:var(--color-text-secondary);
-  font-size:10px;
+  font-size:12px;
   font-weight:900;
   line-height:1.2;
   letter-spacing:.05em;
@@ -619,7 +619,7 @@ body.so-batch-open{overflow:hidden}
 #screen-salesorders .so-list-kpi>small{
   display:block;
   color:var(--color-text-secondary);
-  font-size:10px;
+  font-size:12px;
   line-height:1.3;
 }
 
@@ -666,7 +666,7 @@ body.so-batch-open{overflow:hidden}
   border-radius:0;
   background:transparent;
   color:var(--color-text-secondary);
-  font-size:11px;
+  font-size:12px;
   font-weight:750;
   box-shadow:none;
 }
@@ -694,7 +694,7 @@ body.so-batch-open{overflow:hidden}
   border-radius:999px;
   background:var(--color-surface-subtle);
   color:var(--color-text-secondary);
-  font-size:10px;
+  font-size:12px;
   font-weight:850;
 }
 
@@ -725,7 +725,7 @@ body.so-batch-open{overflow:hidden}
 #screen-salesorders .so-list-filters label>span,
 #screen-salesorders .so-list-extra-filters label>span{
   color:var(--color-text-secondary);
-  font-size:10px;
+  font-size:12px;
   font-weight:850;
   line-height:1.2;
 }
@@ -777,12 +777,12 @@ body.so-batch-open{overflow:hidden}
 
 #screen-salesorders .so-list-filter-summary>strong{
   color:var(--color-text-primary);
-  font-size:11px;
+  font-size:12px;
 }
 
 #screen-salesorders .so-list-filter-summary>span{
   color:var(--color-text-secondary);
-  font-size:10px;
+  font-size:12px;
 }
 
 #screen-salesorders .so-list-table-wrap{
@@ -809,7 +809,7 @@ body.so-batch-open{overflow:hidden}
   border-bottom:1px solid var(--color-border-default);
   background:var(--color-surface-subtle);
   color:var(--color-text-secondary);
-  font-size:10px;
+  font-size:12px;
   font-weight:850;
   line-height:1.2;
   letter-spacing:.04em;
@@ -824,7 +824,7 @@ body.so-batch-open{overflow:hidden}
   border-bottom:1px solid var(--color-border-default);
   background:var(--color-surface-default);
   color:var(--color-text-primary);
-  font-size:11px;
+  font-size:12px;
   line-height:1.3;
   vertical-align:middle;
 }
@@ -848,7 +848,7 @@ body.so-batch-open{overflow:hidden}
   display:block;
   margin-top:2px;
   color:var(--color-text-secondary);
-  font-size:10px;
+  font-size:12px;
   line-height:1.3;
 }
 
@@ -944,7 +944,7 @@ body.so-batch-open{overflow:hidden}
 }
 
 #screen-salesorders .so-list-empty span{
-  font-size:11px;
+  font-size:12px;
 }
 
 #screen-salesorders .so-list-bulk{
@@ -967,7 +967,7 @@ body.so-batch-open{overflow:hidden}
 
 #screen-salesorders .so-list-bulk>strong{
   color:var(--color-text-primary);
-  font-size:11px;
+  font-size:12px;
   margin-right:auto;
 }
 
@@ -1103,11 +1103,11 @@ body:not([data-theme="dark"]) #screen-salesorders .so-list-page :is(input,select
 }
 .so2-customer-card{border-color:var(--color-text-secondary)!important}
 .so2-card-body{padding:11px 12px 9px}
-.so2-kicker{font-size:10px!important;color:var(--color-text-secondary)!important;font-weight:900!important;text-transform:uppercase;letter-spacing:.07em}
+.so2-kicker{font-size:12px!important;color:var(--color-text-secondary)!important;font-weight:900!important;text-transform:uppercase;letter-spacing:.07em}
 .so2-customer-title{display:flex;align-items:center;gap:9px;margin-top:5px}
 .so2-avatar{width:34px;height:34px;display:grid;place-items:center;flex:0 0 auto;border-radius:50%;background:var(--color-surface-subtle);color:var(--color-action-ink);font-weight:900}
 .so2-customer-title h3{font-size:15px;margin:0;color:var(--color-text-primary)}
-.so2-customer-title p{margin:2px 0 0;font-size:10px;color:var(--color-text-secondary)}
+.so2-customer-title p{margin:2px 0 0;font-size:12px;color:var(--color-text-secondary)}
 .so2-customer-title>.pill{margin-left:auto}
 .so2-customer-search{display:grid!important;grid-template-columns:minmax(0,1fr) auto auto;gap:6px;margin-top:9px!important;align-items:end}
 .so2-customer-search label{min-width:0}
@@ -1121,7 +1121,7 @@ body:not([data-theme="dark"]) #screen-salesorders .so-list-page :is(input,select
 }
 .so2-tabs .tab-chip{
   min-height:36px!important;height:36px!important;padding:0 10px!important;border:1px solid transparent!important;border-bottom:0!important;
-  border-radius:5px 5px 0 0!important;background:transparent!important;color:var(--color-text-secondary)!important;box-shadow:none!important;white-space:nowrap;font-size:10px!important
+  border-radius:5px 5px 0 0!important;background:transparent!important;color:var(--color-text-secondary)!important;box-shadow:none!important;white-space:nowrap;font-size:12px!important
 }
 .so2-tabs .tab-chip.active{
   background:var(--color-surface-subtle)!important;color:var(--color-action-ink)!important;border-color:var(--color-text-secondary)!important;
@@ -1138,33 +1138,33 @@ body:not([data-theme="dark"]) #screen-salesorders .so-list-page :is(input,select
 .so2-lines-toolbar>div:first-child{display:grid;grid-template-columns:auto auto;column-gap:8px;align-items:baseline}
 .so2-lines-toolbar>div:first-child .so2-kicker{grid-column:1/-1}
 .so2-lines-toolbar strong{font-size:12px}
-.so2-lines-toolbar small{font-size:10px;color:var(--color-text-secondary)}
+.so2-lines-toolbar small{font-size:12px;color:var(--color-text-secondary)}
 .so2-toolbar-actions{margin-left:auto;display:flex;gap:6px;flex-wrap:wrap}
 .so2-toolbar-actions button{height:32px!important;min-height:32px!important}
 .so2-table-scroll{overflow-x:auto!important;overflow-y:visible!important;max-height:none!important}
 .so2-lines-table{width:100%;min-width:1080px;border-collapse:collapse!important;table-layout:auto!important}
 .so2-lines-table thead th{
   position:sticky;top:0;z-index:2;height:34px!important;padding:0 8px!important;background:var(--color-surface-subtle)!important;
-  color:var(--color-text-secondary)!important;border-bottom:1px solid var(--color-border-default)!important;text-transform:uppercase;font-size:10px!important;letter-spacing:.03em
+  color:var(--color-text-secondary)!important;border-bottom:1px solid var(--color-border-default)!important;text-transform:uppercase;font-size:12px!important;letter-spacing:.03em
 }
 .so2-lines-table thead .so2-variant-head{background:var(--color-surface-subtle)!important;color:var(--color-text-secondary)!important}
-.so2-lines-table td{padding:8px!important;border-bottom:1px solid var(--color-border-default)!important;background:var(--color-surface-subtle)!important;vertical-align:middle!important;font-size:10px!important}
+.so2-lines-table td{padding:8px!important;border-bottom:1px solid var(--color-border-default)!important;background:var(--color-surface-subtle)!important;vertical-align:middle!important;font-size:12px!important}
 .so2-lines-table tr:last-child td{border-bottom:0!important}
 .so2-check{width:32px;text-align:center}
 .so2-product-cell{min-width:180px}
-.so2-product-cell>strong{display:block;font-size:11px}
-.so2-product-cell>small,.so2-stock-cell>small,.so2-allocated>small,.so2-money>small{display:block;color:var(--color-text-secondary);font-size:10px;margin-top:2px}
-.so2-product-cell .link-button{font-size:10px!important;padding:4px 0 0!important}
+.so2-product-cell>strong{display:block;font-size:12px}
+.so2-product-cell>small,.so2-stock-cell>small,.so2-allocated>small,.so2-money>small{display:block;color:var(--color-text-secondary);font-size:12px;margin-top:2px}
+.so2-product-cell .link-button{font-size:12px!important;padding:4px 0 0!important}
 .so2-variant-cell{min-width:235px;background:var(--color-surface-default)!important}
-.so2-variant-control>span{display:block;font-size:10px;color:var(--color-text-secondary);font-weight:900;text-transform:uppercase;letter-spacing:.05em;margin-bottom:3px}
+.so2-variant-control>span{display:block;font-size:12px;color:var(--color-text-secondary);font-weight:900;text-transform:uppercase;letter-spacing:.05em;margin-bottom:3px}
 .so2-variant-control select{
   width:100%;height:32px!important;min-height:32px!important;background:var(--color-surface-default)!important;color:var(--color-text-primary)!important;border:1px solid var(--color-border-default)!important;
-  border-radius:5px!important;padding:0 26px 0 7px!important;font-size:10px!important;font-weight:800!important
+  border-radius:5px!important;padding:0 26px 0 7px!important;font-size:12px!important;font-weight:800!important
 }
 .so2-variant-control select:focus{border-color:var(--color-action-ink)!important;box-shadow:var(--focus-ring)!important;outline:0}
 .so2-variant-control select:disabled{background:var(--color-surface-default)!important;color:var(--color-text-secondary)!important}
-.so2-variant-control>small,.so2-variant-static small{display:block;margin-top:4px;color:var(--color-text-secondary);font-size:10px}
-.so2-variant-static strong{display:block;font-size:10px}
+.so2-variant-control>small,.so2-variant-static small{display:block;margin-top:4px;color:var(--color-text-secondary);font-size:12px}
+.so2-variant-static strong{display:block;font-size:12px}
 .so2-stock-good{color:var(--color-status-success-text)}
 .so2-stock-warn{color:var(--color-status-attention-text)}
 .so2-qty{width:54px!important;height:30px!important;min-height:30px!important;text-align:center!important}
@@ -1174,7 +1174,7 @@ body:not([data-theme="dark"]) #screen-salesorders .so-list-page :is(input,select
 .so2-actions-cell{width:56px;text-align:center}
 .so2-menu-button{height:30px!important;min-height:30px!important;padding:0 9px!important;font-size:13px!important;letter-spacing:1px}
 .so2-empty-lines{padding:24px;text-align:center;color:var(--color-text-secondary);display:flex;flex-direction:column;gap:3px}
-.so2-empty-lines strong{color:var(--color-text-primary);font-size:11px}
+.so2-empty-lines strong{color:var(--color-text-primary);font-size:12px}
 
 .so2-line-menu{
   position:fixed!important;width:196px!important;padding:5px!important;background:var(--color-surface-default)!important;border:1px solid var(--color-border-default)!important;
@@ -1184,7 +1184,7 @@ body:not([data-theme="dark"]) #screen-salesorders .so-list-page :is(input,select
 .so2-line-menu.so2-menu-open{display:block!important}
 .so2-line-menu button{
   display:block!important;width:100%!important;min-height:31px!important;height:31px!important;border:0!important;background:transparent!important;
-  color:var(--color-text-primary)!important;border-radius:4px!important;text-align:left!important;padding:0 8px!important;font-size:10px!important;font-weight:700!important
+  color:var(--color-text-primary)!important;border-radius:4px!important;text-align:left!important;padding:0 8px!important;font-size:12px!important;font-weight:700!important
 }
 .so2-line-menu button:hover,.so2-line-menu button:focus{background:var(--color-action-primary-hover)!important;outline:0!important}
 .so2-line-menu button.danger{color:var(--color-status-danger-text)!important}
@@ -1197,14 +1197,14 @@ body:not([data-theme="dark"]) #screen-salesorders .so-list-page :is(input,select
 .so2-section-head{min-height:54px;padding:9px 12px;border-bottom:1px solid var(--color-border-default);display:flex;align-items:center;gap:8px;background:var(--color-surface-default)}
 .so2-section-head>div{display:flex;flex-direction:column;gap:2px;min-width:0}
 .so2-section-head strong{font-size:14px}
-.so2-section-head small{font-size:10px;color:var(--color-text-secondary)}
+.so2-section-head small{font-size:12px;color:var(--color-text-secondary)}
 .so2-section-head>button{margin-left:auto}
 .so2-catalogue-body{padding:10px 11px}
 .so2-catalogue-body .so-add-items{margin:0!important;padding:0!important;background:transparent!important;border:0!important;box-shadow:none!important}
 .so2-catalogue-body .po-add-copy{margin-bottom:8px}
-.so2-catalogue-body .po-add-copy>span{font-size:10px!important;color:var(--color-text-secondary)!important;text-transform:uppercase;font-weight:900}
+.so2-catalogue-body .po-add-copy>span{font-size:12px!important;color:var(--color-text-secondary)!important;text-transform:uppercase;font-weight:900}
 .so2-catalogue-body .po-add-copy>strong{font-size:12px!important}
-.so2-catalogue-body .po-add-copy>p{font-size:10px!important;color:var(--color-text-secondary)!important;margin:2px 0 0!important}
+.so2-catalogue-body .po-add-copy>p{font-size:12px!important;color:var(--color-text-secondary)!important;margin:2px 0 0!important}
 .so2-catalogue-body .so-smart-add-controls{display:grid!important;grid-template-columns:minmax(0,1fr) 70px auto auto!important;gap:6px!important;align-items:center!important}
 .so2-catalogue-body #salesOrderProductSearch,
 .so2-catalogue-body #salesOrderProductQty{
@@ -1229,12 +1229,12 @@ body:not([data-theme="dark"]) #screen-salesorders .so-list-page :is(input,select
 .so2-totals-body .order-total-row.grand{font-size:13px;color:var(--color-text-primary)}
 .so2-payment-actions{padding-top:10px;display:grid;gap:6px}
 .so2-payment-actions button{width:100%;height:36px!important;min-height:36px!important}
-.so2-totals-note{font-size:10px;color:var(--color-text-secondary);line-height:1.45;margin:8px 0 0}
+.so2-totals-note{font-size:12px;color:var(--color-text-secondary);line-height:1.45;margin:8px 0 0}
 
 .so2-secondary-panel{padding:0;overflow:hidden}
 .so2-fulfilment-summary{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;padding:12px}
 .so2-fulfilment-summary>div{border:1px solid var(--color-border-default);background:var(--color-surface-default);border-radius:6px;padding:8px 9px}
-.so2-fulfilment-summary span{font-size:10px;color:var(--color-text-secondary);text-transform:uppercase;font-weight:900}
+.so2-fulfilment-summary span{font-size:12px;color:var(--color-text-secondary);text-transform:uppercase;font-weight:900}
 .so2-fulfilment-summary strong{display:block;font-size:14px;margin-top:3px}
 .so2-secondary-grid{display:grid;grid-template-columns:1.4fr 1fr;gap:13px}
 

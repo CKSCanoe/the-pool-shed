@@ -45,7 +45,7 @@ assert(/Waiting too long <b>1<\/b>/.test(bar), 'late chip');
 
 // 3. Home: purchasing role sees deliveries overdue and late POs; zero tiles fold into "All clear"; name capitalised.
 const home = F.homeHtml();
-assert(/Aaron, here/.test(home), 'greeting'); assert(/deliveries overdue/.test(home) && /POs waiting too long/.test(home), 'purchasing tiles');
+assert(/(Good morning|Good afternoon|Good evening), Aaron</.test(home), 'greeting (v1.81 Home)'); assert(/deliver(y|ies) overdue/.test(home) && /POs? waiting too long/.test(home), "purchasing tiles");
 assert(!/ready to invoice/.test(home), 'no finance tiles for Purchasing'); assert(/data-home-filter="__late"/.test(home), 'late orders tile filters the list');
 
 // 4. Wiring.

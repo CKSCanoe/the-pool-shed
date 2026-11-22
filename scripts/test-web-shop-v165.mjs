@@ -90,5 +90,5 @@ assert(/if\(!cfg\|\|!cfg\.enabled\)return send\(res,503/.test(media) && /check=v
 const legacy = fs.readFileSync('public/assets/js/01-legacy-01.js', 'utf8'), set = fs.readFileSync('public/settings-command-workspace.js', 'utf8'), index = fs.readFileSync('public/index.html', 'utf8'), sw = fs.readFileSync('public/service-worker.js', 'utf8');
 assert(/"Contracts", "Web Orders", "Sales Credits"/.test(legacy) && /'Integrations','Web Shop',/.test(set) && /'Web Shop':webShopPage/.test(set));
 assert(index.indexOf('web-shop.js') > index.indexOf('customer-emails.js'), 'loads after customer emails so both run on dispatch');
-assert(/web-shop\.js\?v=1\.80\.0/.test(sw));
+assert(/web-shop\.js\?v=1\.81\.0/.test(sw));
 console.log('Web shop v1.65: signed orders only, any platform, web order → sales order, dispatch updates queued, stock feed, starts off.');

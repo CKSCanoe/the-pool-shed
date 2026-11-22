@@ -1,4 +1,4 @@
-/* Pool Shed v1.80.0 — Contracts: recurring maintenance and repeat orders (Sales → Contracts).
+/* Pool Shed v1.81.0 — Contracts: recurring maintenance and repeat orders (Sales → Contracts).
    Upgrades the earlier "Subscriptions" page: the same records (salesOrderSubscriptions) are kept, and each one is now
    either a maintenance contract (billed as a fixed fee per period, or per visit) or a repeat order of products.
    Service lines are kept at the agreed contract price (customer discounts do not apply), frequencies follow the
@@ -276,11 +276,11 @@
   }
   if (typeof document !== 'undefined' && document.head && !document.getElementById('ct-styles')) {
     var st = document.createElement('style'); st.id = 'ct-styles';
-    st.textContent = '.ct-page small{display:block;color:var(--muted,#5b6b70);font-size:12.5px}.ct-table td,.ct-table th{vertical-align:top}.ct-table .num,.ct-table th.num{text-align:right;white-space:nowrap}' +
-      '.ct-pill{display:inline-block;border-radius:999px;padding:2px 9px;font-size:12.5px;background:rgba(15,76,87,.08)}.ct-pill.good{background:rgba(29,122,76,.12);color:#1d7a4c}.ct-pill.warn{background:rgba(168,98,0,.12);color:#8a5200}.ct-pill.bad{background:rgba(185,71,79,.12);color:#b9474f}' +
+    st.textContent = '.ct-page small{display:block;color:var(--color-text-secondary);font-size:12.5px}.ct-table td,.ct-table th{vertical-align:top}.ct-table .num,.ct-table th.num{text-align:right;white-space:nowrap}' +
+      '.ct-pill{display:inline-block;border-radius:999px;padding:2px 9px;font-size:12.5px;background:rgba(15,76,87,.08)}.ct-pill.good{background:var(--color-status-success-bg);color:var(--color-status-success-text)}.ct-pill.warn{background:var(--color-status-attention-bg);color:var(--color-status-attention-text)}.ct-pill.bad{background:var(--color-status-danger-bg);color:var(--color-status-danger-text)}' +
       '.ct-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:10px 14px;margin-bottom:12px}.ct-grid label{display:flex;flex-direction:column;gap:4px;font-size:13.5px}.ct-grid .ct-wide{grid-column:1/-1}' +
       '.ct-lines input,.ct-lines select{width:100%}.ct-lines .ct-n,.ct-n{max-width:110px}.ct-actions{display:flex;gap:8px;flex-wrap:wrap;margin:10px 0}.ct-total{margin:6px 0 0}' +
-      '.ct-msg{border-radius:10px;padding:10px 12px;margin:10px 0}.ct-msg.ok{background:rgba(29,122,76,.1)}.ct-msg.bad{background:rgba(185,71,79,.1)}.ct-row-actions{white-space:nowrap}.ct-row-actions .link,.ct-page .link{background:none;border:0;padding:0 8px 0 0;text-decoration:underline;cursor:pointer;color:inherit;min-height:0}' +
+      '.ct-msg{border-radius:10px;padding:10px 12px;margin:10px 0}.ct-msg.ok{background:var(--color-status-success-bg)}.ct-msg.bad{background:var(--color-status-danger-bg)}.ct-row-actions{white-space:nowrap}.ct-row-actions .link,.ct-page .link{background:none;border:0;padding:0 8px 0 0;text-decoration:underline;cursor:pointer;color:inherit;min-height:0}' +
       '.ct-renewals{list-style:none;margin:0;padding:0}.ct-renewals li{display:flex;gap:10px;align-items:center;flex-wrap:wrap;padding:8px 0;border-top:1px solid rgba(0,0,0,.07)}.ct-inline{display:flex;gap:6px;align-items:center;font-size:13px}.ct-filter{display:flex;gap:6px}';
     document.head.appendChild(st);
   }

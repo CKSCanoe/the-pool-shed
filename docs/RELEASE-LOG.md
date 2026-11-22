@@ -238,6 +238,21 @@ Owner approved the blueprint 21 Nov 2026 (eight areas; Pool Audits under My Work
 
 ---
 
+## Overhaul phase 1: foundations and Home · v1.81.0 · branch `overhaul-1`
+
+Owner: audit every page and process; the look is odd from mixed authors, pages carry a lot of information yet look bare; overhaul it. Audit (118 menu pages on staging): text under 11px on 74 pages (4,728 pieces), 38 buttons per page on average, Core stock 101 coloured buttons, My work six buttons per task, Home showing the same to-dos twice with two greetings and a dark band, Product Groups drawing 1,550 buttons, capital "eyebrow" labels and jargon, and one serious bug (product pages stuck on Imports). Plan agreed: five phases (foundations and Home; lists; record pages; processes; wording), each with a richer look (icons, figures with a direction, grouped cards, status timelines, pictures).
+
+| # | Change | Status | Evidence |
+|---|---|---|---|
+| OV1 | Fixed: product pages stuck on the import screen after visiting Imports (mode now cleared when leaving Imports or Catalogue Health) | **Fixed · Tested in a real browser on staging** | Before: Products, Core stock and Catalogue all showed "Import Product Catalogue" after Imports. After: Core stock shows Core stock |
+| OV2 | Fixed: My work saved every minute and added a history entry to every open task each scan; unchanged tasks are now left alone and a scan saves once only if a task changed | **Fixed · Unit tested** | Action authority and My work tests pass |
+| OV3 | Text floor 12px: design tokens (micro 10→12, label 11→12), every px, rem and em size below 12px (base 14px) raised | **New · Tested in a real browser on staging** | All 109 menu pages compared with the old and new stylesheet on the same page: text under 12px 6,692 → 0; nothing wider, nothing newly cut off |
+| OV4 | One coloured main button per page: buttons in table rows, list items and cards use the plain style (new look only); capital labels become quiet sentence-case labels | **New · Tested in a real browser on staging** | Coloured buttons 290 → 59 across the pages (at most 2–3 per page) |
+| OV5 | Icon set (`ps-icons.js`) and the new Home: greeting, three figures with a direction, To do with icons and one button each, Recent; old dark band and duplicate side cards hidden with the new look | **New · Tested in a real browser on staging** | Home showed 6 to-dos with singular wording ("1 core stock line to reorder"); dark mode: no unreadable text on Home, My work, Purchase orders |
+| OV6 | Colours from the palette in Core stock (its figures were hard to read in dark mode), Contracts, Monthly pack, Profit, Vans, Van stock, Web orders and the customer email prompt; number plate and signature pads keep their fixed colours on purpose | **Fixed · Checked on staging** | Core stock figures readable in dark mode |
+| OV7 | Tests that pinned the old Home and wording updated; standalone stylesheet copies re-synced; release test | **Changed** | `test-frame-v155`; new `test-overhaul-foundations-v181` |
+| OV8 | Release log for v1.80 (PR #79) | **Deployed · verified on live** | Live cache `pool-shed-v1.80.0-remind-r1`; data unchanged |
+
 ## Payment reminders · v1.80.0 · branch `payment-reminders`
 
 Owner: quicker everyday use, third of three. Finding: Credit control showed aged debtors from the ledger with "Record payment", but no list of what to chase or any reminder history. Emails from Pool Shed stay switched off (owner's decision), so reminders open in the user's own email app.

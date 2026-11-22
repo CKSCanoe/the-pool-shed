@@ -1,4 +1,4 @@
-/* Pool Shed v1.80.0 — Profit: by order, project, customer and month (blueprint step 7).
+/* Pool Shed v1.81.0 — Profit: by order, project, customer and month (blueprint step 7).
    Order cost = the purchase order lines linked to the order (bought in for it) plus, for anything sold from stock,
    the quantity × the product's average cost from goods in (or its cost price until goods have been received).
    Projects use the project's own budget-against-actual (sales, actual cost, forecast final cost).
@@ -144,9 +144,9 @@
   }
   if (typeof document !== 'undefined' && document.head && !document.getElementById('pr-styles')) {
     var st = document.createElement('style'); st.id = 'pr-styles';
-    st.textContent = '.pr-bar{display:flex;gap:6px;flex-wrap:wrap;margin:4px 0 10px}.pr-tab{border:1px solid rgba(15,76,87,.25);background:transparent;color:inherit;border-radius:999px;padding:6px 14px;cursor:pointer;min-height:0}.pr-tab.on{background:#0f4c57!important;color:#fff!important;border-color:#0f4c57}' +
+    st.textContent = '.pr-bar{display:flex;gap:6px;flex-wrap:wrap;margin:4px 0 10px}.pr-tab{border:1px solid rgba(15,76,87,.25);background:transparent;color:inherit;border-radius:999px;padding:6px 14px;cursor:pointer;min-height:0}.pr-tab.on{background:var(--color-action-primary)!important;color:var(--color-action-contrast)!important;border-color:var(--color-action-primary)}' +
       '.pr-filters{display:flex;gap:12px;flex-wrap:wrap;align-items:end;margin-bottom:10px}.pr-filters label{display:flex;flex-direction:column;font-size:13px;gap:3px}.pr-filters .finance-check{flex-direction:row;align-items:center;gap:6px}' +
-      '.pr-table td.right,.pr-table th.right{text-align:right;white-space:nowrap}.pr-bad{color:#b9474f}.pr-page .link{background:none;border:0;padding:0;text-decoration:underline;cursor:pointer;color:inherit;min-height:0}';
+      '.pr-table td.right,.pr-table th.right{text-align:right;white-space:nowrap}.pr-bad{color:var(--color-status-danger-text)}.pr-page .link{background:none;border:0;padding:0;text-decoration:underline;cursor:pointer;color:inherit;min-height:0}';
     document.head.appendChild(st);
   }
   global.PoolShedProfit = { page: page, orderRows: orderRows, projectRows: projectRows, byCustomer: byCustomer, byMonth: byMonth, _ui: ui };
