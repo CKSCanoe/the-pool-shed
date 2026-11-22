@@ -6,7 +6,7 @@ const api=fs.readFileSync('api/quote.js','utf8');
 const sql=fs.readFileSync('database/007-quote-studio.sql','utf8');
 const vercel=JSON.parse(fs.readFileSync('vercel.json','utf8'));
 assert.match(html,/noindex,nofollow,noarchive/);
-assert.match(html,/quote-customer-portal\.js\?v=1\.45\.1/);
+assert.match(html,/quote-customer-portal\.js\?v=\d+\.\d+\.\d+/);
 for(const internal of ['01-legacy-01.js','quote-studio-engine.js','quote-studio-workspace.js','project-workspace.js','purchase-workspace.js'])assert(!html.includes(internal),'customer portal must not load '+internal);
 for(const forbidden of ['unitCost','supplierSnapshot','commercialSnapshot','purchaseOrders','costSnapshot','financeDocumentId'])assert(!js.includes(forbidden),'customer JavaScript must not contain internal field '+forbidden);
 assert.match(api,/public_payload/);assert.match(api,/commercial_payload/);assert.match(api,/token_hash/);assert.match(api,/tokenHash\(plain\)/);

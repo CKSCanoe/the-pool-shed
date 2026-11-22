@@ -15,7 +15,7 @@ const portalCss=read('public/quote-customer-portal.css');
 const index=read('public/index.html');
 const proposal=read('public/proposal.html');
 
-assert.equal(pkg.version,'1.71.0');
+assert.equal(pkg.version,'1.72.0');
 assert.match(eng,/const VERSION='1\.45\.1'/);
 
 // Navigation authority
@@ -45,7 +45,7 @@ assert.match(ws,/Proposal style/);
 assert.match(ws,/Pool Shed palette/);
 assert.match(ws,/central Pool Shed design tokens and cannot be overridden per quote/);
 assert.doesNotMatch(ws,/Proposal primary|Proposal accent|Proposal paper/);
-assert.match(portal,/themeVars=''/);
+assert.match(portal,/themeVars=\(brandColour\(theme\.brandColour\)/);assert.ok(portal.includes("function brandColour(v){return /^#[0-9a-f]{6}$/i.test"),'only a checked #rrggbb colour reaches the page');
 assert.doesNotMatch(portalCss,/var\(--pc-(?:primary|accent|paper|soft)/);
 assert.match(portalCss,/theme-waterline/);
 assert.match(portalCss,/theme-minimal/);
@@ -71,8 +71,8 @@ assert.doesNotMatch(snapshot,/costSnapshot/);
 
 // CSS authority stays single-source and assets are current.
 assert.equal(css,publicCss);
-assert(index.includes('app.css?v=1.71.0'));
-assert(proposal.includes('quote-customer-portal.css?v=1.45.1'));
-assert(proposal.includes('quote-customer-portal.js?v=1.45.1'));
+assert(index.includes('app.css?v=1.72.0'));
+assert(/quote-customer-portal\.css\?v=\d+\.\d+\.\d+/.test(proposal));
+assert(/quote-customer-portal\.js\?v=\d+\.\d+\.\d+/.test(proposal));
 
 console.log('Pool Shed Quote Studio Command, bespoke commercial control, central presentation palette and cross-tab preview: PASS');

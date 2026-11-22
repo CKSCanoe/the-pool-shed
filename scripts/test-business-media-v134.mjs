@@ -21,7 +21,7 @@ assert.equal(absoluteSigned('/object/sign/customer-media/example/photo.jpg?token
 assert.equal(absoluteSigned('/storage/v1/object/sign/customer-media/example/photo.jpg?token=secret',storageOrigin),storageOrigin+'/storage/v1/object/sign/customer-media/example/photo.jpg?token=secret');
 assert.equal(absoluteSigned(storageOrigin+'/storage/v1/object/sign/customer-media/example/photo.jpg?token=secret',storageOrigin),storageOrigin+'/storage/v1/object/sign/customer-media/example/photo.jpg?token=secret');
 
-assert.equal(pkg.version,'1.71.0');
+assert.equal(pkg.version,'1.72.0');
 for(const token of [
   'create table if not exists public.ps_product_media',
   'create table if not exists public.ps_customer_media',
@@ -52,7 +52,7 @@ assert(engine.includes("image:p.image||p.imageUrl||''"),'Quote Studio must inher
 assert(engine.includes("brochure:p.brochureUrl||p.datasheetUrl||''"),'Quote Studio must inherit approved Product Hub documents');
 assert(quoteApi.includes('assertBusinessMediaRefs'),'Quote publish must reject broken Product/CRM media refs');
 assert(quoteServer.includes('resolveBusinessMedia'),'Customer proposal must resolve secure Product/CRM media refs server-side');
-assert(index.includes('business-media.js?v=1.71.0'),'Product/CRM secure media client must load before product media rendering');
+assert(index.includes('business-media.js?v=1.72.0'),'Product/CRM secure media client must load before product media rendering');
 assert(vercel.includes('"api/media.js"'),'Vercel must expose the secure media API');
 
 assert(!migration.includes('create policy') || !/to\s+anon/i.test(migration),'Product/CRM storage must not create anonymous access policies');
