@@ -65,6 +65,7 @@
   --color-status-attention-line: #E5BE86;
 
   --color-status-danger: #B9474F;
+  --color-special: #7A22DD;
   --color-status-danger-text: #91353C;
   --color-status-danger-bg: #F9E9EA;
   --color-status-danger-line: #DFACB0;
@@ -142,6 +143,7 @@ body[data-theme="dark"],
   --color-status-attention-line: #705126;
 
   --color-status-danger: #D76A71;
+  --color-special: #C99BFF;
   --color-status-danger-text: #EDA0A5;
   --color-status-danger-bg: #3B2024;
   --color-status-danger-line: #713940;

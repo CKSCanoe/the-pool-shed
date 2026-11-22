@@ -1,3 +1,7 @@
+Pool Shed v1.77.0 - Old styles removed
+
+The app's stylesheet is about 10% smaller (1.19 MB down to 1.08 MB), so pages load a little faster, with no change to how they look. 391 style rules for screens and buttons that no longer exist were removed, and the new design's rules were written in a much shorter form (the design file went from 105 KB to 43 KB). The last few fixed colours outside the colour palette (the save-status dots, the supplier profile banner, the super-admin badge) now use the palette, so they follow dark mode like everything else. A new check runs on every build and stops it if someone adds a style for something that does not exist, adds a fixed colour outside the palette, or lets the stylesheet grow past its size limit, so the old mix of styles cannot creep back.
+
 Pool Shed v1.76.0 - The new look everywhere
 
 Every area now uses the same design as Sales: Home, Customers, Projects, Purchasing (purchase orders included), Stock, Warehouse, Team & vans, Accounts, Reports and Settings. Pages share one set of colours, buttons, figure cards, filters, tables and badges, in light and dark mode. The tabs on a purchase order, supplier, project, product and customer now look like the sales order's: a simple underlined row with the open tab in the brand colour. Stock › Imports no longer runs off the side of the screen. The engineer and barcode screens keep their own full-screen layouts, and the quote editor keeps its studio. "New look: off" at the bottom of the menu still switches everything back, to compare.

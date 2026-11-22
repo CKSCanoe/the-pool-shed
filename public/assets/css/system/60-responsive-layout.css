@@ -125,10 +125,7 @@ html,body,.app,.main{max-width:100%;min-width:0}
   .main > .topbar{flex-wrap:wrap!important;align-items:flex-start!important}
   .top-actions{width:100%!important;max-width:none!important;min-width:0!important}
 
-  .settings-command-head,.analytics-head,.automation-head,.inventory-head,
-  .ph-page-head,.ff-head,.finance-command-head,.supplier-command-head,
-  .wh-page-head,.po-command-head,.project-360-home-head,.project-360-detail-head,
-  .so-list-commandbar,.crm-pagehead{
+  .settings-command-head, .analytics-head, .automation-head, .inventory-head, .ph-page-head, .ff-head, .finance-command-head, .supplier-command-head, .wh-page-head, .po-command-head, .project-360-home-head, .so-list-commandbar, .crm-pagehead {
     flex-wrap:wrap!important;
   }
   .settings-head-actions,.analytics-head-actions,.automation-head-actions,
@@ -208,9 +205,7 @@ html,body,.app,.main{max-width:100%;min-width:0}
     scroll-snap-align:start;
   }
 
-  .settings-grid.two,.analytics-grid-main,.automation-grid,.inventory-detail-grid,
-  .inventory-overview-grid,.ph-command-grid,.ff-detail-grid,.finance-grid,
-  .supplier-command-grid,.po-overview-grid,.ps-tool-layout{
+  .settings-grid.two, .analytics-grid-main, .automation-grid, .inventory-detail-grid, .inventory-overview-grid, .ph-command-grid, .ff-detail-grid, .finance-grid, .po-overview-grid, .ps-tool-layout {
     grid-template-columns:minmax(0,1fr)!important;
   }
 
@@ -233,10 +228,7 @@ html,body,.app,.main{max-width:100%;min-width:0}
     grid-template-columns:minmax(0,1fr)!important;
   }
 
-  .settings-command-head,.analytics-head,.automation-head,.inventory-head,
-  .ph-page-head,.ff-head,.finance-command-head,.supplier-command-head,
-  .wh-page-head,.po-command-head,.project-360-home-head,.project-360-detail-head,
-  .so-list-commandbar,.crm-pagehead{
+  .settings-command-head, .analytics-head, .automation-head, .inventory-head, .ph-page-head, .ff-head, .finance-command-head, .supplier-command-head, .wh-page-head, .po-command-head, .project-360-home-head, .so-list-commandbar, .crm-pagehead {
     display:flex!important;
     flex-direction:column!important;
     align-items:stretch!important;
@@ -252,5 +244,5 @@ html,body,.app,.main{max-width:100%;min-width:0}
   .crm-footer-actions{grid-template-columns:minmax(0,1fr)!important}
 
   .modal-backdrop.active,.modal-backdrop.show,.settings-modal-backdrop{padding:8px!important}
-  .modal-card,.modal-panel,.settings-modal{width:min(100%,calc(100vw - 16px))!important;max-width:100%!important}
+  .settings-modal {width:min(100%,calc(100vw - 16px))!important;max-width:100%!important}
 }

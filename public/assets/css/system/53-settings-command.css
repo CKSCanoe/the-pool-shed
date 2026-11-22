@@ -8,8 +8,8 @@
 .settings-superadmin-links button:hover{background:var(--color-hover-surface);border-color:var(--color-selected-edge)}
 .settings-superadmin-icon{width:28px;height:28px;display:grid;place-items:center;border-radius:7px;color:var(--color-text-secondary);background:var(--color-surface-default);font-size:14px;font-weight:900}
 .settings-superadmin-links strong{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:11px}
-.settings-superadmin-links em{padding:4px 7px;border-radius:7px;background:color-mix(in srgb,#8b2cf5 12%,var(--color-surface-default));color:#7a22dd;font-size:9px;font-style:normal;font-weight:900;letter-spacing:.04em;white-space:nowrap}
-html[data-theme="dark"] .settings-superadmin-links em,body[data-theme="dark"] .settings-superadmin-links em,[data-theme="dark"] .settings-superadmin-links em{background:color-mix(in srgb,#a966ff 18%,var(--color-surface-default));color:#c99bff}
+.settings-superadmin-links em{padding:4px 7px;border-radius:7px;background:color-mix(in srgb,var(--color-special) 12%,var(--color-surface-default));color:var(--color-special);font-size:9px;font-style:normal;font-weight:900;letter-spacing:.04em;white-space:nowrap}
+html[data-theme="dark"] .settings-superadmin-links em,body[data-theme="dark"] .settings-superadmin-links em,[data-theme="dark"] .settings-superadmin-links em{background:color-mix(in srgb,var(--color-special) 18%,var(--color-surface-default));color:var(--color-special)}
 @media(max-width:1000px){.settings-superadmin-links{grid-template-columns:repeat(2,minmax(0,1fr))}}
 @media(max-width:620px){.settings-superadmin-links{grid-template-columns:1fr}.settings-superadmin-links button{grid-template-columns:30px 1fr auto}}
 

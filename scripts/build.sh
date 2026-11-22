@@ -69,6 +69,7 @@ run_node_stage "workspace and sales safety" \
   test-quote-customer-v174.mjs \
   test-quote-html-v175.mjs \
   test-look-all-v176.mjs \
+  test-css-hygiene-v177.mjs \
   test-workspace-audit-v1451.mjs \
   test-commercial-audits-v146.mjs \
   test-audit-device-recovery.mjs \

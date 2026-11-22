@@ -6,8 +6,8 @@ const m = frame.match(/var KIT_TABS = \{([^}]*)\};/); assert.ok(m, 'KIT_TABS pre
 const on = new Set(m[1].split(',').map(x => x.split(':')[0].trim()).filter(Boolean));
 for (const t of ['salesorders','quotes','dashboard','mywork','audits','crm','jobs','purchase','products','locations','warehouse','fulfilment','fleet','accounting','analytics','settings','automation']) assert.ok(on.has(t), t + ' on the kit');
 for (const t of ['engineer','barcodes']) assert.ok(!on.has(t), t + ' keeps its own full-screen layout');
-const scope = kit.match(/:is\(#screen-dashboard[^)]*\)/)[0];
-for (const t of on) assert.ok(scope.includes('#screen-' + t), 'kit rules reach #screen-' + t);
+assert.ok(!/:is\(#screen-dashboard/.test(kit) && kit.includes('.ps-kit-scope:not(#ps-kit-none)'), 'v1.77: kit rules reach every kit screen through the scope class');
+assert.ok((frame.match(/classList\.add\('ps-kit-scope'\)/g) || []).length === 1, 'only the frame marks a screen for the kit');
 assert.ok(frame.includes("if (kitOn && p.tab === 'quotes' && screen && screen.querySelector('.qs-studio-root')) kitOn = false;"), 'quote editor keeps its studio');
 for (const b of ['.po-command-tabs','.supplier-detail-tabs','.project-360-tabs','.ph-product-tabs','.crm-profile-tabs']) assert.ok(kit.includes(b + ' > :is(button, a):is(.active, .is-active, [aria-selected="true"], [aria-current="page"])'), b + ' underlined');
 assert.ok(kit.includes('.import-history { grid-template-columns: minmax(0, 1fr) !important; }'));

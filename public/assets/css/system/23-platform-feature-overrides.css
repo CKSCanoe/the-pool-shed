@@ -39,10 +39,8 @@ html.ps-booting #appShell, html.ps-booting #loginScreen { visibility:hidden !imp
 .main { min-width:0; }
 .screen { gap:16px !important; }
 
-
-.panel > header, .panel-header { padding:18px 22px !important; }
+.panel > header { padding:18px 22px !important; }
 .panel > .panel-body, .record-card-body { padding:18px 22px !important; }
-
 
 button.secondary { background:var(--color-action-soft); border-color:var(--color-action-ink); color:var(--color-text-primary); }
 button.secondary:hover { background:var(--color-action-soft); transform:none; }
@@ -192,7 +190,6 @@ tr.ps-bundle-collapsed { display:none; }
   #screen-salesorders .so-catalogue-qty-field { max-width:none; }
 }
 
-
 /* ===== CONSOLIDATED FROM: assets/css/99-v2-performance.css ===== */
 
 /* v2 performance layer */
@@ -202,7 +199,6 @@ img { content-visibility: auto; }
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after { scroll-behavior: auto !important; animation-duration: .01ms !important; animation-iteration-count: 1 !important; transition-duration: .01ms !important; }
 }
-
 
 /* ===== CONSOLIDATED FROM: sales-order-customer-picker.css ===== */
 /* Pool Shed Sales Order customer picker */

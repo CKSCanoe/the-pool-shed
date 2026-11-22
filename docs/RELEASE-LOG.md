@@ -238,6 +238,20 @@ Owner approved the blueprint 21 Nov 2026 (eight areas; Pool Audits under My Work
 
 ---
 
+## Old styles removed · v1.77.0 · branch `css-cleanup`
+
+Owner: remove the old styles now the new look is everywhere. Finding: fixed colours were already almost gone (22 outside the palette); the problem was size and duplication: app.css 1.19 MB, of which the design kit repeated a 260-character list of screen ids 220 times.
+
+| # | Change | Status | Evidence |
+|---|---|---|---|
+| CS1 | Removed 391 rules (and trimmed 80 selector lists) whose class or id appears nowhere in the app's code; classes built from a prefix ("pill-"+tone) are kept | **New · Tested in a real browser on staging** | Every menu page (109) in light and dark, plus a sales order, purchase order, customer, product and the quote editor: the computed style of every visible element compared with the old and new stylesheet on the same page. All identical (one Home reading caught a colour fade; identical once settled) |
+| CS2 | Design kit rules use `.ps-kit-scope:not(#ps-kit-none)` instead of the list of 17 screen ids: same strength in the cascade; only the menu code marks a screen | **New · Tested in a real browser on staging** | Same comparison as CS1. Kit file 105 KB → 43 KB; app.css 1,194,756 → 1,081,798 bytes |
+| CS3 | Last fixed colours moved to the palette (save-status dots, supplier banner, super-admin badge with a new --color-special in light and dark); status borders darken with "black" | **New · Checked on staging** | Supplier profile banner unchanged in light; follows dark mode |
+| CS4 | Build check `test-css-hygiene-v177`: fails on rules for unused classes, fixed colours outside 00-color-tokens.css, app.css over 1,100,000 bytes, or the long kit selector | **New · Unit tested** | Tried with a dummy rule `.never-used-class-xyz{color:#123456}`: both problems reported, build stopped |
+| CS5 | Look tests updated for the short kit selector | **Changed** | `test-look-sales-v170`, `test-look-all-v176` |
+| CS6 | Older tests that named rules for classes no longer used now check those rules only while the app still uses the class; the runtime check no longer requires `.ci-search-backdrop` (element no longer created); the two standalone copies (`quote-studio.css`, `finance-command.css`) re-synced with their modules | **Changed** | `test-project-workspace-v143`, `test-cross-page-uniformity`, `test-project-360-visual-guard-v110`, `test-supplier-command-visual-v115`, `test-sales-order-detail-v162`, `validate-runtime`. Every test in the repo compared with main: no new failures |
+| CS7 | Found by the contrast test: the supplier banner's main button would have been dark on dark in dark mode after the colour swap; now light text-colour background in both themes | **Fixed before release** | `test-theme-semantic-contrast-v124` passes |
+
 ## The new look everywhere · v1.76.0 · branch `look-rest`
 
 Owner: roll the look out to the remaining areas. Approach: switch every area on, then check every menu page against the old look on staging and fix what got worse.

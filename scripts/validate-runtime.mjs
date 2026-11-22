@@ -206,7 +206,7 @@ for (const requiredStyle of [
   '.ci-popover-results',
   'background: var(--color-surface-default)',
   'solid Product Hub refinements',
-  '.ci-search-backdrop',
+  // v1.77: '.ci-search-backdrop' dropped: the app no longer creates that element, so its rule was removed.
   'background: var(--color-surface-default) !important',
   'button.ci-result-row',
   '.ci-popover-footer',
