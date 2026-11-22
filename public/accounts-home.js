@@ -1,4 +1,4 @@
-/* Pool Shed v1.81.0 — Accounts home and grouped menu (blueprint step 5).
+/* Pool Shed v1.82.0 — Accounts home and grouped menu (blueprint step 5).
    Accounts opens on what needs doing, from the Pool Shed ledger, in three groups (money in, money out, the books);
    each figure opens the page to act on. The long strip of 18 tabs becomes the same three groups. Every page is kept. */
 (function(global){

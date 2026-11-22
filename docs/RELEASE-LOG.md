@@ -238,6 +238,19 @@ Owner approved the blueprint 21 Nov 2026 (eight areas; Pool Audits under My Work
 
 ---
 
+## Overhaul phase 2: lists · v1.82.0 · branch `overhaul-2`
+
+| # | Change | Status | Evidence |
+|---|---|---|---|
+| OL1 | Product Groups: search (name, code, product, supplier) and 24 groups per page | **New · Tested in a real browser on staging** | 520 groups → 24 shown, 63 buttons instead of 1,550; "chlorine" found 25 groups and kept the cursor in the box; opens in 30 ms |
+| OL2 | Catalogue Health and Imports: the two product-screen overrides built the full grouped list of all products (with stock, 20,517 stock lookups) on every visit and threw it away; now only built when it is the page shown | **Fixed · Tested in a real browser on staging** | Health 2,242 ms → 79 ms; Imports 1,838 ms → 38 ms; Catalogue, Pricing and Products unchanged |
+| OL3 | Catalogue Health: 100 issues at a time with "Show the next 100"; its search, issue filter and inline Save were never wired by the override that draws it; now wired | **Fixed · Tested in a real browser on staging** | "Showing 100 of 754 issues"; searching "chlorine" → 30 issues (before: search did nothing) |
+| OL4 | My work: one compact row per task (priority, title, one-line summary, due and age, Open, Mark done, "…" for Claim/Start/Mark as waiting/Snooze); the old card styles removed | **New · Tested in a real browser on staging** | 24 rows; the "…" menu opens with the four actions |
+| OL5 | One-off tidy of the "refreshed" history entries left by the v1.81-fixed My work bug (keeps every real event and each task's latest refresh); saved with the next real change | **New · Unit tested** | Staging: 943 of 1,008 history entries were "refreshed"; `test-overhaul-lists-v182` |
+| OL6 | Initials avatars beside customers (sales orders) and suppliers (purchase orders); row Delete buttons plain red text | **New · Tested in a real browser on staging** | 12 and 26 avatars; PO table columns still line up (10/10) |
+| OL7 | Release test | **New · Unit tested** | `test-overhaul-lists-v182` |
+| OL8 | Release log for v1.81 (PR #80) | **Deployed · verified on live** | Live cache `pool-shed-v1.81.0-overhaul1-r1`; data unchanged |
+
 ## Overhaul phase 1: foundations and Home · v1.81.0 · branch `overhaul-1`
 
 Owner: audit every page and process; the look is odd from mixed authors, pages carry a lot of information yet look bare; overhaul it. Audit (118 menu pages on staging): text under 11px on 74 pages (4,728 pieces), 38 buttons per page on average, Core stock 101 coloured buttons, My work six buttons per task, Home showing the same to-dos twice with two greetings and a dark band, Product Groups drawing 1,550 buttons, capital "eyebrow" labels and jargon, and one serious bug (product pages stuck on Imports). Plan agreed: five phases (foundations and Home; lists; record pages; processes; wording), each with a richer look (icons, figures with a direction, grouped cards, status timelines, pictures).
@@ -252,6 +265,7 @@ Owner: audit every page and process; the look is odd from mixed authors, pages c
 | OV6 | Colours from the palette in Core stock (its figures were hard to read in dark mode), Contracts, Monthly pack, Profit, Vans, Van stock, Web orders and the customer email prompt; number plate and signature pads keep their fixed colours on purpose | **Fixed · Checked on staging** | Core stock figures readable in dark mode |
 | OV7 | Tests that pinned the old Home and wording updated; standalone stylesheet copies re-synced; release test | **Changed** | `test-frame-v155`; new `test-overhaul-foundations-v181` |
 | OV8 | Release log for v1.80 (PR #79) | **Deployed · verified on live** | Live cache `pool-shed-v1.80.0-remind-r1`; data unchanged |
+| OV9 | App release (PR #80) | **Deployed · verified on live** 22 Nov 2026 (Vercel check green; live cache `pool-shed-v1.81.0-overhaul1-r1`) | Live serves `ps-icons.js` and the new Home; data unchanged |
 
 ## Payment reminders · v1.80.0 · branch `payment-reminders`
 

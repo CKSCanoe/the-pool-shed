@@ -32,5 +32,9 @@ var P = {
 };
 function icon(name, opts){ var o = opts || {}, d = P[name] || '<circle cx="12" cy="12" r="2"/>', size = o.size || 18;
   return '<svg class="ps-icon' + (o.cls ? ' ' + o.cls : '') + '" width="' + size + '" height="' + size + '" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false">' + d + '</svg>'; }
-global.PoolShedIcon = icon; global.PoolShedIcon.names = Object.keys(P);
+// Initials in a soft coloured circle for people and businesses; the colour comes from the name, so it stays the same.
+function avatar(name){ var n = String(name || '').replace(/\b(ltd|limited|plc|llp|the)\b\.?/gi, '').trim(), w = n.split(/[\s&-]+/).filter(Boolean), t = ((w[0] || '?')[0] + (w.length > 1 ? w[w.length - 1][0] : (w[0] || '')[1] || '')).toUpperCase();
+  var h = 0; for (var i = 0; i < n.length; i++) h = (h * 31 + n.charCodeAt(i)) >>> 0;
+  return '<span class="ps-av ps-av-' + (h % 5 + 1) + '" aria-hidden="true">' + t.replace(/[^A-Z0-9?]/g, '') + '</span>'; }
+global.PoolShedIcon = icon; global.PoolShedIcon.names = Object.keys(P); global.PoolShedAvatar = avatar;
 })(typeof window !== 'undefined' ? window : globalThis);

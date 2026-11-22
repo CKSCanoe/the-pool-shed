@@ -1,4 +1,4 @@
-/* Pool Shed v1.81.0 — Sales invoicing in the Pool Shed ledger (Operations O3).
+/* Pool Shed v1.82.0 — Sales invoicing in the Pool Shed ledger (Operations O3).
    Accounting → Invoice Ready · Customer Invoices · Payments & Allocations · Credit Control · Credits & Returns.
    Every money rule (prices, what may be invoiced, credits, payments) is enforced by the database (database/029);
    these screens only collect, show and confirm. Invoices are never edited: corrections are credit notes. */
