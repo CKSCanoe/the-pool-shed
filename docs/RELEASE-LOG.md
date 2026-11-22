@@ -238,6 +238,18 @@ Owner approved the blueprint 21 Nov 2026 (eight areas; Pool Audits under My Work
 
 ---
 
+## The new look everywhere · v1.76.0 · branch `look-rest`
+
+Owner: roll the look out to the remaining areas. Approach: switch every area on, then check every menu page against the old look on staging and fix what got worse.
+
+| # | Change | Status | Evidence |
+|---|---|---|---|
+| LK1 | Design kit on every area (17 screens); engineer and barcode screens and the quote editor excluded | **New · Tested in a real browser on staging** | All 100 menu pages opened with the look on and off and compared for overflow and unreadable text; 3 flagged: the customer record (a reading taken mid-draw; readable on inspection) and Stock › Imports / Catalogue Health (13px wider) |
+| LK2 | Underlined tabs on purchase order, supplier, project, product and customer records | **New · Tested in a real browser on staging** | Purchase order and customer tabs: open tab in the brand colour, others plain |
+| LK3 | Stock › Imports history column fits its cards (an old overflow) | **New · Tested in a real browser on staging** | Imports and Catalogue Health overflow 0 (was 41 before the look, 54 with it) |
+| LK4 | Dark mode | **Tested in a real browser on staging** | Invoices, Company settings, Stock levels, Today's work, Reports overview, Vans and Projects: no unreadable text |
+| LK5 | Two pilot tests that pinned "not converted yet" updated | **Changed** | `test-look-pilot-v169`, `test-look-sales-v170`; new `test-look-all-v176` |
+
 ## Quote Studio custom HTML · v1.75.0 · branch `quote-html`
 
 Release E, the last of four. Owner: HTML blocks plus a full HTML page, scripts removed, Pool Shed filling in price, choices and Accept.

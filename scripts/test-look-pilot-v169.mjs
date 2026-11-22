@@ -24,8 +24,8 @@ vm.runInContext('var active = "salesorders", activeSubPage = { salesorders: "Sal
 ctx.PoolShedFrame.tidy();
 assert(body.cls.has('ps-kit') && screens['screen-salesorders'].cls.has('ps-kit-scope'), 'Orders list gets the kit');
 vm.runInContext('salesOrderView = "detail"', ctx); ctx.PoolShedFrame.tidy(); assert(body.cls.has('ps-kit') && screens['screen-salesorders'].cls.has('ps-kit-scope'), 'v1.70: the whole Sales area, order pages included');
-vm.runInContext('active = "purchase"; activeSubPage.purchase = "Purchase Orders"; purchaseOrderView = "detail"', ctx); ctx.PoolShedFrame.tidy(); assert(!body.cls.has('ps-kit'), 'a purchase order page is not converted yet');
-vm.runInContext('active = "accounting"; activeSubPage.accounting = "Overview"', ctx); ctx.PoolShedFrame.tidy(); assert(!body.cls.has('ps-kit'), 'other pages unchanged');
+vm.runInContext('active = "purchase"; activeSubPage.purchase = "Purchase Orders"; purchaseOrderView = "detail"', ctx); ctx.PoolShedFrame.tidy(); assert(body.cls.has('ps-kit'), 'v1.76: purchase order pages are on the kit');
+vm.runInContext('active = "accounting"; activeSubPage.accounting = "Overview"', ctx); ctx.PoolShedFrame.tidy(); assert(body.cls.has('ps-kit'), 'v1.76: every area is on the kit');
 vm.runInContext('active = "products"; activeSubPage.products = "Product Command"', ctx); ctx.PoolShedFrame.tidy(); assert(screens['screen-products'].cls.has('ps-kit-scope'), 'Products gets the kit');
 store['poolshed:new-look'] = 'off'; ctx.PoolShedFrame.tidy(); assert(!body.cls.has('ps-kit') && !screens['screen-products'].cls.has('ps-kit-scope'), 'switch off restores the old look');
 const nav = ctx.PoolShedFrame.navHtml([{ id: 'dashboard', label: 'd' }], 'dashboard', {}, () => [], () => '');

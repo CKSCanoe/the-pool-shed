@@ -1,4 +1,4 @@
-/* Pool Shed v1.75.0 — back-office frame (blueprint step 1).
+/* Pool Shed v1.76.0 — back-office frame (blueprint step 1).
    1. The menu grouped into eight areas (plus Reports and Settings). Every existing page stays where it was, under its area;
       a "Classic menu" switch brings back the old flat menu for anyone who prefers it.
    2. Home queues: what needs doing today, by role, each opening the list to act on.
@@ -115,7 +115,8 @@
   // After each screen draw: one title ("Area › Page") in the top bar, no repeated page titles, no second menus.
   var KIT_PAGES = { 'salesorders|Sales Orders': 1, 'purchase|Purchase Orders': 1, 'products|Product Command': 1 };
   // v1.70: whole areas move to the kit as they are checked (Sales first: every order screen, contracts, web orders, returns).
-  var KIT_TABS = { salesorders: 1, quotes: 1 };
+  // v1.76: every area is on the kit (the engineer and barcode screens keep their own full-screen layouts).
+  var KIT_TABS = { salesorders: 1, quotes: 1, dashboard: 1, mywork: 1, audits: 1, crm: 1, jobs: 1, purchase: 1, products: 1, locations: 1, warehouse: 1, fulfilment: 1, fleet: 1, accounting: 1, analytics: 1, settings: 1, automation: 1 };
   var INTRO = {
     'salesorders|Sales Orders': 'Every customer order: what is waiting, ready to pick, to invoice and to be paid.',
     'salesorders|Contracts': 'Maintenance contracts and repeat orders. Nothing is created until you click.',
