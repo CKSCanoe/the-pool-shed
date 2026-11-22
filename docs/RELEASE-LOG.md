@@ -248,6 +248,7 @@ Release C of four. Owner: choice groups per template, each choice with photo, de
 | QS2 | Catalogue search in each group (name, code or supplier code, 8 results, one-off records never offered) adds the product with its details | **New · Tested in a real browser on staging** | "heat pump" returned 8; the first was added with its code and supplier (it has no price in the catalogue, so it came in at £0 as expected) |
 | QS3 | "Save as a template" in the editor; "Copy a group from a template" copies a group with fresh ids and its pictures | **New · Tested in a real browser on staging** | Saved a template, copied its group in, then removed both |
 | QS4 | Typed-in choices become sales order lines with the CUSTOM code and their own name (v1.71 stand-in); no draft purchase order or material line unless a supplier is named. Same rule in the app and on the server (customer accepting online) | **New · Unit tested** | `test-quote-specs-v173`. Quotes already accepted are unchanged |
+| QS5 | App release (PR #72) | **Deployed · verified on live** 22 Nov 2026 (Vercel check green; live cache `pool-shed-v1.73.0-specs-r1`) | Live serves the catalogue search and template group copy; data unchanged |
 
 ## Quote Studio brochure editor · v1.72.0 · branch `quote-studio-editor`
 
