@@ -238,6 +238,12 @@ Owner approved the blueprint 21 Nov 2026 (eight areas; Pool Audits under My Work
 
 ---
 
+## Faster Catalogue page · v1.67.0 · branch `catalogue-speed`
+
+| # | Change | Status | Evidence |
+|---|---|---|---|
+| K1 | Catalogue draws 100 products at a time (it drew all ~6,800, about 10 s on staging); Previous / Next with "Showing x–y of n"; search, filters and sort still cover every product and go back to page 1 | **New · Tested in a real browser on staging** | Draws 100 of 6,662 rows; opening Catalogue from Home went from about 10 s to about 2 s; redraws and page changes 0.15–0.75 s; search "chlorine" found 215 across the whole catalogue, and clearing it brought all 6,662 back. `test-catalogue-paging-v167`; existing Product Hub tests pass; build gate passes. No database change |
+
 ## Navigation and page tidy-up · v1.66.0 · branch `navigation`
 
 Owner: the navigation, the flow and the placement of tabs and buttons were not good. Audit on staging: 17 sections and about 100 pages; 8 things listed in two places (suppliers, counts, transfers, vans, invoices, credits, reorder list, approvals); three different kinds of menu (side menu, Accounts' 18 in-page buttons, Reports' 13-tab row); old internal names as page titles ("Inventory Tracker", "Data Insights", "Finance Command"); titles repeated in page banners; "Back to Dashboard" everywhere.
@@ -248,6 +254,7 @@ Owner: the navigation, the flow and the placement of tabs and buttons were not g
 | N2 | One title per page ("Area › Page"); Back to Dashboard, repeated banner titles, Accounts' button block, the Reports and Quote Studio tab rows hidden; van reminder banner on Home only; Orders list without the duplicate count boxes | **New · Tested in a real browser on staging** | Accounts home: one title, and work starts at the top. Orders: the list starts about 100 px higher. No console errors |
 | N3 | "+ New" at the top of the menu: sales order, quote, customer, purchase order, product, contract, project | **New · Tested in a real browser on staging** | Contract opened the new contract form; the quote and product start buttons and the order functions were found |
 | N4 | Tests | **New** | `test-navigation-v166` (every existing page reachable, each listed once, at most 7 per area, aliases, + New, tidy-up rules); `test-frame-v155` updated for the new menu. Build gate passes. No database change |
+| N5 | App release | **Deployed · verified on live** 21 Nov 2026 (Vercel check green; live cache `pool-shed-v1.66.0-nav-r1`) | Live site serves the new menu (`back-office-frame.js` v1.66.0); data unchanged |
 
 ## Ready for the web shop (any platform) · v1.65.0 · branch `webshop-ready`
 
