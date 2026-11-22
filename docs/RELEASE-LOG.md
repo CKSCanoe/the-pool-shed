@@ -248,6 +248,7 @@ Owner: Quote Studio should build a professional brochure quote the way Shopify b
 | QE2 | Customer page: sections follow the list; new section types (intro letter, gallery, text and picture, timeline, reviews, questions and answers, terms); the hard-coded headings are now editable with the same defaults | **New · Unit tested** | `test-quote-editor-v172`. Published versions before v1.72 render as before |
 | QE3 | The customer page may be framed by Pool Shed itself only (X-Frame-Options SAMEORIGIN, frame-ancestors 'self'; was DENY/'none'); edit mode needs a staff preview inside a frame and only answers messages from the same site; settings paths are checked (no constructor/prototype/__proto__) and accepted quotes are read only | **New · Unit tested** | `test-quote-editor-v172` |
 | QE4 | Two old tests pinned the old behaviour (no per-quote colour, file version 1.45.1); updated to check that only a checked #rrggbb colour reaches the page and that a version is present | **Changed** | `test-quote-command-v138`, `test-quote-portal-v131` |
+| QE5 | App release (PR #71) | **Deployed · verified on live** 22 Nov 2026 (Vercel check green; live cache `pool-shed-v1.72.0-editor-r1`) | Live serves `quote-brochure-editor.js` and the editor styles; `/proposal` sends X-Frame-Options SAMEORIGIN; data unchanged |
 
 ## One code for custom items, deposits per quote and project · v1.71.0 · branch `custom-lines`
 
