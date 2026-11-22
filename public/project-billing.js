@@ -1,4 +1,4 @@
-/* Pool Shed v1.70.0 — project stage invoices on the Pool Shed ledger (blueprint step 7).
+/* Pool Shed v1.71.0 — project stage invoices on the Pool Shed ledger (blueprint step 7).
    "Raise invoice" on a ready stage opens the same invoice form Accounts uses, posts a numbered invoice (INV-…) on the
    ledger and marks the stage. The server refuses a second invoice for a stage that is still billed, and never bills
    more than the accepted quote plus approved extras. Stages queued to Xero before this release keep their status. */
@@ -41,3 +41,7 @@ function psProjectLedgerPaint(){
  window.render=render;
  document.addEventListener('click',e=>{const t=e.target&&e.target.closest&&e.target.closest('[data-si-action="close-modal"],[data-project-finance-refresh]');if(t&&psProjectSelected)setTimeout(()=>psProjectLedgerLoad(psProjectSelected,true).then(psProjectLedgerPaint),300);});
 })();
+
+// v1.71: a stage (such as the deposit) can be set as a % of the agreed value: 50% when the supplier needs it, 30% otherwise.
+document.addEventListener('input',e=>{const pct=e.target&&e.target.closest&&e.target.closest('[data-project-phase-pct]');if(!pct)return;const f=pct.form,agreed=Number(pct.dataset.projectPhasePct||0),p=Number(pct.value||0);
+ if(!f||!(agreed>0)||!(p>0))return;const amt=f.querySelector('[name="amountNet"]');if(amt)amt.value=(Math.round(agreed*p)/100).toFixed(2);const nm=f.querySelector('[name="name"]');if(nm&&!nm.value)nm.value=p+'% deposit';});
