@@ -15,15 +15,9 @@
 #screen-salesorders .so3-stage-grid{margin-bottom:9px}
 #screen-salesorders .so3-stage-grid>div{min-width:0}
 #screen-salesorders .so3-stage-grid span{font-weight:800}
-#screen-salesorders .so3-goods-notes{margin-top:8px}
-#screen-salesorders .so3-goods-notes .so-gn-directory{margin:0!important;border:1px solid var(--color-status-success-line)!important;border-radius:6px!important;background:var(--color-status-success-bg)!important}
+
 #screen-salesorders .so3-page .so2-customer-card .so2-card-body{padding:11px 12px 9px!important}
 #screen-salesorders .so3-page .so2-customer-search input,#screen-salesorders .so3-page .so2-customer-search button{height:34px!important;min-height:34px!important;font-size:10px!important}
-#screen-salesorders .so3-page .so2-customer-facts{background:var(--color-surface-default)!important}
-#screen-salesorders .so3-page .so2-customer-facts>div{padding:7px 9px!important}
-#screen-salesorders .so3-page .so2-customer-facts span,#screen-salesorders .so3-page .so2-customer-commercial span{font-size:10px!important}
-#screen-salesorders .so3-page .so2-customer-facts strong,#screen-salesorders .so3-page .so2-customer-facts small{font-size:10px!important}
-#screen-salesorders .so3-page .so2-customer-commercial{grid-template-columns:120px 135px minmax(170px,1fr)!important;padding:8px 9px 9px!important}
 
 #screen-salesorders .so3-page .so2-tabs-shell{padding:0!important;background:transparent!important}
 #screen-salesorders .so3-page .so2-tabs{display:flex!important;gap:2px!important;min-height:42px!important;margin:0!important;padding:5px 7px 0!important;overflow-x:auto!important;background:var(--color-surface-subtle)!important;border:1px solid var(--color-border-default)!important;border-radius:8px 8px 0 0!important}
@@ -64,15 +58,14 @@
 #screen-salesorders .so3-page .so2-payment-actions button{width:100%!important;height:36px!important;min-height:36px!important}
 #screen-salesorders .so3-page .so2-payment-actions .primary-action{background:var(--t)!important;border-color:var(--color-text-primary)!important;color:var(--color-action-contrast)!important}
 body #salesOrderProductResults.so-product-results-portal{z-index:2147483000!important;background:var(--color-surface-default)!important;border:1px solid var(--color-border-default)!important;border-radius:7px!important;box-shadow:0 14px 32px var(--shadow-color)!important;overflow:auto!important}
-body #salesOrderProductResults .so-smart-product-result,body #salesOrderProductResults .so-product-result{background:var(--color-surface-default)!important;color:var(--color-status-info-text)!important;border:0!important;border-bottom:1px solid var(--color-border-default)!important;border-radius:0!important;box-shadow:none!important}
-body #salesOrderProductResults .so-smart-product-result:hover,body #salesOrderProductResults .so-smart-product-result.active,body #salesOrderProductResults .so-product-result:hover{background:var(--color-surface-default)!important}
+body #salesOrderProductResults .so-product-result {background:var(--color-surface-default)!important;color:var(--color-status-info-text)!important;border:0!important;border-bottom:1px solid var(--color-border-default)!important;border-radius:0!important;box-shadow:none!important}
+body #salesOrderProductResults .so-product-result:hover {background:var(--color-surface-default)!important}
 body #salesOrderProductResults .good{color:var(--color-status-success-text)!important;background:transparent!important}
 body #salesOrderProductResults .warn{color:var(--color-status-attention-text)!important;background:transparent!important}
 body #salesOrderProductResults .bad{color:var(--color-status-danger-text)!important;background:transparent!important}
-@media(max-width:1180px){}
-@media(max-width:900px){#screen-salesorders .so3-page .so2-entry-grid{grid-template-columns:1fr!important}}
-@media(max-width:620px){#screen-salesorders .so3-workspace{padding:10px;gap:10px}#screen-salesorders .so3-command-header{padding:8px 10px}#screen-salesorders .so3-detail-grid{grid-template-columns:1fr}#screen-salesorders .so3-stage-grid{grid-template-columns:1fr 1fr}#screen-salesorders .so3-page .so2-customer-facts{grid-template-columns:1fr!important}#screen-salesorders .so3-page .so2-customer-commercial{grid-template-columns:1fr 1fr!important}#screen-salesorders .so3-page .so2-account-state{grid-column:1/-1}#screen-salesorders .so3-page .so2-entry-grid{padding:10px!important}#screen-salesorders .so3-page .so-smart-add-controls{grid-template-columns:1fr 70px!important}#screen-salesorders .so3-page .so-smart-product-search{grid-column:1/-1}}
 
+@media(max-width:900px){#screen-salesorders .so3-page .so2-entry-grid{grid-template-columns:1fr!important}}
+@media(max-width:620px){#screen-salesorders .so3-workspace{padding:10px;gap:10px}#screen-salesorders .so3-command-header{padding:8px 10px}#screen-salesorders .so3-detail-grid{grid-template-columns:1fr}#screen-salesorders .so3-stage-grid{grid-template-columns:1fr 1fr}#screen-salesorders .so3-page .so2-entry-grid{padding:10px!important}#screen-salesorders .so3-page .so-smart-add-controls{grid-template-columns:1fr 70px!important}#screen-salesorders .so3-page .so-smart-product-search{grid-column:1/-1}}
 
 /* v1.7.0 Smart Product Finder */
 #screen-salesorders .so3-page .so-smart-finder-entry .po-add-copy{margin-bottom:8px!important}

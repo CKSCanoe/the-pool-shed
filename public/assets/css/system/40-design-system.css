@@ -36,9 +36,9 @@ a:focus-visible { outline-color:var(--color-action-ink); }
 ::selection { background:var(--color-action-soft); color:var(--color-text-primary); }
 
 /* Semantic status defaults used by legacy inline status variables. */
-.pill.good,.status-good,.success,.is-success { --status-bg:var(--color-status-success); --status-fg:var(--color-text-inverse); }
-.pill.warn,.status-warn,.warning,.is-warning { --status-bg:var(--color-status-attention); --status-fg:var(--color-text-inverse); }
-.pill.bad,.status-bad,.danger,.is-danger { --status-bg:var(--color-status-danger); --status-fg:var(--color-text-inverse); }
+.pill.good, .success { --status-bg:var(--color-status-success); --status-fg:var(--color-text-inverse); }
+.pill.warn, .warning { --status-bg:var(--color-status-attention); --status-fg:var(--color-text-inverse); }
+.pill.bad, .danger { --status-bg:var(--color-status-danger); --status-fg:var(--color-text-inverse); }
 
 /* ===== CONSOLIDATED FROM: assets/css/15-pool-shed-precision-foundation.css ===== */
 /*
@@ -81,10 +81,6 @@ a:focus-visible { outline-color:var(--color-action-ink); }
   --ps-shadow: none;
   
 }
-
-
-
-
 
 /* Shell */
 .main {
@@ -169,10 +165,6 @@ a:focus-visible { outline-color:var(--color-action-ink); }
   letter-spacing: -0.025em;
 }
 
-
-
-
-
 #pageIntro,
 .topbar .title p {
   margin-top: 4px;
@@ -182,20 +174,14 @@ a:focus-visible { outline-color:var(--color-action-ink); }
   line-height: 1.45;
 }
 
-
-
 /* Controls */
 .main :is(button, input, select, textarea) {
   border-radius: var(--ps-radius-control);
 }
 
-
-
 input:not([type="checkbox"]):not([type="radio"]) {
   min-height: var(--ps-control-height);
 }
-
-
 
 button:hover {
   transform: none !important;
@@ -215,7 +201,6 @@ button.ghost:hover {
   background: var(--color-surface-subtle);
   border-color: var(--color-text-secondary);
 }
-
 
 /* v1.23 utility hierarchy: navigation and shell utilities are intentionally neutral. */
 .page-back-row button,
@@ -274,10 +259,7 @@ a:focus-visible,
 
 /* Forms */
 
-
-.field label,
-.form-field label,
-label.field-label {
+.field label {
   color: var(--color-text-secondary);
   font-size: var(--ps-font-label);
   font-weight: 700;
@@ -294,8 +276,6 @@ label.field-label {
   padding-inline: 9px;
 }
 
-
-
 /* Border-led operational surfaces */
 .main :is(.panel,.record-card,.mini-card,.profile-card) {
   border: 1px solid var(--color-border-default) !important;
@@ -303,10 +283,7 @@ label.field-label {
   box-shadow: none !important;
 }
 
-
-
-.panel > header,
-.panel-header {
+.panel > header {
   gap: var(--ps-space-3) !important;
   padding: 0 0 var(--ps-space-3) !important;
   margin-bottom: var(--ps-space-3);
@@ -324,7 +301,6 @@ label.field-label {
 }
 
 /* Section navigation and record tabs: flat underline selection */
-
 
 .ps-section-nav button {
   min-height: 35px;
@@ -349,7 +325,7 @@ label.field-label {
   animation: none !important;
 }
 
-.workspace-tabs, .sales-workspace .tabs-row {
+.sales-workspace .tabs-row {
   display: flex !important;
   flex-wrap: nowrap !important;
   gap: 0 !important;
@@ -394,10 +370,6 @@ label.field-label {
   scrollbar-gutter: stable;
 }
 
-
-
-
-
 #screen-salesorders .order-lines-table tbody td, .sales-workspace .order-lines-table td {
   height: var(--ps-table-row-height);
   padding: 6px 10px !important;
@@ -421,7 +393,6 @@ tbody tr:hover {
 
 /* Status: compact text + colour + shape cue. */
 
-
 /* Dialogs: viewport-safe shell with persistent header/actions where markup permits. */
 .modal-backdrop.active,
 .modal-backdrop.show {
@@ -430,34 +401,17 @@ tbody tr:hover {
   background: var(--color-overlay-scrim);
 }
 
-.modal-card, .modal-panel {
-  max-height: calc(100dvh - 32px);
-  border: 1px solid var(--color-border-default);
-  border-radius: var(--ps-radius-dialog) !important;
-  box-shadow: var(--shadow-dialog);
-  overflow: auto;
-}
-
-.modal header,
-.modal-card > header,
-.modal-panel > header,
-.modal footer,
-.modal-card > footer,
-.modal-panel > footer {
+.modal header, .modal footer {
   position: sticky;
   z-index: 2;
   background: var(--color-surface-default);
 }
 
-.modal header,
-.modal-card > header,
-.modal-panel > header {
+.modal header {
   top: 0;
 }
 
-.modal footer,
-.modal-card > footer,
-.modal-panel > footer {
+.modal footer {
   bottom: 0;
 }
 
@@ -543,10 +497,7 @@ html[data-density="comfortable"] .panel {
     padding: 14px !important;
   }
 
-  .tabs-row,
-  .customer-tabs,
-  .workspace-tabs,
-  .sales-workspace .tabs-row {
+  .tabs-row, .customer-tabs, .sales-workspace .tabs-row {
     padding-inline: var(--ps-space-3) !important;
   }
 
@@ -561,19 +512,13 @@ html[data-density="comfortable"] .panel {
     padding: var(--ps-space-3);
   }
 
-  .modal,
-  .modal-card,
-  .modal-panel {
+  .modal {
     max-height: calc(100dvh - 24px);
   }
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .ps-section-nav button,
-  button,
-  .modal,
-  .modal-card,
-  .modal-panel {
+  .ps-section-nav button, button, .modal {
     transition: none !important;
     animation: none !important;
   }
@@ -582,31 +527,6 @@ html[data-density="comfortable"] .panel {
 /* ===== AUTHORITATIVE GLOBAL PRIMITIVES =====
    Consolidated from repeated top-level global selectors across the historical cascade.
    Feature modules must not redefine these unscoped primitives. ===== */
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 
 /* ========================================================================
    AUTHORITATIVE SHARED COMPONENT SYSTEM
@@ -967,7 +887,6 @@ td {
   line-height: 1.35;
 }
 
-
 /* Quiet operational tables: colour marks state, it does not become the table. */
 thead th {
   background: var(--color-surface-subtle) !important;
@@ -1051,7 +970,6 @@ tbody tr:is(.selected,.is-selected,[aria-selected="true"]) > td:first-child {
   }
 }
 
-
 /* ========================================================================
    FINAL VISUAL CONSISTENCY CONTRACT — v1.0.8
    Feature modules own layout/behaviour. These recurring operational surfaces
@@ -1131,7 +1049,6 @@ tbody tr:is(.selected,.is-selected,[aria-selected="true"]) > td:first-child {
   border-bottom-color: var(--color-action-ink);
   box-shadow: none;
 }
-
 
 /* ========================================================================
    ACCESSIBLE COLOUR + TEXT RHYTHM CONTRACT — v1.0.9
@@ -1343,7 +1260,6 @@ mark,
     white-space: normal;
   }
 }
-
 
 /* ========================================================================
    READABILITY HARDENING — v1.0.10
@@ -1886,41 +1802,13 @@ table th {
   padding-inline:11px !important;
   font-size:10px !important;
 }
-#screen-salesorders .sales-workspace.sales-command-page .so-command-toolbar{
-  min-height:45px;
-  padding:7px 10px;
-}
-#screen-salesorders .sales-workspace.sales-command-page .so-command-table th{
-  height:34px;
-  font-size:9px !important;
-}
-#screen-salesorders .sales-workspace.sales-command-page .so-command-table td{
-  min-height:47px;
-  padding:7px 9px !important;
-  font-size:10px !important;
-}
-#screen-salesorders .sales-workspace.sales-command-page .so-command-table .status-reason,
-#screen-salesorders .sales-workspace.sales-command-page .so-command-table .muted{
-  font-size:9px;
-}
-#screen-salesorders .sales-workspace.sales-command-page .so-entry-and-totals{
-  gap:var(--ps-cohesion-workspace-gap);
-  padding:var(--ps-cohesion-workspace-gap);
-}
-#screen-salesorders .sales-workspace.sales-command-page .so-add-items,
-#screen-salesorders .sales-workspace.sales-command-page .so-line-composer,
-#screen-salesorders .sales-workspace.sales-command-page .so-command-totals{
+
+#screen-salesorders .sales-workspace.sales-command-page .so-add-items, #screen-salesorders .sales-workspace.sales-command-page .so-line-composer {
   border-radius:7px;
   box-shadow:none;
 }
 #screen-salesorders .sales-workspace.sales-command-page .so-add-items{
   padding:11px 12px;
-}
-#screen-salesorders .sales-workspace.sales-command-page .so-command-totals-head{
-  padding:10px 11px 9px;
-}
-#screen-salesorders .sales-workspace.sales-command-page .so-command-totals .order-total-box{
-  padding:8px 11px;
 }
 
 /* Popovers/sheets retain operational clarity above the newly unified surfaces. */
@@ -1987,8 +1875,6 @@ table th {
     padding:10px 12px !important;
   }
 }
-
-
 
 /* ========================================================================
    UPDATED PAGE PALETTE GUARD — Sales Order List implementation

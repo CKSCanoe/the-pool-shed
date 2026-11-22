@@ -1,4 +1,7 @@
 import fs from 'node:fs';
+// v1.77: rules for classes the app no longer creates were removed (see test-css-hygiene-v177); only check live ones.
+const __appCode = ['public','server','api'].flatMap(d => { const out = []; const walk = p => { for (const f of fs.readdirSync(p)) { const q = p + '/' + f, st = fs.statSync(q); if (st.isDirectory()) { if (!/css|node_modules/.test(f)) walk(q); } else if (/\.(js|html)$/.test(f) && !/service-worker/.test(f)) out.push(fs.readFileSync(q, 'utf8')); } }; walk(d); return out; }).join('\n');
+const __live = sel => (sel.match(/\.([A-Za-z_][\w-]*)/g) || []).every(c => new RegExp('(^|[^\\w-])' + c.slice(1).replace(/[-]/g, '\\-') + '([^\\w-]|$)').test(__appCode));
 
 const workspace = fs.readFileSync('public/sales-workspace.js','utf8');
 const css = fs.readFileSync('public/assets/css/system/32-sales-workspace.css','utf8');
@@ -17,7 +20,7 @@ const checks = [
   ['variant duplicate safeguard', workspace.includes('That exact variant is already on this order')],
   ['line action dropdown is viewport layer', workspace.includes('positionLineMenu') && css.includes('z-index:100000') && css.includes('position:fixed')],
   ['line menu uses real engines', workspace.includes('data-allocate-line') && workspace.includes('data-unallocate-line') && workspace.includes('data-remove-sales-line') && workspace.includes('data-open-product')],
-  ['catalogue stays neutral', css.includes('.so-smart-product-result.good') && css.includes('.so-smart-product-result.bad{background:var(--color-surface-default)!important}') && css.includes('.so-smart-product-result.active{background:var(--color-hover-surface)!important}') && !css.includes('.so-smart-product-result.bad{background:var(--color-status-danger-bg)!important}')],
+  ['catalogue stays neutral', !__live('.so-smart-product-result') || css.includes('.so-smart-product-result.good') && css.includes('.so-smart-product-result.bad{background:var(--color-surface-default)!important}') && css.includes('.so-smart-product-result.active{background:var(--color-hover-surface)!important}') && !css.includes('.so-smart-product-result.bad{background:var(--color-status-danger-bg)!important}')],
   ['product search engine preserved', legacy.includes('function salesOrderProductMatches(query)') && legacy.includes('function renderSalesOrderProductResults')],
   ['allocation engine preserved', legacy.includes('function allocateSalesOrder') && legacy.includes('function allocateSalesOrderLine')],
   ['goods note engine preserved', legacy.includes('function salesOrderGoodsNotesDirectory') && legacy.includes('goodsNotesForOrder')],

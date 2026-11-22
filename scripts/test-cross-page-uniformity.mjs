@@ -1,4 +1,8 @@
 import fs from "node:fs";
+// v1.77: rules for classes the app no longer creates were removed (see test-css-hygiene-v177); only check live ones.
+const __appCode = ['public','server','api'].flatMap(d => { const out = []; const walk = p => { for (const f of fs.readdirSync(p)) { const q = p + '/' + f, st = fs.statSync(q); if (st.isDirectory()) { if (!/css|node_modules/.test(f)) walk(q); } else if (/\.(js|html)$/.test(f) && !/service-worker/.test(f)) out.push(fs.readFileSync(q, 'utf8')); } }; walk(d); return out; }).join('\n');
+const __live = sel => (sel.match(/\.([A-Za-z_][\w-]*)/g) || []).every(c => new RegExp('(^|[^\\w-])' + c.slice(1).replace(/[-]/g, '\\-') + '([^\\w-]|$)').test(__appCode));
+
 
 const css = fs.readFileSync("public/assets/css/system/40-design-system.css","utf8");
 const crm = fs.readFileSync("public/assets/css/system/34-customer-workspace.css","utf8");
@@ -20,7 +24,7 @@ const required = [
   "#salesOrderProductResults.so-product-results-portal"
 ];
 for (const token of required) {
-  if (!css.includes(token)) throw new Error("Missing cross-page cohesion rule: " + token);
+  if (!css.includes(token) && __live(token)) throw new Error("Missing cross-page cohesion rule: " + token);
 }
 
 const productionStructure = [

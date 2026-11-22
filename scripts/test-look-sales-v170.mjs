@@ -8,7 +8,7 @@ const kit = fs.readFileSync('public/assets/css/system/68-pool-shed-kit.css', 'ut
 assert(/var KIT_TABS = \{ salesorders: 1, quotes: 1,/.test(frame), 'whole Sales area on the kit');
 assert(/screen\.querySelector\('\.qs-studio-root'\)\) kitOn = false/.test(frame) && /\.ps-kit-scope:not\(:has\(> \.qs-studio-root\)\)/.test(kit), 'quote editor excluded');
 assert(/body\.ps-kit:has\(#screen-quotes\.ps-kit-scope:not\(\.hidden\) > \.qs-root:not\(\.qs-studio-root\)\) \.sidebar \{ display: flex !important; \}/.test(kit), 'quotes list keeps the menu');
-assert(/:is\(#screen-dashboard, [^)]*#screen-salesorders[^)]*\)\.ps-kit-scope/.test(kit), 'kit rules anchored to screen ids');
+assert(kit.includes('.ps-kit-scope:not(#ps-kit-none):not(:has(> .qs-studio-root))'), 'kit rules carry id-level strength (v1.77 short form)');
 for (const [re, why] of [[/\.so3-command-actions \.so3-invoice \{ display: none/, 'duplicate Invoice button removed'], [/\.sof-rail li\.now \{ background: var\(--k-brand\)/, 'current step in brand colour, not alarm red'],
   [/@media \(min-width: 1680px\)/, 'side panel only on wide screens'], [/@media \(max-width: 1679px\)/, 'cards in a row above the tabs on laptops'],
   [/\.tabs-row \.tab-chip\.active \{ color: var\(--k-brand\)/, 'underline tabs'], [/details\.so4-tool-card > summary strong::before \{ content: "\+ "/, 'compact add row'],

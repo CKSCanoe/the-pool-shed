@@ -22,7 +22,7 @@
   min-height:38px!important;
   padding:0 5px 0 12px!important;
   margin:0!important;
-  border:1px solid color-mix(in srgb,var(--status-bg),#000 18%)!important;
+  border:1px solid color-mix(in srgb,var(--status-bg),black 18%)!important;
   border-radius:10px!important;
   background:var(--status-bg)!important;
   color:var(--status-fg)!important;
@@ -38,7 +38,7 @@
 #screen-salesorders .status-picker:hover,
 .purchase-command-page .status-picker:hover{
   transform:none!important;
-  border-color:color-mix(in srgb,var(--status-bg),#000 30%)!important;
+  border-color:color-mix(in srgb,var(--status-bg),black 30%)!important;
   box-shadow:0 2px 6px color-mix(in srgb,var(--color-shell) 12%,transparent)!important;
 }
 
@@ -178,7 +178,6 @@
 .purchase-command-page .po-order-title>h1{font-size:24px!important}
 
 /* The status belongs only in the command header on PO detail pages. */
-.purchase-command-page .po-status-field{display:none!important}
 
 @media(max-width:760px){
   #screen-salesorders .so3-order-title,

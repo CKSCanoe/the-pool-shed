@@ -38,5 +38,5 @@ assert(!fs.readFileSync('public/purchase-workspace.js','utf8').includes('data-pu
 assert(fs.readFileSync('public/sales-workspace.js','utf8').includes('Items & Pricing'));
 
 
-const css=fs.readFileSync('public/assets/css/system/45-project-360-command.css','utf8');assert(css.includes('.project-360-detail .project-table-compact{min-width:0'));
+const css=fs.readFileSync('public/assets/css/system/45-project-360-command.css','utf8');assert(!/project-table-compact\{min-width:[1-9]/.test(css),'compact project tables never force a minimum width (v1.77: the old .project-360-detail rule was for a class no longer used)');
 console.log('PASS project workspace navigation, identity-only Settings, search/filter/reset handlers, lifecycle labels and return to list');

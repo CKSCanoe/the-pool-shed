@@ -321,8 +321,7 @@ body #salesOrderProductResults .so5-context-icon{
 body #salesOrderProductResults .so5-customer-context h4{margin:0 0 2px!important}
 body #salesOrderProductResults .so5-customer-context strong{display:block!important;font-size:9px!important}
 body #salesOrderProductResults .so5-customer-context small{display:block!important;margin-top:2px!important;color:var(--color-text-secondary)!important;font-size:7px!important}
-body #salesOrderProductResults .so5-context-link,
-body #salesOrderProductResults .so5-panel-title>button{
+body #salesOrderProductResults .so5-panel-title>button {
   border:0!important;background:transparent!important;color:var(--color-action-ink)!important;
   font-size:8px!important;font-weight:900!important;box-shadow:none!important;
 }
@@ -466,10 +465,7 @@ body #salesOrderProductResults button:focus,
 body #salesOrderProductResults button.active{
   box-shadow:none!important;
 }
-body #salesOrderProductResults button.good:hover,
-body #salesOrderProductResults button.good:focus,
-body #salesOrderProductResults .selected,
-body #salesOrderProductResults .is-selected{
+body #salesOrderProductResults button.good:hover, body #salesOrderProductResults button.good:focus, body #salesOrderProductResults .selected {
   background:var(--color-status-success-bg)!important;
   color:var(--color-text-primary)!important;
 }

@@ -459,7 +459,6 @@ body .so2-line-menu .danger{color:var(--color-status-danger-text)!important}
   #screen-salesorders .so-funding-row>div:last-child{grid-column:auto}
 }
 
-
 /* Sales Order catalogue usability and chemical part-use charging. */
 .so-batch-tabs{align-items:center;flex-wrap:wrap}
 .so-batch-tabs button.so-batch-top-commit{

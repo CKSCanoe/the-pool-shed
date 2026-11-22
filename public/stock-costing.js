@@ -1,4 +1,4 @@
-/* Pool Shed v1.76.0 — average and landed cost on goods in (blueprint step 7).
+/* Pool Shed v1.77.0 — average and landed cost on goods in (blueprint step 7).
    Each time stock is received against a purchase order, the product's average cost is updated:
      new average = (stock on hand × old average + received × landed cost) ÷ (stock on hand + received).
    Landed cost = the PO line's unit cost plus its share (by value) of any delivery, carriage, freight or duty lines on

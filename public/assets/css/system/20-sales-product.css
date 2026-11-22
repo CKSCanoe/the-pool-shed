@@ -102,7 +102,6 @@ body.dark .pb-product-image img { background: var(--color-action-soft); }
   .so-selected-product button { grid-column: 2 !important; }
 }
 
-
 /* ===== CONSOLIDATED FROM: sales-order-search.css ===== */
 /* Pool Shed v1.10.5 sales order catalogue picker */
 .so-catalogue-picker {
@@ -365,14 +364,8 @@ body.dark .so-selected-product strong,
   .so-search-popover .so-product-result { grid-template-columns: 42px 1fr; }
 }
 
-
 /* ===== CONSOLIDATED FROM: partial-fulfilment.css ===== */
 /* Pool Shed v1.10.9 partial shipments, sales-line spacing and premium motion */
-
-
-
-
-
 
 .so-search-clear:hover,
 .so-search-clear:focus-visible {
