@@ -238,6 +238,18 @@ Owner approved the blueprint 21 Nov 2026 (eight areas; Pool Audits under My Work
 
 ---
 
+## Payment reminders · v1.80.0 · branch `payment-reminders`
+
+Owner: quicker everyday use, third of three. Finding: Credit control showed aged debtors from the ledger with "Record payment", but no list of what to chase or any reminder history. Emails from Pool Shed stay switched off (owner's decision), so reminders open in the user's own email app.
+
+| # | Change | Status | Evidence |
+|---|---|---|---|
+| PR1 | Chase list on Credit control: overdue invoices oldest first, days late, owed, last chased (stage, date, who), next reminder | **New · Tested in a real browser on staging** | INV-2051 and INV-2049 listed, 1 day late each |
+| PR2 | Reminder wording by stage (friendly, second over 14 days or after one, final over 44 days or after two), editable; bank details and reference when set; "Open in my email" (mailto, only with a customer email), "Copy", invoice PDF | **New · Tested in a real browser on staging** | Friendly reminder for INV-2051 addressed to the customer's email with the right amount and dates; the email app was not opened (staging holds copies of real customers) |
+| PR3 | "Mark as chased" stores {invoice, stage, date, who, amount} in the workspace (`paymentReminders`); the next reminder steps up | **New · Tested in a real browser on staging** | After marking, the row showed "Friendly reminder 22/11/2026 · aaron" and the next was "Second reminder"; test entry removed |
+| PR4 | Late amounts styled (the `si-bad` style was never defined); release test | **New · Unit tested** | `test-payment-reminders-v180` |
+| PR5 | Release log for v1.79 (PR #78) recorded | **Deployed · verified on live** | Live cache `pool-shed-v1.79.0-views-r1`; data unchanged |
+
 ## Saved list views and bulk export · v1.79.0 · branch `saved-views`
 
 Owner: quicker everyday use, second of three. Finding: Sales › Orders already had bulk actions (status, allocate, fulfil, invoice, delete); purchase orders and the catalogue had none; no list could keep a set of filters. Approach: a view records each list's own filter controls and restores them the way a person would, so the lists themselves are untouched. Bulk status changes on purchase orders were left out on purpose (they drive receiving and stock).
@@ -247,6 +259,7 @@ Owner: quicker everyday use, second of three. Finding: Sales › Orders already 
 | SV1 | Views bar on sales orders, purchase orders and the catalogue; team views stored with the workspace (`savedViews`); highlight when the list matches; same name updates; delete asks first; missing filter options skipped | **New · Tested in a real browser on staging** | Sales orders: "Short stock" saved (3 of 12), cleared, re-applied (3 again, highlighted). Purchase orders: "Needs review" saved and highlighted. A view survived a reload and was in the staging database. Test views removed afterwards |
 | SV2 | Tick-boxes and "Export selected" (CSV, spreadsheet formulas neutralised) on purchase orders and the catalogue; ticks kept across filter changes | **New · Tested in a real browser on staging** | 2 POs ticked: bar showed "2 purchase orders selected"; export rows matched (PO-1052 £215.56 net); 100 catalogue rows got tick-boxes |
 | SV3 | Release test | **New · Unit tested** | `test-saved-views-v179` |
+| SV4 | App release (PR #78) | **Deployed · verified on live** 22 Nov 2026 (Vercel check green; live cache `pool-shed-v1.79.0-views-r1`) | Live serves `saved-views.js`; data unchanged |
 
 ## Jump to anything · v1.78.0 · branch `jump-to`
 
