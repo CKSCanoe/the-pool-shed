@@ -1,3 +1,7 @@
+Pool Shed v1.78.0 - Jump to anything
+
+Press Ctrl+K (Command+K on a Mac), or click "Jump to…" at the top of the menu, from any page. Type a page name ("invoices", "reorder"), any record (an order or PO number, a customer, supplier or product name or code, a quote, a project, a postcode) or an action ("new quote", "new purchase order"), move with the arrow keys and press Enter. Typing an exact reference such as SO-2063 puts it first; for a name, the customer comes first, then their quotes, projects and orders. With nothing typed, it shows the last 8 things you opened. Pages you do not have access to are not offered. The search bar at the top still works as before.
+
 Pool Shed v1.77.0 - Old styles removed
 
 The app's stylesheet is about 10% smaller (1.19 MB down to 1.08 MB), so pages load a little faster, with no change to how they look. 391 style rules for screens and buttons that no longer exist were removed, and the new design's rules were written in a much shorter form (the design file went from 105 KB to 43 KB). The last few fixed colours outside the colour palette (the save-status dots, the supplier profile banner, the super-admin badge) now use the palette, so they follow dark mode like everything else. A new check runs on every build and stops it if someone adds a style for something that does not exist, adds a fixed colour outside the palette, or lets the stylesheet grow past its size limit, so the old mix of styles cannot creep back.

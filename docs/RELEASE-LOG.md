@@ -238,6 +238,15 @@ Owner approved the blueprint 21 Nov 2026 (eight areas; Pool Audits under My Work
 
 ---
 
+## Jump to anything · v1.78.0 · branch `jump-to`
+
+Owner: quicker everyday use. First of three (jump to anything, saved views and bulk actions, payment reminders). Finding: the top search already found orders, POs, products, customers, projects, stock locations, delivery notes and suppliers, and Ctrl+K only focused it; it did not cover pages, quotes or "new" actions.
+
+| # | Change | Status | Evidence |
+|---|---|---|---|
+| JT1 | Ctrl/Command+K box (and "Jump to…" in the menu): pages from the menu (only those the role can open), records from the existing search plus quotes, "New …" actions; exact reference first, then people, quotes, projects, orders, POs, products; at most 5 per kind; old one-off products left out; last 8 opened shown when empty | **New · Tested in a real browser on staging** | "invoices" found the page; "SO-2063" + Enter opened that order; "thorp" listed the customer, quote Q-2026-0002 (Enter opened it in the editor), project and orders; "new quote" offered the action; search took about 1 ms per keystroke |
+| JT2 | Release test | **New · Unit tested** | `test-jump-to-v178` |
+
 ## Old styles removed · v1.77.0 · branch `css-cleanup`
 
 Owner: remove the old styles now the new look is everywhere. Finding: fixed colours were already almost gone (22 outside the palette); the problem was size and duplication: app.css 1.19 MB, of which the design kit repeated a 260-character list of screen ids 220 times.
@@ -251,6 +260,7 @@ Owner: remove the old styles now the new look is everywhere. Finding: fixed colo
 | CS5 | Look tests updated for the short kit selector | **Changed** | `test-look-sales-v170`, `test-look-all-v176` |
 | CS6 | Older tests that named rules for classes no longer used now check those rules only while the app still uses the class; the runtime check no longer requires `.ci-search-backdrop` (element no longer created); the two standalone copies (`quote-studio.css`, `finance-command.css`) re-synced with their modules | **Changed** | `test-project-workspace-v143`, `test-cross-page-uniformity`, `test-project-360-visual-guard-v110`, `test-supplier-command-visual-v115`, `test-sales-order-detail-v162`, `validate-runtime`. Every test in the repo compared with main: no new failures |
 | CS7 | Found by the contrast test: the supplier banner's main button would have been dark on dark in dark mode after the colour swap; now light text-colour background in both themes | **Fixed before release** | `test-theme-semantic-contrast-v124` passes |
+| CS8 | App release (PR #76) | **Deployed · verified on live** 22 Nov 2026 (Vercel check green; live cache `pool-shed-v1.77.0-css-r1`) | Live app.css 1,081,788 bytes with the short kit selector; data unchanged |
 
 ## The new look everywhere · v1.76.0 · branch `look-rest`
 

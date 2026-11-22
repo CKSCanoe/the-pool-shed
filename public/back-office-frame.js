@@ -1,4 +1,4 @@
-/* Pool Shed v1.77.0 — back-office frame (blueprint step 1).
+/* Pool Shed v1.78.0 — back-office frame (blueprint step 1).
    1. The menu grouped into eight areas (plus Reports and Settings). Every existing page stays where it was, under its area;
       a "Classic menu" switch brings back the old flat menu for anyone who prefers it.
    2. Home queues: what needs doing today, by role, each opening the list to act on.
@@ -93,7 +93,7 @@
     var unknown = tabs.filter(function(t){ return !OWNER[t.id]; });
     if (unknown.length) html += '<div class="nav-area' + (unknown.some(function(t){ return t.id === active; }) ? ' open' : '') + '"><button type="button" class="nav-area-head" data-nav-page="' + esc(pageKey(unknown[0].id, '')) + '">More</button>' +
       (unknown.some(function(t){ return t.id === active; }) ? '<div class="nav-area-items">' + unknown.map(function(t){ return btn(t.id, '', t.label, t.id === active); }).join('') + '</div>' : '') + '</div>';
-    return '<div class="nav-new"><button type="button" class="nav-new-btn" data-nav-new aria-expanded="false">+ New</button><div class="nav-new-menu" hidden>' +
+    return '<div class="nav-new"><button type="button" class="nav-jump-btn" data-jump-open title="Jump to anything (Ctrl+K)">Jump to… <kbd>' + (/Mac|iPhone|iPad/.test((global.navigator || {}).platform || '') ? '⌘K' : 'Ctrl K') + '</kbd></button><button type="button" class="nav-new-btn" data-nav-new aria-expanded="false">+ New</button><div class="nav-new-menu" hidden>' +
       [['sales-order', 'Sales order'], ['quote', 'Quote'], ['customer', 'Customer'], ['purchase-order', 'Purchase order'], ['product', 'Product'], ['contract', 'Contract'], ['project', 'Project']].map(function(x){ return '<button type="button" data-nav-create="' + x[0] + '">' + x[1] + '</button>'; }).join('') + '</div></div>' +
       html + '<div class="nav-style-switch"><button type="button" class="link" data-menu-style="classic">Classic menu</button><button type="button" class="link" data-new-look="' + (newLook() ? 'off' : 'on') + '">New look: ' + (newLook() ? 'on' : 'off') + '</button></div>';
   }
