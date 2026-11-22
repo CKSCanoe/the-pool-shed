@@ -15948,6 +15948,31 @@ html,body,.app,.main{max-width:100%;min-width:0}
 .be-fields .be-check{margin:0}
 
 
+/* ===== MODULE: system/70-jump-to.css ===== */
+/* Jump to anything (Ctrl+K), from v1.78 */
+.ps-jump{position:fixed;inset:0;z-index:10200;display:flex;justify-content:center;align-items:flex-start;padding:12vh 16px 16px}
+.ps-jump-scrim{position:absolute;inset:0;background:var(--color-overlay-scrim)}
+.ps-jump-box{position:relative;width:min(680px,100%);max-height:70vh;display:flex;flex-direction:column;background:var(--color-surface-default);color:var(--color-text-primary);border:1px solid var(--color-border-default);border-radius:14px;box-shadow:var(--shadow-raised);overflow:hidden}
+.ps-jump-field{display:flex;align-items:center;gap:10px;padding:14px 16px;border-bottom:1px solid var(--color-border-default)}
+.ps-jump-field input{flex:1;min-width:0;border:0;outline:none;background:transparent;color:inherit;font:inherit;font-size:16px}
+.ps-jump kbd,.nav-jump-btn kbd{font:600 11px/1 ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;padding:3px 5px;border:1px solid var(--color-border-default);border-radius:5px;background:var(--color-surface-subtle);color:var(--color-text-secondary)}
+.ps-jump-list{list-style:none;margin:0;padding:6px;overflow:auto;flex:1}
+.ps-jump-group{padding:10px 10px 4px;font-size:11px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:var(--color-text-muted)}
+.ps-jump-item{display:grid;grid-template-columns:110px minmax(0,1fr);gap:0 12px;padding:8px 10px;border-radius:8px;cursor:pointer}
+.ps-jump-item.on{background:var(--color-selected-surface);box-shadow:inset 3px 0 0 var(--color-action-primary)}
+.ps-jump-type{grid-row:1/span 2;align-self:center;font-size:11px;font-weight:600;color:var(--color-text-muted)}
+.ps-jump-title{font-size:14px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.ps-jump-meta{font-size:12px;color:var(--color-text-secondary);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.ps-jump-meta:empty{display:none}
+.ps-jump-empty{padding:22px 12px;color:var(--color-text-secondary);font-size:13px}
+.ps-jump-foot{display:flex;gap:16px;padding:9px 14px;border-top:1px solid var(--color-border-default);font-size:12px;color:var(--color-text-muted)}
+.ps-jump-foot kbd{margin-right:2px}
+.nav-jump-btn{width:100%;display:flex;align-items:center;justify-content:space-between;gap:8px;margin:0 0 8px;padding:8px 10px;border-radius:8px;border:1px solid var(--color-shell-secondary);background:transparent;color:var(--color-shell-text-muted);font:inherit;font-size:13px;cursor:pointer}
+.nav-jump-btn:hover{color:var(--color-shell-text);border-color:var(--color-shell-text-muted)}
+.nav-jump-btn kbd{background:transparent;border-color:var(--color-shell-secondary);color:var(--color-shell-text-muted)}
+@media(max-width:640px){.ps-jump{padding:8px}.ps-jump-item{grid-template-columns:minmax(0,1fr)}.ps-jump-type{grid-row:auto}.ps-jump-foot{display:none}}
+
+
 /* ===== MODULE: system/68-pool-shed-kit.css ===== */
 /* Pool Shed design kit (v1.69 pilot) — module 68, loaded last.
    v1.77: rules start .ps-kit-scope:not(#ps-kit-none) — the :not(#id) gives the same id-level strength the old

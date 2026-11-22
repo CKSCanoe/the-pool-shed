@@ -238,6 +238,15 @@ Owner approved the blueprint 21 Nov 2026 (eight areas; Pool Audits under My Work
 
 ---
 
+## Jump to anything · v1.78.0 · branch `jump-to`
+
+Owner: quicker everyday use. First of three (jump to anything, saved views and bulk actions, payment reminders). Finding: the top search already found orders, POs, products, customers, projects, stock locations, delivery notes and suppliers, and Ctrl+K only focused it; it did not cover pages, quotes or "new" actions.
+
+| # | Change | Status | Evidence |
+|---|---|---|---|
+| JT1 | Ctrl/Command+K box (and "Jump to…" in the menu): pages from the menu (only those the role can open), records from the existing search plus quotes, "New …" actions; exact reference first, then people, quotes, projects, orders, POs, products; at most 5 per kind; old one-off products left out; last 8 opened shown when empty | **New · Tested in a real browser on staging** | "invoices" found the page; "SO-2063" + Enter opened that order; "thorp" listed the customer, quote Q-2026-0002 (Enter opened it in the editor), project and orders; "new quote" offered the action; search took about 1 ms per keystroke |
+| JT2 | Release test | **New · Unit tested** | `test-jump-to-v178` |
+
 ## Old styles removed · v1.77.0 · branch `css-cleanup`
 
 Owner: remove the old styles now the new look is everywhere. Finding: fixed colours were already almost gone (22 outside the palette); the problem was size and duplication: app.css 1.19 MB, of which the design kit repeated a 260-character list of screen ids 220 times.
