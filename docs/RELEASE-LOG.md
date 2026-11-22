@@ -238,6 +238,17 @@ Owner approved the blueprint 21 Nov 2026 (eight areas; Pool Audits under My Work
 
 ---
 
+## Quote Studio pool specs · v1.73.0 · branch `quote-spec-configurator`
+
+Release C of four. Owner: choice groups per template, each choice with photo, description, price and cost, from the catalogue or typed in, adjustable per quote with a live price; accepted choices flow into the project, sales order and purchasing. Finding: catalogue choices already flowed into the sales order, project materials and draft purchase orders; typed-in choices reached the sales order with a blank product.
+
+| # | Change | Status | Evidence |
+|---|---|---|---|
+| QS1 | Each choice in the editor: photo, name, description, highlights, badge, price, quantity, cost, live margin (coloured), supplier for typed-in choices, reorder; group shows the starting total | **New · Tested in a real browser on staging** | On Q-2026-0002: highlights showed on the customer card; a choice priced £3,995 and picked by the "customer" made the total £4,794 inc. VAT; the settings panel fits at 1,483 px wide after a fix |
+| QS2 | Catalogue search in each group (name, code or supplier code, 8 results, one-off records never offered) adds the product with its details | **New · Tested in a real browser on staging** | "heat pump" returned 8; the first was added with its code and supplier (it has no price in the catalogue, so it came in at £0 as expected) |
+| QS3 | "Save as a template" in the editor; "Copy a group from a template" copies a group with fresh ids and its pictures | **New · Tested in a real browser on staging** | Saved a template, copied its group in, then removed both |
+| QS4 | Typed-in choices become sales order lines with the CUSTOM code and their own name (v1.71 stand-in); no draft purchase order or material line unless a supplier is named. Same rule in the app and on the server (customer accepting online) | **New · Unit tested** | `test-quote-specs-v173`. Quotes already accepted are unchanged |
+
 ## Quote Studio brochure editor · v1.72.0 · branch `quote-studio-editor`
 
 Owner: Quote Studio should build a professional brochure quote the way Shopify builds a website, easy to use, with customers choosing their pool specs. This is release B of four (B editor, C pool spec configurator, D customer experience, E HTML). Approach: the editor shows the customer's real proposal page in a frame and edits it in place, so what staff see is exactly what the customer gets. Older published versions keep their fixed section order; only new versions (marked `brochure:1`) follow the list.
@@ -248,6 +259,7 @@ Owner: Quote Studio should build a professional brochure quote the way Shopify b
 | QE2 | Customer page: sections follow the list; new section types (intro letter, gallery, text and picture, timeline, reviews, questions and answers, terms); the hard-coded headings are now editable with the same defaults | **New · Unit tested** | `test-quote-editor-v172`. Published versions before v1.72 render as before |
 | QE3 | The customer page may be framed by Pool Shed itself only (X-Frame-Options SAMEORIGIN, frame-ancestors 'self'; was DENY/'none'); edit mode needs a staff preview inside a frame and only answers messages from the same site; settings paths are checked (no constructor/prototype/__proto__) and accepted quotes are read only | **New · Unit tested** | `test-quote-editor-v172` |
 | QE4 | Two old tests pinned the old behaviour (no per-quote colour, file version 1.45.1); updated to check that only a checked #rrggbb colour reaches the page and that a version is present | **Changed** | `test-quote-command-v138`, `test-quote-portal-v131` |
+| QE5 | App release (PR #71) | **Deployed · verified on live** 22 Nov 2026 (Vercel check green; live cache `pool-shed-v1.72.0-editor-r1`) | Live serves `quote-brochure-editor.js` and the editor styles; `/proposal` sends X-Frame-Options SAMEORIGIN; data unchanged |
 
 ## One code for custom items, deposits per quote and project · v1.71.0 · branch `custom-lines`
 

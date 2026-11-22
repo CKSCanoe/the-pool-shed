@@ -1,4 +1,4 @@
-/* v1.72.0 Quote Studio brochure editor: sections | live customer page | settings */
+/* v1.73.0 Quote Studio brochure editor: sections | live customer page | settings */
 #screen-quotes .qs-brochure-mode{min-height:0;background:var(--color-surface-canvas)}
 .be-root{display:flex;flex-direction:column;height:100vh;min-height:560px;background:var(--color-surface-canvas);color:var(--color-text-primary);font-size:13px}
 .be-top{display:flex;align-items:center;gap:10px;padding:8px 14px;border-bottom:1px solid var(--color-border-default);background:var(--color-surface-default);flex:0 0 auto;min-width:0}
@@ -31,7 +31,7 @@
 .be-body{flex:1;min-height:0;display:grid;grid-template-columns:260px minmax(0,1fr) 340px}
 .be-left,.be-right{background:var(--color-surface-default);overflow:auto;min-height:0}
 .be-left{border-right:1px solid var(--color-border-default);display:flex;flex-direction:column}
-.be-right{border-left:1px solid var(--color-border-default);padding-bottom:40px}
+.be-right{overflow-x:hidden;border-left:1px solid var(--color-border-default);padding-bottom:40px}
 .be-panel-head{display:flex;flex-direction:column;gap:2px;padding:14px 16px 10px;border-bottom:1px solid var(--color-border-subtle)}
 .be-panel-head b{font-size:14px}
 .be-panel-head span{font-size:12px;color:var(--color-text-muted)}
@@ -72,14 +72,14 @@
 .be-frame-wrap iframe{display:block;width:100%;height:100%;border:0;background:var(--color-surface-default)}
 .be-stage-hint{margin:8px 0 0;font-size:12px;color:var(--color-text-muted);text-align:center}
 .be-fields{display:grid;gap:12px;padding:14px 16px}
-.be-field{display:grid;gap:5px}
+.be-field{display:grid;gap:5px;min-width:0}
 .be-field>span{font-size:12px;font-weight:600;color:var(--color-text-secondary)}
 .be-field small{font-size:11px;color:var(--color-text-muted)}
 .be-field input:not([type=checkbox]):not([type=color]),.be-field select,.be-field textarea{width:100%;box-sizing:border-box;border:1px solid var(--color-border-default);border-radius:8px;padding:8px 10px;font:inherit;background:var(--color-surface-default);color:var(--color-text-primary)}
 .be-field textarea{resize:vertical;line-height:1.5}
 .be-field input:focus,.be-field select:focus,.be-field textarea:focus{outline:none;border-color:var(--color-action-primary);box-shadow:0 0 0 3px var(--color-action-soft)}
 .be-field input[readonly],.be-field textarea[readonly]{background:var(--color-surface-subtle)}
-.be-two{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.be-two{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:10px}
 .be-check{display:flex;align-items:center;gap:7px;font-size:12px;color:var(--color-text-secondary)}
 .be-checks{display:flex;gap:14px;flex-wrap:wrap}
 .be-help{margin:0;font-size:12px;line-height:1.5;color:var(--color-text-secondary)}
@@ -114,11 +114,31 @@
 .be-group[open]>summary{border-bottom:1px solid var(--color-border-subtle);margin-bottom:10px}
 .be-group>.be-field,.be-group>.be-two{margin-bottom:10px}
 .be-choices{display:grid;gap:8px;margin:4px 0 10px}
-.be-choice{display:flex;gap:10px;padding:10px;border-radius:8px;background:var(--color-surface-subtle)}
-.be-choice .be-thumb{width:56px;height:56px}
-.be-choice-body{flex:1;min-width:0;display:grid;gap:8px}
+.be-choice{border-radius:8px;background:var(--color-surface-subtle);border:1px solid transparent}
+.be-choice[open]{border-color:var(--color-border-default);background:var(--color-surface-default)}
+.be-choice>summary{display:flex;gap:10px;align-items:center;padding:8px 10px;cursor:pointer;list-style:none}
+.be-choice>summary::-webkit-details-marker{display:none}
+.be-choice>summary .be-thumb{width:48px;height:48px}
+.be-choice-sum{display:flex;flex-direction:column;gap:1px;min-width:0}
+.be-choice-sum b{font-size:13px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.be-choice-sum small{font-size:11px;color:var(--color-text-secondary)}
+.be-choice-body{display:grid;gap:10px;padding:4px 10px 12px}
+.be-margin.good{color:var(--color-status-success-text)}.be-margin.warn{color:var(--color-status-attention-text)}.be-margin.bad{color:var(--color-status-danger-text)}.be-margin.muted{color:var(--color-text-muted)}
+.be-spec-total{padding:9px 11px;border-radius:8px;background:var(--color-selected-surface);font-weight:600;font-size:12px}
+.be-cat{position:relative;margin:0 0 10px}
+.be-cat input{width:100%;box-sizing:border-box;border:1px solid var(--color-border-default);border-radius:8px;padding:8px 10px;font:inherit;background:var(--color-surface-default);color:var(--color-text-primary)}
+.be-cat input:focus{outline:none;border-color:var(--color-action-primary);box-shadow:0 0 0 3px var(--color-action-soft)}
+.be-cat-results{display:grid;gap:4px;margin-top:6px}
+.be-cat-row{appearance:none;border:1px solid var(--color-border-default);background:var(--color-surface-default);border-radius:8px;padding:7px 10px;text-align:left;cursor:pointer;display:grid;grid-template-columns:minmax(0,1fr) auto;gap:1px 10px;font:inherit;color:var(--color-text-primary)}
+.be-cat-row:hover{border-color:var(--color-action-primary);background:var(--color-action-soft)}
+.be-cat-row b{font-size:12px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.be-cat-row span{font-size:11px;color:var(--color-text-muted);grid-column:1}
+.be-cat-row em{font-style:normal;font-weight:600;font-size:12px;grid-column:2;grid-row:1/span 2;align-self:center}
+.be-cat-ref{font-size:12px;color:var(--color-text-secondary);padding:8px 0}
+.be-tpl{margin-top:12px}
 .be-colour{display:flex;align-items:center;gap:10px}
 .be-colour input[type=color]{width:42px;height:32px;border:1px solid var(--color-border-default);border-radius:6px;padding:2px;background:var(--color-surface-default);cursor:pointer}
 .be-colour span{font-size:12px;color:var(--color-text-secondary)}
 @media(max-width:1280px){.be-body{grid-template-columns:220px minmax(0,1fr) 300px}.be-title b{max-width:28vw}}
 @media(max-width:980px){.be-body{grid-template-columns:minmax(0,1fr)}.be-left,.be-right{max-height:none}.be-stage{min-height:70vh}.be-root{height:auto}.be-top{flex-wrap:wrap}}
+.be-fields,.be-group,.be-choice,.be-choice-body,.be-choices{min-width:0}

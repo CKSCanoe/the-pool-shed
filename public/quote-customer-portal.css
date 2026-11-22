@@ -88,7 +88,7 @@
 #pcAcceptanceHeading:focus{outline:none}
 @media(max-width:760px){.pc-next-page .pc-section-inner{flex-direction:column;align-items:stretch}.pc-next-page a.pc-primary{justify-content:center;white-space:normal}.pc-signing{padding:14px}.pc-project-bar .pc-review-btn:not(.pc-sign-next){display:none}.pc-project-bar .pc-sign-next{display:inline-flex}.pc-signature-methods button{padding:10px 8px}.pc-accept-top .pc-back-link{margin-bottom:20px}}
 
-/* v1.72.0 Brochure sections set in Quote Studio */
+/* v1.73.0 Brochure sections set in Quote Studio */
 .pc-rich{white-space:pre-line;font-size:15px;line-height:1.8;color:var(--color-text-secondary);max-width:760px;margin-top:18px}
 .pc-letter .pc-section-inner{max-width:820px}
 .pc-letter h2{font-family:var(--serif);font-size:clamp(30px,3.6vw,42px);line-height:1.1;letter-spacing:-.03em;font-weight:500;margin:0}
