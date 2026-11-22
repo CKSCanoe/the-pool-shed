@@ -251,6 +251,7 @@ Owner: remove the old styles now the new look is everywhere. Finding: fixed colo
 | CS5 | Look tests updated for the short kit selector | **Changed** | `test-look-sales-v170`, `test-look-all-v176` |
 | CS6 | Older tests that named rules for classes no longer used now check those rules only while the app still uses the class; the runtime check no longer requires `.ci-search-backdrop` (element no longer created); the two standalone copies (`quote-studio.css`, `finance-command.css`) re-synced with their modules | **Changed** | `test-project-workspace-v143`, `test-cross-page-uniformity`, `test-project-360-visual-guard-v110`, `test-supplier-command-visual-v115`, `test-sales-order-detail-v162`, `validate-runtime`. Every test in the repo compared with main: no new failures |
 | CS7 | Found by the contrast test: the supplier banner's main button would have been dark on dark in dark mode after the colour swap; now light text-colour background in both themes | **Fixed before release** | `test-theme-semantic-contrast-v124` passes |
+| CS8 | App release (PR #76) | **Deployed · verified on live** 22 Nov 2026 (Vercel check green; live cache `pool-shed-v1.77.0-css-r1`) | Live app.css 1,081,788 bytes with the short kit selector; data unchanged |
 
 ## The new look everywhere · v1.76.0 · branch `look-rest`
 
