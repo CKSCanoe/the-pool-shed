@@ -238,6 +238,17 @@ Owner approved the blueprint 21 Nov 2026 (eight areas; Pool Audits under My Work
 
 ---
 
+## Quote Studio brochure editor · v1.72.0 · branch `quote-studio-editor`
+
+Owner: Quote Studio should build a professional brochure quote the way Shopify builds a website, easy to use, with customers choosing their pool specs. This is release B of four (B editor, C pool spec configurator, D customer experience, E HTML). Approach: the editor shows the customer's real proposal page in a frame and edits it in place, so what staff see is exactly what the customer gets. Older published versions keep their fixed section order; only new versions (marked `brochure:1`) follow the list.
+
+| # | Change | Status | Evidence |
+|---|---|---|---|
+| QE1 | Quotes open on a three-panel editor: sections (drag to reorder, hide, add from a library of 14), the live customer page (desktop, tablet, phone; click any words to change them), and settings for the selected section; theme (style, heading font, brand colour, name); autosave and undo | **New · Tested in a real browser on staging** | On Q-2026-0002: title typed in the panel showed in the page; words typed in the page showed in the panel; a Timeline added, dragged after Investment, saved; a choice priced £4,250 and chosen made the customer total £5,100 inc. VAT; undo reverted the last change; brand colour and font reached the page; no console errors |
+| QE2 | Customer page: sections follow the list; new section types (intro letter, gallery, text and picture, timeline, reviews, questions and answers, terms); the hard-coded headings are now editable with the same defaults | **New · Unit tested** | `test-quote-editor-v172`. Published versions before v1.72 render as before |
+| QE3 | The customer page may be framed by Pool Shed itself only (X-Frame-Options SAMEORIGIN, frame-ancestors 'self'; was DENY/'none'); edit mode needs a staff preview inside a frame and only answers messages from the same site; settings paths are checked (no constructor/prototype/__proto__) and accepted quotes are read only | **New · Unit tested** | `test-quote-editor-v172` |
+| QE4 | Two old tests pinned the old behaviour (no per-quote colour, file version 1.45.1); updated to check that only a checked #rrggbb colour reaches the page and that a version is present | **Changed** | `test-quote-command-v138`, `test-quote-portal-v131` |
+
 ## One code for custom items, deposits per quote and project · v1.71.0 · branch `custom-lines`
 
 Owner: custom items should all be one product code, not a product per one-off item; deposits need to be custom per project (50% when the supplier needs it, 30% other times), with a Xero request for the amount. Finding: 26 places find an order line by its product and 67 places show a line by looking up its product, which is why each custom line had its own product record. Rather than rewiring all of them, each custom line keeps a private reference and product() returns a stand-in built from the line (code CUSTOM or SHIPPING). Same result for the owner, far less risk.
