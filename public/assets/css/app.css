@@ -15973,6 +15973,25 @@ html,body,.app,.main{max-width:100%;min-width:0}
 @media(max-width:640px){.ps-jump{padding:8px}.ps-jump-item{grid-template-columns:minmax(0,1fr)}.ps-jump-type{grid-row:auto}.ps-jump-foot{display:none}}
 
 
+/* ===== MODULE: system/71-saved-views.css ===== */
+/* Saved list views and bulk selection (from v1.79) */
+.sv-bar{display:flex;align-items:center;flex-wrap:wrap;gap:6px;margin:0 0 10px;padding:8px 10px;border:1px solid var(--color-border-default);border-radius:10px;background:var(--color-surface-default)}
+.sv-label{font-size:12px;font-weight:700;color:var(--color-text-muted);margin-right:4px}
+.sv-chip{display:inline-flex;align-items:center;border:1px solid var(--color-border-default);border-radius:999px;background:var(--color-surface-default);overflow:hidden}
+.sv-chip.on{border-color:var(--color-action-primary);background:var(--color-action-soft)}
+.sv-chip button{appearance:none;border:0;background:transparent;color:var(--color-text-primary);font:inherit;font-size:12px;font-weight:600;padding:5px 4px 5px 11px;cursor:pointer}
+.sv-chip.on button{color:var(--color-action-ink)}
+.sv-chip .sv-x{padding:5px 9px 5px 4px;color:var(--color-text-muted);font-weight:400}
+.sv-chip .sv-x:hover{color:var(--color-status-danger-text)}
+.sv-save{appearance:none;border:1px dashed var(--color-border-strong);background:transparent;color:var(--color-action-primary);border-radius:999px;font:inherit;font-size:12px;font-weight:600;padding:5px 11px;cursor:pointer}
+.sv-save:hover{background:var(--color-action-soft)}
+.sv-check{width:34px;text-align:center}
+.sv-bulk{position:sticky;bottom:12px;z-index:5;display:flex;align-items:center;gap:10px;margin:10px 0 0;padding:10px 14px;border-radius:10px;background:var(--color-shell);color:var(--color-shell-text)}
+.sv-bulk strong{margin-right:auto;font-size:13px}
+.sv-bulk button{appearance:none;border:1px solid var(--color-shell-text-muted);background:transparent;color:var(--color-shell-text);border-radius:8px;font:inherit;font-size:12px;font-weight:600;padding:6px 12px;cursor:pointer}
+.sv-bulk .sv-link{border-color:transparent;color:var(--color-shell-text-muted)}
+
+
 /* ===== MODULE: system/68-pool-shed-kit.css ===== */
 /* Pool Shed design kit (v1.69 pilot) — module 68, loaded last.
    v1.77: rules start .ps-kit-scope:not(#ps-kit-none) — the :not(#id) gives the same id-level strength the old
