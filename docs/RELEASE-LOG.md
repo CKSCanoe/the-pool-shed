@@ -238,6 +238,15 @@ Owner approved the blueprint 21 Nov 2026 (eight areas; Pool Audits under My Work
 
 ---
 
+## Look pilot · v1.69.0 · branch `look-pilot`
+
+Audit: 3,057 `!important` overrides, 93 hard-coded colours, 112 corner styles, 181 text sizes, 29 button and 26 badge designs, 14 add-ons with their own styles. The pilot proves one kit on three pages before any rollout.
+
+| # | Change | Status | Evidence |
+|---|---|---|---|
+| L1 | Design kit `system/68-pool-shed-kit.css` (loaded last), built on the existing tokens (`--color-*`, `--ps-*`); no new hard-coded colours | **New · Tested in a real browser on staging** | Orders, Purchase orders and Products: banners gone, figure cards unified (Products' dark strip and Purchasing's blue band became white cards), round filters, compact table buttons, status colours from Settings kept, Delete red, name links plain. Dark theme correct after moving the kit's names off `:root` (the app sets the theme on `<body>`) |
+| L2 | Kit only on those three list pages; "New look: on/off" switch in the menu | **New · Tested** | `test-look-pilot-v169` (scoping, switch, no hex colours, kit last); build gate passes. No database change |
+
 ## Speed · v1.68.0 · branch `speed`
 
 Audit on staging (owner: "I need everything a lot faster"): most pages redrew in 0.1–0.25 s, but Reorder list took 6.3 s, Reports 1.1–2.5 s, Products 2.1 s, Stock levels up to 2.6 s, Suppliers up to 3.4 s and My work 0.7 s. The cause, measured function by function, was full-list searches for every product: the app's product lookup, supplier prices (6,800 × 6,800), and the supplier price check that runs three times per draw. My work also rescanned and saved on every redraw.

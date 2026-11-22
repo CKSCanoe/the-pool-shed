@@ -1,3 +1,7 @@
+Pool Shed v1.69.0 - The new look, on three pages first
+
+A single design kit (one set of colours, text sizes, corners, buttons, badges, tables, filters and figure cards, built on the existing colour tokens and dark theme) now styles Sales › Orders, Purchasing › Purchase orders and Stock › Products. Each page loses its own banner (the title is already at the top), keeps its buttons in one place on the right, shows its figures as the same white cards, has round filter buttons, quieter tables and one badge shape; status badges keep the colours set in Settings › Statuses, and Delete stays red. Every other page is unchanged until the look is approved. "New look: off" at the bottom of the menu switches the three pages back, to compare.
+
 Pool Shed v1.68.0 - Faster pages
 
 The slowest pages were recalculating figures for every product by searching whole lists again for each one (6,800 products against 6,800 supplier prices is about 46 million comparisons). They now look things up once per screen draw, with exactly the same results. On staging: Reorder list from 6.3 seconds to 0.2, Products from 2.1 to 0.2, Stock levels from up to 2.6 to 0.2 (now 100 at a time, products holding stock first), Suppliers from up to 3.4 to under 0.2, My work from 0.7 to 0.15 (it also no longer saves on every redraw), and the older Reports pages from 2.5 to about 0.55. Every page in the menu now redraws in under 0.6 seconds, most in about 0.15. The "… opened." message after every menu click has gone.
