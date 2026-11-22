@@ -238,6 +238,16 @@ Owner approved the blueprint 21 Nov 2026 (eight areas; Pool Audits under My Work
 
 ---
 
+## One code for custom items, deposits per quote and project · v1.71.0 · branch `custom-lines`
+
+Owner: custom items should all be one product code, not a product per one-off item; deposits need to be custom per project (50% when the supplier needs it, 30% other times), with a Xero request for the amount. Finding: 26 places find an order line by its product and 67 places show a line by looking up its product, which is why each custom line had its own product record. Rather than rewiring all of them, each custom line keeps a private reference and product() returns a stand-in built from the line (code CUSTOM or SHIPPING). Same result for the owner, far less risk.
+
+| # | Change | Status | Evidence |
+|---|---|---|---|
+| CI1 | createNonStockProduct no longer adds records; product() returns a stand-in from the line (code CUSTOM / SHIPPING, the line's name, price and cost); the start-up repair step skips one-off ids; old one-off records hidden from Stock levels | **New · Tested in a real browser on staging** | Two custom lines added to SO-2063: the product count stayed at 6,839, both show CUSTOM with their own names, and the server invoice preview named and priced them correctly (£95, £40). Found and fixed on the way: the repair step was recreating "Recovered product" placeholders |
+| CI2 | Quote deposit: "Raise deposit invoice" creates a ledger deposit invoice for the quote's own amount (against its sales order, or the project when billed by stage), replacing the old Xero queue that needed a Xero contact | **New · Unit tested** | `test-custom-items-v171` |
+| CI3 | Project invoice stage: "or % of the agreed value" fills in the amount and names it "50% deposit" | **New · Unit tested** | Build gate passes. No database change |
+
 ## Sales on the new look · v1.70.0 · branch `look-sales`
 
 | # | Change | Status | Evidence |

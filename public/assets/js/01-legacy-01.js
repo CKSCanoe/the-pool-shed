@@ -924,6 +924,7 @@ const seed = {
         source.stock.forEach(function(row) { if (row.productId) referencedProductIds.push(row.productId); });
         Array.from(new Set(referencedProductIds)).forEach(function(productId) {
           if (productIds.has(productId)) return;
+          if (/^(CUSTOM|SHIP)-/i.test(String(productId))) return;   // v1.71: one-off lines have no product record on purpose (code CUSTOM / SHIPPING)
           source.products.push({ id: productId, sku: productId, name: "Recovered product", category: "Needs review", supplier: "Not assigned", supplierSku: "", barcode: "", cost: 0, rrp: 0, trade: 0, wholesale: 0, reorder: 0, unit: "Each", status: "Needs review", deleted: false });
           productIds.add(productId);
         });
@@ -1970,7 +1971,38 @@ const seed = {
         }
         const hit = productIndex.map.get(id);
         if (hit && hit.id === id) return hit;
-        return list.find(function(item) { return item.id === id; });
+        return list.find(function(item) { return item.id === id; }) || oneOffProduct(id);
+      }
+
+      // v1.71: stand-in product for a one-off custom or delivery line (code CUSTOM / SHIPPING, the line's own name and
+      // price). Lines are remembered by reference so a renamed line shows its new name straight away.
+      var virtualProducts, oneOffLines;   // created on first use (product() can run before this line during start-up)
+      function oneOffMaps() { if (!virtualProducts) virtualProducts = new Map(); if (!oneOffLines) oneOffLines = new Map(); }
+      function oneOffLineFor(id) {
+        oneOffMaps();
+        const known = oneOffLines.get(id);
+        if (known && known.productId === id) return known;
+        const sources = [data.salesOrders, data.salesOrderSubscriptions, data.goodsNotes, data.salesCredits, data.quotes];
+        for (let s = 0; s < sources.length; s++) {
+          const rows = sources[s] || [];
+          for (let r = 0; r < rows.length; r++) {
+            const lines = rows[r] && rows[r].lines || [];
+            for (let i = 0; i < lines.length; i++) if (lines[i] && lines[i].productId === id) { oneOffLines.set(id, lines[i]); return lines[i]; }
+          }
+        }
+        return null;
+      }
+      function oneOffProduct(id) {
+        if (!/^(CUSTOM|SHIP)/i.test(String(id || ""))) return undefined;
+        oneOffMaps();
+        const line = oneOffLineFor(id), made = virtualProducts.get(id);
+        if (!line) return made;
+        const shipping = line.lineType === "shipping" || /^SHIP/i.test(String(id)), price = Number(line.unitPrice != null ? line.unitPrice : line.specialPrice || 0);
+        const name = String(line.customProductName || line.shippingMethod || line.description || (made && made.name) || (shipping ? "Delivery" : "Custom item"));
+        const variant = String(line.customVariant || line.variantDescription || "");
+        return { id: id, sku: shipping ? "SHIPPING" : "CUSTOM", supplierSku: "", name: name, category: shipping ? "Shipping & Delivery" : "One-off Sales Charges", supplier: "Not applicable", brand: "Pool Bros", barcode: "",
+          cost: Number(line.unitCost || 0), rrp: price, trade: price, wholesale: price, special: price, variantName: variant, variantLabel: variant, variant: variant, reorder: 0, unit: "Each",
+          trackBatch: false, trackSerial: false, warranty: "N/A", productType: shipping ? "Shipping charge" : "Custom charge", status: "Live", stockTracked: false, hiddenFromCatalogue: true, virtual: true };
       }
 
       function locationById(id) {
@@ -3080,7 +3112,7 @@ const seed = {
           : effectiveMode === "mfa"
             ? '<button class="ps-login-link" type="button" data-login-cancel-mfa>Use a different account</button><span>Authenticator verification</span>'
             : effectiveMode === "denied" || effectiveMode === "workspace" ? '<span></span>' : '<button class="ps-login-link" type="button" data-login-mode="login">Back to sign in</button><span></span>';
-        screen.innerHTML = '<main class="ps-login-stage"><section class="ps-login-shell"><aside class="ps-login-brand"><div><div class="ps-login-lockup"><span class="ps-login-logo"><img src="' + DEFAULT_POOL_BROS_LOGO + '" alt="Pool Bros logo"></span><div><span class="ps-login-kicker">Pool Bros</span><strong>THE POOL SHED</strong></div></div><div class="ps-login-hero"><span class="ps-login-kicker">Operations Command System</span><h1>One secure place to <span>run the operation.</span></h1><p>Secure access to the Pool Bros operations workspace. Sign in to continue to your authorised tools, tasks and information.</p></div></div><div class="ps-login-staff-note"><strong>Pool Bros staff access</strong><span>Your workspace and available tools are tailored to your account after sign-in.</span></div></aside><section class="ps-login-auth"><div class="ps-login-card"><div class="ps-login-card-head"><span class="ps-login-kicker">' + escapeHtml(meta.eyebrow) + '</span><h2>' + escapeHtml(meta.heading) + '</h2><p>' + escapeHtml(meta.intro) + '</p></div><form id="loginForm">' + fields + '<div id="loginMessage" class="ps-login-message' + (good ? ' good' : '') + '">' + escapeHtml(message || '') + '</div></form><div class="ps-login-helper">' + helper + '</div></div></section></section><footer class="ps-login-footer">Pool Shed v1.70.0 · Pool Bros Ltd</footer></main>';
+        screen.innerHTML = '<main class="ps-login-stage"><section class="ps-login-shell"><aside class="ps-login-brand"><div><div class="ps-login-lockup"><span class="ps-login-logo"><img src="' + DEFAULT_POOL_BROS_LOGO + '" alt="Pool Bros logo"></span><div><span class="ps-login-kicker">Pool Bros</span><strong>THE POOL SHED</strong></div></div><div class="ps-login-hero"><span class="ps-login-kicker">Operations Command System</span><h1>One secure place to <span>run the operation.</span></h1><p>Secure access to the Pool Bros operations workspace. Sign in to continue to your authorised tools, tasks and information.</p></div></div><div class="ps-login-staff-note"><strong>Pool Bros staff access</strong><span>Your workspace and available tools are tailored to your account after sign-in.</span></div></aside><section class="ps-login-auth"><div class="ps-login-card"><div class="ps-login-card-head"><span class="ps-login-kicker">' + escapeHtml(meta.eyebrow) + '</span><h2>' + escapeHtml(meta.heading) + '</h2><p>' + escapeHtml(meta.intro) + '</p></div><form id="loginForm">' + fields + '<div id="loginMessage" class="ps-login-message' + (good ? ' good' : '') + '">' + escapeHtml(message || '') + '</div></form><div class="ps-login-helper">' + helper + '</div></div></section></section><footer class="ps-login-footer">Pool Shed v1.71.0 · Pool Bros Ltd</footer></main>';
         bindLoginScreen(effectiveMode);
       }
 
@@ -9088,12 +9120,15 @@ const seed = {
         const label = String(description || (lineType === "shipping" ? "Shipping charge" : "Custom line")).trim();
         const variant = String(variantDescription || "").trim();
         const productRecord = {
-          id:id, sku:id, supplierSku:"", name:label, category:lineType === "shipping" ? "Shipping & Delivery" : "One-off Sales Charges",
+          id:id, sku:lineType === "shipping" ? "SHIPPING" : "CUSTOM", supplierSku:"", name:label, category:lineType === "shipping" ? "Shipping & Delivery" : "One-off Sales Charges",
           supplier:"Not applicable", brand:"Pool Bros", barcode:"", cost:Number(unitCost || 0), rrp:Number(unitPrice || 0), trade:Number(unitPrice || 0), wholesale:Number(unitPrice || 0), special:Number(unitPrice || 0),
           variantName:variant, variantLabel:variant, variant:variant,
           reorder:0, unit:"Each", trackBatch:false, trackSerial:false, warranty:"N/A", productType:lineType === "shipping" ? "Shipping charge" : "Custom charge", status:"Live", stockTracked:false, hiddenFromCatalogue:true
         };
-        data.products.push(productRecord);
+        // v1.71: one-off items no longer become product records. Every custom line shows the one code CUSTOM (delivery
+        // charges: SHIPPING) with its own name and price; product() rebuilds this stand-in from the line when asked.
+        productRecord.virtual = true;
+        oneOffMaps(); virtualProducts.set(id, productRecord);
         return productRecord;
       }
 
@@ -16984,5 +17019,5 @@ const seed = {
       window.addEventListener("load", function() {
         updateOfflineStatus();
         syncPendingOfflineData();
-        if ("serviceWorker" in navigator && location.protocol !== "file:") navigator.serviceWorker.register("./service-worker.js?v=1.70.0", { updateViaCache:"none" }).catch(function() {});
+        if ("serviceWorker" in navigator && location.protocol !== "file:") navigator.serviceWorker.register("./service-worker.js?v=1.71.0", { updateViaCache:"none" }).catch(function() {});
       });

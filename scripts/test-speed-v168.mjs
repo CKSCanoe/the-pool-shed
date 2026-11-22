@@ -27,7 +27,7 @@ await Promise.resolve(); data.salesOrders[0].lines[0].allocated = 6; assert.equa
 const legacy = fs.readFileSync('public/assets/js/01-legacy-01.js', 'utf8'), frame = fs.readFileSync('public/back-office-frame.js', 'utf8'), inv = fs.readFileSync('public/inventory-workspace.js', 'utf8'),
   ana = fs.readFileSync('public/analytics-command-engine.js', 'utf8'), sup = fs.readFileSync('public/supplier-command-engine.js', 'utf8'), ice = fs.readFileSync('public/inventory-control-engine.js', 'utf8'),
   mw = fs.readFileSync('public/my-work-workspace.js', 'utf8'), wh = fs.readFileSync('public/warehouse-workspace.js', 'utf8'), css = fs.readFileSync('public/assets/css/app.css', 'utf8');
-assert(/const productIndex = \{ list: null, len: -1, map: null \};/.test(legacy) && /return list\.find\(function\(item\) \{ return item\.id === id; \}\);/.test(legacy), 'product() indexed, falls back to a full search');
+assert(/const productIndex = \{ list: null, len: -1, map: null \};/.test(legacy) && /return list\.find\(function\(item\) \{ return item\.id === id; \}\)( \|\| oneOffProduct\(id\))?;/.test(legacy), 'product() indexed, falls back to a full search');
 assert(/const knownOffers = new Set\(/.test(legacy) && !/data\.supplierProducts\.some\(function\(row\) \{ return row\.productId === p\.id/.test(legacy), 'supplier price check uses a set');
 assert(/PoolShedProductHub\._resetCache\(\)/.test(frame), 'lookups reset at the start of every draw');
 assert(/function lookups\(\)/.test(ana) && /function product\(id\)\{return lookups\(\)\.p\.get/.test(ana), 'reports engine lookups indexed');
