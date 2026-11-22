@@ -1,4 +1,4 @@
-/* Pool Shed v1.80.0 — back-office frame (blueprint step 1).
+/* Pool Shed v1.81.0 — back-office frame (blueprint step 1).
    1. The menu grouped into eight areas (plus Reports and Settings). Every existing page stays where it was, under its area;
       a "Classic menu" switch brings back the old flat menu for anyone who prefers it.
    2. Home queues: what needs doing today, by role, each opening the list to act on.
@@ -228,13 +228,44 @@
     if (finance && !L) loadLedger();
     return out;
   }
+  // v1.81 Home: one greeting, three figures with a direction, one To do list (icon + one button each) and Recent.
+  var HOME_ICON = { 'accounting|Invoice Ready': ['invoice', 'accent', 'Invoice'], 'accounting|Credit Control': ['alert', 'danger', 'Chase'], 'accounting|Payment Runs': ['pound', 'accent', 'Pay'],
+    'salesorders|Sales Orders': ['cart', 'warn', 'Open'], 'fulfilment|Picking List': ['truck', 'accent', 'Pick'], 'purchase|Purchase Orders': ['package', 'warn', 'Open'],
+    'products|Core Stock': ['box', 'warn', 'Reorder'], 'salesorders|Contracts': ['calendar', 'accent', 'Create'], 'fleet|': ['van', 'accent', 'Start'] };
+  function ico(n){ return global.PoolShedIcon ? global.PoolShedIcon(n) : ''; }
+  function monthKey(d){ return String(d || '').slice(0, 7); }
+  function orderSums(o){ var net = 0, cost = 0, costedNet = 0; (o.lines || []).forEach(function(l){ var q = Number(l.qty || 0), p = Number(l.specialPrice != null && l.specialPrice !== '' ? l.specialPrice : l.unitPrice || 0), c = Number(l.unitCost || 0); net += q * p; if (c > 0) { cost += q * c; costedNet += q * p; } }); return { net: net, cost: cost, costedNet: costedNet }; }
+  function homeFigures(){ var d = DATA(), now = new Date(), thisM = now.toISOString().slice(0, 7), prev = new Date(now.getFullYear(), now.getMonth() - 1, 15).toISOString().slice(0, 7);
+    var day = String(now.getDate()).padStart(2, '0'), so = (d.salesOrders || []).filter(function(o){ return o.status !== 'Cancelled'; }), sum = function(m, uptoDay){ return so.filter(function(o){ var c = String(o.created || ''); return monthKey(c) === m && (!uptoDay || c.slice(8, 10) <= uptoDay); }).reduce(function(t, o){ var x = orderSums(o); t.net += x.net; t.cost += x.cost; t.costedNet += x.costedNet; t.n++; return t; }, { net: 0, cost: 0, costedNet: 0, n: 0 }); };
+    // month so far against the same days of last month; margin only from lines that have a cost
+    var a = sum(thisM), b = sum(prev, day), bAll = sum(prev), change = b.net > 0 ? Math.round((a.net - b.net) / b.net * 100) : null, margin = a.costedNet > 0 ? Math.round((a.costedNet - a.cost) / a.costedNet * 1000) / 10 : null, prevMargin = bAll.costedNet > 0 ? Math.round((bAll.costedNet - bAll.cost) / bAll.costedNet * 1000) / 10 : null;
+    var L = cache.ledger, owed = null, overdue = 0, overdueAmt = 0;
+    if (L && L.docs) { owed = 0; L.docs.forEach(function(x){ if (x.doc_type !== 'sales_invoice') return; owed += Number(x.open || 0); if (x.state === 'overdue') { overdue++; overdueAmt += Number(x.open || 0); } }); }
+    var openSo = (d.salesOrders || []).filter(function(o){ return !o.isCompleted && ['Invoiced', 'Cancelled', 'Completed'].indexOf(o.status) < 0; }).length;
+    var f = [{ icon: 'receipt', tone: 'accent', label: 'Orders taken this month', value: money(a.net), sub: change == null ? a.n + ' order' + (a.n === 1 ? '' : 's') + ', ex VAT' : (change >= 0 ? '▲ ' : '▼ ') + Math.abs(change) + '% on the same days last month', dir: change == null ? '' : change >= 0 ? 'up' : 'down' }];
+    if (isFinance() && owed != null) f.push({ icon: 'clock', tone: overdue ? 'warn' : 'good', label: 'Owed to you', value: money(owed), sub: overdue ? overdue + ' overdue · ' + money(overdueAmt) : 'Nothing overdue', dir: overdue ? 'down' : 'up', go: overdue ? 'accounting|Credit Control' : 'accounting|Customer Invoices' });
+    else f.push({ icon: 'cart', tone: 'accent', label: 'Open orders', value: String(openSo), sub: 'not yet invoiced', dir: '', go: 'salesorders|Sales Orders' });
+    f.push({ icon: 'trend', tone: 'good', label: 'Margin this month', value: margin == null ? '—' : margin + '%', sub: margin == null || prevMargin == null ? 'from order lines with costs' : (margin >= prevMargin ? '▲ ' : '▼ ') + Math.abs(Math.round((margin - prevMargin) * 10) / 10) + ' pts on last month', dir: margin == null || prevMargin == null ? '' : margin >= prevMargin ? 'up' : 'down' });
+    return f; }
   function homeHtml(){
     var all = tiles(), t = all.filter(function(x){ return x.n > 0; }), clear = all.filter(function(x){ return !x.n; });
     var first = me().name ? String(me().name).split(' ')[0] : ''; first = first ? first.charAt(0).toUpperCase() + first.slice(1) : '';
-    return '<div class="home-queues-head"><strong>' + (first ? esc(first) + ', here' : 'Here') + '’s what needs doing</strong><button type="button" class="link" data-home-refresh>Refresh</button></div>' +
-      (t.length ? '' : '<p class="home-clear-all">Nothing is waiting. Well done.</p>') +
-      '<div class="home-queue-grid">' + t.map(function(x){ return '<button type="button" class="home-queue' + (x.hot ? ' hot' : '') + (x.n ? '' : ' clear') + '" data-home-go="' + esc(x.go.join('|')) + '"' + (x.filter ? ' data-home-filter="' + esc(x.filter) + '"' : '') + '><b>' + x.n + '</b><span>' + esc(x.label) + '</span><small>' + esc(x.sub || '') + '</small></button>'; }).join('') + '</div>' +
-      (clear.length && t.length ? '<p class="home-clear">All clear: ' + esc(clear.map(function(x){ return x.label; }).join(', ')) + '.</p>' : '');
+    var h = new Date().getHours(), hello = h < 12 ? 'Good morning' : h < 18 ? 'Good afternoon' : 'Good evening';
+    var date = new Date().toLocaleDateString('en-GB', { weekday: 'long', day: 'numeric', month: 'long' });
+    var figs = homeFigures().map(function(x){ return '<' + (x.go ? 'button type="button" data-home-go="' + esc(x.go) + '"' : 'div') + ' class="hm-fig"><span class="hm-fig-top"><span class="hm-ico ' + x.tone + '">' + ico(x.icon) + '</span>' + esc(x.label) + '</span><strong>' + esc(x.value) + '</strong><small class="' + (x.dir || '') + '">' + esc(x.sub) + '</small></' + (x.go ? 'button' : 'div') + '>'; }).join('');
+    var ONE = { 'invoices overdue': 'invoice overdue', 'bills to pay this week': 'bill to pay this week', 'sales orders waiting too long': 'sales order waiting too long', 'orders need review': 'order needs review', 'orders to pick and ship': 'order to pick and ship', 'deliveries overdue': 'delivery overdue', 'POs waiting too long': 'PO waiting too long', 'core stock lines to reorder': 'core stock line to reorder', 'contracts due': 'contract due', 'van report reminders': 'van report reminder' };
+    var todo = t.map(function(x){ var k = x.go.join('|'), m = HOME_ICON[k] || (x.label.indexOf('core stock') >= 0 ? HOME_ICON['products|Core Stock'] : x.label.indexOf('contracts') >= 0 ? HOME_ICON['salesorders|Contracts'] : ['bell', 'accent', 'Open']);
+      var tone = x.hot ? (m[1] === 'accent' ? 'warn' : m[1]) : m[1];
+      return '<li class="hm-todo"><span class="hm-ico round ' + tone + '">' + ico(m[0]) + '</span><span class="hm-todo-text"><b>' + esc(x.n + ' ' + (x.n === 1 && ONE[x.label] ? ONE[x.label] : x.label)) + '</b><small>' + esc(x.sub || '') + '</small></span><button type="button" class="hm-todo-go" data-home-go="' + esc(k) + '"' + (x.filter ? ' data-home-filter="' + esc(x.filter) + '"' : '') + '>' + esc(m[2]) + '</button></li>'; }).join('');
+    var recent = []; try { recent = JSON.parse(global.localStorage.getItem('poolshed:jump-recent') || '[]').slice(0, 5); } catch (_) {}
+    var rec = recent.map(function(r){ var abbr = { 'Sales order': 'SO', 'Purchase order': 'PO', 'Quote': 'Q', 'Customer': '', 'Product': '', 'Project': 'PJ', 'Supplier': '' }[r.type], icn = { Customer: 'user', Product: 'package', Supplier: 'truck', Page: 'arrow' }[r.type];
+      return '<li><button type="button" class="hm-recent" data-home-recent="' + esc(JSON.stringify({ kind: r.kind, action: r.action || '', id: r.id, tab: r.tab || '', sub: r.sub || '', title: r.title, type: r.type })) + '"><span class="hm-thumb">' + (abbr ? esc(abbr) : ico(icn || 'arrow')) + '</span><span><b>' + esc(r.title) + '</b><small>' + esc(r.type || '') + '</small></span></button></li>'; }).join('');
+    return '<div class="hm-home"><header class="hm-home-head"><div><h2>' + esc(hello + (first ? ', ' + first : '')) + '</h2><p>' + esc(date) + ' · ' + (t.length ? t.length + ' thing' + (t.length === 1 ? '' : 's') + ' need' + (t.length === 1 ? 's' : '') + ' you' : 'nothing is waiting') + '</p></div>' +
+      '<div class="hm-home-actions"><button type="button" class="hm-btn" data-jump-open>' + ico('search') + ' Jump to…</button><button type="button" class="hm-btn primary" data-home-new>' + ico('plus') + ' New</button><button type="button" class="hm-btn ghost" data-home-refresh>Refresh</button></div></header>' +
+      '<div class="hm-figs">' + figs + '</div>' +
+      '<div class="hm-home-grid"><section class="hm-card"><h3>To do</h3>' + (t.length ? '<ul class="hm-todos">' + todo + '</ul>' : '<p class="hm-empty">' + ico('check') + ' Nothing is waiting. Well done.</p>') +
+        (clear.length && t.length ? '<p class="hm-clear">All clear: ' + esc(clear.map(function(x){ return x.label; }).join(', ')) + '.</p>' : '') + '</section>' +
+      '<section class="hm-card"><h3>Recent</h3>' + (rec ? '<ul class="hm-recents">' + rec + '</ul>' : '<p class="hm-empty">Things you open with Jump to (Ctrl K) show here.</p>') + '</section></div></div>';
   }
   function paintHome(){ if (typeof document === 'undefined') return; var box = document.getElementById('home-queues'); if (box) box.innerHTML = homeHtml(); }
 
@@ -260,6 +291,8 @@
         if (kind === 'sales' && typeof global.__POOL_SHED_SALES_FILTER__ === 'function') global.__POOL_SHED_SALES_FILTER__(key);
         if (kind === 'purchase' && global.PoolShedPurchaseFilter) global.PoolShedPurchaseFilter(key);
         return; }
+      if (t.closest('[data-home-new]')) { e.preventDefault(); var nb2 = document.querySelector('[data-nav-new]'); if (nb2) { nb2.click(); nb2.focus(); } return; }
+      var rc = t.closest('[data-home-recent]'); if (rc) { e.preventDefault(); var it2 = null; try { it2 = JSON.parse(rc.dataset.homeRecent); } catch (_) {} if (it2 && global.PoolShedJump && global.PoolShedJump.go) global.PoolShedJump.go(it2); return; }
       if (t.closest('[data-home-refresh]')) { cache.at = 0; cache.ledger = null; loadLedger(); paintHome(); return; }
       var go = t.closest('[data-home-go]'); if (go) { var g = go.dataset.homeGo.split('|');
         if (go.dataset.homeFilter && g[0] === 'salesorders' && typeof global.__POOL_SHED_SALES_FILTER__ === 'function') { global.__POOL_SHED_OPEN_SUBPAGE__ && global.__POOL_SHED_OPEN_SUBPAGE__('salesorders', 'Sales Orders'); global.__POOL_SHED_SALES_FILTER__(go.dataset.homeFilter); return; }

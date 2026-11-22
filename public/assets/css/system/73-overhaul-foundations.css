@@ -1,0 +1,51 @@
+/* Overhaul phase 1 (from v1.81): icons, the new Home, quieter labels. Home rules apply with the new look on. */
+.ps-icon{display:inline-block;vertical-align:middle;flex:0 0 auto}
+/* Home */
+.hm-home{display:grid;gap:16px;margin:0 0 18px}
+.hm-home-head{display:flex;align-items:flex-end;justify-content:space-between;gap:12px;flex-wrap:wrap}
+.hm-home-head h2{margin:0;font-size:24px;font-weight:650;letter-spacing:-.01em;color:var(--color-text-primary)}
+.hm-home-head p{margin:2px 0 0;font-size:14px;color:var(--color-text-secondary)}
+.hm-home-actions{display:flex;gap:8px;flex-wrap:wrap}
+.hm-btn{display:inline-flex;align-items:center;gap:6px;appearance:none;border:1px solid var(--color-border-default);background:var(--color-surface-default);color:var(--color-text-primary);border-radius:8px;padding:8px 12px;font:inherit;font-size:13px;font-weight:600;cursor:pointer}
+.hm-btn:hover{background:var(--color-hover-surface)}
+.hm-btn.primary{background:var(--color-action-primary);border-color:var(--color-action-primary);color:var(--color-action-contrast)}
+.hm-btn.primary:hover{background:var(--color-action-primary-hover)}
+.hm-btn.ghost{border-color:transparent;background:transparent;color:var(--color-text-secondary)}
+.hm-figs{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:12px}
+.hm-fig{display:grid;gap:4px;text-align:left;appearance:none;border:1px solid var(--color-border-default);background:var(--color-surface-default);border-radius:12px;padding:14px 16px;font:inherit;color:var(--color-text-primary)}
+button.hm-fig{cursor:pointer}button.hm-fig:hover{border-color:var(--color-action-primary)}
+.hm-fig-top{display:flex;align-items:center;gap:8px;font-size:13px;color:var(--color-text-secondary)}
+.hm-fig strong{font-size:26px;font-weight:650;letter-spacing:-.01em}
+.hm-fig small{font-size:12px;color:var(--color-text-secondary)}
+.hm-fig small.up{color:var(--color-status-success-text)}.hm-fig small.down{color:var(--color-status-danger-text)}
+.hm-ico{display:inline-grid;place-items:center;width:30px;height:30px;border-radius:8px;background:var(--color-surface-subtle);color:var(--color-text-secondary)}
+.hm-ico.round{border-radius:50%;width:34px;height:34px}
+.hm-ico.accent{background:var(--color-action-soft);color:var(--color-action-ink)}
+.hm-ico.good{background:var(--color-status-success-bg);color:var(--color-status-success-text)}
+.hm-ico.warn{background:var(--color-status-attention-bg);color:var(--color-status-attention-text)}
+.hm-ico.danger{background:var(--color-status-danger-bg);color:var(--color-status-danger-text)}
+.hm-home-grid{display:grid;grid-template-columns:minmax(0,1.6fr) minmax(0,1fr);gap:12px;align-items:start}
+.hm-card{border:1px solid var(--color-border-default);background:var(--color-surface-default);border-radius:12px;padding:14px 16px}
+.hm-card h3{margin:0 0 6px;font-size:15px;font-weight:650;color:var(--color-text-primary)}
+.hm-todos,.hm-recents{list-style:none;margin:0;padding:0}
+.hm-todo{display:flex;align-items:center;gap:12px;padding:10px 0;border-top:1px solid var(--color-border-subtle)}
+.hm-todo:first-child{border-top:0}
+.hm-todo-text{flex:1;min-width:0;display:grid}
+.hm-todo-text b{font-size:14px;font-weight:600;color:var(--color-text-primary)}
+.hm-todo-text small{font-size:12px;color:var(--color-text-secondary)}
+.hm-todo-go{appearance:none;border:1px solid var(--color-border-default);background:var(--color-surface-default);color:var(--color-text-primary);border-radius:8px;padding:6px 12px;font:inherit;font-size:13px;font-weight:600;cursor:pointer}
+.hm-todo-go:hover{border-color:var(--color-action-primary);color:var(--color-action-ink)}
+.hm-recent{width:100%;display:flex;align-items:center;gap:10px;padding:8px 6px;border:0;border-radius:8px;background:transparent;text-align:left;font:inherit;color:var(--color-text-primary);cursor:pointer}
+.hm-recent:hover{background:var(--color-hover-surface)}
+.hm-recent b{display:block;font-size:13px;font-weight:600}.hm-recent small{font-size:12px;color:var(--color-text-secondary)}
+.hm-thumb{display:grid;place-items:center;width:34px;height:34px;border-radius:8px;background:var(--color-surface-subtle);color:var(--color-text-secondary);font-size:12px;font-weight:700;flex:0 0 auto}
+.hm-empty{display:flex;align-items:center;gap:8px;margin:8px 0;font-size:13px;color:var(--color-text-secondary)}
+.hm-clear{margin:8px 0 0;font-size:12px;color:var(--color-text-secondary)}
+@media(max-width:900px){.hm-home-grid{grid-template-columns:1fr}}
+/* With the new look: the old dark greeting band and the two dark side cards (quick actions, alerts) repeat the Home above */
+.ps-kit-scope:not(#ps-kit-none):not(:has(> .qs-studio-root)) .dashboard-final-hero,.ps-kit-scope:not(#ps-kit-none):not(:has(> .qs-studio-root)) .dashboard-rail-dark{display:none !important}
+/* Small capital "eyebrow" labels become quiet sentence-case labels (their wording is tidied in a later phase) */
+.ps-kit-scope:not(#ps-kit-none):not(:has(> .qs-studio-root)) :is([class*="eyebrow"],[class*="kicker"]){text-transform:none !important;letter-spacing:0 !important;font-weight:600 !important;color:var(--color-text-muted) !important}
+/* One coloured main button per page: buttons inside table rows, list items and cards use the plain style */
+.ps-kit-scope:not(#ps-kit-none):not(:has(> .qs-studio-root)) :is(td, li, article, [class*="-row"], [class*="-item"]) button.primary{background:var(--color-surface-default) !important;border:1px solid var(--color-border-default) !important;color:var(--color-text-primary) !important;box-shadow:none !important}
+.ps-kit-scope:not(#ps-kit-none):not(:has(> .qs-studio-root)) :is(td, li, article, [class*="-row"], [class*="-item"]) button.primary:hover{border-color:var(--color-action-primary) !important;color:var(--color-action-ink) !important;background:var(--color-surface-default) !important}

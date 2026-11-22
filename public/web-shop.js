@@ -1,4 +1,4 @@
-/* Pool Shed v1.80.0 — ready for a web shop (any platform), before the website exists.
+/* Pool Shed v1.81.0 — ready for a web shop (any platform), before the website exists.
    Sales → Web Orders: orders sent by the website wait here. Each shows whether the customer is already on file (by
    email) and whether every item's SKU is found; one click turns it into a normal sales order (customer created if
    new, prices as paid before VAT, delivery charge, payment recorded if paid). Nothing is imported on its own.
@@ -213,12 +213,12 @@
   }
   if (typeof document !== 'undefined' && document.head && !document.getElementById('ws-styles')) {
     var st = document.createElement('style'); st.id = 'ws-styles';
-    st.textContent = '.ws-page small,.ws-setup small{display:block;color:var(--muted,#5b6b70);font-size:12.5px}.ws-table{width:100%;border-collapse:collapse}.ws-table td,.ws-table th{padding:7px 8px;border-top:1px solid rgba(0,0,0,.06);vertical-align:top;text-align:left}.ws-table .num{text-align:right;white-space:nowrap}' +
-      '.ws-pill{display:inline-block;border-radius:999px;padding:2px 9px;font-size:12.5px;background:rgba(15,76,87,.08)}.ws-pill.good{background:rgba(29,122,76,.12);color:#1d7a4c}.ws-pill.warn{background:rgba(168,98,0,.12);color:#8a5200}' +
-      '.ws-good{color:#1d7a4c!important}.ws-bad{color:#b9474f!important}.ws-warn{color:#8a5200!important}.ws-msg{border-radius:10px;padding:10px 12px;margin:10px 0}.ws-msg.ok{background:rgba(29,122,76,.1)}.ws-msg.bad{background:rgba(185,71,79,.1)}' +
+    st.textContent = '.ws-page small,.ws-setup small{display:block;color:var(--color-text-secondary);font-size:12.5px}.ws-table{width:100%;border-collapse:collapse}.ws-table td,.ws-table th{padding:7px 8px;border-top:1px solid rgba(0,0,0,.06);vertical-align:top;text-align:left}.ws-table .num{text-align:right;white-space:nowrap}' +
+      '.ws-pill{display:inline-block;border-radius:999px;padding:2px 9px;font-size:12.5px;background:rgba(15,76,87,.08)}.ws-pill.good{background:var(--color-status-success-bg);color:var(--color-status-success-text)}.ws-pill.warn{background:var(--color-status-attention-bg);color:var(--color-status-attention-text)}' +
+      '.ws-good{color:var(--color-status-success-text)!important}.ws-bad{color:var(--color-status-danger-text)!important}.ws-warn{color:var(--color-status-attention-text)!important}.ws-msg{border-radius:10px;padding:10px 12px;margin:10px 0}.ws-msg.ok{background:var(--color-status-success-bg)}.ws-msg.bad{background:var(--color-status-danger-bg)}' +
       '.ws-tabs{display:flex;gap:6px;margin:10px 0}.ws-actions{white-space:nowrap}.ws-actions .link,.ws-setup .link{background:none;border:0;padding:0 6px;text-decoration:underline;cursor:pointer;color:inherit;min-height:0}.ws-inline{display:flex;gap:6px;align-items:center;font-size:12.5px;margin-bottom:4px}' +
       '.ws-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:10px 14px}.ws-grid label{display:flex;flex-direction:column;gap:4px;font-size:13.5px}.ws-wide{grid-column:1/-1}.ws-row{display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin:8px 0}.ws-row input{flex:1;min-width:220px}' +
-      '.ws-grid .ws-check{flex-direction:row;align-items:center;grid-column:1/-1}.ws-checks{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:8px;margin:8px 0}.ws-checks .ws-check{border:1px solid rgba(15,76,87,.16);border-radius:10px;padding:8px 10px}.ws-checks .ws-check strong{display:block;font-size:20px}.ws-checks .ws-check.warn strong{color:#8a5200}.ws-checks .ws-check.good strong{color:#1d7a4c}' +
+      '.ws-grid .ws-check{flex-direction:row;align-items:center;grid-column:1/-1}.ws-checks{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:8px;margin:8px 0}.ws-checks .ws-check{border:1px solid rgba(15,76,87,.16);border-radius:10px;padding:8px 10px}.ws-checks .ws-check strong{display:block;font-size:20px}.ws-checks .ws-check.warn strong{color:var(--color-status-attention-text)}.ws-checks .ws-check.good strong{color:var(--color-status-success-text)}' +
       '.ws-setup code{font-size:12.5px;word-break:break-all}';
     document.head.appendChild(st);
   }

@@ -1,7 +1,7 @@
 /* Payment reminders on Accounts › Credit control (from v1.80) */
 .si-bad{color:var(--color-status-danger-text);font-weight:600}
 .si-row-on{background:var(--color-selected-surface)}
-.si-stage{display:inline-block;font-size:11px;font-weight:700;padding:2px 8px;border-radius:999px;background:var(--color-surface-subtle);color:var(--color-text-secondary)}
+.si-stage{display:inline-block;font-size:12px;font-weight:700;padding:2px 8px;border-radius:999px;background:var(--color-surface-subtle);color:var(--color-text-secondary)}
 .si-stage-2{background:var(--color-status-attention-bg);color:var(--color-status-attention-text)}
 .si-stage-3{background:var(--color-status-danger-bg);color:var(--color-status-danger-text)}
 .si-reminder{display:grid;gap:10px;margin:0 0 14px;padding:14px;border:1px solid var(--color-border-default);border-radius:10px;background:var(--color-surface-subtle)}

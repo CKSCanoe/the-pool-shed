@@ -1,4 +1,4 @@
-/* Pool Shed v1.80.0 — van stock (blueprint step 4, Team & Vans).
+/* Pool Shed v1.81.0 — van stock (blueprint step 4, Team & Vans).
    Engineers: "My van stock" with a quick count on the phone (only differences need a touch). The count goes to the office.
    Office (Admin, Management): every van's stock, value and shortfalls; set up van stock (a stock location per van);
    apply or discard submitted counts (applying adjusts stock and logs a movement); minimums from the van supplies list;
@@ -181,7 +181,7 @@
   };
   if (typeof document !== 'undefined' && document.head && !document.getElementById('vs-styles')) {
     var st = document.createElement('style'); st.id = 'vs-styles';
-    st.textContent = '.vs-panel{margin-top:16px}.vs-low td{background:rgba(185,71,79,.06)}.vs-down{color:#b9474f;font-weight:700}.vs-up{color:#1d7a4c;font-weight:700}' +
+    st.textContent = '.vs-panel{margin-top:16px}.vs-low td{background:rgba(185,71,79,.06)}.vs-down{color:var(--color-status-danger-text);font-weight:700}.vs-up{color:var(--color-status-success-text);font-weight:700}' +
       '.vs-count{list-style:none;margin:0;padding:0}.vs-count li{display:flex;justify-content:space-between;align-items:center;gap:10px;padding:10px 0;border-bottom:1px solid rgba(0,0,0,.08)}.vs-count li small{display:block;opacity:.7;font-size:13px}' +
       '.vs-step{display:inline-flex;align-items:center;gap:4px}.vs-step button{width:44px;height:44px;font-size:22px;border-radius:10px;border:1px solid rgba(15,76,87,.3);background:transparent;cursor:pointer;color:inherit}.vs-step input{width:64px;height:44px;text-align:center;font-size:18px;border-radius:10px;border:1px solid rgba(15,76,87,.3)}' +
       '.vs-note{display:block;margin:12px 0;font-size:14px}.vs-note input{display:block;width:100%;margin-top:4px;height:40px}.vs-countcard{border:1px solid rgba(15,76,87,.15);border-radius:12px;padding:10px 12px;margin-bottom:10px}';

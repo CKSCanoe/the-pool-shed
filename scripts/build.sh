@@ -73,6 +73,7 @@ run_node_stage "workspace and sales safety" \
   test-jump-to-v178.mjs \
   test-saved-views-v179.mjs \
   test-payment-reminders-v180.mjs \
+  test-overhaul-foundations-v181.mjs \
   test-workspace-audit-v1451.mjs \
   test-commercial-audits-v146.mjs \
   test-audit-device-recovery.mjs \

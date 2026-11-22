@@ -1,4 +1,4 @@
-/* Pool Shed v1.80.0 — Core stock (blueprint step 6).
+/* Pool Shed v1.81.0 — Core stock (blueprint step 6).
    Pool Bros buys most things to order and keeps a smaller range on the shelf. This page is where that range is chosen:
    for each product, "keep in stock" with a reorder point and an order-up-to level, singly or in bulk, with suggested
    levels from what has actually sold. Only kept lines appear on the reorder list (Product Hub → Replenishment), which
@@ -121,7 +121,7 @@
   if (typeof document !== 'undefined' && document.head && !document.getElementById('cs-styles')) {
     var css = document.createElement('style'); css.id = 'cs-styles';
     css.textContent = '.cs-head{display:flex;justify-content:space-between;gap:16px;align-items:flex-start;flex-wrap:wrap}.cs-head p{max-width:760px}.cs-tiles{display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:10px;margin:10px 0}' +
-      '.cs-tiles div{border:1px solid rgba(15,76,87,.16);border-radius:12px;padding:10px 12px}.cs-tiles b{display:block;font-size:22px;color:#0f4c57}.cs-tiles span{font-size:13px;opacity:.8}' +
+      '.cs-tiles div{border:1px solid var(--color-border-default);background:var(--color-surface-default);border-radius:12px;padding:10px 12px}.cs-tiles b{display:block;font-size:22px;color:var(--color-action-ink)}.cs-tiles span{font-size:13px;opacity:.8}' +
       '.cs-filters{display:flex;flex-wrap:wrap;gap:10px;align-items:end;margin:8px 0}.cs-filters label{display:flex;flex-direction:column;font-size:13px}.cs-q{flex:1;min-width:200px}.cs-bulk{display:flex;flex-wrap:wrap;gap:8px;align-items:center;margin:8px 0}' +
       '.cs-n{width:72px;text-align:right}.cs-kept td{background:rgba(52,182,200,.07)}.cs-pager{display:flex;gap:10px;align-items:center;justify-content:center;margin:10px 0}.cs-note{font-size:13px}';
     document.head.appendChild(css);

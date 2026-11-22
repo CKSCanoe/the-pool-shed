@@ -1,4 +1,4 @@
-/* Pool Shed v1.80.0 — Vans & Fleet (monthly report reminders added in v1.53).
+/* Pool Shed v1.81.0 — Vans & Fleet (monthly report reminders added in v1.53).
    Managers (Admin, Management): van register, MOT / tax / insurance / service, documents, supplies list, monthly report
    review and sign-off, damage register. Engineers: "My van" and the monthly report on their phone.
    Every rule (own van only, locked after submit, signatures, sign-off by someone else) is enforced by the database (026/027). */
@@ -191,7 +191,7 @@
     document.querySelectorAll('[data-fl-pad]').forEach(function(c){
       if (c.dataset.ready) return; c.dataset.ready = '1';
       var ctx = c.getContext('2d'), drawing = false, inked = false;
-      ctx.lineWidth = 2.5; ctx.lineCap = 'round'; ctx.strokeStyle = '#0F1B24';
+      ctx.lineWidth = 2.5; ctx.lineCap = 'round'; ctx.strokeStyle = 'var(--color-shell)';
       var pos = function(e){ var b = c.getBoundingClientRect(); return [(e.clientX - b.left) * c.width / b.width, (e.clientY - b.top) * c.height / b.height]; };
       c.addEventListener('pointerdown', function(e){ drawing = true; c.setPointerCapture(e.pointerId); var p = pos(e); ctx.beginPath(); ctx.moveTo(p[0], p[1]); e.preventDefault(); });
       c.addEventListener('pointermove', function(e){ if (!drawing) return; var p = pos(e); ctx.lineTo(p[0], p[1]); ctx.stroke(); inked = true; c.dataset.inked = '1'; e.preventDefault(); });
@@ -264,17 +264,17 @@
     if (typeof document === 'undefined' || !document.head || document.getElementById('fleet-styles')) return;
     var st = document.createElement('style'); st.id = 'fleet-styles';
     st.textContent = '.fleet-plate{display:inline-block;font:700 15px/1 "Arial Narrow",Arial,sans-serif;letter-spacing:.06em;background:#FFD400;color:#111;border:2px solid #111;border-radius:4px;padding:5px 9px;min-width:92px;text-align:center}' +
-      '.fleet-due{display:flex;gap:6px;align-items:center;margin:2px 0;font-size:12px}.fleet-due span:first-child{min-width:68px;color:var(--muted,#5c6971)}' +
+      '.fleet-due{display:flex;gap:6px;align-items:center;margin:2px 0;font-size:12px}.fleet-due span:first-child{min-width:68px;color:var(--color-text-secondary)}' +
       '.fleet-myvan{display:grid;gap:10px}.fleet-report-head{display:flex;gap:12px;align-items:center;margin-bottom:8px}' +
-      '.fleet-check{display:grid;grid-template-columns:1fr auto;gap:6px 10px;align-items:center;padding:8px 10px;border:1px solid var(--line,#dde3e7);border-radius:8px;margin:6px 0}' +
-      '.fleet-check.bad{border-color:#c0392b;background:rgba(192,57,43,.06)}.fleet-check.good{border-color:#2e8b57}.fleet-check .full{grid-column:1/-1}' +
+      '.fleet-check{display:grid;grid-template-columns:1fr auto;gap:6px 10px;align-items:center;padding:8px 10px;border:1px solid var(--color-border-default);border-radius:8px;margin:6px 0}' +
+      '.fleet-check.bad{border-color:var(--color-status-danger-text);background:rgba(192,57,43,.06)}.fleet-check.good{border-color:var(--color-status-success-text)}.fleet-check .full{grid-column:1/-1}' +
       '.fleet-okfail{display:flex;gap:6px}.fleet-okfail button{min-width:84px;min-height:40px}.fleet-count{width:90px;min-height:40px}' +
-      '.fleet-damage{border:1px solid var(--line,#dde3e7);border-radius:8px;padding:8px 10px;margin:6px 0}.fleet-photos{display:flex;gap:6px;flex-wrap:wrap}.fleet-photos img{width:96px;height:72px;object-fit:cover;border-radius:6px}' +
-      '.fleet-pad{width:100%;max-width:600px;height:160px;border:2px dashed #8aa;border-radius:8px;background:#fff;touch-action:none}' +
-      '.fleet-sig{display:flex;gap:10px;align-items:center;margin:8px 0}.fleet-sig img{height:60px;background:#fff;border:1px solid #ddd;border-radius:6px}' +
+      '.fleet-damage{border:1px solid var(--color-border-default);border-radius:8px;padding:8px 10px;margin:6px 0}.fleet-photos{display:flex;gap:6px;flex-wrap:wrap}.fleet-photos img{width:96px;height:72px;object-fit:cover;border-radius:6px}' +
+      '.fleet-pad{width:100%;max-width:600px;height:160px;border:2px dashed var(--color-text-secondary);border-radius:8px;background:#fff;touch-action:none}' +
+      '.fleet-sig{display:flex;gap:10px;align-items:center;margin:8px 0}.fleet-sig img{height:60px;background:#fff;border:1px solid var(--color-border-default);border-radius:6px}' +
       '.fleet-kit{display:grid;gap:6px}.fleet-kit-row{display:grid;grid-template-columns:1fr 90px;gap:6px}' +
-      '.fleet-badge{display:inline-flex;align-items:center;justify-content:center;min-width:18px;height:18px;padding:0 5px;margin-left:6px;border-radius:9px;background:#c0392b;color:#fff;font:700 11px/1 system-ui}' +
-      '.fleet-reminder{margin:12px 14px;display:grid;gap:6px}.fleet-reminder-row span{flex:1;min-width:0}.fleet-reminder [data-fl=dismiss-reminder]{justify-self:end;width:auto;min-height:0;padding:2px 4px;border:0;background:none;box-shadow:none;color:inherit;opacity:.7;font-size:12px;text-decoration:underline;cursor:pointer}.fleet-reminder-row{display:flex;justify-content:space-between;align-items:center;gap:10px;padding:10px 12px;border-radius:10px;border:1px solid #e0b84c;background:#fff8e1}.fleet-reminder-row.bad{border-color:#c0392b;background:#fdecea}' +
+      '.fleet-badge{display:inline-flex;align-items:center;justify-content:center;min-width:18px;height:18px;padding:0 5px;margin-left:6px;border-radius:9px;background:var(--color-status-danger-text);color:var(--color-action-contrast);font:700 11px/1 system-ui}' +
+      '.fleet-reminder{margin:12px 14px;display:grid;gap:6px}.fleet-reminder-row span{flex:1;min-width:0}.fleet-reminder [data-fl=dismiss-reminder]{justify-self:end;width:auto;min-height:0;padding:2px 4px;border:0;background:none;box-shadow:none;color:inherit;opacity:.7;font-size:12px;text-decoration:underline;cursor:pointer}.fleet-reminder-row{display:flex;justify-content:space-between;align-items:center;gap:10px;padding:10px 12px;border-radius:10px;border:1px solid var(--color-status-attention);background:var(--color-status-attention-bg)}.fleet-reminder-row.bad{border-color:var(--color-status-danger-text);background:var(--color-status-danger-bg)}' +
       '@media (max-width:700px){.fleet-check{grid-template-columns:1fr}.fleet-okfail button{flex:1}}' +
       '@media print{.sidebar,.topbar,.finance-row-actions,.fleet-pad,details.fleet-add-damage{display:none!important}}';
     document.head.appendChild(st);
