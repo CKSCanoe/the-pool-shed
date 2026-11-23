@@ -249,6 +249,7 @@ Owner: redo the order's Fulfilment (Print · Pick · Pack · Ship) like Brightpe
 | FT3 | Goods-out note cards: Printed → Picked → Packed → Shipped, next step as a button (Print picking list / Mark picked / Mark packed / Ship…), undo picked or packed, print again, cancel an unshipped note, open the full note | **New · Tested on staging** | Picked, packed, shipped by "Our van": steps all done, shelf 5→3 and 4→3, order Part Shipped; staging put back |
 | FT4 | Ship asks how it is going (collecting, our van, courier, post) with optional courier and tracking, then uses the existing shipping rules | **New · Tested on staging** | Shipped note reads "Shipped … by aaron · Our van" |
 | FT5 | Release test | **New · Unit tested** | `test-fulfilment-tab-v190` |
+| FT6 | App release (PR #89) | **Deployed · verified on live** 23 Nov 2026 (Vercel check green; live cache `pool-shed-v1.90.0-fulfilment-r1`; `fulfilment-tab.js` served and loaded by the page) | No saves since 20:44 (before the release); v1.89 clean-up still waiting for a page on the new version |
 | — | Clean-up check from v1.89 (custom and delivery allocations) | Pending | Waiting for a page running v1.89 or later to load on live |
 
 ## Stock connected to sales: ship when invoiced · v1.89.0 · branch `stock-flow`
