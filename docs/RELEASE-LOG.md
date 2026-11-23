@@ -238,6 +238,21 @@ Owner approved the blueprint 21 Nov 2026 (eight areas; Pool Audits under My Work
 
 ---
 
+## One-page product editor · v1.93.0 · branch `product-editor`
+
+Owner-approved concept, release 3 of 3: Shopify-style one-page product editing with Brightpearl's stock and supplier detail.
+
+| # | Change | Status | Evidence |
+|---|---|---|---|
+| PE1 | One-page editor replaces the nine-tab record for everyday editing: name and description (family rename applies to every variant), image upload, variants grid, pricing with margins, barcode, MPN, unit; status, category, brand, type, supplier, supplier code, lead time, minimum order; stock and reordering; 90-day sales | **New · Checked in a real browser on staging** | 200g Chlorine Tablets family opened with its 4 variants |
+| PE2 | Changes held until Save (or Ctrl+S) on a floating bar with a count; Discard; SKU must be unique and not empty | **New · Checked on staging** | Trade edit and a pasted cost column showed "5 unsaved changes"; Save wrote them; products put back afterwards |
+| PE3 | Paste a column from Excel into the grid: fills downwards; margins recalculate | **New · Checked on staging** | Pasted 10/20/30/40 into Cost: margins 55.9%, 63.1%, 71.6%, 84.8% |
+| PE4 | Keep in stock with reorder at / order up to, suggested from the last 90 days | **New · Checked on staging** | Switching on shows the levels |
+| PE5 | Supplier price record kept in step on save, but only the fields edited: found on staging that the full record's old sync overwrote the supplier's lead time with a blank (5 days became 0); the editor no longer does, and shows the supplier's lead time when the product has none | **Fixed before release · staging records put back** | Lead time field shows 5 |
+| PE6 | "All fields" opens the full record; Back returns to the new catalogue | **Checked on staging** | |
+| PE7 | Old catalogue table retired (functions and about 4 KB of styles); `test-catalogue-paging-v167`, `test-product-hub-visual-guard-v111` and `test-product-hub-command-v111` now check the new list and editor | **Updated** | Both pass |
+| PE8 | Release test | **New · Unit tested** | `test-product-editor-v193` |
+
 ## New catalogue list, with reordering built in · v1.92.0 · branch `catalogue-list`
 
 Owner: catalogue looked horrendous; wanted best of Shopify and Brightpearl, easy to edit; add reorder thresholds, a "needs ordering" tag, a report export, a kept-in-stock mark that is not the sales order ★, and ordering plus emailing a PO in a few clicks. Concept approved before building; release 2 of 3. Correction to the concept: the catalogue holds 5,344 products (517 families with variants, 1,838 variants between them, and about 4,800 single products), 6,662 variants in all.
