@@ -247,6 +247,7 @@ Owner feedback on v1.86 (screenshot): the customer box on a sales order did not 
 | CB1 | One search line ("Change customer…" and "+ New customer") under the customer's name; repeated heading, badge and linked line removed, with their unused styles | **Fixed · Tested in a real browser on staging** | Screenshot of SO card; no old parts in the page |
 | CB2 | Results drop down over the page (the card was clipping them) and are wide enough to read; plainer wording; Esc closes | **Fixed · Tested in a real browser on staging** | Typing "th" listed 3 customers over the order lines; a nonsense name showed "No customer found" with "+ Add customer" |
 | CB3 | Release test | **New · Unit tested** | `test-customer-box-v187` |
+| CB4 | App release (PR #86) | **Deployed · verified on live** 23 Nov 2026 (Vercel check green; live cache `pool-shed-v1.87.0-customerbox-r1`; new picker file served) | Data unchanged |
 | QA5 | v1.86 app release (PR #85) | **Deployed** 23 Nov 2026 | Merged; this release follows it |
 
 ## Add a customer or supplier from the order · v1.86.0 · branch `quick-add`
