@@ -250,6 +250,7 @@ Owner approved the blueprint 21 Nov 2026 (eight areas; Pool Audits under My Work
 | OL6 | Initials avatars beside customers (sales orders) and suppliers (purchase orders); row Delete buttons plain red text | **New · Tested in a real browser on staging** | 12 and 26 avatars; PO table columns still line up (10/10) |
 | OL7 | Release test | **New · Unit tested** | `test-overhaul-lists-v182` |
 | OL8 | Release log for v1.81 (PR #80) | **Deployed · verified on live** | Live cache `pool-shed-v1.81.0-overhaul1-r1`; data unchanged |
+| OL9 | App release (PR #81) | **Deployed · verified on live** 23 Nov 2026 (Vercel check green; live cache `pool-shed-v1.82.0-overhaul2-r1`) | Live serves the lazy product list; data unchanged |
 
 ## Overhaul phase 1: foundations and Home · v1.81.0 · branch `overhaul-1`
 
