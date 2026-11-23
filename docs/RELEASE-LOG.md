@@ -250,6 +250,7 @@ Finding: about 55 browser confirm boxes and 30 browser prompts; the daily ones w
 | OF4 | Supplier returns (authorise, sent back, credit with reference and amount together, correction, cancel) and deleting a purchase order, a customer payment or a supplier payment: one dialog each | **New · Unit tested** | `test-overhaul-flows-v184` |
 | OF5 | Keyboard shortcuts (`ps-shortcuts.js`) and a shortcuts sheet (?) ; next-step buttons show "Ctrl+Enter" | **New · Tested in a real browser on staging** | ? showed 13 shortcuts; G then O opened Sales orders; N opened New; Esc closed it; / focused the order search |
 | OF6 | Release log for v1.83 (PR #82) | **Deployed · verified on live** | Live cache `pool-shed-v1.83.0-overhaul3-r1`; data unchanged |
+| OF7 | App release (PR #83) | **Deployed · verified on live** 23 Nov 2026 (Vercel check green; live cache `pool-shed-v1.84.0-overhaul4-r1`) | Live serves `ps-dialog.js` and `ps-shortcuts.js`; data unchanged |
 
 ## Overhaul phase 3: record pages · v1.83.0 · branch `overhaul-3`
 
