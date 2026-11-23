@@ -238,6 +238,19 @@ Owner approved the blueprint 21 Nov 2026 (eight areas; Pool Audits under My Work
 
 ---
 
+## A more premium look across the app · v1.91.0 · branch `premium-look`
+
+Owner: the system still looks dated; the logo sits on a white background; wants a professional gradient, premium "Apple product" look. Approved concept (menus, catalogue list, product editor, reordering) shown first; this is release 1 of 3.
+
+| # | Change | Status | Evidence |
+|---|---|---|---|
+| PL1 | Menu bar gradient (tokens `--shell-grad-*`), logo on a glass tile (the logo file is transparent; the white square was styling), icons per menu area, glass highlights, gradient "+ New" | **New · Checked in a real browser on staging** | Home, Orders, a sales order, Purchase orders; light and dark |
+| PL2 | Frosted, sticky top bar on every page; Home's separate dark top bar brought in line | **New · Checked on staging** | Home and Orders screenshots |
+| PL3 | Main page buttons use the brand gradient; system font | **New · Checked on staging** | Order and purchase order pages |
+| PL4 | Fixes: dark-mode switch showed "☀ is not available on this screen yet"; dark breadcrumb sat in a coloured box | **Fixed** | Catch-all click message skips the switch |
+| PL5 | Release test | **New · Unit tested** | `test-premium-shell-v191` |
+| PL6 | Older tests updated: menu labels now sit beside an icon (`test-frame-v155`); app.css ceiling in `test-overhaul-wording-v185` moved from 1,085,000 to 1,095,000 bytes for the new shell (about 6 KB; the overall 1,100,000 budget is unchanged) | **Updated** | Both pass |
+
 ## Fulfilment tab rebuilt: goods-out notes like Brightpearl · v1.90.0 · branch `fulfilment`
 
 Owner: redo the order's Fulfilment (Print · Pick · Pack · Ship) like Brightpearl; could not see it working once items were in stock and allocated. Finding: the tab showed four totals and an empty notes box; its "Open fulfilment" button only said "Tick one or more product lines first" (no lines to tick on that tab); the Fulfil button opened a pop-up with nothing ticked and columns running off the side, and notes were then worked on a separate page.

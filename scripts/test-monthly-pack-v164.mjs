@@ -68,5 +68,5 @@ assert(/Customers owe us \(ledger\)/.test(html) && /£300/.test(html) && /more t
 // Wiring.
 const ac = fs.readFileSync('public/analytics-command-workspace.js', 'utf8'), index = fs.readFileSync('public/index.html', 'utf8'), sw = fs.readFileSync('public/service-worker.js', 'utf8');
 assert(/const pages=\['Overview','Monthly Pack',/.test(ac) && /p==='Monthly Pack'&&global\.PoolShedMonthlyPack\?layout\('Monthly Pack'/.test(ac) && /data-ac-page=\\?"Monthly Pack\\?"/.test(ac), 'Reports → Monthly Pack');
-assert(index.indexOf('monthly-pack.js') > index.indexOf('profit-report.js') && /monthly-pack\.js\?v=1\.90\.0/.test(sw), 'loaded and offline');
+assert(index.indexOf('monthly-pack.js') > index.indexOf('profit-report.js') && /monthly-pack\.js\?v=1\.91\.0/.test(sw), 'loaded and offline');
 console.log('Monthly pack v1.64: sales, profit, comparisons, best sellers, stock by place, purchasing, quotes, contracts, ledger money for finance roles.');

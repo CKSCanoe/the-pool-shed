@@ -3,6 +3,7 @@
  Industrial Aqua palette. All runtime UI colour must resolve through these semantic tokens.
 */
 :root {/* Brand / shell */
+  --shell-grad-top: #0C2230;--shell-grad-mid: #0B3A4A;--shell-grad-end: #0B5563;--shell-glass: rgba(255,255,255,.10);--shell-glass-strong: rgba(255,255,255,.16);--shell-hairline: rgba(255,255,255,.08);--shell-text-soft: #A9C6D1;--shell-text-strong: #FFFFFF;--brand-grad-start: #14A3B5;--brand-grad-end: #2563EB;--brand-glow: rgba(37,99,235,.32);--canvas-glass: rgba(244,246,249,.78);--canvas-tint: #F4F6F9;--card-ring: rgba(11,27,38,.06);
   --color-shell: #0F1B24;--color-shell-secondary: #172832;/* Surfaces */
   --color-surface-canvas: #F4F6F5;--color-surface-default: #FFFFFF;--color-surface-subtle: #EEF3F3;--color-surface-raised: #E6ECEC;--color-surface-selected: #E2F1F3;/* Text */
   --color-text-primary: #17242C;--color-text-secondary: #5C6971;--color-text-muted: #616E76;--color-text-inverse: #FFFFFF;--color-text-disabled: color-mix(in srgb, var(--color-text-secondary) 70%, var(--color-surface-default));--color-shell-text: #EDF3F4;--color-shell-text-muted: #AAB8BE;--color-shell-text-subnav: color-mix(in srgb, var(--color-shell-text) 78%, var(--color-shell));--color-logo-surface: var(--color-surface-default);/* Borders */
@@ -17,6 +18,7 @@ html[data-theme="dark"],
 body[data-theme="dark"],
 [data-theme="dark"] {
   color-scheme: dark;
+  --shell-grad-top: #071621;--shell-grad-mid: #0A2633;--shell-grad-end: #0B3742;--canvas-glass: rgba(15,23,28,.78);--canvas-tint: #0F171C;--card-ring: rgba(255,255,255,.06);--brand-glow: rgba(37,99,235,.22);
 
   --color-shell: #0B151C;
   --color-shell-secondary: #11212A;
