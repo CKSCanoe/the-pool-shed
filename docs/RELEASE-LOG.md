@@ -251,6 +251,7 @@ Owner: make sure stock allocation is the best process and all connected; custom 
 | SF5 | Order progress and "all shipped" count stock lines only, so orders with a custom line or delivery charge can reach Shipped and Completed | **Fixed · Tested on staging** | Test order with a delivery line reached Completed |
 | SF6 | Order bar: "Or invoice now: the goods ship with it" beside Allocate / Pick, pack and ship | **New · Tested on staging** | Link shown on an unallocated order |
 | SF7 | Release test | **New · Unit tested** | `test-stock-flow-v189` |
+| SF8 | App release (PR #88) | **Deployed · verified on live** 23 Nov 2026 (Vercel check green; live cache `pool-shed-v1.89.0-stockflow-r1`; `stock-flow.js` served and loaded by the page) | Data unchanged at release (last save 19:46, before it). The one-time clear of the 108 custom and delivery line allocations runs when staff next open the app; to be confirmed |
 | — | Not in this release: recording which shelf each reservation came from (one warehouse bin in use today); opening stock import | Proposed | Needs real stock counts first |
 
 ## Favourite products and Quick add under the search · v1.88.0 · branch `favourites`
