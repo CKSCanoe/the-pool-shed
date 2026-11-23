@@ -250,6 +250,7 @@ Owner: the system still looks dated; the logo sits on a white background; wants 
 | PL4 | Fixes: dark-mode switch showed "☀ is not available on this screen yet"; dark breadcrumb sat in a coloured box | **Fixed** | Catch-all click message skips the switch |
 | PL5 | Release test | **New · Unit tested** | `test-premium-shell-v191` |
 | PL6 | Older tests updated: menu labels now sit beside an icon (`test-frame-v155`); app.css ceiling in `test-overhaul-wording-v185` moved from 1,085,000 to 1,095,000 bytes for the new shell (about 6 KB; the overall 1,100,000 budget is unchanged) | **Updated** | Both pass |
+| PL7 | App release (PR #90) | **Deployed · verified on live** 23 Nov 2026 (Vercel check green; live cache `pool-shed-v1.91.0-premium-r1`; new styles served) | No saves since 20:44; v1.89 clean-up still waiting for a page on the new version |
 
 ## Fulfilment tab rebuilt: goods-out notes like Brightpearl · v1.90.0 · branch `fulfilment`
 
