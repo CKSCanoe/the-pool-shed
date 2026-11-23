@@ -1,4 +1,4 @@
-/* Pool Shed v1.90.0 — back-office frame (blueprint step 1).
+/* Pool Shed v1.91.0 — back-office frame (blueprint step 1).
    1. The menu grouped into eight areas (plus Reports and Settings). Every existing page stays where it was, under its area;
       a "Classic menu" switch brings back the old flat menu for anyone who prefers it.
    2. Home queues: what needs doing today, by role, each opening the list to act on.
@@ -70,6 +70,9 @@
     var hit = findPage(a, s), area = hit ? hit.area : MENU.filter(function(m){ return m.id === OWNER[a]; })[0];
     return { tab: a, sub: s, area: area || null, label: hit ? hit.page[2] : (s || '') };
   }
+  // v1.91: one outline icon per menu area, drawn in the menu's text colour
+  var AREA_ICON = { home: 'home', sales: 'receipt', customers: 'users', projects: 'pool', purchasing: 'cart', stock: 'package', warehouse: 'truck', team: 'van', accounts: 'pound', reports: 'chart', settings: 'settings' };
+  function areaIcon(id){ return typeof global.PoolShedIcon === 'function' && AREA_ICON[id] ? global.PoolShedIcon(AREA_ICON[id], { size: 17 }) : ''; }
   function navHtml(tabs, active, activeSub, subGroups, defaultSub){
     var allowed = {}; tabs.forEach(function(t){ allowed[t.id] = t; });
     var cur = activeSub[active] || defaultSub(active), here = findPage(active, cur), hereArea = here ? here.area.id : OWNER[active];
@@ -84,7 +87,7 @@
         subs.forEach(function(s){ if (!listed[pageKey(t, s)] && !SKIP[pageKey(t, s)] && !more.some(function(x){ return x[0] === t && x[1] === s; })) more.push([t, s, s]); }); });
       var inMore = !here && open && more.some(function(x){ return x[0] === active && (x[1] === cur || !x[1]); });
       var first = pages[0];
-      return '<div class="nav-area' + (open ? ' open' : '') + '"><button type="button" class="nav-area-head' + (open ? ' current' : '') + '" data-nav-page="' + esc(pageKey(first[0], first[1])) + '" aria-expanded="' + open + '">' + esc(m.label) + '</button>' +
+      return '<div class="nav-area' + (open ? ' open' : '') + '"><button type="button" class="nav-area-head' + (open ? ' current' : '') + '" data-nav-page="' + esc(pageKey(first[0], first[1])) + '" aria-expanded="' + open + '">' + areaIcon(m.id) + '<span>' + esc(m.label) + '</span></button>' +
         (open ? '<div class="nav-area-items">' + pages.map(function(p){ return btn(p[0], p[1], p[2], here && here.page === p); }).join('') +
           (more.length ? '<button type="button" class="nav-more-toggle" data-nav-more="' + esc(m.id) + '" aria-expanded="' + !!(moreOpen[m.id] || inMore) + '">More ' + (moreOpen[m.id] || inMore ? '▾' : '▸') + '</button>' +
             (moreOpen[m.id] || inMore ? '<div class="nav-more">' + more.map(function(x){ return btn(x[0], x[1], x[2], active === x[0] && (x[1] === cur || !x[1]) && !here); }).join('') + '</div>' : '') : '') + '</div>' : '') + '</div>';

@@ -238,6 +238,19 @@ Owner approved the blueprint 21 Nov 2026 (eight areas; Pool Audits under My Work
 
 ---
 
+## A more premium look across the app · v1.91.0 · branch `premium-look`
+
+Owner: the system still looks dated; the logo sits on a white background; wants a professional gradient, premium "Apple product" look. Approved concept (menus, catalogue list, product editor, reordering) shown first; this is release 1 of 3.
+
+| # | Change | Status | Evidence |
+|---|---|---|---|
+| PL1 | Menu bar gradient (tokens `--shell-grad-*`), logo on a glass tile (the logo file is transparent; the white square was styling), icons per menu area, glass highlights, gradient "+ New" | **New · Checked in a real browser on staging** | Home, Orders, a sales order, Purchase orders; light and dark |
+| PL2 | Frosted, sticky top bar on every page; Home's separate dark top bar brought in line | **New · Checked on staging** | Home and Orders screenshots |
+| PL3 | Main page buttons use the brand gradient; system font | **New · Checked on staging** | Order and purchase order pages |
+| PL4 | Fixes: dark-mode switch showed "☀ is not available on this screen yet"; dark breadcrumb sat in a coloured box | **Fixed** | Catch-all click message skips the switch |
+| PL5 | Release test | **New · Unit tested** | `test-premium-shell-v191` |
+| PL6 | Older tests updated: menu labels now sit beside an icon (`test-frame-v155`); app.css ceiling in `test-overhaul-wording-v185` moved from 1,085,000 to 1,095,000 bytes for the new shell (about 6 KB; the overall 1,100,000 budget is unchanged) | **Updated** | Both pass |
+
 ## Fulfilment tab rebuilt: goods-out notes like Brightpearl · v1.90.0 · branch `fulfilment`
 
 Owner: redo the order's Fulfilment (Print · Pick · Pack · Ship) like Brightpearl; could not see it working once items were in stock and allocated. Finding: the tab showed four totals and an empty notes box; its "Open fulfilment" button only said "Tick one or more product lines first" (no lines to tick on that tab); the Fulfil button opened a pop-up with nothing ticked and columns running off the side, and notes were then worked on a separate page.
@@ -249,6 +262,7 @@ Owner: redo the order's Fulfilment (Print · Pick · Pack · Ship) like Brightpe
 | FT3 | Goods-out note cards: Printed → Picked → Packed → Shipped, next step as a button (Print picking list / Mark picked / Mark packed / Ship…), undo picked or packed, print again, cancel an unshipped note, open the full note | **New · Tested on staging** | Picked, packed, shipped by "Our van": steps all done, shelf 5→3 and 4→3, order Part Shipped; staging put back |
 | FT4 | Ship asks how it is going (collecting, our van, courier, post) with optional courier and tracking, then uses the existing shipping rules | **New · Tested on staging** | Shipped note reads "Shipped … by aaron · Our van" |
 | FT5 | Release test | **New · Unit tested** | `test-fulfilment-tab-v190` |
+| FT6 | App release (PR #89) | **Deployed · verified on live** 23 Nov 2026 (Vercel check green; live cache `pool-shed-v1.90.0-fulfilment-r1`; `fulfilment-tab.js` served and loaded by the page) | No saves since 20:44 (before the release); v1.89 clean-up still waiting for a page on the new version |
 | — | Clean-up check from v1.89 (custom and delivery allocations) | Pending | Waiting for a page running v1.89 or later to load on live |
 
 ## Stock connected to sales: ship when invoiced · v1.89.0 · branch `stock-flow`

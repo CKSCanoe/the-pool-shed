@@ -19,7 +19,7 @@ const F = ctx.PoolShedFrame;
 const tabs = ['dashboard','mywork','audits','crm','salesorders','quotes','jobs','products','locations','purchase','warehouse','fleet','fulfilment','accounting','analytics','automation','settings','newthing'].map(id => ({ id, label: id }));
 const subs = id => ({ salesorders: ['Sales Orders', 'Contracts', 'Web Orders', 'Sales Credits', 'Invoices', 'Customer Orders'], crm: ['All Customers', 'Create Customer', 'Suppliers'], quotes: ['Quotes', 'Templates'] })[id] || [];
 const html = F.navHtml(tabs, 'salesorders', { salesorders: 'Contracts' }, subs, () => '');
-for (const label of ['Home','Sales','Customers','Projects','Purchasing','Stock','Warehouse','Team &amp; vans','Accounts','Reports','Settings','More']) assert(html.includes('>' + label + '</button>'), 'area ' + label);
+for (const label of ['Home','Sales','Customers','Projects','Purchasing','Stock','Warehouse','Team &amp; vans','Accounts','Reports','Settings','More']) assert(html.includes('>' + label + '</button>') || html.includes('<span>' + label + '</span></button>'), 'area ' + label);   // v1.91: labels sit beside an icon
 assert(html.includes('data-nav-page="salesorders|Contracts" aria-current="page"'), 'current page marked');
 for (const p of ['salesorders|Sales Orders', 'quotes|Quotes', 'salesorders|Web Orders', 'salesorders|Sales Credits']) assert(html.includes('data-nav-page="' + p + '"'), 'open area page ' + p);
 assert(html.includes('data-nav-more="sales"') && !html.includes('data-nav-page="quotes|Templates"'), 'less-used pages folded under More');
@@ -29,7 +29,7 @@ assert(html.includes('data-nav-page="newthing|"'), 'unknown sections still reach
 assert(html.includes('data-nav-new') && html.includes('data-nav-create="sales-order"') && html.includes('data-nav-create="purchase-order"'), '+ New');
 assert(html.includes('data-menu-style="classic"'), 'classic menu switch');
 const limited = F.navHtml(tabs.filter(t => ['dashboard','salesorders'].includes(t.id)), 'dashboard', {}, () => [], () => '');
-assert(!limited.includes('>Accounts</button>') && limited.includes('>Sales</button>'), 'areas follow permissions');
+assert(!/>(<span>)?Accounts(<\/span>)?<\/button>/.test(limited) && />(<span>)?Sales(<\/span>)?<\/button>/.test(limited), 'areas follow permissions');
 const pagesListed = {}; F.MENU.forEach(m => m.pages.forEach(p => { const k = p[0] + '|' + p[1]; assert(!pagesListed[k], 'listed once: ' + k); pagesListed[k] = 1; }));
 assert(F.MENU.every(m => m.pages.length <= 7), 'at most 7 pages per area');
 assert.equal(F.enabled(), true); store['poolshed:menu-style'] = 'classic'; assert.equal(F.enabled(), false); delete store['poolshed:menu-style'];
