@@ -15355,7 +15355,7 @@ td.ps-av-cell > div{min-width:0;display:grid}
 .pof-rail li.now{background:var(--color-action-primary);color:var(--color-action-contrast)}
 .pof-row{display:flex;align-items:center;gap:14px;flex-wrap:wrap}
 .pof-next{font-size:14px !important;padding:9px 16px !important}
-.pof-alt{appearance:none;border:0;background:none;color:var(--color-action-ink);font:inherit;font-size:13px;text-decoration:underline;cursor:pointer;padding:0}
+.pof-alt,.sof-alt{appearance:none;border:0;background:none;color:var(--color-action-ink);font:inherit;font-size:13px;text-decoration:underline;cursor:pointer;padding:0}
 .pof-note{font-weight:600;color:var(--color-text-secondary)}.pof-done{font-weight:600;color:var(--color-status-success-text)}
 /* Line pictures: the product's picture, or an icon */
 :is(.so5-line-thumb,.po-line-thumb).is-icon{display:inline-grid !important;place-items:center;background:var(--color-surface-subtle) !important;color:var(--color-text-secondary) !important;font-size:0 !important}

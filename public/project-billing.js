@@ -1,4 +1,4 @@
-/* Pool Shed v1.88.0 — project stage invoices on the Pool Shed ledger (blueprint step 7).
+/* Pool Shed v1.89.0 — project stage invoices on the Pool Shed ledger (blueprint step 7).
    "Raise invoice" on a ready stage opens the same invoice form Accounts uses, posts a numbered invoice (INV-…) on the
    ledger and marks the stage. The server refuses a second invoice for a stage that is still billed, and never bills
    more than the accepted quote plus approved extras. Stages queued to Xero before this release keep their status. */

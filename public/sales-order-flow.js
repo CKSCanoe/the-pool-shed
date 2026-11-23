@@ -1,4 +1,4 @@
-/* Pool Shed v1.88.0 — sales order flow (blueprint step 2).
+/* Pool Shed v1.89.0 — sales order flow (blueprint step 2).
    Adds to the existing order page, without replacing it:
    - a status rail showing where the order is: Ordered → Allocated → Picked & packed → Delivered → Invoiced → Paid;
    - one highlighted next-step button that runs the existing action (allocate, fulfil, mark delivered, invoice, payment);
@@ -40,9 +40,11 @@
     if (order.status === 'On Hold') return '<span class="sof-note">On hold: change the status to carry on.</span>';
     if (!cur) return '<span class="sof-done">Complete: delivered, invoiced and paid.</span>';
     if (cur === 'ordered') return '<span class="sof-note">Add items below to start the order.</span>';
-    if (cur === 'allocated') return '<button type="button" class="primary sof-next" title="Ctrl+Enter" data-allocate-order="' + id + '">Allocate stock</button>';
-    if (cur === 'packed') return '<button type="button" class="primary sof-next" title="Ctrl+Enter" data-fulfil-order="' + id + '">Pick, pack and ship</button>';
-    if (cur === 'delivered') return f.need > 0 ? '<button type="button" class="primary sof-next" title="Ctrl+Enter" data-fulfil-order="' + id + '">Ship remaining items</button>'
+    // v1.89: invoicing ships the goods, so the warehouse steps are optional for counter and phone orders
+    var invoiceNow = '<button type="button" class="link sof-alt" data-sof-invoice="' + id + '">Or invoice now: the goods ship with it</button>';
+    if (cur === 'allocated') return '<button type="button" class="primary sof-next" title="Ctrl+Enter" data-allocate-order="' + id + '">Allocate stock</button>' + invoiceNow;
+    if (cur === 'packed') return '<button type="button" class="primary sof-next" title="Ctrl+Enter" data-fulfil-order="' + id + '">Pick, pack and ship</button>' + invoiceNow;
+    if (cur === 'delivered') return f.need > 0 ? '<button type="button" class="primary sof-next" title="Ctrl+Enter" data-fulfil-order="' + id + '">Ship remaining items</button>' + invoiceNow
                                                : '<button type="button" class="primary sof-next" title="Ctrl+Enter" data-sof-delivered="' + id + '">Mark as done</button>';
     if (cur === 'invoiced') return '<button type="button" class="primary sof-next" title="Ctrl+Enter" data-sof-invoice="' + id + '">Invoice ' + esc(cash(f.totals.gross - Number(f.totals.paid || 0) > 0 ? f.totals.gross : f.totals.gross)) + '</button>';
     if (cur === 'paid') return '<button type="button" class="primary sof-next" title="Ctrl+Enter" data-sof-pay="' + id + '">Record payment ' + esc(cash(f.totals.gross - Number(f.totals.paid || 0))) + '</button>';
