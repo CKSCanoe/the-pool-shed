@@ -27,7 +27,7 @@ html.ps-booting #appShell, html.ps-booting #loginScreen { visibility:hidden !imp
 #psBootScreen.is-ready { opacity:0; visibility:hidden; pointer-events:none; }
 .ps-boot-card { width:min(430px,calc(100vw - 40px)); padding:32px; border:1px solid color-mix(in srgb, var(--color-surface-default) 20%, transparent); border-radius:var(--ps-radius-panel); background:color-mix(in srgb, var(--color-surface-default) 8%, transparent); backdrop-filter:blur(14px); box-shadow:none; }
 .ps-boot-brand { display:flex; align-items:center; gap:15px; }
-.ps-boot-logo { width:58px; height:58px; display:grid; place-items:center; border-radius:18px; background:var(--color-surface-default); color:var(--color-action-ink); font-weight:900; font-size:22px; }
+.ps-boot-logo {display:grid;place-items:center;background:var(--color-surface-default);color:var(--color-action-ink);font-weight:900;font-size:22px;}
 .ps-boot-brand strong { display:block; font-size:22px; }
 .ps-boot-brand span { opacity:.76; font-size:13px; }
 .ps-boot-line { height:4px; margin-top:24px; border-radius:99px; overflow:hidden; background:color-mix(in srgb, var(--color-surface-default) 16%, transparent); }
@@ -36,11 +36,11 @@ html.ps-booting #appShell, html.ps-booting #loginScreen { visibility:hidden !imp
 @media (prefers-reduced-motion:reduce){.ps-boot-line i{animation:none;width:100%}}
 
 /* Global density and consistency. */
-.main { min-width:0; }
+
 .screen { gap:16px !important; }
 
-.panel > header { padding:18px 22px !important; }
-.panel > .panel-body, .record-card-body { padding:18px 22px !important; }
+
+
 
 button.secondary { background:var(--color-action-soft); border-color:var(--color-action-ink); color:var(--color-text-primary); }
 button.secondary:hover { background:var(--color-action-soft); transform:none; }
@@ -49,14 +49,10 @@ button.secondary:hover { background:var(--color-action-soft); transform:none; }
 .sidebar { position:sticky; top:0; height:100vh; overflow:auto; }
 
 /* Sales order header: one compact sticky control surface. */
-#screen-salesorders .record-card.sales-order-compact > .record-top {
-  position:sticky; top:8px; z-index:75; display:flex; align-items:center; justify-content:space-between;
-  gap:14px; padding:12px 16px !important; margin:0 0 10px; border:1px solid color-mix(in srgb, var(--color-action-focus) 65%, transparent);
-  background:color-mix(in srgb, var(--color-status-info) 96%, transparent); backdrop-filter:blur(14px); border-radius:var(--ps-radius-panel); box-shadow:none;
-}
+#screen-salesorders .record-card.sales-order-compact > .record-top {display:flex;align-items:center;justify-content:space-between;gap:14px;margin:0 0 10px;backdrop-filter:blur(14px);}
 [data-theme="dark"] #screen-salesorders .record-card.sales-order-compact > .record-top { background:color-mix(in srgb, var(--color-shell) 96%, transparent); }
 #screen-salesorders .record-top .record-id { display:flex; flex-wrap:wrap; align-items:center; gap:8px; min-width:0; }
-#screen-salesorders .record-top .record-id > strong { font-size:clamp(1.35rem,2vw,2rem); line-height:1.2; white-space:nowrap; }
+#screen-salesorders .record-top .record-id > strong {line-height:1.2;white-space:nowrap;}
 #screen-salesorders .record-top .detail-actions { display:flex; flex-wrap:wrap; gap:7px; justify-content:flex-end; }
 #screen-salesorders .record-top .detail-actions button { min-height:38px; padding:8px 13px; border-radius:var(--ps-radius-control); font-size:.92rem; box-shadow:none; white-space:nowrap; }
 #screen-salesorders .record-top .so-action-save { background:var(--color-action-primary); border-color:var(--color-action-primary); color:var(--color-action-contrast); }
@@ -80,23 +76,10 @@ button.secondary:hover { background:var(--color-action-soft); transform:none; }
   border-radius:var(--ps-radius-control);
 }
 #screen-salesorders .order-lines-table thead { position:relative; z-index:8; }
-#screen-salesorders .order-lines-table thead th {
-  position:sticky;
-  top:0;
-  z-index:9;
-  padding:10px 9px;
-  white-space:nowrap;
-  background:var(--color-action-soft);
-  color:var(--color-status-info-text);
-  font-size:.86rem;
-  letter-spacing:.045em;
-  text-transform:uppercase;
-  border-bottom:1px solid var(--color-action-focus);
-  box-shadow:0 1px 0 color-mix(in srgb, var(--color-text-secondary) 18%, transparent);
-}
+#screen-salesorders .order-lines-table thead th {position:sticky;top:0;z-index:9;white-space:nowrap;color:var(--color-status-info-text);letter-spacing:.045em;text-transform:uppercase;border-bottom:1px solid var(--color-action-focus);box-shadow:0 1px 0 color-mix(in srgb, var(--color-text-secondary) 18%, transparent);}
 #screen-salesorders .order-lines-table thead th:first-child { border-top-left-radius:14px; }
 #screen-salesorders .order-lines-table thead th:last-child { border-top-right-radius:14px; }
-#screen-salesorders .order-lines-table tbody td { padding:10px 9px; vertical-align:top; line-height:1.28; border-bottom:1px solid var(--color-action-focus); }
+#screen-salesorders .order-lines-table tbody td {vertical-align:top;line-height:1.28;border-bottom:1px solid var(--color-action-focus);}
 #screen-salesorders .order-lines-table tbody td strong { line-height:1.2; }
 #screen-salesorders .order-lines-table .qty-input { width:78px; min-width:64px; height:38px; padding:6px 9px; }
 #screen-salesorders .order-lines-table select.inline-edit { min-width:105px; max-width:150px; height:38px; padding:6px 28px 6px 9px; }
@@ -157,11 +140,11 @@ tr.ps-bundle-collapsed { display:none; }
 #screen-salesorders .so-line-assurance { margin:0 14px 14px; padding:9px 11px; }
 
 /* Fulfilment: make the intended sequence obvious. */
-#screen-fulfilment .panel:first-child::before { content:"PRINT  →  PICK  →  PACK  →  SHIP"; display:block; margin:0 0 12px; padding:8px 12px; border-radius:var(--ps-radius-panel); background:var(--color-surface-default); color:var(--color-action-ink); font-size:.86rem; font-weight:900; letter-spacing:.08em; }
+
 
 /* Accounting/Jobs are denser and more software-like without inventing fake integrations. */
 #screen-accounting .panel, #screen-jobs .panel { border:1px solid var(--color-action-focus); }
-#screen-accounting table thead th, #screen-jobs table thead th { background:var(--color-action-soft); }
+
 #screen-accounting .profile-stat-grid, #screen-jobs .profile-stat-grid { gap:10px; }
 #screen-accounting .profile-stat, #screen-jobs .profile-stat { min-height:88px; border-radius:var(--ps-radius-panel); }
 
@@ -269,7 +252,7 @@ img { content-visibility: auto; }
 .so-customer-drawer-shell.open { pointer-events: auto; visibility: visible; }
 .so-customer-drawer-backdrop { position: absolute; inset: 0; background: color-mix(in srgb, var(--color-shell) 48%, transparent); opacity: 0; transition: opacity .18s ease; backdrop-filter: blur(2px); }
 .so-customer-drawer-shell.open .so-customer-drawer-backdrop { opacity: 1; }
-.so-customer-drawer { position: absolute; top: 0; right: 0; bottom: 0; width: min(540px, 94vw); display: grid; grid-template-rows: auto minmax(0,1fr); background:var(--color-status-info-bg); box-shadow: -24px 0 70px color-mix(in srgb, var(--color-shell) 24%, transparent); transform: translateX(102%); transition: transform .22s cubic-bezier(.2,.8,.2,1); }
+.so-customer-drawer {position: absolute;top: 0;right: 0;bottom: 0;width: min(540px, 94vw);display: grid;grid-template-rows: auto minmax(0,1fr);box-shadow: -24px 0 70px color-mix(in srgb, var(--color-shell) 24%, transparent);transform: translateX(102%);transition: transform .22s cubic-bezier(.2,.8,.2,1);}
 .so-customer-drawer-shell.open .so-customer-drawer { transform: translateX(0); }
 .so-customer-drawer > header { display: flex; justify-content: space-between; gap: 18px; padding: 24px 24px 20px; background:var(--color-shell); color:var(--color-shell-text); }
 .so-customer-drawer > header > div { display: grid; gap: 4px; }

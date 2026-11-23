@@ -9,7 +9,7 @@
 .sales-workspace .record-id>strong { font-size:24px; letter-spacing:-.6px; }
 .sales-workspace .detail-actions { gap:8px; flex-wrap:wrap; }
 .sales-workspace button { min-height:36px; border-radius:var(--ps-radius-control); }
-.sales-workspace .record-shell { display:grid; grid-template-columns:minmax(320px,2fr) minmax(180px,1fr) minmax(220px,1fr); gap:20px; padding:24px; align-items:start; }
+.sales-workspace .record-shell {display:grid;grid-template-columns:minmax(320px,2fr) minmax(180px,1fr) minmax(220px,1fr);gap:20px;padding:24px;}
 .sales-workspace .customer-profile-compact { min-width:0; padding:0; border:0; box-shadow:none; }
 .sales-workspace .customer-profile-summary,.sales-workspace .customer-info-grid,.sales-workspace .customer-card-kicker { display:none; }
 .sales-workspace .so-customer-picker { margin:0 0 12px; }
@@ -18,7 +18,7 @@
 .sales-workspace .customer-money-grid strong { font-size:18px; }
 .sales-workspace .so-order-details-card,.sales-workspace .so-fulfilment-card { padding:16px; border-radius:var(--ps-radius-panel); box-shadow:none; min-width:0; }
 .sales-workspace .so-source-note { display:none; }
-.sales-workspace .tabs-row { padding:0 24px; gap:8px; overflow-x:auto; flex-wrap:nowrap; border-bottom:1px solid var(--color-border-default); }
+
 .sales-workspace .tab-chip { white-space:nowrap; border-radius:8px 8px 0 0; padding:12px 16px; }
 .sales-workspace .record-card-body:not(.record-shell) { padding:24px; }
 
@@ -78,29 +78,21 @@
 /* Single-item smart product finder. The result panel is portalled to body by JS. */
 .sales-workspace .so-smart-add-controls{align-items:flex-start}
 .sales-workspace .so-smart-product-search{position:relative;min-width:min(520px,100%)}
-#salesOrderProductResults.so-product-results-portal{
-  position:fixed!important;z-index:2147482000!important;right:auto!important;margin:0!important;
-  border:1px solid var(--color-border-default);border-radius:7px;background:var(--color-surface-default);box-shadow:0 14px 32px var(--shadow-color);
-  overflow:auto
-}
+#salesOrderProductResults.so-product-results-portal{position:fixed!important;right:auto!important;margin:0!important;border:1px solid var(--color-border-default);background:var(--color-surface-default);box-shadow:0 14px 32px var(--shadow-color);overflow:auto;}
 
 /* Multi-item picker. */
 body.so-batch-open{overflow:hidden}
 .so-batch-backdrop{
   position:fixed;z-index:2147482100;inset:0;background:var(--shadow-color-strong)
 }
-.so-batch-drawer{
-  position:fixed;z-index:2147482200;top:0;right:-760px;width:min(720px,96vw);height:100vh;
-  display:grid;grid-template-rows:auto auto 1fr auto;background:var(--color-surface-default);border-left:1px solid var(--color-border-default);
-  box-shadow:-18px 0 42px var(--shadow-color-strong);transition:right .18s ease
-}
+.so-batch-drawer{position:fixed;z-index:2147482200;top:0;right:-760px;height:100vh;display:grid;grid-template-rows:auto auto 1fr auto;border-left:1px solid var(--color-border-default);box-shadow:-18px 0 42px var(--shadow-color-strong);transition:right .18s ease;}
 .so-batch-drawer.open{right:0}
 .so-batch-head{
   display:flex;align-items:flex-start;gap:10px;padding:14px 16px 12px;background:var(--color-surface-default);border-bottom:1px solid var(--color-border-default)
 }
 .so-batch-head>div{display:grid;gap:2px}
 .so-batch-head span{font-size:12px;color:var(--color-text-secondary);font-weight:900;letter-spacing:.05em}
-.so-batch-head strong{font-size:16px;line-height:1.2}
+.so-batch-head strong{line-height:1.2;}
 .so-batch-head p{margin:0;color:var(--color-text-secondary);font-size:12px}
 .so-batch-head button{margin-left:auto}
 .so-batch-tools{padding:10px 14px 0;background:var(--color-surface-default);border-bottom:1px solid var(--color-border-default)}
@@ -118,10 +110,7 @@ body.so-batch-open{overflow:hidden}
 .so-batch-family-head{display:flex;align-items:center;gap:8px;padding:8px 10px;background:var(--color-surface-default);border-bottom:1px solid var(--color-border-default)}
 .so-batch-family-head strong{font-size:12px}
 .so-batch-family-head span{margin-left:auto;color:var(--color-text-secondary);font-size:12px}
-.so-batch-row{
-  display:grid;grid-template-columns:minmax(0,1fr) 80px 84px 104px;gap:9px;align-items:center;min-height:56px;
-  padding:8px 10px;border-bottom:1px solid var(--color-border-default)
-}
+.so-batch-row{display:grid;grid-template-columns:minmax(0,1fr) 80px 84px 104px;gap:9px;align-items:center;padding:8px 10px;border-bottom:1px solid var(--color-border-default);}
 .so-batch-row:last-child{border-bottom:0}
 .so-batch-row:hover,.so-batch-row.selected{background:var(--color-surface-default)}
 .so-batch-product>strong{display:block;font-size:12px}
@@ -157,22 +146,8 @@ body.so-batch-open{overflow:hidden}
 /* ===== Sales Order Command parity refinement — v1.5.1 =====
    Selected Concept A: readable operational composition without changing sales/stock engines.
 */
-#screen-salesorders .sales-workspace.sales-command-page{
-  --so-command-gap:12px;
-  border:0;
-  border-radius:8px;
-  background:var(--color-surface-canvas,var(--color-surface-default));
-  overflow:visible;
-  box-shadow:none
-}
-#screen-salesorders .sales-workspace.sales-command-page>.record-top{
-  min-height:58px;
-  padding:11px 14px!important;
-  gap:10px;
-  background:var(--color-surface-default);
-  border:1px solid var(--color-border-default);
-  border-radius:8px 8px 0 0
-}
+#screen-salesorders .sales-workspace.sales-command-page{--so-command-gap:12px;border:0;overflow:visible;box-shadow:none;}
+#screen-salesorders .sales-workspace.sales-command-page>.record-top{gap:10px;background:var(--color-surface-default);border:1px solid var(--color-border-default);}
 #screen-salesorders .sales-workspace.sales-command-page .record-id{
   display:flex;align-items:center;gap:8px;flex-wrap:wrap;min-width:0
 }
@@ -200,24 +175,8 @@ body.so-batch-open{overflow:hidden}
 }
 
 /* Concept A summary row */
-#screen-salesorders .sales-workspace.sales-command-page>.record-shell{
-  display:grid!important;
-  grid-template-columns:minmax(360px,1.25fr) minmax(220px,.72fr) minmax(270px,.88fr)!important;
-  gap:10px!important;
-  padding:12px 14px!important;
-  align-items:stretch!important;
-  background:var(--color-surface-canvas,var(--color-surface-default));
-  border-inline:1px solid var(--color-border-default)
-}
-#screen-salesorders .sales-workspace.sales-command-page>.record-shell>*{
-  min-width:0;
-  height:100%!important;
-  min-height:0!important;
-  border:1px solid var(--color-border-default)!important;
-  border-radius:7px!important;
-  background:var(--color-surface-default)!important;
-  box-shadow:none!important
-}
+#screen-salesorders .sales-workspace.sales-command-page>.record-shell{display:grid!important;grid-template-columns:minmax(360px,1.25fr) minmax(220px,.72fr) minmax(270px,.88fr)!important;align-items:stretch!important;background:var(--color-surface-canvas,var(--color-surface-default));border-inline:1px solid var(--color-border-default);}
+#screen-salesorders .sales-workspace.sales-command-page>.record-shell>*{min-width:0;height:100%!important;min-height:0!important;border:1px solid var(--color-border-default)!important;background:var(--color-surface-default)!important;}
 #screen-salesorders .sales-workspace.sales-command-page .customer-profile-compact{
   padding:10px 11px!important
 }
@@ -265,20 +224,9 @@ body.so-batch-open{overflow:hidden}
 #screen-salesorders .sales-workspace.sales-command-page .so-fulfilment-card{
   padding:10px 11px!important
 }
-#screen-salesorders .sales-workspace.sales-command-page .so-card-heading{
-  min-height:36px;
-  margin:-1px 0 8px;
-  padding:0 0 8px;
-  border-bottom:1px solid var(--color-border-default)
-}
-#screen-salesorders .sales-workspace.sales-command-page .so-card-heading span{
-  font-size:12px;
-  text-transform:uppercase;
-  letter-spacing:.04em
-}
-#screen-salesorders .sales-workspace.sales-command-page .so-card-heading strong{
-  font-size:12px
-}
+#screen-salesorders .sales-workspace.sales-command-page .so-card-heading{border-bottom:1px solid var(--color-border-default);}
+#screen-salesorders .sales-workspace.sales-command-page .so-card-heading span{text-transform:uppercase;letter-spacing:.04em;}
+
 #screen-salesorders .sales-workspace.sales-command-page .so-order-details-card .field{
   margin-bottom:7px
 }
@@ -315,12 +263,7 @@ body.so-batch-open{overflow:hidden}
   border-top:0;
   gap:0!important
 }
-#screen-salesorders .sales-workspace.sales-command-page>.tabs-row .tab-chip{
-  min-height:38px!important;
-  height:38px;
-  padding:0 12px!important;
-  font-size:12px!important
-}
+#screen-salesorders .sales-workspace.sales-command-page>.tabs-row .tab-chip{padding:0 12px!important;}
 
 /* The working surface is intentionally one coherent module rather than nested legacy panels. */
 #screen-salesorders .sales-workspace.sales-command-page>.record-card-body:not(.record-shell){
@@ -339,20 +282,8 @@ body.so-batch-open{overflow:hidden}
 /* Add lines + totals as one deliberate lower workflow. */
 
 #screen-salesorders .sales-workspace.sales-command-page .so-add-items,
-#screen-salesorders .sales-workspace.sales-command-page .so-line-composer{
-  margin:0;
-  border:1px solid var(--color-border-default);
-  border-radius:7px;
-  background:var(--color-surface-default);
-  box-shadow:none
-}
-#screen-salesorders .sales-workspace.sales-command-page .so-add-items{
-  display:grid;
-  grid-template-columns:180px minmax(0,1fr);
-  gap:10px;
-  align-items:start;
-  padding:10px 11px
-}
+#screen-salesorders .sales-workspace.sales-command-page .so-line-composer{margin:0;border:1px solid var(--color-border-default);background:var(--color-surface-default);}
+#screen-salesorders .sales-workspace.sales-command-page .so-add-items{display:grid;grid-template-columns:180px minmax(0,1fr);gap:10px;align-items:start;}
 #screen-salesorders .sales-workspace.sales-command-page .po-add-copy span,
 #screen-salesorders .sales-workspace.sales-command-page .so-line-composer-head span{
   color:var(--color-text-secondary);

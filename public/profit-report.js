@@ -1,4 +1,4 @@
-/* Pool Shed v1.84.0 — Profit: by order, project, customer and month (blueprint step 7).
+/* Pool Shed v1.85.0 — Profit: by order, project, customer and month (blueprint step 7).
    Order cost = the purchase order lines linked to the order (bought in for it) plus, for anything sold from stock,
    the quantity × the product's average cost from goods in (or its cost price until goods have been received).
    Projects use the project's own budget-against-actual (sales, actual cost, forecast final cost).

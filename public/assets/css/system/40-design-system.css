@@ -25,7 +25,7 @@
 }
 .ps-skip-link:focus { transform: translateY(0); }
 
-.main { background:var(--color-surface-canvas); }
+
 .sidebar { background:var(--color-shell); }
 button:focus-visible,
 input:focus-visible,
@@ -33,7 +33,7 @@ select:focus-visible,
 textarea:focus-visible,
 summary:focus-visible,
 a:focus-visible { outline-color:var(--color-action-ink); }
-::selection { background:var(--color-action-soft); color:var(--color-text-primary); }
+
 
 /* Semantic status defaults used by legacy inline status variables. */
 .pill.good, .success { --status-bg:var(--color-status-success); --status-fg:var(--color-text-inverse); }
@@ -183,11 +183,7 @@ input:not([type="checkbox"]):not([type="radio"]) {
   min-height: var(--ps-control-height);
 }
 
-button:hover {
-  transform: none !important;
-  filter: none;
-  box-shadow: none;
-}
+
 
 button.secondary,
 button.ghost {
@@ -245,17 +241,7 @@ textarea:disabled {
   cursor: not-allowed;
 }
 
-button:focus-visible,
-input:focus-visible,
-select:focus-visible,
-textarea:focus-visible,
-summary:focus-visible,
-a:focus-visible,
-[tabindex]:focus-visible {
-  outline: 2px solid var(--color-action-focus) !important;
-  outline-offset: 2px !important;
-  box-shadow: none !important;
-}
+
 
 /* Forms */
 
@@ -482,15 +468,9 @@ html[data-density="comfortable"] .panel {
     font-size: 22px !important;
   }
 
-  button,
-  input:not([type="checkbox"]):not([type="radio"]),
-  select {
-    min-height: var(--ps-touch-target);
-  }
+  
 
-  .panel {
-    padding: 14px;
-  }
+  
 
   .panel > .panel-body,
   .record-card-body {
@@ -512,9 +492,7 @@ html[data-density="comfortable"] .panel {
     padding: var(--ps-space-3);
   }
 
-  .modal {
-    max-height: calc(100dvh - 24px);
-  }
+  
 }
 
 @media (prefers-reduced-motion: reduce) {
@@ -1731,13 +1709,8 @@ table th {
 #screen-crm .crm-depth-body{
   padding:11px 13px;
 }
-#screen-crm .crm-core-account .crm-cardhead{
-  min-height:55px;
-  padding:10px 13px;
-}
-#screen-crm .crm-core-account .crm-cardhead h3{
-  font-size:16px;
-}
+
+
 #screen-crm .crm-section-kicker{
   font-size:12px;
 }

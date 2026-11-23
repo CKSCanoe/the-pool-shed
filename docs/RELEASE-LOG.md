@@ -238,6 +238,15 @@ Owner approved the blueprint 21 Nov 2026 (eight areas; Pool Audits under My Work
 
 ---
 
+## Overhaul phase 5: wording and style trim · v1.85.0 · branch `overhaul-5`
+
+| # | Change | Status | Evidence |
+|---|---|---|---|
+| OW1 | Plain English: every menu page crawled on staging for jargon (command, operational, governance, authority, canonical, KPI, controlled…); 67 visible phrases replaced where the exact phrase appears in the code (labels and descriptions only; internal identifiers untouched); typographic apostrophes inside quoted strings | **New · Tested in a real browser on staging** | 74 occurrences across 15 files; every changed file passes a syntax check; `test-overhaul-wording-v185` stops the phrases coming back |
+| OW2 | Style trim: 735 declarations removed (about 20 KB) that a later rule for exactly the same selector, in the same media context, always overrode (never relying on a value some browsers might not understand); app.css 1,103,884 → 1,076,749 bytes; budget back to 1,100,000 | **New · Tested in a real browser on staging** | Every menu page in light and dark mode plus a sales order, purchase order, product, project and the quote editor compared element by element, old stylesheet against new |
+| OW3 | Tests that checked old wording or the always-overridden lines updated to the wording and values that apply (project table scrolls at 1,060px; order lines at 1,440px) | **Changed** | `test-analytics-command-workspace-v117`, `test-fulfilment-command-workspace-v113`, `test-production-readiness-workspace-v120`, `test-supplier-command-workspace-v115`, `test-dashboard-data-fit`, `test-sales-order-quantity-layout-v158` |
+| OW4 | Release log for v1.84 (PR #83) | **Deployed · verified on live** | Live cache `pool-shed-v1.84.0-overhaul4-r1`; data unchanged |
+
 ## Overhaul phase 4: flows · v1.84.0 · branch `overhaul-4`
 
 Finding: about 55 browser confirm boxes and 30 browser prompts; the daily ones were a reason prompt followed by a second confirm (sales and purchase order line removal, purchase order and payment deletion), three prompts on every My work action, and up to four prompts in a row on supplier returns. The next-step buttons from phases 1 and 3 already guide the order flows; this phase removes the interruptions and adds keyboard use.

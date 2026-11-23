@@ -14,17 +14,17 @@
 
 body[data-theme="dark"], [data-theme="dark"] {color-scheme:dark;}
 .app {grid-template-columns:232px minmax(0,1fr);}
-.sidebar {padding:24px 14px;background:var(--color-shell);gap:20px;border-right:1px solid color-mix(in srgb, var(--color-surface-default) 6.3%, transparent);scrollbar-width:thin;}
-.sidebar .brand {padding:0 10px 18px;border-bottom:1px solid color-mix(in srgb, var(--color-surface-default) 9.4%, transparent);}
-.sidebar .brand strong {font-size:18px;letter-spacing:-.4px;}
-.sidebar nav {display:grid;gap:4px;}
-.sidebar nav button {display:flex;align-items:center;width:100%;text-align:left;min-height:42px;padding:10px 12px;border:1px solid transparent;border-radius:var(--ps-radius-control);background:transparent;color:var(--color-text-secondary);font-size:14px;font-weight:550;box-shadow:none;transform:none;}
+.sidebar {padding:24px 14px;gap:20px;border-right:1px solid color-mix(in srgb, var(--color-surface-default) 6.3%, transparent);scrollbar-width:thin;}
+.sidebar .brand {border-bottom:1px solid color-mix(in srgb, var(--color-surface-default) 9.4%, transparent);}
+
+.sidebar nav {display:grid;}
+.sidebar nav button {display:flex;align-items:center;width:100%;text-align:left;border:1px solid transparent;background:transparent;color:var(--color-text-secondary);font-weight:550;box-shadow:none;transform:none;}
 .sidebar nav button:hover {background:color-mix(in srgb, var(--color-surface-default) 4.3%, transparent);color:var(--color-surface-default);}
-.sidebar nav button.active {background:var(--color-shell);color:var(--color-shell-text);border-color:var(--color-text-secondary);box-shadow:inset 3px 0 var(--color-action-focus);}
+
 .sidebar .nav-subgroups {margin:6px 0 10px 18px;padding-left:10px;border-left:1px solid var(--color-text-secondary);display:grid;gap:2px;}
 .sidebar .nav-subgroups button {font-size:14px;min-height:36px;padding:7px 10px;}
-.sidebar .nav-subgroups button.active {background:color-mix(in srgb, var(--color-action-primary) 18%, transparent);box-shadow:inset 3px 0 0 var(--color-selected-edge);border-color:transparent;color:var(--color-shell-text);}
-.main {padding:28px 32px;max-width:none;min-width:0;}
+.sidebar .nav-subgroups button.active {background:color-mix(in srgb, var(--color-action-primary) 18%, transparent);box-shadow:inset 3px 0 0 var(--color-selected-edge);border-color:transparent;}
+.main {max-width:none;min-width:0;}
 
 .topbar .title {flex:1;min-width:200px;}
 
@@ -40,18 +40,18 @@ p {line-height:1.5;}
 .workspace-save-status[data-state="error"]::before{background:var(--color-status-danger)}
 .screen.grid {gap:var(--workspace-gap)!important;align-items:start;}
 
-.panel > header {padding:0 0 16px!important;margin-bottom:16px;border-bottom:1px solid var(--color-border-default);gap:12px;}
+.panel > header {border-bottom:1px solid var(--color-border-default);}
 .panel > .panel-body,.record-card-body {padding:16px 20px!important;}
 .panel h2,.panel h3 {margin-top:0;}
 .panel > header p {font-size:14px;color:var(--color-text-secondary);margin:6px 0 0;}
-.profile-stat, .warehouse-kpi {background:var(--color-surface-default)!important;border:1px solid var(--color-border-default)!important;border-radius:var(--ps-radius-panel)!important;padding:16px!important;box-shadow:none!important;min-height:0!important;}
+.profile-stat, .warehouse-kpi {background:var(--color-surface-default)!important;border:1px solid var(--color-border-default)!important;min-height:0!important;}
 .kpi strong,.warehouse-kpi strong {font-size:28px!important;line-height:1.25;letter-spacing:-.035em;}
 .kpi small,.kpi span,.profile-stat span {font-size:13px;color:var(--color-text-secondary);}
 
-button:hover {transform:none!important;}
+
 button.secondary,button.ghost {background:var(--color-surface-default);color:var(--color-text-primary);border:1px solid var(--color-border-default);box-shadow:none;}
 button.secondary:hover,button.ghost:hover {background:var(--color-surface-subtle);border-color:var(--color-text-secondary);}
-button:disabled {opacity:.5;}
+
 button.success {background:var(--color-status-success-bg);box-shadow:none;}
 button:focus-visible,input:focus-visible,select:focus-visible,textarea:focus-visible,summary:focus-visible,a:focus-visible {outline:3px solid var(--color-action-primary);outline-offset:3px;}
 
@@ -84,11 +84,11 @@ tbody tr:hover {background:color-mix(in srgb,var(--color-action-primary) 3%,var(
 .global-results {max-height:60vh;overflow-y:auto;z-index:1000;}
 #workspaceDensity {min-width:40px;}
 html[data-density="comfortable"] {--control-height:46px;--workspace-gap:24px;}
-html[data-density="comfortable"] td {padding-block:17px;}
-html[data-density="comfortable"] .panel {padding:24px;}
 
-.ps-section-nav button {background:var(--color-surface-default);color:var(--color-text-secondary);border:1px solid var(--color-border-default);}
-.ps-section-nav button.active {background:var(--color-action-soft);color:var(--color-text-primary);border-color:var(--color-action-ink);border-bottom-color:var(--color-action-ink);}
+
+
+
+
 .ps-tool-layout {display:grid;grid-template-columns:minmax(0,1fr) minmax(300px,380px);gap:20px;grid-column:1/-1;}
 .ps-tool-form {display:grid;gap:14px;}
 .ps-tool-history {max-height:300px;overflow:auto;}
@@ -110,8 +110,8 @@ html[data-density="comfortable"] .panel {padding:24px;}
 @media print{.sidebar,.top-actions,.ps-section-nav,.ps-mobile-menu{display:none!important}.app{display:block}.main{padding:0}.panel{box-shadow:none!important}.table-scroll{overflow:visible}}
 /* Reset accumulated legacy shell spacing at the shared boundary. */
 .main .screen {padding:0!important;margin:0!important;background:transparent!important;border:0!important;}
-.main .topbar {border:0!important;border-bottom:1px solid var(--color-border-default)!important;box-shadow:none!important;background:transparent!important;}
-.main .topbar h1 {font-size:28px!important;letter-spacing:-.03em;line-height:1.25;}
+.main .topbar {border:0!important;box-shadow:none!important;background:transparent!important;}
+
 .main .topbar .search input {min-height:42px!important;height:42px!important;font-size:14px;}
 .main .topbar button {box-shadow:none!important;}
 .nav button.active::after {display:none!important;}

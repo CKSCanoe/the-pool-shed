@@ -1,6 +1,6 @@
 (function(global){
 'use strict';
-const VERSION='1.84.0';
+const VERSION='1.85.0';
 const TERMINOLOGY={customerFinance:['Paid','Part Paid','Overdue'],fulfilment:['Shipped','Collected'],purchasing:['Short','BLOCK PAYMENT'],automation:['Approval Required']};
 const JOURNEYS=[
  {id:'order-to-cash',label:'Order to Cash',module:'accounting',page:'Invoice Ready'},
@@ -17,7 +17,7 @@ function iso(v){const s=text(v);return s?s.slice(0,10):'';}function outstanding(
 function routeForIssue(issue){if(issue&&issue.route)return issue.route;const j=JOURNEYS.find(x=>x.id===issue?.journey);return j?{module:j.module,page:j.page,id:issue?.recordId||''}:{module:'settings',page:'Production Readiness',id:''};}
 function issue(list,journey,code,severity,title,detail,recordId,route){list.push({journey,code,severity,title,detail,recordId:recordId||'',route:route||routeForIssue({journey,recordId})});}
 function apiChecks(){const required=[
- ['settings-permissions','Permissions authority','PoolShedSettingsPermissions'],['assistant','Azzy','PoolShedAzzyJarvis'],['automation','Automation Command','PoolShedAutomationCommand'],['analytics','Analytics Command','PoolShedAnalyticsCommand'],['finance','Finance Command','PoolShedFinanceCommand'],['supplier','Supplier Command','PoolShedSupplierCommand'],['projects','Project commercial engine','PoolShedProjectEngine'],['products','Product Hub','PoolShedProductHub'],['inventory','Inventory Control','PoolShedInventoryControl'],['fulfilment','Fulfilment Control','PoolShedFulfilmentControl']
+ ['settings-permissions','Permissions','PoolShedSettingsPermissions'],['assistant','Azzy','PoolShedAzzyJarvis'],['automation','Automations','PoolShedAutomationCommand'],['analytics','Reports','PoolShedAnalyticsCommand'],['finance','Accounts','PoolShedFinanceCommand'],['supplier','Suppliers','PoolShedSupplierCommand'],['projects','Project commercial engine','PoolShedProjectEngine'],['products','Product Hub','PoolShedProductHub'],['inventory','Inventory Control','PoolShedInventoryControl'],['fulfilment','Fulfilment Control','PoolShedFulfilmentControl']
  ];return required.map(([id,label,key])=>({id,label,state:global[key]?'pass':'blocker',detail:global[key]?'Authority loaded':'Required authority is not loaded',source:key}));}
 function inspect(opts){opts=opts||{};const data=d(),today=opts.today||new Date().toISOString().slice(0,10),issues=[],checks=apiChecks();
  checks.filter(x=>x.state==='blocker').forEach(x=>issue(issues,'reporting-export','authority-missing','blocker',x.label+' unavailable',x.detail,x.source,{module:'settings',page:'Production Readiness',id:x.source}));
