@@ -84,6 +84,7 @@ run_node_stage "workspace and sales safety" \
   test-stock-flow-v189.mjs \
   test-fulfilment-tab-v190.mjs \
   test-premium-shell-v191.mjs \
+  test-catalogue-list-v192.mjs \
   test-workspace-audit-v1451.mjs \
   test-commercial-audits-v146.mjs \
   test-audit-device-recovery.mjs \

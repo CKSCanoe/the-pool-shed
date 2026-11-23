@@ -238,6 +238,20 @@ Owner approved the blueprint 21 Nov 2026 (eight areas; Pool Audits under My Work
 
 ---
 
+## New catalogue list, with reordering built in · v1.92.0 · branch `catalogue-list`
+
+Owner: catalogue looked horrendous; wanted best of Shopify and Brightpearl, easy to edit; add reorder thresholds, a "needs ordering" tag, a report export, a kept-in-stock mark that is not the sales order ★, and ordering plus emailing a PO in a few clicks. Concept approved before building; release 2 of 3. Correction to the concept: the catalogue holds 5,344 products (517 families with variants, 1,838 variants between them, and about 4,800 single products), 6,662 variants in all.
+
+| # | Change | Status | Evidence |
+|---|---|---|---|
+| CL1 | Catalogue list: one row per family, variants fold out; status, free stock colour, reorder levels, price range, margin, supplier, category; sort by heading; 50 per page | **New · Checked in a real browser on staging** | Search "chlorine tablets" listed 27 products; the 200g family opened to 2kg, 5kg, 10kg and 25kg; draws in about 0.6 s |
+| CL2 | Tabs (All, Active, Draft, Needs attention, Kept in stock, Needs ordering, Archived), search across name, SKU, barcode and supplier code, filter pills for category, supplier, brand and stock | **New · Checked on staging** | Tab counts shown; filters narrow the list |
+| CL3 | ◆ kept-in-stock mark and "Needs ordering" tag with how many to order, from the existing replenishment rules (reorder point, order up to, stock on order, orders waiting) | **New · Checked on staging** | Kept product at 0 ≤ 7 shows order 21 |
+| CL4 | Needs ordering view by supplier with editable quantities, Create PO (opens the draft, next step Approve then Send to supplier), Create all, Export report | **New · Checked on staging** | PO created with 21 units and opened at "Approve order"; test PO removed afterwards |
+| CL5 | Bulk changes: category, supplier, prices by %, keep in stock with levels, archive or restore, export | **New · Checked on staging** | Bulk bar and dialogs open; logic unit tested |
+| CL6 | Style budget raised to 1.12 MB (hygiene) and 1.11 MB (v1.85 ceiling) for the new shell and catalogue; the old catalogue table is retired with the product editor in the next release | **Updated** | Both tests pass |
+| CL7 | Release test | **New · Unit tested** | `test-catalogue-list-v192` |
+
 ## A more premium look across the app · v1.91.0 · branch `premium-look`
 
 Owner: the system still looks dated; the logo sits on a white background; wants a professional gradient, premium "Apple product" look. Approved concept (menus, catalogue list, product editor, reordering) shown first; this is release 1 of 3.
@@ -250,6 +264,7 @@ Owner: the system still looks dated; the logo sits on a white background; wants 
 | PL4 | Fixes: dark-mode switch showed "☀ is not available on this screen yet"; dark breadcrumb sat in a coloured box | **Fixed** | Catch-all click message skips the switch |
 | PL5 | Release test | **New · Unit tested** | `test-premium-shell-v191` |
 | PL6 | Older tests updated: menu labels now sit beside an icon (`test-frame-v155`); app.css ceiling in `test-overhaul-wording-v185` moved from 1,085,000 to 1,095,000 bytes for the new shell (about 6 KB; the overall 1,100,000 budget is unchanged) | **Updated** | Both pass |
+| PL7 | App release (PR #90) | **Deployed · verified on live** 23 Nov 2026 (Vercel check green; live cache `pool-shed-v1.91.0-premium-r1`; new styles served) | No saves since 20:44; v1.89 clean-up still waiting for a page on the new version |
 
 ## Fulfilment tab rebuilt: goods-out notes like Brightpearl · v1.90.0 · branch `fulfilment`
 
