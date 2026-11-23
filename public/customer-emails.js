@@ -1,4 +1,4 @@
-/* Pool Shed v1.89.0 — "Email the customer?" at each fulfilment step (blueprint step 3).
+/* Pool Shed v1.90.0 — "Email the customer?" at each fulfilment step (blueprint step 3).
    Whenever an order is picked, packed, shipped (in full or in part) or collected, from any screen or batch action, a card
    asks whether to email the customer, with a tick box per order (starting ticked or not from Settings → customer
    notification rules) and a preview. The server sends to the order's customer email only, and logs it. Every choice is

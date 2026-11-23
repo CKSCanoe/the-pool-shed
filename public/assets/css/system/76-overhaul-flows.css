@@ -55,3 +55,48 @@
 /* The results list hangs straight under the search box (an older script placed it against the window, which the page frame shifted off to the right) */
 #screen-salesorders .so4-search-wrap { position: relative; }
 #screen-salesorders .so4-search-wrap > .so4-stock-results { position: absolute !important; left: 0 !important; right: auto !important; top: calc(100% + 4px) !important; bottom: auto !important; width: max(100%, min(640px, 88vw)) !important; max-height: min(440px, 62vh) !important; overflow: auto !important; z-index: 60 !important; }
+
+/* v1.90 Fulfilment tab: goods out like Brightpearl (items, then goods-out note cards with their steps) */
+.ft-panel { display: grid; gap: 14px; padding: 14px 16px; }
+.ft-head { display: flex; flex-wrap: wrap; align-items: flex-start; justify-content: space-between; gap: 12px; }
+.ft-head > div:first-child { display: grid; gap: 2px; }
+.ft-head strong { font-size: 1.15rem; color: var(--color-text-primary); }
+.ft-head small { color: var(--color-text-secondary); font-size: .93rem; }
+.ft-actions { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; }
+.ft-table-wrap { overflow-x: auto; border: 1px solid var(--color-border-default); border-radius: 10px; }
+.ft-table { width: 100%; border-collapse: collapse; font-size: .93rem; }
+.ft-table th { padding: 8px 10px; background: var(--color-surface-subtle); color: var(--color-text-secondary); font-size: .86rem; font-weight: 600; text-align: left; border-bottom: 1px solid var(--color-border-default); }
+.ft-table td { padding: 9px 10px; border-bottom: 1px solid var(--color-border-subtle); vertical-align: middle; }
+.ft-table tr:last-child td { border-bottom: 0; }
+.ft-table .num { text-align: right; font-variant-numeric: tabular-nums; width: 80px; }
+.ft-table td strong { display: block; color: var(--color-text-primary); font-weight: 600; }
+.ft-table td small { color: var(--color-text-secondary); font-size: .86rem; }
+.ft-table tr.ft-nonstock td { color: var(--color-text-secondary); }
+.ft-table .ft-act { text-align: right; white-space: nowrap; width: 170px; }
+.ft-table .ft-act .ft-link, .ft-table .ft-act button { white-space: nowrap; width: auto; word-break: normal; }
+.ft-pill { display: inline-block; padding: 2px 9px; border-radius: 999px; font-size: .86rem; font-weight: 600; white-space: nowrap; }
+.ft-pill.good { background: var(--color-status-success-bg); color: var(--color-status-success-text); }
+.ft-pill.info { background: var(--color-status-info-bg); color: var(--color-status-info-text); }
+.ft-pill.warn { background: var(--color-status-attention-bg); color: var(--color-status-attention-text); }
+.ft-pill.bad { background: var(--color-status-danger-bg); color: var(--color-status-danger-text); }
+.ft-pill.muted { background: var(--color-surface-subtle); color: var(--color-text-secondary); }
+.ft-link { appearance: none; border: 0; background: none; padding: 0 2px; color: var(--color-action-ink); font: inherit; font-size: .93rem; text-decoration: underline; text-underline-offset: 2px; cursor: pointer; }
+.ft-link.danger { color: var(--color-status-danger-text); }
+.ft-notes-head { display: flex; align-items: baseline; gap: 10px; flex-wrap: wrap; }
+.ft-notes-head small { color: var(--color-text-secondary); }
+.ft-notes { display: grid; grid-template-columns: repeat(auto-fill, minmax(320px, 1fr)); gap: 12px; }
+.ft-note { display: grid; gap: 10px; padding: 12px 14px; border: 1px solid var(--color-border-default); border-radius: 10px; background: var(--color-surface-default); }
+.ft-note.shipped { background: var(--color-surface-subtle); }
+.ft-note header { display: grid; gap: 8px; }
+.ft-note header > div { display: flex; align-items: baseline; justify-content: space-between; gap: 8px; }
+.ft-note header small { color: var(--color-text-secondary); font-size: .86rem; }
+.ft-steps { display: grid; grid-template-columns: repeat(4, 1fr); gap: 4px; margin: 0; padding: 0; list-style: none; }
+.ft-steps li { padding: 4px 2px; border-radius: 6px; background: var(--color-surface-subtle); color: var(--color-text-secondary); font-size: .86rem; font-weight: 600; text-align: center; }
+.ft-steps li.done { background: var(--color-status-success-bg); color: var(--color-status-success-text); }
+.ft-note-lines { display: grid; gap: 4px; margin: 0; padding: 0; list-style: none; font-size: .93rem; }
+.ft-note-lines li { display: flex; justify-content: space-between; gap: 10px; }
+.ft-note-lines small { color: var(--color-text-secondary); }
+.ft-note footer { display: grid; gap: 6px; }
+.ft-note-more { display: flex; flex-wrap: wrap; gap: 4px 12px; }
+.ft-note-msg { color: var(--color-text-secondary); font-size: .93rem; }
+.ft-note-msg.good { color: var(--color-status-success-text); }

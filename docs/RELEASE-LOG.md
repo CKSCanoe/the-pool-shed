@@ -238,6 +238,19 @@ Owner approved the blueprint 21 Nov 2026 (eight areas; Pool Audits under My Work
 
 ---
 
+## Fulfilment tab rebuilt: goods-out notes like Brightpearl · v1.90.0 · branch `fulfilment`
+
+Owner: redo the order's Fulfilment (Print · Pick · Pack · Ship) like Brightpearl; could not see it working once items were in stock and allocated. Finding: the tab showed four totals and an empty notes box; its "Open fulfilment" button only said "Tick one or more product lines first" (no lines to tick on that tab); the Fulfil button opened a pop-up with nothing ticked and columns running off the side, and notes were then worked on a separate page.
+
+| # | Change | Status | Evidence |
+|---|---|---|---|
+| FT1 | Fulfilment tab: every item with ordered, allocated, on notes, shipped and a plain status; Allocate per line when free stock exists; "Order from supplier" when there is none; custom and delivery lines shown as "No stock needed" | **New · Tested in a real browser on staging** | Test order with stock for two items: statuses Allocated: ready, No free stock, No stock needed |
+| FT2 | "Create goods-out note (N units)" puts everything allocated on one note; "Choose quantities" keeps the part-shipment chooser; the order's Fulfil button does the same and opens the tab | **New · Tested on staging** | GN created with the 3 allocated units; lines show "On goods-out note" |
+| FT3 | Goods-out note cards: Printed → Picked → Packed → Shipped, next step as a button (Print picking list / Mark picked / Mark packed / Ship…), undo picked or packed, print again, cancel an unshipped note, open the full note | **New · Tested on staging** | Picked, packed, shipped by "Our van": steps all done, shelf 5→3 and 4→3, order Part Shipped; staging put back |
+| FT4 | Ship asks how it is going (collecting, our van, courier, post) with optional courier and tracking, then uses the existing shipping rules | **New · Tested on staging** | Shipped note reads "Shipped … by aaron · Our van" |
+| FT5 | Release test | **New · Unit tested** | `test-fulfilment-tab-v190` |
+| — | Clean-up check from v1.89 (custom and delivery allocations) | Pending | Waiting for a page running v1.89 or later to load on live |
+
 ## Stock connected to sales: ship when invoiced · v1.89.0 · branch `stock-flow`
 
 Owner: make sure stock allocation is the best process and all connected; custom orders should not hold an allocation. Owner chose "ship when invoiced" for normal phone and counter orders. Audit of live data (read only): no stock reserved on any order, none of the 134 units on invoiced or ready-to-invoice orders recorded as shipped, invoicing did not take stock off, all 108 custom and delivery lines marked "allocated" for their full quantity, 17 units of stock recorded in total.
