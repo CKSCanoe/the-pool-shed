@@ -238,6 +238,19 @@ Owner approved the blueprint 21 Nov 2026 (eight areas; Pool Audits under My Work
 
 ---
 
+## Overhaul phase 4: flows · v1.84.0 · branch `overhaul-4`
+
+Finding: about 55 browser confirm boxes and 30 browser prompts; the daily ones were a reason prompt followed by a second confirm (sales and purchase order line removal, purchase order and payment deletion), three prompts on every My work action, and up to four prompts in a row on supplier returns. The next-step buttons from phases 1 and 3 already guide the order flows; this phase removes the interruptions and adds keyboard use.
+
+| # | Change | Status | Evidence |
+|---|---|---|---|
+| OF1 | In-app dialog (`ps-dialog.js`): several questions in one box, required answers checked, Enter/Esc, focus kept inside and returned; text escaped | **New · Tested in a real browser on staging** | Snooze showed four choices; Esc cancelled with the task unchanged; an empty "waiting for" was pointed out; found and fixed: the information box (no Cancel button) did not wire Esc |
+| OF2 | Sales and purchase order line removal: one dialog (what happens + reason) instead of prompt then confirm | **New · Tested in a real browser on staging** | SO-2067 and PO-1078: dialog shown, cancel left the lines unchanged |
+| OF3 | My work: waiting reason and snooze choices in dialogs; Mark done without a note box; approvals in dialogs | **New · Tested in a real browser on staging** | As OF1 |
+| OF4 | Supplier returns (authorise, sent back, credit with reference and amount together, correction, cancel) and deleting a purchase order, a customer payment or a supplier payment: one dialog each | **New · Unit tested** | `test-overhaul-flows-v184` |
+| OF5 | Keyboard shortcuts (`ps-shortcuts.js`) and a shortcuts sheet (?) ; next-step buttons show "Ctrl+Enter" | **New · Tested in a real browser on staging** | ? showed 13 shortcuts; G then O opened Sales orders; N opened New; Esc closed it; / focused the order search |
+| OF6 | Release log for v1.83 (PR #82) | **Deployed · verified on live** | Live cache `pool-shed-v1.83.0-overhaul3-r1`; data unchanged |
+
 ## Overhaul phase 3: record pages · v1.83.0 · branch `overhaul-3`
 
 Finding: the sales order already had the target pattern (progress line and one next-step button, v1.53); the purchase order had status, health and summary cards but no progress line or next step; line thumbnails existed on both but showed "PB" letters even where a picture existed (purchase orders could not show secure pictures at all); the six record headers each had their own look, the supplier's a dark banner.
@@ -251,6 +264,7 @@ Finding: the sales order already had the target pattern (progress line and one n
 | OR5 | Stylesheet budget raised 1,100,000 → 1,150,000 bytes for the overhaul styles; trimming the old compatibility file is planned for phase 5 | **Changed** | `test-css-hygiene-v177` |
 | OR6 | Staging only: removed an empty test order (SO-2068) created during earlier staging checks | **Housekeeping** | Live untouched |
 | OR7 | Release log for v1.82 (PR #81) | **Deployed · verified on live** | Live cache `pool-shed-v1.82.0-overhaul2-r1`; data unchanged |
+| OR8 | App release (PR #82) | **Deployed · verified on live** 23 Nov 2026 (Vercel check green; live cache `pool-shed-v1.83.0-overhaul3-r1`; the deployment took about 7 minutes) | Live serves `purchase-order-flow.js`; data unchanged |
 
 ## Overhaul phase 2: lists · v1.82.0 · branch `overhaul-2`
 

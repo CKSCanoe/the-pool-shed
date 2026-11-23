@@ -3112,7 +3112,7 @@ const seed = {
           : effectiveMode === "mfa"
             ? '<button class="ps-login-link" type="button" data-login-cancel-mfa>Use a different account</button><span>Authenticator verification</span>'
             : effectiveMode === "denied" || effectiveMode === "workspace" ? '<span></span>' : '<button class="ps-login-link" type="button" data-login-mode="login">Back to sign in</button><span></span>';
-        screen.innerHTML = '<main class="ps-login-stage"><section class="ps-login-shell"><aside class="ps-login-brand"><div><div class="ps-login-lockup"><span class="ps-login-logo"><img src="' + DEFAULT_POOL_BROS_LOGO + '" alt="Pool Bros logo"></span><div><span class="ps-login-kicker">Pool Bros</span><strong>THE POOL SHED</strong></div></div><div class="ps-login-hero"><span class="ps-login-kicker">Operations Command System</span><h1>One secure place to <span>run the operation.</span></h1><p>Secure access to the Pool Bros operations workspace. Sign in to continue to your authorised tools, tasks and information.</p></div></div><div class="ps-login-staff-note"><strong>Pool Bros staff access</strong><span>Your workspace and available tools are tailored to your account after sign-in.</span></div></aside><section class="ps-login-auth"><div class="ps-login-card"><div class="ps-login-card-head"><span class="ps-login-kicker">' + escapeHtml(meta.eyebrow) + '</span><h2>' + escapeHtml(meta.heading) + '</h2><p>' + escapeHtml(meta.intro) + '</p></div><form id="loginForm">' + fields + '<div id="loginMessage" class="ps-login-message' + (good ? ' good' : '') + '">' + escapeHtml(message || '') + '</div></form><div class="ps-login-helper">' + helper + '</div></div></section></section><footer class="ps-login-footer">Pool Shed v1.83.0 · Pool Bros Ltd</footer></main>';
+        screen.innerHTML = '<main class="ps-login-stage"><section class="ps-login-shell"><aside class="ps-login-brand"><div><div class="ps-login-lockup"><span class="ps-login-logo"><img src="' + DEFAULT_POOL_BROS_LOGO + '" alt="Pool Bros logo"></span><div><span class="ps-login-kicker">Pool Bros</span><strong>THE POOL SHED</strong></div></div><div class="ps-login-hero"><span class="ps-login-kicker">Operations Command System</span><h1>One secure place to <span>run the operation.</span></h1><p>Secure access to the Pool Bros operations workspace. Sign in to continue to your authorised tools, tasks and information.</p></div></div><div class="ps-login-staff-note"><strong>Pool Bros staff access</strong><span>Your workspace and available tools are tailored to your account after sign-in.</span></div></aside><section class="ps-login-auth"><div class="ps-login-card"><div class="ps-login-card-head"><span class="ps-login-kicker">' + escapeHtml(meta.eyebrow) + '</span><h2>' + escapeHtml(meta.heading) + '</h2><p>' + escapeHtml(meta.intro) + '</p></div><form id="loginForm">' + fields + '<div id="loginMessage" class="ps-login-message' + (good ? ' good' : '') + '">' + escapeHtml(message || '') + '</div></form><div class="ps-login-helper">' + helper + '</div></div></section></section><footer class="ps-login-footer">Pool Shed v1.84.0 · Pool Bros Ltd</footer></main>';
         bindLoginScreen(effectiveMode);
       }
 
@@ -13703,7 +13703,7 @@ const seed = {
         });
       }
 
-      function deleteSalesOrderPayment(orderId, paymentId) {
+      async function deleteSalesOrderPayment(orderId, paymentId) {
         const order = salesOrder(orderId);
         if (!order) return toast("Sales order not found.");
         if (typeof adminAllowed === "function" && !adminAllowed()) return toast("Admin access is required to delete a payment.");
@@ -13711,9 +13711,9 @@ const seed = {
         const index = payments.findIndex(function(payment) { return String(payment.id) === String(paymentId); });
         if (index < 0) return toast("Payment record not found.");
         const payment = payments[index];
-        const reason = String(prompt("Reason for deleting this payment (required)") || "").trim();
-        if (!reason) return toast("A deletion reason is required.");
-        if (!confirm("Delete " + money(payment.amount) + " " + (payment.type || "payment") + " dated " + (payment.date || "unknown") + "? The correction will remain in the audit trail.")) return;
+        // v1.84: one in-app dialog (what happens + the reason) instead of a browser prompt then a browser confirm
+        const reason = await deletionReason("Delete payment", "Delete " + money(payment.amount) + " " + (payment.type || "payment") + " dated " + (payment.date || "unknown") + "? The correction will remain in the audit trail.");
+        if (!reason) return;
         payments.splice(index, 1);
         const updated = salesOrderTotals(order);
         const balance = Math.max(0, updated.gross - updated.paid);
@@ -13925,6 +13925,14 @@ const seed = {
           '<span class="status-picker-chevron" aria-hidden="true"></span>' +
           '<select class="status-picker-native" data-order-field="' + order.id + '" data-field="status" aria-label="Sales order status">' + salesStatusOptions(status) + '</select>' +
         '</div>';
+      }
+
+      // v1.84: deletion reason and confirmation in one in-app dialog (falls back to the browser boxes)
+      function deletionReason(title, warning) {
+        if (window.PoolShedDialog) return window.PoolShedDialog.ask({ title: title, message: warning, fields: [{ name: "reason", label: "Reason (kept in the audit trail)", type: "textarea", required: true, rows: 2 }], confirmLabel: "Delete", danger: true }).then(function(v) { return v ? String(v.reason).trim() : ""; });
+        const reason = String(prompt(title + ": reason (required)") || "").trim();
+        if (!reason) { toast("A deletion reason is required."); return Promise.resolve(""); }
+        return Promise.resolve(confirm(warning) ? reason : "");
       }
 
       function purchaseOrderStatusPicker(po, context) {
@@ -14634,7 +14642,7 @@ const seed = {
         return { allowed: received === 0 && !goodsInLinked && payments.length === 0, received: received, goodsInLinked: goodsInLinked, payments: payments.length };
       }
 
-      function deletePurchaseOrder(poId) {
+      async function deletePurchaseOrder(poId) {
         const po = purchaseOrderById(poId);
         if (!po) return toast("Purchase order not found.");
         if (typeof adminAllowed === "function" && !adminAllowed()) return toast("Admin access is required to delete a purchase order.");
@@ -14643,9 +14651,9 @@ const seed = {
           if (assessment.payments > 0) return toast("This PO has supplier payment history. Correct or reverse the payment before deleting the PO.");
           return toast(assessment.received > 0 ? "This PO has received stock and must be cancelled or credited, not deleted." : "This PO has a linked goods-in record and cannot be deleted.");
         }
-        const reason = String(prompt("Reason for deleting " + po.id + " (required)") || "").trim();
-        if (!reason) return toast("A deletion reason is required.");
-        if (!confirm("Delete " + po.id + "? This removes the erroneous PO but keeps a permanent audit entry.")) return;
+        // v1.84: one in-app dialog (what happens + the reason) instead of a browser prompt then a browser confirm
+        const reason = await deletionReason("Delete purchase order", "Delete " + po.id + "? This removes the erroneous PO but keeps a permanent audit entry.");
+        if (!reason) return;
         (data.salesOrders || []).forEach(function(order) {
           (order.lines || []).forEach(function(line) {
             ["purchaseOrderId", "poId", "linkedPoId"].forEach(function(key) { if (line[key] === po.id) line[key] = ""; });
@@ -14692,7 +14700,7 @@ const seed = {
         render();
       }
 
-      function deletePurchaseOrderPayment(poId, paymentId) {
+      async function deletePurchaseOrderPayment(poId, paymentId) {
         const po = purchaseOrderById(poId);
         if (!po) return toast("Purchase order not found.");
         if (typeof adminAllowed === "function" && !adminAllowed()) return toast("Admin access is required to delete a supplier payment.");
@@ -14700,9 +14708,9 @@ const seed = {
         const index = payments.findIndex(function(payment){ return String(payment.id) === String(paymentId); });
         if (index < 0) return toast("Supplier payment not found.");
         const payment = payments[index];
-        const reason = String(prompt("Reason for deleting this supplier payment (required)") || "").trim();
-        if (!reason) return toast("A deletion reason is required.");
-        if (!confirm("Delete " + money(payment.amount) + " paid to " + (po.supplier || "supplier") + " on " + (payment.date || "unknown") + "? The correction will remain in the audit trail.")) return;
+        // v1.84: one in-app dialog (what happens + the reason) instead of a browser prompt then a browser confirm
+        const reason = await deletionReason("Delete supplier payment", "Delete " + money(payment.amount) + " paid to " + (po.supplier || "supplier") + " on " + (payment.date || "unknown") + "? The correction will remain in the audit trail.");
+        if (!reason) return;
         payments.splice(index,1);
         po.paymentCorrections = Array.isArray(po.paymentCorrections) ? po.paymentCorrections : [];
         po.paymentCorrections.push({
@@ -17030,5 +17038,5 @@ const seed = {
       window.addEventListener("load", function() {
         updateOfflineStatus();
         syncPendingOfflineData();
-        if ("serviceWorker" in navigator && location.protocol !== "file:") navigator.serviceWorker.register("./service-worker.js?v=1.83.0", { updateViaCache:"none" }).catch(function() {});
+        if ("serviceWorker" in navigator && location.protocol !== "file:") navigator.serviceWorker.register("./service-worker.js?v=1.84.0", { updateViaCache:"none" }).catch(function() {});
       });

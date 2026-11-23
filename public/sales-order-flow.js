@@ -1,4 +1,4 @@
-/* Pool Shed v1.83.0 — sales order flow (blueprint step 2).
+/* Pool Shed v1.84.0 — sales order flow (blueprint step 2).
    Adds to the existing order page, without replacing it:
    - a status rail showing where the order is: Ordered → Allocated → Picked & packed → Delivered → Invoiced → Paid;
    - one highlighted next-step button that runs the existing action (allocate, fulfil, mark delivered, invoice, payment);
@@ -40,12 +40,12 @@
     if (order.status === 'On Hold') return '<span class="sof-note">On hold: change the status to carry on.</span>';
     if (!cur) return '<span class="sof-done">Complete: delivered, invoiced and paid.</span>';
     if (cur === 'ordered') return '<span class="sof-note">Add items below to start the order.</span>';
-    if (cur === 'allocated') return '<button type="button" class="primary sof-next" data-allocate-order="' + id + '">Allocate stock</button>';
-    if (cur === 'packed') return '<button type="button" class="primary sof-next" data-fulfil-order="' + id + '">Pick, pack and ship</button>';
-    if (cur === 'delivered') return f.need > 0 ? '<button type="button" class="primary sof-next" data-fulfil-order="' + id + '">Ship remaining items</button>'
-                                               : '<button type="button" class="primary sof-next" data-sof-delivered="' + id + '">Mark as done</button>';
-    if (cur === 'invoiced') return '<button type="button" class="primary sof-next" data-sof-invoice="' + id + '">Invoice ' + esc(cash(f.totals.gross - Number(f.totals.paid || 0) > 0 ? f.totals.gross : f.totals.gross)) + '</button>';
-    if (cur === 'paid') return '<button type="button" class="primary sof-next" data-sof-pay="' + id + '">Record payment ' + esc(cash(f.totals.gross - Number(f.totals.paid || 0))) + '</button>';
+    if (cur === 'allocated') return '<button type="button" class="primary sof-next" title="Ctrl+Enter" data-allocate-order="' + id + '">Allocate stock</button>';
+    if (cur === 'packed') return '<button type="button" class="primary sof-next" title="Ctrl+Enter" data-fulfil-order="' + id + '">Pick, pack and ship</button>';
+    if (cur === 'delivered') return f.need > 0 ? '<button type="button" class="primary sof-next" title="Ctrl+Enter" data-fulfil-order="' + id + '">Ship remaining items</button>'
+                                               : '<button type="button" class="primary sof-next" title="Ctrl+Enter" data-sof-delivered="' + id + '">Mark as done</button>';
+    if (cur === 'invoiced') return '<button type="button" class="primary sof-next" title="Ctrl+Enter" data-sof-invoice="' + id + '">Invoice ' + esc(cash(f.totals.gross - Number(f.totals.paid || 0) > 0 ? f.totals.gross : f.totals.gross)) + '</button>';
+    if (cur === 'paid') return '<button type="button" class="primary sof-next" title="Ctrl+Enter" data-sof-pay="' + id + '">Record payment ' + esc(cash(f.totals.gross - Number(f.totals.paid || 0))) + '</button>';
     return '';
   }
   // The items sold most often across all orders, for one-tap adding while an order is being built.
