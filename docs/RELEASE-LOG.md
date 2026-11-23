@@ -251,6 +251,7 @@ Finding: the sales order already had the target pattern (progress line and one n
 | OR5 | Stylesheet budget raised 1,100,000 → 1,150,000 bytes for the overhaul styles; trimming the old compatibility file is planned for phase 5 | **Changed** | `test-css-hygiene-v177` |
 | OR6 | Staging only: removed an empty test order (SO-2068) created during earlier staging checks | **Housekeeping** | Live untouched |
 | OR7 | Release log for v1.82 (PR #81) | **Deployed · verified on live** | Live cache `pool-shed-v1.82.0-overhaul2-r1`; data unchanged |
+| OR8 | App release (PR #82) | **Deployed · verified on live** 23 Nov 2026 (Vercel check green; live cache `pool-shed-v1.83.0-overhaul3-r1`; the deployment took about 7 minutes) | Live serves `purchase-order-flow.js`; data unchanged |
 
 ## Overhaul phase 2: lists · v1.82.0 · branch `overhaul-2`
 
