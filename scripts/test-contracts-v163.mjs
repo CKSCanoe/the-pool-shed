@@ -87,6 +87,6 @@ const html = K2.page(); assert(/Contracts/.test(html) && /A MONTH/.test(html) &&
 const legacy = fs.readFileSync('public/assets/js/01-legacy-01.js', 'utf8'), frame = fs.readFileSync('public/back-office-frame.js', 'utf8'), index = fs.readFileSync('public/index.html', 'utf8'), sw = fs.readFileSync('public/service-worker.js', 'utf8');
 assert(/salesorders: \["Sales Orders", "Contracts"/.test(legacy) && /subgroup === "Contracts" \|\| subgroup === "Subscriptions"/.test(legacy), 'menu renamed, old name still opens it');
 assert(/PoolShedContracts\.due\(\)/.test(frame) && /'contracts due'/.test(frame), 'Home tile');
-assert(index.indexOf('contracts.js') > index.indexOf('01-legacy-01.js') && /contracts\.js\?v=1\.84\.0/.test(sw), 'loaded and offline');
+assert(index.indexOf('contracts.js') > index.indexOf('01-legacy-01.js') && /contracts\.js\?v=1\.85\.0/.test(sw), 'loaded and offline');
 assert(!/setInterval|setTimeout\([^)]*createDue/.test(fs.readFileSync('public/contracts.js', 'utf8').replace(/setTimeout\(function\(\)\{ var el = document\.getElementById\('ct-form'\)[^;]*;/g, '')), 'nothing created on a timer');
 console.log('Contracts v1.63: calendar frequencies, fixed fee / per visit / repeat order, one click for what is due, no double periods, renewals.');

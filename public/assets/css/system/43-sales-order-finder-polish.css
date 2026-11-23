@@ -389,14 +389,8 @@ body #salesOrderProductResults .so-finder-mega-foot>button:focus{
 #screen-salesorders .so2-line-row.good:hover td{
   background:var(--color-status-success-bg)!important;
 }
-#screen-salesorders .so5-line-product{
-  min-width:0!important;
-  display:grid!important;
-  grid-template-columns:42px minmax(0,1fr)!important;
-  align-items:center!important;
-  gap:8px!important;
-}
-#screen-salesorders .so5-line-product-copy{min-width:0!important}
+#screen-salesorders .so5-line-product{min-width:0!important;display:grid!important;}
+
 #screen-salesorders .so5-line-product-copy>strong{
   display:block!important;
   color:var(--color-text-primary)!important;
@@ -405,15 +399,7 @@ body #salesOrderProductResults .so-finder-mega-foot>button:focus{
   overflow:hidden!important;
   text-overflow:ellipsis!important;
 }
-#screen-salesorders .so5-line-product-copy>small{
-  display:block!important;
-  margin-top:2px!important;
-  color:var(--color-text-secondary)!important;
-  font-size:12px!important;
-  white-space:nowrap!important;
-  overflow:hidden!important;
-  text-overflow:ellipsis!important;
-}
+#screen-salesorders .so5-line-product-copy>small{display:block!important;margin-top:2px!important;color:var(--color-text-secondary)!important;}
 #screen-salesorders .so5-line-product-copy .link-button{
   margin-top:4px!important;
   color:var(--color-action-ink)!important;
@@ -524,21 +510,17 @@ body #salesOrderProductResults button.good:hover, body #salesOrderProductResults
   overflow-y:visible!important;
   scrollbar-gutter:stable;
 }
-#screen-salesorders .sales-workspace .so2-lines-table{
-  width:100%!important;
-  min-width:1260px!important;
-  table-layout:fixed!important;
-}
-#screen-salesorders .sales-workspace .so2-lines-table :is(th,td):nth-child(1){width:42px!important}
-#screen-salesorders .sales-workspace .so2-lines-table :is(th,td):nth-child(2){width:245px!important}
-#screen-salesorders .sales-workspace .so2-lines-table :is(th,td):nth-child(3){width:285px!important}
-#screen-salesorders .sales-workspace .so2-lines-table :is(th,td):nth-child(4){width:170px!important}
-#screen-salesorders .sales-workspace .so2-lines-table :is(th,td):nth-child(5){width:82px!important;text-align:center!important}
-#screen-salesorders .sales-workspace .so2-lines-table :is(th,td):nth-child(6){width:92px!important;text-align:center!important}
-#screen-salesorders .sales-workspace .so2-lines-table :is(th,td):nth-child(7){width:92px!important}
-#screen-salesorders .sales-workspace .so2-lines-table :is(th,td):nth-child(8){width:62px!important;text-align:center!important}
-#screen-salesorders .sales-workspace .so2-lines-table :is(th,td):nth-child(9){width:108px!important}
-#screen-salesorders .sales-workspace .so2-lines-table :is(th,td):nth-child(10){width:60px!important;text-align:center!important}
+
+
+
+
+
+#screen-salesorders .sales-workspace .so2-lines-table :is(th,td):nth-child(5){text-align:center!important;}
+#screen-salesorders .sales-workspace .so2-lines-table :is(th,td):nth-child(6){text-align:center!important;}
+
+#screen-salesorders .sales-workspace .so2-lines-table :is(th,td):nth-child(8){text-align:center!important;}
+
+#screen-salesorders .sales-workspace .so2-lines-table :is(th,td):nth-child(10){text-align:center!important;}
 
 #screen-salesorders .sales-workspace .so2-lines-table thead th{
   height:38px!important;
@@ -561,9 +543,7 @@ body #salesOrderProductResults button.good:hover, body #salesOrderProductResults
   margin-top:3px!important;
   line-height:1.3!important;
 }
-#screen-salesorders .sales-workspace .so2-variant-cell{
-  min-width:0!important;
-}
+
 #screen-salesorders .sales-workspace .so2-variant-static strong,
 #screen-salesorders .sales-workspace .so2-variant-control select{
   overflow:hidden!important;
@@ -646,8 +626,3 @@ body #salesOrderProductResults button.good:hover, body #salesOrderProductResults
   min-height:32px!important;
 }
 
-@media(max-width:1180px){
-  #screen-salesorders .sales-workspace .so2-lines-table{
-    min-width:1260px!important;
-  }
-}

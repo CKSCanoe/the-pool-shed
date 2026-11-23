@@ -6,13 +6,13 @@
 /* ===== CONSOLIDATED FROM: workspace-polish.css ===== */
 /* Quiet surfaces, opaque content, one brief glow on active section controls. */
 
-.main { background:var(--color-surface-subtle); }
-.main :is(.panel,.record-card,.mini-card,.profile-card) { border-radius:var(--ps-radius-panel)!important; }
+
+
 .main :is(button,input,select,textarea) { border-radius:var(--ps-radius-control); }
 .main :is(.panel-header,.record-top) { gap:16px; }
 
-.ps-section-nav button { border-color:transparent; background:transparent; min-height:38px; padding:8px 15px; }
-.ps-section-nav button.active { background:var(--color-action-soft); color:var(--color-text-primary); border-color:var(--color-action-ink); animation:ps-section-glow 900ms ease-out 1; border-bottom-color:var(--color-action-ink);}
+.ps-section-nav button {border-color:transparent;}
+
 @keyframes ps-section-glow { 0% {box-shadow:0 0 0 1px color-mix(in srgb, var(--color-status-info) 30.2%, transparent),0 0 18px 3px color-mix(in srgb, var(--color-status-info) 14.9%, transparent);} 100% {box-shadow:0 0 0 1px color-mix(in srgb, var(--color-status-info) 0%, transparent),0 0 0 0 color-mix(in srgb, var(--color-status-info) 0%, transparent);} }
 .main :is(.kpi,.profile-stat,.warehouse-kpi) { border-radius:var(--ps-radius-panel)!important; }
 .main table th { letter-spacing:.025em; }

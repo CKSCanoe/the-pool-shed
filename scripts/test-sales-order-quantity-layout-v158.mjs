@@ -20,7 +20,7 @@ for (const column of [5,6,9,10]) {
     'Sales Order column ' + column + ' must not be hidden by the legacy compact-column rule'
   );
 }
-assert.match(css,/min-width:1260px!important/,'professional line layout should scroll rather than squash');
+assert.match(fs.readFileSync('public/assets/css/system/67-sales-order-xero-lines.css','utf8'),/min-width:1440px!important/,'professional line layout should scroll rather than squash (v1.85: the 1440px rule is the one that applies)');
 assert.match(css,/\.so2-qty\{[\s\S]*font-weight:900!important/,'quantity must be visually prominent');
 
 const start=legacy.indexOf('      function updateSalesOrderLineNumber(');
