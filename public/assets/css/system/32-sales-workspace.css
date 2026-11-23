@@ -188,9 +188,7 @@ body.so-batch-open{overflow:hidden}
   position:relative;
   z-index:12
 }
-#screen-salesorders .sales-workspace.sales-command-page .so-customer-picker-head{
-  margin-bottom:7px
-}
+
 #screen-salesorders .sales-workspace.sales-command-page .so-customer-search-row{
   gap:6px
 }
@@ -204,20 +202,6 @@ body.so-batch-open{overflow:hidden}
   height:36px;
   padding-inline:9px;
   white-space:nowrap
-}
-#screen-salesorders .sales-workspace.sales-command-page .so-customer-current{
-  margin-top:8px;
-  padding:8px 9px;
-  border:1px solid var(--color-border-default);
-  border-radius:6px;
-  background:var(--color-surface-default)
-}
-#screen-salesorders .sales-workspace.sales-command-page .so-customer-current strong{
-  font-size:12px
-}
-#screen-salesorders .sales-workspace.sales-command-page .so-customer-current small{
-  font-size:12px;
-  line-height:1.35
 }
 
 #screen-salesorders .sales-workspace.sales-command-page .so-order-details-card,

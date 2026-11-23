@@ -91,11 +91,11 @@
     var matches = searchCustomers(input.value);
     selectedSuggestionIndex = matches.length ? 0 : -1;
     if (!matches.length) {
-      results.innerHTML = '<div class="so-customer-empty"><div><strong>No CRM customer found</strong><span>Check the spelling or create a new customer without leaving this sales order.</span></div><button type="button" data-so-new-customer="' + escapeHtml(input.dataset.soCustomerSearch) + '">+ Add customer</button></div>';
+      results.innerHTML = '<div class="so-customer-empty"><div><strong>No customer found</strong><span>Check the spelling, or add them as a new customer.</span></div><button type="button" data-so-new-customer="' + escapeHtml(input.dataset.soCustomerSearch) + '">+ Add customer</button></div>';
       results.classList.add('open');
       return;
     }
-    results.innerHTML = '<div class="so-customer-results-head"><span>' + matches.length + ' customer' + (matches.length === 1 ? '' : 's') + '</span><small>Enter to select · ↑↓ to navigate</small></div>' + matches.map(function (entry, index) {
+    results.innerHTML = '<div class="so-customer-results-head"><span>' + matches.length + ' matching customer' + (matches.length === 1 ? '' : 's') + '</span></div>' + matches.map(function (entry, index) {
       var c = entry.customer;
       var address = customerAddressLine(c);
       var meta = [c.companyName && c.companyName !== customerDisplayName(c) ? c.companyName : '', c.email, c.phone || c.mobile].filter(Boolean).join(' · ');
@@ -104,7 +104,7 @@
         '<span class="so-customer-result-main"><strong>' + escapeHtml(customerDisplayName(c)) + '</strong><small>' + escapeHtml(meta || 'CRM customer') + '</small>' + (address ? '<small class="address">' + escapeHtml(address) + '</small>' : '') + '</span>' +
         '<span class="so-customer-result-code">' + escapeHtml(c.code || c.id) + '</span>' +
       '</button>';
-    }).join('') + '<button type="button" class="so-customer-create-row" data-so-new-customer="' + escapeHtml(input.dataset.soCustomerSearch) + '"><span>＋</span><div><strong>Create a new customer</strong><small>Add contact and address details here and link them to CRM automatically.</small></div></button>';
+    }).join('') + '<button type="button" class="so-customer-create-row" data-so-new-customer="' + escapeHtml(input.dataset.soCustomerSearch) + '"><span>＋</span><div><strong>Not listed? Add a new customer</strong><small>Their details are saved and they go on this order.</small></div></button>';
     if (forceOpen !== false) results.classList.add('open');
   }
 
@@ -333,13 +333,12 @@
   });
 
   // v1.86: the picker markup on its own, so the current sales order customer card can use it
+  // v1.87: one plain search line under the customer's name (the card above already shows who is linked)
   function pickerMarkup(order, c) {
-    var linkedName = escapeHtml(customerDisplayName(c));
-    var linkedMeta = escapeHtml([c.email, c.phone || c.mobile, c.code].filter(Boolean).join(' · '));
-    return '<div class="so-customer-picker" data-order-id="' + escapeHtml(order.id) + '">' +
-        '<div class="so-customer-picker-head"><div><span>Customer</span><strong>Find or create a CRM customer</strong></div><span class="so-customer-linked-chip">✓ ' + escapeHtml(c.code || c.id) + '</span></div>' +
-        '<div class="so-customer-search-row"><div class="so-customer-search-field"><span class="so-customer-search-icon">⌕</span><input type="search" autocomplete="off" data-so-customer-search="' + escapeHtml(order.id) + '" placeholder="Search name, company, email, phone or customer code"><kbd>⌘K</kbd></div><button type="button" class="so-new-customer-button" data-so-new-customer="' + escapeHtml(order.id) + '">+ New customer</button></div>' +
-        '<div class="so-customer-current"><span class="so-current-avatar">' + escapeHtml(((c.firstName || c.name || 'C').charAt(0) + (c.lastName || '').charAt(0)).toUpperCase()) + '</span><div><span>Currently linked</span><strong>' + linkedName + '</strong><small>' + linkedMeta + '</small></div></div>' +
+    var id = escapeHtml(order.id);
+    return '<div class="so-customer-picker so-cp-compact" data-order-id="' + id + '">' +
+        '<div class="so-customer-search-row"><label class="so-customer-search-field"><span class="sr-only">Change customer</span><input type="search" autocomplete="off" data-so-customer-search="' + id + '" placeholder="Change customer…" title="Search by name, company, email, phone, postcode or customer code"></label>' +
+        '<button type="button" class="secondary so-new-customer-button" data-so-new-customer="' + id + '">+ New customer</button></div>' +
         '<div class="so-customer-results" data-so-customer-results></div>' +
       '</div>';
   }
@@ -348,8 +347,6 @@
     customerProfileCard = function (order, c, activePriceList, costSummary, activeTab) {
       var markup = originalCustomerProfileCard(order, c, activePriceList, costSummary, activeTab);
       var oldPicker = /<div class="smart-customer-select">[\s\S]*?<\/div><datalist id="salesOrderCustomerOptions">[\s\S]*?<\/datalist>/;
-      var linkedName = escapeHtml(customerDisplayName(c));
-      var linkedMeta = escapeHtml([c.email, c.phone || c.mobile, c.code].filter(Boolean).join(' · '));
       var replacement = pickerMarkup(order, c);
       if (oldPicker.test(markup)) markup = markup.replace(oldPicker, replacement);
       return markup;
