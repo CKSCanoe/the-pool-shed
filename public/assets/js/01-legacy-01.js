@@ -3112,7 +3112,7 @@ const seed = {
           : effectiveMode === "mfa"
             ? '<button class="ps-login-link" type="button" data-login-cancel-mfa>Use a different account</button><span>Authenticator verification</span>'
             : effectiveMode === "denied" || effectiveMode === "workspace" ? '<span></span>' : '<button class="ps-login-link" type="button" data-login-mode="login">Back to sign in</button><span></span>';
-        screen.innerHTML = '<main class="ps-login-stage"><section class="ps-login-shell"><aside class="ps-login-brand"><div><div class="ps-login-lockup"><span class="ps-login-logo"><img src="' + DEFAULT_POOL_BROS_LOGO + '" alt="Pool Bros logo"></span><div><span class="ps-login-kicker">Pool Bros</span><strong>THE POOL SHED</strong></div></div><div class="ps-login-hero"><span class="ps-login-kicker">Operations Command System</span><h1>One secure place to <span>run the operation.</span></h1><p>Secure access to the Pool Bros operations workspace. Sign in to continue to your authorised tools, tasks and information.</p></div></div><div class="ps-login-staff-note"><strong>Pool Bros staff access</strong><span>Your workspace and available tools are tailored to your account after sign-in.</span></div></aside><section class="ps-login-auth"><div class="ps-login-card"><div class="ps-login-card-head"><span class="ps-login-kicker">' + escapeHtml(meta.eyebrow) + '</span><h2>' + escapeHtml(meta.heading) + '</h2><p>' + escapeHtml(meta.intro) + '</p></div><form id="loginForm">' + fields + '<div id="loginMessage" class="ps-login-message' + (good ? ' good' : '') + '">' + escapeHtml(message || '') + '</div></form><div class="ps-login-helper">' + helper + '</div></div></section></section><footer class="ps-login-footer">Pool Shed v1.81.0 · Pool Bros Ltd</footer></main>';
+        screen.innerHTML = '<main class="ps-login-stage"><section class="ps-login-shell"><aside class="ps-login-brand"><div><div class="ps-login-lockup"><span class="ps-login-logo"><img src="' + DEFAULT_POOL_BROS_LOGO + '" alt="Pool Bros logo"></span><div><span class="ps-login-kicker">Pool Bros</span><strong>THE POOL SHED</strong></div></div><div class="ps-login-hero"><span class="ps-login-kicker">Operations Command System</span><h1>One secure place to <span>run the operation.</span></h1><p>Secure access to the Pool Bros operations workspace. Sign in to continue to your authorised tools, tasks and information.</p></div></div><div class="ps-login-staff-note"><strong>Pool Bros staff access</strong><span>Your workspace and available tools are tailored to your account after sign-in.</span></div></aside><section class="ps-login-auth"><div class="ps-login-card"><div class="ps-login-card-head"><span class="ps-login-kicker">' + escapeHtml(meta.eyebrow) + '</span><h2>' + escapeHtml(meta.heading) + '</h2><p>' + escapeHtml(meta.intro) + '</p></div><form id="loginForm">' + fields + '<div id="loginMessage" class="ps-login-message' + (good ? ' good' : '') + '">' + escapeHtml(message || '') + '</div></form><div class="ps-login-helper">' + helper + '</div></div></section></section><footer class="ps-login-footer">Pool Shed v1.82.0 · Pool Bros Ltd</footer></main>';
         bindLoginScreen(effectiveMode);
       }
 
@@ -5313,18 +5313,19 @@ const seed = {
         const selected = product(selectedProductId) || activeProducts[0] || null;
         selectedProductId = selected ? selected.id : "";
         const filteredProducts = activeProducts.filter(matchesSearchProduct);
-        const rows = filteredProducts.map(function(p) {
+        // v1.82: the full product list is only built when it is shown (it was built for Imports and Health too and thrown away)
+        const listRows = function(){ return filteredProducts.map(function(p) {
           const stock = productStockSummary(p.id);
           const totalQty = stock.onHand;
           const status = totalQty <= p.reorder ? '<span class="pill warn">Reorder</span>' : '<span class="pill good">Healthy</span>';
           return '<tr><td><input type="checkbox" data-product-select="' + p.id + '" aria-label="Select ' + p.sku + '"></td><td><button class="ghost" data-product-profile="' + p.id + '"><strong>' + p.sku + '</strong></button></td><td><strong>' + p.name + '</strong><br><span class="muted">Supplier SKU ' + p.supplierSku + ' · ' + p.category + '</span></td><td class="right">' + totalQty + '</td><td class="right">' + stock.allocated + '</td><td class="right">' + stock.available + '</td><td>' + status + '</td><td class="right">' + money(p.rrp) + '</td><td class="right"><button class="secondary" data-product-profile="' + p.id + '">Actions</button></td></tr>';
-        }).join("");
-        let content;
-        if (!activeProducts.length) {
-          content = panel("Product Catalogue", "Create or import your catalogue. Products are saved offline immediately and queued for upload when the connection returns.", '<div class="catalogue-empty-state"><div class="catalogue-empty-icon">📦</div><div><span class="eyebrow">PRODUCT HUB</span><h2>Your catalogue is ready to set up</h2><p>Add one product manually or import your full supplier catalogue from CSV. Opening stock defaults to the Main Warehouse.</p><div class="action-row"><button data-product-view="bulk">Import catalogue</button><button class="secondary" data-product-view="create">Create first product</button></div><div class="catalogue-empty-grid"><div><strong>Offline ready</strong><span>Products save locally and remain available without internet.</span></div><div><strong>Supplier linked</strong><span>Supplier, costs, SKUs and variants feed directly into Purchase Orders.</span></div><div><strong>Stock controlled</strong><span>Main Warehouse remains the default master allocation source.</span></div></div></div></div>');
+        }).join(""); };
+        let content = null;
+        const listContent = function() { if (!activeProducts.length) {
+          return panel("Product Catalogue", "Create or import your catalogue. Products are saved offline immediately and queued for upload when the connection returns.", '<div class="catalogue-empty-state"><div class="catalogue-empty-icon">📦</div><div><span class="eyebrow">PRODUCT HUB</span><h2>Your catalogue is ready to set up</h2><p>Add one product manually or import your full supplier catalogue from CSV. Opening stock defaults to the Main Warehouse.</p><div class="action-row"><button data-product-view="bulk">Import catalogue</button><button class="secondary" data-product-view="create">Create first product</button></div><div class="catalogue-empty-grid"><div><strong>Offline ready</strong><span>Products save locally and remain available without internet.</span></div><div><strong>Supplier linked</strong><span>Supplier, costs, SKUs and variants feed directly into Purchase Orders.</span></div><div><strong>Stock controlled</strong><span>Main Warehouse remains the default master allocation source.</span></div></div></div></div>');
         } else {
-          content = panel("Product Catalogue", "All products, variants, prices and warehouse availability in one operational list.", '<div class="product-toolbar"><span>Batch update</span><select id="productBatchAction"><option value="">-- Tick items then choose --</option><option value="labels">Print labels</option><option value="category">Update category</option><option value="vendor">Update supplier</option><option value="channels">Add/remove channels</option><option value="delete">Delete selected</option></select><label>Supplier<select id="productVendorFilter"><option value="">All suppliers</option>' + vendorOptions(productVendorFilter) + '</select></label><button class="secondary" data-product-bulk="labels">Labels</button><button class="secondary" data-product-export="true">Export</button><button data-product-view="bulk">Import catalogue</button><button data-product-view="create">Create product</button></div><div class="table-scroll"><table><thead><tr><th><input type="checkbox" id="productSelectAll" aria-label="Select all products"></th><th>SKU</th><th>Product / variant</th><th class="right">On hand</th><th class="right">Allocated</th><th class="right">Available</th><th>Status</th><th class="right">RRP</th><th class="right">Action</th></tr></thead><tbody>' + rows + '</tbody></table></div><div class="table-footer-count muted">Showing ' + filteredProducts.length + ' of ' + activeProducts.length + ' products</div>');
-        }
+          return panel("Product Catalogue", "All products, variants, prices and warehouse availability in one operational list.", '<div class="product-toolbar"><span>Batch update</span><select id="productBatchAction"><option value="">-- Tick items then choose --</option><option value="labels">Print labels</option><option value="category">Update category</option><option value="vendor">Update supplier</option><option value="channels">Add/remove channels</option><option value="delete">Delete selected</option></select><label>Supplier<select id="productVendorFilter"><option value="">All suppliers</option>' + vendorOptions(productVendorFilter) + '</select></label><button class="secondary" data-product-bulk="labels">Labels</button><button class="secondary" data-product-export="true">Export</button><button data-product-view="bulk">Import catalogue</button><button data-product-view="create">Create product</button></div><div class="table-scroll"><table><thead><tr><th><input type="checkbox" id="productSelectAll" aria-label="Select all products"></th><th>SKU</th><th>Product / variant</th><th class="right">On hand</th><th class="right">Allocated</th><th class="right">Available</th><th>Status</th><th class="right">RRP</th><th class="right">Action</th></tr></thead><tbody>' + listRows() + '</tbody></table></div><div class="table-footer-count muted">Showing ' + filteredProducts.length + ' of ' + activeProducts.length + ' products</div>');
+        } };
         if (productView === "create") {
           content = panel("Create Product", "Add a new stock item with barcode, pricing, tracking and first location.", '<div class="action-row" style="margin-bottom:1rem"><button class="secondary" data-product-view="list">Back to catalogue</button></div>' + productCreateForm());
         }
@@ -5357,6 +5358,7 @@ const seed = {
           productView = "list";
         }
 
+        if (content === null) content = listContent();   // v1.82: the full list is only built when it is the page shown
         document.getElementById("screen-products").innerHTML = content;
 
         document.querySelectorAll("[data-product-profile]").forEach(function(button) {
@@ -5456,8 +5458,8 @@ const seed = {
         const corrected = Math.max(0, products.length * 5 - issues.length);
         const score = products.length ? Math.max(0, Math.round((corrected / Math.max(1, products.length * 5)) * 100)) : 100;
         const issueTypes = Array.from(new Set(issues.map(function(row) { return row.type; })));
-        const rows = issues.map(function(row) {
-          return '<tr class="health-issue-row" data-health-row="' + escapeHtml(row.productId + ':' + row.field) + '" data-health-search="' + escapeHtml((row.product + ' ' + row.sku + ' ' + row.issue + ' ' + row.type).toLowerCase()) + '" data-health-type="' + escapeHtml(row.type) + '"><td><div class="health-product-cell"><div class="health-product-mark">PB</div><div><strong>' + escapeHtml(row.product) + '</strong><span>' + escapeHtml(row.sku || 'SKU not set') + '</span></div></div></td><td><span class="health-status health-status-warning"><span aria-hidden="true">!</span>' + escapeHtml(row.issue) + '</span></td><td><label class="health-field-label"><span>' + escapeHtml(catalogueHealthFieldLabel(row.field)) + '</span>' + catalogueHealthInput(row) + '</label></td><td class="health-row-actions"><button type="button" class="icon-button health-profile-button" data-product-profile="' + escapeHtml(row.productId) + '" title="Open full product profile" aria-label="Open full product profile">↗</button></td></tr>';
+        const rows = issues.map(function(row, rowIndex) {
+          return '<tr class="health-issue-row"' + (rowIndex >= 100 ? ' hidden' : '') + ' data-health-row="' + escapeHtml(row.productId + ':' + row.field) + '" data-health-search="' + escapeHtml((row.product + ' ' + row.sku + ' ' + row.issue + ' ' + row.type).toLowerCase()) + '" data-health-type="' + escapeHtml(row.type) + '"><td><div class="health-product-cell"><div class="health-product-mark">PB</div><div><strong>' + escapeHtml(row.product) + '</strong><span>' + escapeHtml(row.sku || 'SKU not set') + '</span></div></div></td><td><span class="health-status health-status-warning"><span aria-hidden="true">!</span>' + escapeHtml(row.issue) + '</span></td><td><label class="health-field-label"><span>' + escapeHtml(catalogueHealthFieldLabel(row.field)) + '</span>' + catalogueHealthInput(row) + '</label></td><td class="health-row-actions"><button type="button" class="icon-button health-profile-button" data-product-profile="' + escapeHtml(row.productId) + '" title="Open full product profile" aria-label="Open full product profile">↗</button></td></tr>';
         }).join("") || '<tr><td colspan="4"><div class="health-clear-state"><div class="health-clear-icon">✓</div><div><strong>Catalogue health is clear</strong><p>Every active product has the core identity, supplier, category and pricing information required across Pool Shed.</p></div></div></td></tr>';
         const filterOptions = '<option value="">All issue types</option>' + issueTypes.map(function(type) { return '<option value="' + escapeHtml(type) + '">' + escapeHtml(type.charAt(0).toUpperCase() + type.slice(1)) + '</option>'; }).join('');
         return panel("Catalogue Health", "Correct catalogue issues inline or export them for controlled bulk amendment. Saved corrections update the product profile, Sales Orders, Purchase Orders and reporting from the same product record.",
@@ -5583,19 +5585,28 @@ const seed = {
         const search = document.getElementById("catalogueHealthSearch");
         const type = document.getElementById("catalogueHealthType");
         const count = document.getElementById("catalogueHealthCount");
+        let healthLimit = 100;
         function filterRows() {
           const query = String(search && search.value || "").trim().toLowerCase();
           const selectedType = String(type && type.value || "");
-          let visible = 0;
+          // v1.82: at most healthLimit matching rows are drawn at a time (drawing all ~750 editable rows took 2 seconds)
+          let visible = 0, shown = 0;
           document.querySelectorAll(".health-issue-row").forEach(function(row) {
-            const show = (!query || String(row.dataset.healthSearch || "").includes(query)) && (!selectedType || row.dataset.healthType === selectedType);
+            const match = (!query || String(row.dataset.healthSearch || "").includes(query)) && (!selectedType || row.dataset.healthType === selectedType);
+            const show = match && shown < healthLimit;
             row.hidden = !show;
-            if (show) visible++;
+            if (match) visible++;
+            if (show) shown++;
           });
-          if (count) count.textContent = visible + (visible === 1 ? " issue shown" : " issues shown");
+          if (count) count.textContent = (shown < visible ? "Showing " + shown + " of " + visible : visible) + (visible === 1 ? " issue" : " issues");
+          let more = document.getElementById("catalogueHealthMore");
+          const wrap = document.querySelector(".health-table-wrap");
+          if (!more && wrap) { wrap.insertAdjacentHTML("afterend", '<div class="health-more"><button type="button" class="secondary" id="catalogueHealthMore">Show the next 100</button></div>'); more = document.getElementById("catalogueHealthMore"); if (more) more.addEventListener("click", function() { healthLimit += 100; filterRows(); }); }
+          if (more) more.parentElement.hidden = shown >= visible;
         }
-        if (search) search.addEventListener("input", filterRows);
-        if (type) type.addEventListener("change", filterRows);
+        if (search) search.addEventListener("input", function() { healthLimit = 100; filterRows(); });
+        if (type) type.addEventListener("change", function() { healthLimit = 100; filterRows(); });
+        filterRows();
         const clear = document.getElementById("catalogueHealthClear");
         if (clear) clear.addEventListener("click", function() { if (search) search.value = ""; if (type) type.value = ""; filterRows(); if (search) search.focus(); });
         document.querySelectorAll("[data-health-save]").forEach(function(button) {
@@ -7484,7 +7495,7 @@ const seed = {
 
           return '<tr>' +
             '<td class="so-list-check"><input type="checkbox" data-so-select="' + escapeHtml(order.id) + '" aria-label="Select ' + escapeHtml(order.id) + '"></td>' +
-            '<td class="so-list-order"><button type="button" class="ghost so-list-order-link" data-open-so="' + escapeHtml(order.id) + '"><strong>' + escapeHtml(order.id) + ' · ' + escapeHtml(customerDisplayName(c)) + '</strong></button><span class="muted">' + escapeHtml(orderMeta) + '</span></td>' +
+            '<td class="so-list-order ps-av-cell">' + (window.PoolShedAvatar ? window.PoolShedAvatar(customerDisplayName(c)) : '') + '<div><button type="button" class="ghost so-list-order-link" data-open-so="' + escapeHtml(order.id) + '"><strong>' + escapeHtml(order.id) + ' · ' + escapeHtml(customerDisplayName(c)) + '</strong></button><span class="muted">' + escapeHtml(orderMeta) + '</span></div></td>' +
             '<td>' + statusPill(order.status) + '</td>' +
             '<td><strong>' + (stock.required ? stock.allocated + " / " + stock.required + " allocated" : "Non-stock") + '</strong><span class="muted">' + escapeHtml(stockMeta) + '</span></td>' +
             '<td><strong>' + escapeHtml(fulfilmentLabel) + '</strong><div class="so-list-progress" aria-label="' + progressPercent + '% through fulfilment"><span style="width:' + progressPercent + '%"></span></div><span class="muted">' + escapeHtml(noteMeta) + '</span></td>' +
@@ -17019,5 +17030,5 @@ const seed = {
       window.addEventListener("load", function() {
         updateOfflineStatus();
         syncPendingOfflineData();
-        if ("serviceWorker" in navigator && location.protocol !== "file:") navigator.serviceWorker.register("./service-worker.js?v=1.81.0", { updateViaCache:"none" }).catch(function() {});
+        if ("serviceWorker" in navigator && location.protocol !== "file:") navigator.serviceWorker.register("./service-worker.js?v=1.82.0", { updateViaCache:"none" }).catch(function() {});
       });

@@ -14306,13 +14306,13 @@ body[data-theme="dark"] .notifications-command-drawer{background:var(--color-sur
 .my-work-summary{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:.7rem}.my-work-summary button{display:grid;gap:.25rem;text-align:left;padding:.9rem 1rem;border:1px solid var(--color-border-default);border-radius:.8rem;background:var(--color-surface-default);color:var(--color-text-primary)}.my-work-summary span{font-size:.86rem;color:var(--color-text-secondary);font-weight:700}.my-work-summary strong{font-size:1.45rem}
 .my-work-tabs{padding-bottom:.75rem;border-bottom:1px solid var(--color-border-default)}
 .my-work-filters{display:grid;grid-template-columns:minmax(16rem,2fr) minmax(10rem,1fr) minmax(10rem,1fr) auto;gap:.7rem;align-items:end}.my-work-filters label{display:grid;gap:.3rem;color:var(--color-text-secondary);font-size:.86rem;font-weight:700}.my-work-filters input,.my-work-filters select{min-height:2.55rem;border:1px solid var(--color-border-default);background:var(--color-surface-default);color:var(--color-text-primary);border-radius:.65rem;padding:.5rem .65rem}.my-work-filters .my-work-check{display:flex;align-items:center;min-height:2.55rem;gap:.45rem;padding:.45rem .6rem;border:1px solid var(--color-border-default);border-radius:.65rem;background:var(--color-surface-default)}
-.my-work-list{display:grid;gap:.7rem}.my-work-action-card,.my-work-approval-card{display:grid;gap:.7rem;padding:1rem 1.05rem;border:1px solid var(--color-border-default);border-radius:.9rem;background:var(--color-surface-default);box-shadow:var(--shadow-panel)}.my-work-action-card>header,.my-work-approval-card>header,.my-work-action-card>footer,.my-work-approval-card>footer{display:flex;align-items:center;justify-content:space-between;gap:.6rem;flex-wrap:wrap}.my-work-action-card>footer,.my-work-approval-card>footer{justify-content:flex-end;padding-top:.2rem}.my-work-action-main{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:1rem;align-items:center}.my-work-action-main strong,.my-work-approval-card h3{font-size:.98rem}.my-work-action-main p,.my-work-approval-card p{margin:.25rem 0 0;color:var(--color-text-secondary);line-height:1.45}.my-work-due{display:grid;gap:.15rem;text-align:right}.my-work-due span,.my-work-age{font-size:.86rem;color:var(--color-text-muted);font-weight:700}.my-work-due strong{font-size:.86rem}
-.my-work-meta{display:flex;gap:.45rem;flex-wrap:wrap}.my-work-meta span,.my-work-state{font-size:.86rem;font-weight:700;padding:.27rem .48rem;border-radius:.45rem;background:var(--color-surface-subtle);color:var(--color-text-secondary)}
+.my-work-list{display:grid;gap:.7rem}.my-work-approval-card {display:grid;gap:.7rem;padding:1rem 1.05rem;border:1px solid var(--color-border-default);border-radius:.9rem;background:var(--color-surface-default);box-shadow:var(--shadow-panel)}.my-work-approval-card>header, .my-work-approval-card>footer {display:flex;align-items:center;justify-content:space-between;gap:.6rem;flex-wrap:wrap}.my-work-approval-card>footer {justify-content:flex-end;padding-top:.2rem}.my-work-approval-card h3 {font-size:.98rem}.my-work-approval-card p {margin:.25rem 0 0;color:var(--color-text-secondary);line-height:1.45}
+.my-work-meta{display:flex;gap:.45rem;flex-wrap:wrap}.my-work-meta span {font-size:.86rem;font-weight:700;padding:.27rem .48rem;border-radius:.45rem;background:var(--color-surface-subtle);color:var(--color-text-secondary)}
 .my-work-priority{display:inline-flex;align-items:center;margin-right:.35rem;padding:.28rem .48rem;border-radius:.45rem;font-size:.86rem;font-weight:800;text-transform:capitalize}.my-work-priority-low{background:var(--color-status-success-bg);color:var(--color-status-success-text);border:1px solid var(--color-status-success-line)}.my-work-priority-normal{background:var(--color-status-info-bg);color:var(--color-status-info-text);border:1px solid var(--color-status-info-line)}.my-work-priority-high{background:var(--color-status-attention-bg);color:var(--color-status-attention-text);border:1px solid var(--color-status-attention-line)}.my-work-priority-critical,.my-work-priority-overdue{background:var(--color-status-danger-bg);color:var(--color-status-danger-text);border:1px solid var(--color-status-danger-line)}
 .my-work-empty{display:grid;place-items:center;gap:.3rem;min-height:11rem;padding:2rem;text-align:center;border:1px dashed var(--color-border-strong);border-radius:.9rem;background:var(--color-surface-subtle);color:var(--color-text-secondary)}.my-work-empty strong{color:var(--color-text-primary)}
 .my-work-command button:focus-visible,.my-work-command input:focus-visible,.my-work-command select:focus-visible{outline:3px solid var(--color-focus-ring);outline-offset:2px}
-@media(max-width:980px){.my-work-summary{grid-template-columns:repeat(2,minmax(0,1fr))}.my-work-filters{grid-template-columns:1fr 1fr}.my-work-action-main{grid-template-columns:1fr}.my-work-due{text-align:left}}
-@media(max-width:640px){.my-work-hero{align-items:stretch;flex-direction:column}.my-work-summary,.my-work-filters{grid-template-columns:1fr}.my-work-tabs{overflow-x:auto;flex-wrap:nowrap}.my-work-tabs button{flex:0 0 auto}.my-work-action-card>footer,.my-work-approval-card>footer{justify-content:stretch}.my-work-action-card>footer button,.my-work-approval-card>footer button{flex:1 1 45%}}
+@media(max-width:980px){.my-work-summary{grid-template-columns:repeat(2,minmax(0,1fr))}.my-work-filters{grid-template-columns:1fr 1fr}}
+@media(max-width:640px){.my-work-hero{align-items:stretch;flex-direction:column}.my-work-summary,.my-work-filters{grid-template-columns:1fr}.my-work-tabs{overflow-x:auto;flex-wrap:nowrap}.my-work-tabs button{flex:0 0 auto}.my-work-approval-card>footer {justify-content:stretch}.my-work-approval-card>footer button {flex:1 1 45%}}
 @media(prefers-reduced-motion:reduce){.my-work-command *{scroll-behavior:auto!important;transition-duration:.01ms!important;animation-duration:.01ms!important;animation-iteration-count:1!important}}
 
 .my-work-command button.primary{background:var(--color-action-primary);color:var(--color-action-contrast);border-color:var(--color-action-ink)}
@@ -16061,6 +16061,45 @@ button.hm-fig{cursor:pointer}button.hm-fig:hover{border-color:var(--color-action
 /* One coloured main button per page: buttons inside table rows, list items and cards use the plain style */
 .ps-kit-scope:not(#ps-kit-none):not(:has(> .qs-studio-root)) :is(td, li, article, [class*="-row"], [class*="-item"]) button.primary{background:var(--color-surface-default) !important;border:1px solid var(--color-border-default) !important;color:var(--color-text-primary) !important;box-shadow:none !important}
 .ps-kit-scope:not(#ps-kit-none):not(:has(> .qs-studio-root)) :is(td, li, article, [class*="-row"], [class*="-item"]) button.primary:hover{border-color:var(--color-action-primary) !important;color:var(--color-action-ink) !important;background:var(--color-surface-default) !important}
+
+
+/* ===== MODULE: system/74-overhaul-lists.css ===== */
+/* Overhaul phase 2 (from v1.82): lists. Avatars, compact My work rows, Product Groups search, quieter row delete. */
+.ps-av{display:inline-grid;place-items:center;width:32px;height:32px;border-radius:50%;font-size:12px;font-weight:700;flex:0 0 auto;letter-spacing:.02em}
+.ps-av-1{background:var(--color-action-soft);color:var(--color-action-ink)}
+.ps-av-2{background:var(--color-status-success-bg);color:var(--color-status-success-text)}
+.ps-av-3{background:var(--color-status-attention-bg);color:var(--color-status-attention-text)}
+.ps-av-4{background:var(--color-accent-secondary-soft);color:var(--color-accent-secondary)}
+.ps-av-5{background:var(--color-surface-subtle);color:var(--color-text-secondary)}
+td.ps-av-cell{display:flex;align-items:center;gap:10px}
+td.ps-av-cell > div{min-width:0;display:grid}
+/* My work: one compact row per task */
+.mw-row{display:grid;grid-template-columns:12px minmax(0,1fr) 150px auto;gap:14px;align-items:center;padding:12px 14px;border:1px solid var(--color-border-default);border-radius:10px;background:var(--color-surface-default);margin:0 0 8px}
+.mw-row.over{border-left:3px solid var(--color-status-danger)}
+.mw-row.done{opacity:.7}
+.mw-dot{width:10px;height:10px;border-radius:50%;background:var(--color-border-strong)}
+.mw-dot.critical,.mw-dot.urgent{background:var(--color-status-danger)}.mw-dot.high{background:var(--color-status-attention)}.mw-dot.normal,.mw-dot.medium{background:var(--color-action-primary)}.mw-dot.low{background:var(--color-border-strong)}
+.mw-main{min-width:0;display:grid;gap:2px}
+.mw-main strong{font-size:14px;color:var(--color-text-primary)}
+.mw-main span{font-size:13px;color:var(--color-text-secondary);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.mw-main small,.mw-when small{font-size:12px;color:var(--color-text-muted)}
+.mw-when{display:grid;gap:2px;text-align:right}
+.mw-when b{font-size:13px;color:var(--color-text-primary)}.mw-when b.bad{color:var(--color-status-danger-text)}
+.mw-actions{display:flex;gap:6px;align-items:center}
+.mw-more{position:relative}
+.mw-more summary{list-style:none;cursor:pointer;padding:6px 10px;border:1px solid var(--color-border-default);border-radius:8px;font-weight:700;color:var(--color-text-secondary);background:var(--color-surface-default)}
+.mw-more summary::-webkit-details-marker{display:none}
+.mw-more > div{position:absolute;right:0;top:calc(100% + 4px);z-index:20;min-width:170px;display:grid;padding:6px;background:var(--color-surface-default);border:1px solid var(--color-border-default);border-radius:10px;box-shadow:var(--shadow-raised)}
+.mw-more > div button{appearance:none;border:0;background:transparent;text-align:left;padding:8px 10px;border-radius:6px;font:inherit;font-size:13px;color:var(--color-text-primary);cursor:pointer}
+.mw-more > div button:hover{background:var(--color-hover-surface)}
+@media(max-width:760px){.mw-row{grid-template-columns:12px minmax(0,1fr)}.mw-when{text-align:left;grid-column:2}.mw-actions{grid-column:2;flex-wrap:wrap}}
+/* Product Groups search */
+.ph-group-search{display:flex;align-items:center;gap:12px;margin:0 0 12px}
+.ph-group-search input{flex:1;min-width:0;border:1px solid var(--color-border-default);border-radius:8px;padding:9px 12px;font:inherit;background:var(--color-surface-default);color:var(--color-text-primary)}
+.ph-group-search span{font-size:13px;color:var(--color-text-secondary);white-space:nowrap}
+/* Delete buttons inside rows: plain red text, not a red block */
+.ps-kit-scope:not(#ps-kit-none):not(:has(> .qs-studio-root)) td :is(.danger-button, button.danger){background:transparent !important;border-color:transparent !important;color:var(--color-status-danger-text) !important;box-shadow:none !important}
+.ps-kit-scope:not(#ps-kit-none):not(:has(> .qs-studio-root)) td :is(.danger-button, button.danger):hover{background:var(--color-status-danger-bg) !important}
 
 
 /* ===== MODULE: system/68-pool-shed-kit.css ===== */

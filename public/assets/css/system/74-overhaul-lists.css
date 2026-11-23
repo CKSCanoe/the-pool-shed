@@ -1,0 +1,36 @@
+/* Overhaul phase 2 (from v1.82): lists. Avatars, compact My work rows, Product Groups search, quieter row delete. */
+.ps-av{display:inline-grid;place-items:center;width:32px;height:32px;border-radius:50%;font-size:12px;font-weight:700;flex:0 0 auto;letter-spacing:.02em}
+.ps-av-1{background:var(--color-action-soft);color:var(--color-action-ink)}
+.ps-av-2{background:var(--color-status-success-bg);color:var(--color-status-success-text)}
+.ps-av-3{background:var(--color-status-attention-bg);color:var(--color-status-attention-text)}
+.ps-av-4{background:var(--color-accent-secondary-soft);color:var(--color-accent-secondary)}
+.ps-av-5{background:var(--color-surface-subtle);color:var(--color-text-secondary)}
+td.ps-av-cell{display:flex;align-items:center;gap:10px}
+td.ps-av-cell > div{min-width:0;display:grid}
+/* My work: one compact row per task */
+.mw-row{display:grid;grid-template-columns:12px minmax(0,1fr) 150px auto;gap:14px;align-items:center;padding:12px 14px;border:1px solid var(--color-border-default);border-radius:10px;background:var(--color-surface-default);margin:0 0 8px}
+.mw-row.over{border-left:3px solid var(--color-status-danger)}
+.mw-row.done{opacity:.7}
+.mw-dot{width:10px;height:10px;border-radius:50%;background:var(--color-border-strong)}
+.mw-dot.critical,.mw-dot.urgent{background:var(--color-status-danger)}.mw-dot.high{background:var(--color-status-attention)}.mw-dot.normal,.mw-dot.medium{background:var(--color-action-primary)}.mw-dot.low{background:var(--color-border-strong)}
+.mw-main{min-width:0;display:grid;gap:2px}
+.mw-main strong{font-size:14px;color:var(--color-text-primary)}
+.mw-main span{font-size:13px;color:var(--color-text-secondary);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.mw-main small,.mw-when small{font-size:12px;color:var(--color-text-muted)}
+.mw-when{display:grid;gap:2px;text-align:right}
+.mw-when b{font-size:13px;color:var(--color-text-primary)}.mw-when b.bad{color:var(--color-status-danger-text)}
+.mw-actions{display:flex;gap:6px;align-items:center}
+.mw-more{position:relative}
+.mw-more summary{list-style:none;cursor:pointer;padding:6px 10px;border:1px solid var(--color-border-default);border-radius:8px;font-weight:700;color:var(--color-text-secondary);background:var(--color-surface-default)}
+.mw-more summary::-webkit-details-marker{display:none}
+.mw-more > div{position:absolute;right:0;top:calc(100% + 4px);z-index:20;min-width:170px;display:grid;padding:6px;background:var(--color-surface-default);border:1px solid var(--color-border-default);border-radius:10px;box-shadow:var(--shadow-raised)}
+.mw-more > div button{appearance:none;border:0;background:transparent;text-align:left;padding:8px 10px;border-radius:6px;font:inherit;font-size:13px;color:var(--color-text-primary);cursor:pointer}
+.mw-more > div button:hover{background:var(--color-hover-surface)}
+@media(max-width:760px){.mw-row{grid-template-columns:12px minmax(0,1fr)}.mw-when{text-align:left;grid-column:2}.mw-actions{grid-column:2;flex-wrap:wrap}}
+/* Product Groups search */
+.ph-group-search{display:flex;align-items:center;gap:12px;margin:0 0 12px}
+.ph-group-search input{flex:1;min-width:0;border:1px solid var(--color-border-default);border-radius:8px;padding:9px 12px;font:inherit;background:var(--color-surface-default);color:var(--color-text-primary)}
+.ph-group-search span{font-size:13px;color:var(--color-text-secondary);white-space:nowrap}
+/* Delete buttons inside rows: plain red text, not a red block */
+.ps-kit-scope:not(#ps-kit-none):not(:has(> .qs-studio-root)) td :is(.danger-button, button.danger){background:transparent !important;border-color:transparent !important;color:var(--color-status-danger-text) !important;box-shadow:none !important}
+.ps-kit-scope:not(#ps-kit-none):not(:has(> .qs-studio-root)) td :is(.danger-button, button.danger):hover{background:var(--color-status-danger-bg) !important}
