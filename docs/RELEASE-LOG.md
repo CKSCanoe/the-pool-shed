@@ -238,6 +238,17 @@ Owner approved the blueprint 21 Nov 2026 (eight areas; Pool Audits under My Work
 
 ---
 
+## Favourite products and Quick add under the search · v1.88.0 · branch `favourites`
+
+Owner: on a sales order's product catalogue panel, add star favourites that come top of the search, and move Quick add from the top of the order (clunky there) to the search.
+
+| # | Change | Status | Evidence |
+|---|---|---|---|
+| FV1 | Star on every search result; starred products come first when they match (an exact SKU or barcode match stays first); clicking into the empty search lists favourites. Stored on the product (`salesFavourite`), so the whole team shares one list | **New · Tested in a real browser on staging** | Starred a product: it moved to the top with a filled star and a confirmation; empty search showed "★ Favourites"; star removed afterwards |
+| FV2 | Quick add moved under the product search: favourites first, then the most often sold, with the SKU shown where two names match; removed from the order header and the hidden "Try:" row | **Tested in a real browser on staging** | A favourite button added one line to a test order; line removed afterwards |
+| FV3 | Results list anchored under the search box (an older script placed it against the window, so the page frame pushed it off to the right) | **Fixed · Tested in a real browser on staging** | List now starts at the search box's left edge, stars visible |
+| FV4 | Release test | **New · Unit tested** | `test-favourites-v188` (ranking: favourites first, exact SKU still first, empty search lists favourites) |
+
 ## A tidier customer box on sales orders · v1.87.0 · branch `customer-box`
 
 Owner feedback on v1.86 (screenshot): the customer box on a sales order did not look user friendly. The picker had been built for a wide page and was now inside the small customer card: a repeated "Customer" heading, a squashed search field with a misleading "⌘K" badge, a "currently linked" line repeating the card, and a results list clipped by the card.

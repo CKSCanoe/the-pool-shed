@@ -89,7 +89,7 @@
         '<button type="button" id="salesOrderAddStockButton" class="primary-action so4-add-selected" data-add-line-order="' + escapeHtml(order.id) + '" disabled>Add selected item</button>' +
         '<button type="button" class="secondary so4-add-multiple" data-open-so-batch="' + escapeHtml(order.id) + '">Add multiple items</button>' +
       '</div>' +
-      '<div class="so-smart-search-hints"><span>Try:</span><button type="button" data-so-inline-search-fill="chlorine">chlorine</button><button type="button" data-so-inline-search-fill="shock">shock</button><button type="button" data-so-inline-search-fill="hypo">hypo</button><button type="button" data-so-inline-search-fill="20 litre">20 litre</button><button type="button" data-so-inline-search-fill="pH minus">pH minus</button><small>Typos, word order and common trade terms are supported.</small></div>' +
+      (function(){ const q = so4QuickChips(order); return '<div class="so4-quick" data-so4-quick="' + escapeHtml(order.id) + '"' + (q ? '' : ' hidden') + '>' + q + '</div>'; })() +
       '<div id="salesOrderSelectedProduct" class="so-selected-product so4-selected-product" hidden></div>' +
     '</div>' +
     salesOrderBatchPicker(order) +
@@ -183,6 +183,36 @@
   }
 
 
+  // v1.88: starred (favourite) products, shared by the team, come first in the search and in Quick add
+  function so4IsFav(p) { return !!(p && p.salesFavourite); }
+  function so4FavProducts() {
+    const products = typeof salesOrderCatalogueProducts === 'function' ? salesOrderCatalogueProducts() : (data.products || []);
+    return products.filter(so4IsFav).sort(function(a,b){ return String(a.name || '').localeCompare(String(b.name || '')); });
+  }
+  function so4StockProducts(query) {
+    const clean = String(query || '').trim();
+    if (!clean) return so4FavProducts().slice(0,12);
+    const products = typeof salesOrderCatalogueProducts === 'function' ? salesOrderCatalogueProducts() : (data.products || []);
+    let ranked;
+    if (window.PoolShedSalesSearch && typeof window.PoolShedSalesSearch.rankProducts === 'function') ranked = window.PoolShedSalesSearch.rankProducts(products, clean);
+    else { const q = clean.toLowerCase(); ranked = products.filter(function(p){ return [p.name,p.parentName,p.sku,p.code,p.barcode,p.supplierSku,p.category].filter(Boolean).join(' ').toLowerCase().indexOf(q) !== -1; }).map(function(p){ return { product:p, score:1 }; }); }
+    // an exact SKU or barcode match stays on top, then starred products, then the rest in search order
+    const exact = ranked.filter(function(r){ return r.score >= 9200; }), rest = ranked.filter(function(r){ return r.score < 9200; });
+    return exact.concat(rest.filter(function(r){ return so4IsFav(r.product); }), rest.filter(function(r){ return !so4IsFav(r.product); })).slice(0,8).map(function(r){ return r.product; });
+  }
+  function so4QuickChips(order) {
+    if (/invoiced|complete|cancel/i.test(String(order && order.status || ''))) return '';
+    const favs = so4FavProducts().slice(0,10), ids = {};
+    favs.forEach(function(p){ ids[p.id] = 1; });
+    const often = (window.PoolShedOrderFlow && typeof window.PoolShedOrderFlow.oftenSold === 'function' ? window.PoolShedOrderFlow.oftenSold() : []).filter(function(x){ return !ids[x.id]; }).slice(0, Math.max(0, 8 - favs.length));
+    const seen = {}; favs.map(function(p){ return p.name || p.sku || p.id; }).concat(often.map(function(x){ return x.name; })).forEach(function(n){ seen[n] = (seen[n] || 0) + 1; });
+    const chip = function(id, name, sku, fav){ const short = (name.length > 34 ? name.slice(0,32) + '\u2026' : name) + (seen[name] > 1 && sku ? ' · ' + sku : '');
+      return '<button type="button" class="so4-chip' + (fav ? ' fav' : '') + '" data-sof-add="' + escapeHtml(order.id + '|' + id) + '" title="Add 1 × ' + escapeHtml(name + (sku ? ' (' + sku + ')' : '')) + '">' + (fav ? '<span aria-hidden="true">★</span> ' : '+ ') + escapeHtml(short) + '</button>'; };
+    const chips = favs.map(function(p){ return chip(p.id, p.name || p.sku || p.id, p.sku || '', true); }).concat(often.map(function(x){ return chip(x.id, x.name, x.sku, false); }));
+    if (!chips.length) return '';
+    return '<span class="so4-quick-label">Quick add</span>' + chips.join('') + (favs.length ? '' : '<small class="so4-quick-tip">Star ☆ a product in the search results to keep it here.</small>');
+  }
+
   function so4StockResultsBox(input) {
     if (!input) return null;
     const wrap = input.closest('.so4-search-wrap');
@@ -213,14 +243,14 @@
     if (!input || !box) return;
     const order = salesOrder(input.dataset.orderId);
     const query = String(input.value || '').trim();
-    if (!query) {
+    const rows = so4StockProducts(query);
+    if (!query && !rows.length) {
       box.hidden = true;
       box.innerHTML = '';
       input.setAttribute('aria-expanded','false');
       return;
     }
-    const rows = so4ChemicalProducts(query);
-    box.innerHTML = rows.length ? rows.map(function(p){
+    box.innerHTML = (query ? '' : '<div class="so4-stock-head">★ Favourites</div>') + (rows.length ? rows.map(function(p){
       const price = order ? salesOrderLinePrice(order,{productId:p.id,qty:1}) : Number(p.rrp || 0);
       const stock = typeof salesOrderProductStockInfo === 'function'
         ? salesOrderProductStockInfo(p)
@@ -228,10 +258,12 @@
       const variant = typeof salesOrderVariantMeta === 'function' ? salesOrderVariantMeta(p) : '';
       const stockText = Number(stock.available || 0) + ' free';
       const meta = [p.sku || p.code, variant, p.category || '', stockText].filter(Boolean).join(' · ');
-      return '<button type="button" role="option" data-so-stock-product="' + escapeHtml(p.id) + '"><span><strong>' +
+      const fav = so4IsFav(p);
+      return '<div class="so4-stock-row' + (fav ? ' fav' : '') + '"><button type="button" role="option" data-so-stock-product="' + escapeHtml(p.id) + '"><span><strong>' +
         escapeHtml(p.name || p.parentName || 'Catalogue product') + '</strong><small>' + escapeHtml(meta) +
-        '</small></span><b>' + money(price) + ' net</b></button>';
-    }).join('') : '<div class="so4-chemical-empty so4-stock-empty"><strong>No matching catalogue product</strong><span>Try the product name, SKU, barcode, variant or pack size.</span></div>';
+        '</small></span><b>' + money(price) + ' net</b></button>' +
+        '<button type="button" class="so4-star" data-so-fav="' + escapeHtml(p.id) + '" aria-pressed="' + fav + '" title="' + (fav ? 'Remove from favourites' : 'Add to favourites: shown first and in Quick add') + '" aria-label="' + (fav ? 'Remove ' : 'Add ') + escapeHtml(p.name || 'product') + (fav ? ' from' : ' to') + ' favourites">' + (fav ? '★' : '☆') + '</button></div>';
+    }).join('') : '<div class="so4-chemical-empty so4-stock-empty"><strong>No matching catalogue product</strong><span>Try the product name, SKU, barcode, variant or pack size.</span></div>');
     box.hidden = false;
     input.setAttribute('aria-expanded','true');
   }
@@ -912,13 +944,13 @@
     const search = event.target.closest && event.target.closest('#salesOrderProductSearch[data-so-native-stock-search="true"]');
     if (!search) return;
     event.stopImmediatePropagation();
-    if (String(search.value || '').trim() && !search.dataset.selectedProductId) so4StockSearchResults(search);
+    if (!search.dataset.selectedProductId) so4StockSearchResults(search);
   }, true);
 
   document.addEventListener('focusin', function(event) {
     const search = event.target.closest && event.target.closest('#salesOrderProductSearch[data-so-native-stock-search="true"]');
     if (!search) return;
-    if (String(search.value || '').trim() && !search.dataset.selectedProductId) so4StockSearchResults(search);
+    if (!search.dataset.selectedProductId) so4StockSearchResults(search);
   });
 
   document.addEventListener('keydown', function(event) {
@@ -964,6 +996,22 @@
   }, true);
 
   document.addEventListener('click', function(event) {
+    const star = event.target.closest && event.target.closest('[data-so-fav]');
+    if (star) {
+      event.preventDefault();
+      event.stopImmediatePropagation();
+      const p = product(star.dataset.soFav);
+      if (!p) return;
+      if (p.salesFavourite) delete p.salesFavourite; else p.salesFavourite = true;
+      if (typeof saveAppData === 'function') saveAppData();
+      const input = document.getElementById('salesOrderProductSearch');
+      if (input) { so4StockSearchResults(input); input.focus(); }
+      const quick = document.querySelector('[data-so4-quick]');
+      const order = quick && salesOrder(quick.dataset.so4Quick);
+      if (quick && order) { quick.innerHTML = so4QuickChips(order); quick.hidden = !quick.innerHTML; }
+      if (typeof toast === 'function') toast(p.salesFavourite ? '★ ' + (p.name || 'Product') + ' added to favourites' : (p.name || 'Product') + ' removed from favourites');
+      return;
+    }
     const productButton = event.target.closest && event.target.closest('[data-so-stock-product]');
     if (productButton) {
       event.preventDefault();

@@ -29,7 +29,8 @@ assert(/data-allocate-order="SO-1"[^>]*>Allocate stock</.test(html), 'next step 
 assert(/sof-quiet/.test(html), 'old Invoice button steps back');
 assert(/Order total[^]*£120\.00[^]*Balance[^]*£120\.00[^]*Margin[^]*35%/.test(html), 'money summary');
 assert(/data-sof-copy="SO-1"/.test(html), 'copy order');
-assert(/Quick add:/.test(html) && /Chlorine · CHL-5/.test(html) && /Chlorine · CHL-10/.test(html) && />\+ Pump</.test(html), 'quick add, same names told apart');
+// v1.88: Quick add moved under the product search (test-favourites-v188); the header no longer carries it, but shares the often-sold list
+assert(!/Quick add/.test(html) && F.oftenSold().length === 3 && F.oftenSold()[0].id === 'P2' && F.oftenSold()[0].sku === 'CHL-5', 'often-sold list shared with the product search');
 html = ctx.salesOrderDetail(o({ status: 'Invoice Ready' }));
 assert(/data-sof-invoice="SO-1"[^>]*>Invoice £120\.00/.test(html) && !/Quick add/.test(html), 'invoice step, no quick add once delivered');
 html = ctx.salesOrderDetail(o({ status: 'Invoiced', invoiceSource: 'Ledger', xeroRef: 'INV-2049', payments: [{ amount: 20 }] }));

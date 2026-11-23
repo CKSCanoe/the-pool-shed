@@ -15,7 +15,7 @@ const portalCss=read('public/quote-customer-portal.css');
 const index=read('public/index.html');
 const proposal=read('public/proposal.html');
 
-assert.equal(pkg.version,'1.87.0');
+assert.equal(pkg.version,'1.88.0');
 assert.match(eng,/const VERSION='1\.45\.1'/);
 
 // Navigation authority
@@ -71,7 +71,7 @@ assert.doesNotMatch(snapshot,/costSnapshot/);
 
 // CSS authority stays single-source and assets are current.
 assert.equal(css,publicCss);
-assert(index.includes('app.css?v=1.87.0'));
+assert(index.includes('app.css?v=1.88.0'));
 assert(/quote-customer-portal\.css\?v=\d+\.\d+\.\d+/.test(proposal));
 assert(/quote-customer-portal\.js\?v=\d+\.\d+\.\d+/.test(proposal));
 

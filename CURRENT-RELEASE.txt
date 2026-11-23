@@ -1,3 +1,7 @@
+Pool Shed v1.88.0 - Favourite products and Quick add under the product search
+
+On a sales order, every product in the search results now has a star. Star the products you sell all the time: they come first whenever they match what you type (an exact SKU or barcode still comes first), and clicking into the empty search box lists them straight away. Favourites are shared by the whole team. Quick add has moved from the top of the order to just under the product search: your starred products first, then the items sold most often, one click to add one to the order. The results list also now sits directly under the search box; before, it could open off to the right, partly off the screen.
+
 Pool Shed v1.87.0 - A tidier customer box on sales orders
 
 The customer card on a sales order showed the customer, then a second box underneath repeating "Customer" with a cramped search field, a "⌘K" badge (that shortcut actually opens Jump to), a "currently linked" line repeating the customer again, and a results list that was cut off at the bottom of the card. It is now one line under the customer's name: a "Change customer…" search box and a "+ New customer" button. Matching customers drop down over the page, wide enough to read their email and address, with "Not listed? Add a new customer" at the bottom. Esc closes the list.
