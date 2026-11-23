@@ -1,4 +1,4 @@
-/* Pool Shed v1.87.0 — ready for a web shop (any platform), before the website exists.
+/* Pool Shed v1.88.0 — ready for a web shop (any platform), before the website exists.
    Sales → Web Orders: orders sent by the website wait here. Each shows whether the customer is already on file (by
    email) and whether every item's SKU is found; one click turns it into a normal sales order (customer created if
    new, prices as paid before VAT, delivery charge, payment recorded if paid). Nothing is imported on its own.

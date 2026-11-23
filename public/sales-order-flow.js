@@ -1,4 +1,4 @@
-/* Pool Shed v1.87.0 — sales order flow (blueprint step 2).
+/* Pool Shed v1.88.0 — sales order flow (blueprint step 2).
    Adds to the existing order page, without replacing it:
    - a status rail showing where the order is: Ordered → Allocated → Picked & packed → Delivered → Invoiced → Paid;
    - one highlighted next-step button that runs the existing action (allocate, fulfil, mark delivered, invoice, payment);
@@ -58,12 +58,6 @@
       .map(function(id){ var p = typeof product === 'function' ? product(id) : null; return p ? { id: id, name: p.name || p.sku || id, sku: p.sku || '' } : null; }).filter(Boolean);
     oftenCache.at = Date.now(); return oftenCache.list;
   }
-  function quickAdd(order, f){
-    if (!f.current || ['ordered', 'allocated'].indexOf(f.current.key) < 0 || f.invoiced) return '';
-    var list = oftenSold(); if (!list.length) return '';
-    var seen = {}; list.forEach(function(p){ seen[p.name] = (seen[p.name] || 0) + 1; });
-    return '<div class="sof-quick"><span>Quick add:</span>' + list.map(function(p){ return '<button type="button" class="sof-chip" data-sof-add="' + esc(order.id + '|' + p.id) + '" title="' + esc(p.sku) + '">+ ' + esc((p.name.length > 34 ? p.name.slice(0, 32) + '\u2026' : p.name) + (seen[p.name] > 1 && p.sku ? ' \u00b7 ' + p.sku : '')) + '</button>'; }).join('') + '</div>';
-  }
   function bar(order){
     var f = flow(order), t = f.totals;
     var cost = typeof salesOrderCostSummary === 'function' ? salesOrderCostSummary(order) : null;
@@ -79,7 +73,7 @@
       '<div><dt>Paid</dt><dd>' + esc(cash(t.paid)) + '</dd></div>' +
       '<div><dt>Balance</dt><dd class="' + (t.gross - Number(t.paid || 0) > 0.005 ? 'owed' : '') + '">' + esc(cash(Math.max(0, t.gross - Number(t.paid || 0)))) + '</dd></div>' +
       (margin == null ? '' : '<div><dt>Margin</dt><dd class="' + (margin < 20 ? 'low' : '') + '">' + margin + '%</dd></div>') + '</dl>' +
-      '<button type="button" class="secondary sof-copy" data-sof-copy="' + esc(order.id) + '">Copy order</button></div>' + quickAdd(order, f) + '</section>';
+      '<button type="button" class="secondary sof-copy" data-sof-copy="' + esc(order.id) + '">Copy order</button></div></section>';
   }
 
   var previous = salesOrderDetail;
@@ -123,9 +117,8 @@
       '.sof-note,.sof-done{font-weight:600;opacity:.8}.sof-done{color:var(--color-status-success-text);opacity:1}' +
       '.sof-money{display:flex;flex-wrap:wrap;gap:6px 22px;margin:0;flex:1}.sof-money div{min-width:84px}.sof-money dt{font-size:12.5px;opacity:.7}.sof-money dd{margin:0;font-weight:700;font-size:16px;white-space:nowrap;font-variant-numeric:tabular-nums}.sof-money dd.owed{color:var(--color-status-danger-text)}.sof-money dd.low{color:var(--color-status-attention-text)}' +
       '.sof-copy{margin-left:auto}.sof-quiet{opacity:.7}' +
-      '.sof-quick{display:flex;flex-wrap:wrap;gap:6px;align-items:center;margin-top:12px;padding-top:10px;border-top:1px dashed var(--color-border-default)}.sof-quick>span{font-size:13px;font-weight:700;opacity:.75;margin-right:4px}.sof-chip{border:1px solid var(--color-border-default);background:transparent;border-radius:999px;padding:5px 11px;font-size:13px;cursor:pointer;min-height:32px;color:inherit}.sof-chip:hover{border-color:var(--color-action-ink)}' +
       '';
     document.head.appendChild(st);
   }
-  global.PoolShedOrderFlow = { flow: flow, bar: bar };
+  global.PoolShedOrderFlow = { flow: flow, bar: bar, oftenSold: oftenSold };  // v1.88: Quick add now sits under the product search
 })(typeof window !== 'undefined' ? window : globalThis);

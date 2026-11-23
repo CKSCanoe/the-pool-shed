@@ -15411,6 +15411,25 @@ td.ps-av-cell > div{min-width:0;display:grid}
 .so-customer-results-head { background: var(--color-surface-subtle) !important; backdrop-filter: none !important; }
 @media (max-width: 650px) { #screen-salesorders .sales-workspace .so-cp-compact .so-customer-search-row { flex-wrap: wrap; } #screen-salesorders .sales-workspace .so-cp-compact .so-new-customer-button { width: 100%; } }
 
+/* v1.88 Product search on a sales order: star favourites (shown first) and Quick add under the search */
+#screen-salesorders .so4-stock-results .so4-stock-head { padding: 7px 12px; border-bottom: 1px solid var(--color-border-default); background: var(--color-surface-subtle); color: var(--color-text-secondary); font-size: .86rem; font-weight: 700; }
+#screen-salesorders .so4-stock-results .so4-stock-row { display: flex; align-items: stretch; border-bottom: 1px solid var(--color-border-default); }
+#screen-salesorders .so4-stock-results .so4-stock-row:last-child { border-bottom: 0; }
+#screen-salesorders .so4-stock-results .so4-stock-row > [data-so-stock-product] { flex: 1 1 auto; width: auto; min-width: 0; border-bottom: 0; }
+#screen-salesorders .so4-stock-results .so4-stock-row > .so4-star { flex: 0 0 44px; width: 44px; min-height: 46px; justify-content: center; padding: 0; border: 0; border-left: 1px solid var(--color-border-subtle); color: var(--color-text-secondary); font-size: 1.3rem; line-height: 1; }
+#screen-salesorders .so4-stock-results .so4-stock-row > .so4-star:hover, #screen-salesorders .so4-stock-results .so4-stock-row > .so4-star:focus-visible { color: var(--color-status-attention); background: var(--color-status-attention-bg); }
+#screen-salesorders .so4-stock-results .so4-stock-row.fav > .so4-star { color: var(--color-status-attention); }
+#screen-salesorders .so4-quick { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; margin-top: 10px; }
+#screen-salesorders .so4-quick[hidden] { display: none; }
+#screen-salesorders .so4-quick .so4-quick-label { margin-right: 2px; color: var(--color-text-secondary); font-size: .86rem; font-weight: 700; }
+#screen-salesorders .so4-quick .so4-chip { min-height: 30px !important; height: auto !important; padding: 4px 10px !important; border: 1px solid var(--color-border-default) !important; border-radius: 999px !important; background: var(--color-surface-default) !important; color: var(--color-text-primary) !important; font-size: .86rem !important; font-weight: 500 !important; box-shadow: none !important; white-space: nowrap; }
+#screen-salesorders .so4-quick .so4-chip:hover { border-color: var(--color-action-primary) !important; background: var(--color-action-soft) !important; }
+#screen-salesorders .so4-quick .so4-chip.fav span { color: var(--color-status-attention); }
+#screen-salesorders .so4-quick .so4-quick-tip { color: var(--color-text-secondary); font-size: .86rem; }
+/* The results list hangs straight under the search box (an older script placed it against the window, which the page frame shifted off to the right) */
+#screen-salesorders .so4-search-wrap { position: relative; }
+#screen-salesorders .so4-search-wrap > .so4-stock-results { position: absolute !important; left: 0 !important; right: auto !important; top: calc(100% + 4px) !important; bottom: auto !important; width: max(100%, min(640px, 88vw)) !important; max-height: min(440px, 62vh) !important; overflow: auto !important; z-index: 60 !important; }
+
 
 /* ===== MODULE: system/68-pool-shed-kit.css ===== */
 /* Pool Shed design kit (v1.69 pilot) — module 68, loaded last.
