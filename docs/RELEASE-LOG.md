@@ -252,6 +252,7 @@ Owner-approved concept, release 3 of 3: Shopify-style one-page product editing w
 | PE6 | "All fields" opens the full record; Back returns to the new catalogue | **Checked on staging** | |
 | PE7 | Old catalogue table retired (functions and about 4 KB of styles); `test-catalogue-paging-v167`, `test-product-hub-visual-guard-v111` and `test-product-hub-command-v111` now check the new list and editor | **Updated** | Both pass |
 | PE8 | Release test | **New · Unit tested** | `test-product-editor-v193` |
+| PE9 | App release (PR #92) | **Deployed · verified on live** 23 Nov 2026 (Vercel check green; live cache `pool-shed-v1.93.0-editor-r1`; `product-editor.js` served) | Data unchanged since 21:27: 33 orders, 17 units of stock, 6,837 products, 26 purchase orders |
 
 ## New catalogue list, with reordering built in · v1.92.0 · branch `catalogue-list`
 
