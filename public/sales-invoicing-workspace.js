@@ -1,4 +1,4 @@
-/* Pool Shed v1.88.0 — Sales invoicing in the Pool Shed ledger (Operations O3).
+/* Pool Shed v1.89.0 — Sales invoicing in the Pool Shed ledger (Operations O3).
    Accounting → Invoice Ready · Customer Invoices · Payments & Allocations · Credit Control · Credits & Returns.
    Every money rule (prices, what may be invoiced, credits, payments) is enforced by the database (database/029);
    these screens only collect, show and confirm. Invoices are never edited: corrections are credit notes. */
@@ -97,6 +97,8 @@
   // Keep the order in step (status and invoice number) so the Sales screens show the ledger invoice.
   function markOrder(orderId, docNumber, docDate){
     var o = (DATA().salesOrders || []).find(function(x){ return String(x.id) === String(orderId); }); if (!o) return;
+    // v1.89: invoicing ships whatever has not gone yet (stock-flow.js)
+    try { if (global.PoolShedStockFlow) { var shipped = global.PoolShedStockFlow.shipOnInvoice(o); if (shipped.units) notify(shipped.units + ' item' + (shipped.units === 1 ? '' : 's') + ' shipped with the invoice' + (shipped.noStock ? ' (' + shipped.noStock + ' had no stock recorded)' : '') + '.'); } } catch (e) { console.warn('Ship with invoice skipped', e); }
     o.xeroRef = docNumber; o.invoiceSource = 'Ledger'; o.invoiceDate = docDate; o.status = 'Invoiced'; o.statusUpdatedAt = new Date().toISOString();
     o.invoiceEmailStatus = o.invoiceEmailStatus || 'Not sent';
     if (!Array.isArray(o.tags)) o.tags = []; if (o.tags.indexOf('Invoiced') < 0) o.tags.push('Invoiced');

@@ -238,6 +238,21 @@ Owner approved the blueprint 21 Nov 2026 (eight areas; Pool Audits under My Work
 
 ---
 
+## Stock connected to sales: ship when invoiced · v1.89.0 · branch `stock-flow`
+
+Owner: make sure stock allocation is the best process and all connected; custom orders should not hold an allocation. Owner chose "ship when invoiced" for normal phone and counter orders. Audit of live data (read only): no stock reserved on any order, none of the 134 units on invoiced or ready-to-invoice orders recorded as shipped, invoicing did not take stock off, all 108 custom and delivery lines marked "allocated" for their full quantity, 17 units of stock recorded in total.
+
+| # | Change | Status | Evidence |
+|---|---|---|---|
+| SF1 | Invoicing (local and ledger) ships what has not shipped: stock off the shelf from free stock after releasing the order's own reservation, never quarantine, receiving or returns hold; a locked shipped goods note kept for returns and credits; open pick notes replaced; shortfall shipped and noted on the order | **New · Tested in a real browser on staging** | Test stock of 5, 2 sold and reserved, invoiced: shelf 3, nothing reserved, goods note shipped, order Completed; lines with no shelf stock noted; staging put back |
+| SF2 | Non-stock lines (custom, delivery, not stock-controlled) hold no allocation; existing ones cleared automatically on first load (one save) | **Fixed · Tested on staging** | 112 non-stock lines on staging cleared; allocating one holds nothing |
+| SF3 | Stock reserved as soon as an item is added or its quantity raised, when free stock exists; order status not changed | **New · Tested on staging** | Added 2: reserved 2, status stayed Needs Review |
+| SF4 | A cancelled or completed order gives its reserved stock back (any route to Cancelled) | **Fixed · Tested on staging** | Cancelled: line and shelf reservation back to 0 |
+| SF5 | Order progress and "all shipped" count stock lines only, so orders with a custom line or delivery charge can reach Shipped and Completed | **Fixed · Tested on staging** | Test order with a delivery line reached Completed |
+| SF6 | Order bar: "Or invoice now: the goods ship with it" beside Allocate / Pick, pack and ship | **New · Tested on staging** | Link shown on an unallocated order |
+| SF7 | Release test | **New · Unit tested** | `test-stock-flow-v189` |
+| — | Not in this release: recording which shelf each reservation came from (one warehouse bin in use today); opening stock import | Proposed | Needs real stock counts first |
+
 ## Favourite products and Quick add under the search · v1.88.0 · branch `favourites`
 
 Owner: on a sales order's product catalogue panel, add star favourites that come top of the search, and move Quick add from the top of the order (clunky there) to the search.
@@ -248,6 +263,7 @@ Owner: on a sales order's product catalogue panel, add star favourites that come
 | FV2 | Quick add moved under the product search: favourites first, then the most often sold, with the SKU shown where two names match; removed from the order header and the hidden "Try:" row | **Tested in a real browser on staging** | A favourite button added one line to a test order; line removed afterwards |
 | FV3 | Results list anchored under the search box (an older script placed it against the window, so the page frame pushed it off to the right) | **Fixed · Tested in a real browser on staging** | List now starts at the search box's left edge, stars visible |
 | FV4 | Release test | **New · Unit tested** | `test-favourites-v188` (ranking: favourites first, exact SKU still first, empty search lists favourites) |
+| FV5 | App release (PR #87) | **Deployed · verified on live** 23 Nov 2026 (Vercel check green; live cache `pool-shed-v1.88.0-favourites-r1`; new search file served) | Last save before the release was normal staff use (19:46, release live 20:04); no product starred yet |
 
 ## A tidier customer box on sales orders · v1.87.0 · branch `customer-box`
 
