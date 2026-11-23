@@ -238,6 +238,17 @@ Owner approved the blueprint 21 Nov 2026 (eight areas; Pool Audits under My Work
 
 ---
 
+## Add a customer or supplier from the order · v1.86.0 · branch `quick-add`
+
+Owner: improve adding the customer and supplier when setting up a sales order or purchase order. Finding: a search-as-you-type customer picker with "+ Add customer", a short side panel and a duplicate check already existed, but had silently stopped appearing when the order's customer card was redesigned (it looked for the old card's markup), so orders showed a plain list; purchase orders had a plain supplier list with no way to add one.
+
+| # | Change | Status | Evidence |
+|---|---|---|---|
+| QA1 | Sales order customer card uses the search picker again (and it is wired whenever it appears, as the new page no longer calls the old set-up step) | **Fixed · Tested in a real browser on staging** | Typing a surname listed the matching customer; an unknown name showed "+ Add customer" |
+| QA2 | "+ Add customer" side panel: name pre-filled, duplicate warning on email or phone with "use this customer", created and attached to the order with its delivery address; price list follows the customer type | **Tested in a real browser on staging** | New test customer created and attached to a new order with the address entered; an order linked to another customer's project correctly kept its customer; test order and customer removed |
+| QA3 | Purchase order supplier list ends with "+ New supplier…": short in-app form (name, orders email, phone, contact, account number, payment terms, lead time), duplicate check on name, email or account number, created like the full supplier form and put on the order | **New · Tested in a real browser on staging** | Existing name caught; new supplier created with Net 14 and 5 days and put on PO-1052; put back and removed afterwards |
+| QA4 | Release test | **New · Unit tested** | `test-quick-add-v186` |
+
 ## Overhaul phase 5: wording and style trim · v1.85.0 · branch `overhaul-5`
 
 | # | Change | Status | Evidence |
@@ -246,6 +257,7 @@ Owner approved the blueprint 21 Nov 2026 (eight areas; Pool Audits under My Work
 | OW2 | Style trim: 735 declarations removed (about 20 KB) that a later rule for exactly the same selector, in the same media context, always overrode (never relying on a value some browsers might not understand); app.css 1,103,884 → 1,076,749 bytes; budget back to 1,100,000 | **New · Tested in a real browser on staging** | Every menu page in light and dark mode plus a sales order, purchase order, product, project and the quote editor compared element by element, old stylesheet against new |
 | OW3 | Tests that checked old wording or the always-overridden lines updated to the wording and values that apply (project table scrolls at 1,060px; order lines at 1,440px) | **Changed** | `test-analytics-command-workspace-v117`, `test-fulfilment-command-workspace-v113`, `test-production-readiness-workspace-v120`, `test-supplier-command-workspace-v115`, `test-dashboard-data-fit`, `test-sales-order-quantity-layout-v158` |
 | OW4 | Release log for v1.84 (PR #83) | **Deployed · verified on live** | Live cache `pool-shed-v1.84.0-overhaul4-r1`; data unchanged |
+| OW5 | App release (PR #84) | **Deployed · verified on live** 23 Nov 2026 (Vercel check green; live cache `pool-shed-v1.85.0-overhaul5-r1`) | Data unchanged |
 
 ## Overhaul phase 4: flows · v1.84.0 · branch `overhaul-4`
 

@@ -511,7 +511,36 @@
     names.sort(function(a,b){return a.localeCompare(b);});
     return '<option value="">Select supplier</option>' + names.map(function(name){
       return '<option value="' + poEsc(name) + '"' + (name===current?' selected':'') + '>' + poEsc(name) + '</option>';
-    }).join('');
+    }).join('') + '<option value="__new_supplier__">+ New supplier…</option>';
+  }
+  // v1.86: add a supplier without leaving the purchase order. Only the essentials; the rest can be filled in on the
+  // supplier's profile later. Warns about an existing supplier with the same name, email or account number.
+  async function poQuickAddSupplier(poId){
+    const d=data,list=(d.suppliers||[]),norm=function(v){return String(v||'').trim().toLowerCase();};
+    const terms=['Net 30','Net 14','Net 7','Net 60','Net EOM','30 days EOM','Pro Forma','Card on order','Cash on delivery'];
+    const v=await poAsk({title:'New supplier',message:'Add the essentials now. Everything else can be added on the supplier’s profile later.',fields:[
+      {name:'name',label:'Supplier / trading name',type:'text',required:true},
+      {name:'ordersEmail',label:'Orders email (where purchase orders are sent)',type:'email'},
+      {name:'phone',label:'Telephone',type:'tel'},
+      {name:'contact',label:'Contact name',type:'text'},
+      {name:'accountNumber',label:'Our account number with them',type:'text'},
+      {name:'terms',label:'Payment terms',type:'select',value:'Net 30',options:terms},
+      {name:'leadTimeDays',label:'Usual lead time (days)',type:'number',min:'0',step:'1',value:'3'}],
+      confirmLabel:'Add supplier and use it',
+      validate:function(x){const n=norm(x.name),e=norm(x.ordersEmail),a=norm(x.accountNumber);const dup=list.find(function(s){return (n&&norm(s.name)===n)||(e&&(norm(s.ordersEmail)===e||norm(s.email)===e))||(a&&norm(s.accountNumber)===a);});
+        if(dup)return 'This looks like '+dup.name+', who is already a supplier. Pick them from the list instead.';
+        if(x.ordersEmail&&!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(x.ordersEmail.trim()))return 'That orders email does not look right.';return '';}});
+    if(!v){ if(typeof render==='function')render(); return; }
+    const name=String(v.name).trim().replace(/\s+/g,' '),now=new Date().toISOString(),email=String(v.ordersEmail||'').trim().toLowerCase(),phone=String(v.phone||'').trim();
+    const s={name:name,legalName:name,code:name.toUpperCase().replace(/[^A-Z0-9]+/g,'-').replace(/^-|-$/g,''),status:'Active',preferred:false,contact:String(v.contact||'').trim(),contactRole:'Primary contact',phone:phone,mobile:'',email:email,ordersEmail:email,accountsEmail:'',returnsEmail:'',
+      address:{line1:'',line2:'',city:'',county:'',postcode:'',country:'United Kingdom'},country:'United Kingdom',accountNumber:String(v.accountNumber||'').trim(),accountType:/pro forma|card|cash/i.test(v.terms)?'Pro Forma':'Credit',terms:v.terms||'Net 30',creditLimit:0,
+      leadTimeDays:Math.max(0,Number(v.leadTimeDays||0)),minimumOrder:0,freeCarriageThreshold:0,currency:'GBP',orderMethod:'Email',deliveryTerms:'',notes:'',createdAt:now,updatedAt:now,createdFrom:'Purchase order '+poId,
+      contacts:String(v.contact||'').trim()&&(email||phone)?[{name:String(v.contact).trim(),role:'Primary contact',email:email,phone:phone}]:[]};
+    d.suppliers=Array.isArray(d.suppliers)?d.suppliers:[];d.suppliers.push(s);
+    if(typeof ensureSupplierProfiles==='function')try{ensureSupplierProfiles();}catch(_){}
+    if(typeof saveAppData==='function')saveAppData();
+    changePurchaseOrderSupplier(poId,name);
+    if(typeof toast==='function')toast(name+' added as a supplier and put on '+poId+'.');
   }
 
   function changePurchaseOrderSupplier(poId,newSupplier) {
@@ -1361,7 +1390,7 @@
       if(typeof render==='function')render();
     });});
     document.querySelectorAll('[data-po-open-receiving]').forEach(function(button){button.addEventListener('click',function(){selectedGoodsInPoId=button.dataset.poOpenReceiving;warehousePoView='list';active='warehouse';activeSubPage.warehouse='Inbound';if(typeof toast==='function')toast('Opened easy booking-in for ' + selectedGoodsInPoId + '.');if(typeof render==='function')render();});});
-    document.querySelectorAll('[data-po-supplier-change]').forEach(function(select){select.addEventListener('change',function(){changePurchaseOrderSupplier(select.dataset.poSupplierChange,select.value);});});
+    document.querySelectorAll('[data-po-supplier-change]').forEach(function(select){select.addEventListener('change',function(){if(select.value==='__new_supplier__'){poQuickAddSupplier(select.dataset.poSupplierChange);return;}changePurchaseOrderSupplier(select.dataset.poSupplierChange,select.value);});});
     document.querySelectorAll('[data-po-line-cost]').forEach(function(input){input.addEventListener('change',function(){saveLineField(input.dataset.poLineCost,'unitCost',Math.max(0,Number(input.value||0)));if(typeof render==='function')render();});});
     document.querySelectorAll('[data-po-open-sales-order]').forEach(function(button){button.addEventListener('click',function(){selectedSalesOrderId=button.dataset.poOpenSalesOrder;salesOrderView='detail';if(typeof salesOrderTab!=='undefined')salesOrderTab='connections';activeSubPage.salesorders='Sales Orders';active='salesorders';if(typeof render==='function')render();});});
     document.querySelectorAll('[data-po-open-supplier-funding]').forEach(function(button){button.addEventListener('click',function(){const supplier=button.dataset.poOpenSupplierFunding||'';if(typeof globalThis.openSupplierCommand==='function'){globalThis.openSupplierCommand(supplier,'Overview');return;}selectedSupplierName=supplier;purchaseOrderView='supplier-profile';activeSubPage.purchase='Suppliers';active='purchase';if(typeof render==='function')render();});});
