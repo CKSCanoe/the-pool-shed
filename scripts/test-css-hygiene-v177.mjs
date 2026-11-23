@@ -63,7 +63,7 @@ for (const f of fs.readdirSync(dir).filter(f => f.endsWith('.css')).sort()) {
   if (hex.length) problems.push(f + ': fixed colour ' + hex.slice(0, 3).join(', ') + ' — use a --color-* token from 00-color-tokens.css');
   if (WRITE) fs.writeFileSync(path.join(dir, f), out);
 }
-const size = fs.statSync(path.join(ROOT, 'public/assets/css/app.css')).size, BUDGET = 1100000;   // v1.85: back to 1.1 MB after the phase 5 trim (1.08 MB)
+const size = fs.statSync(path.join(ROOT, 'public/assets/css/app.css')).size, BUDGET = 1120000;   // v1.85: back to 1.1 MB after the phase 5 trim (1.08 MB); v1.92: 1.12 MB for the premium shell and new catalogue until the old catalogue table is retired with the product editor
 if (size > BUDGET) problems.push('app.css is ' + size + ' bytes, over the ' + BUDGET + ' budget');
 const kit = fs.readFileSync(path.join(dir, '68-pool-shed-kit.css'), 'utf8');
 if (/:is\(#screen-dashboard/.test(kit)) problems.push('68-pool-shed-kit.css: use .ps-kit-scope:not(#ps-kit-none) instead of the long screen list');

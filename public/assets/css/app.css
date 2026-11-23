@@ -15530,6 +15530,75 @@ body .app.dashboard-mode .topbar :is(.notification-button, .theme-toggle, .icon-
 body[data-theme="dark"] .main .topbar .breadcrumb { background: transparent !important; color: var(--color-text-secondary) !important; }
 
 
+/* ===== MODULE: system/78-catalogue.css ===== */
+/* v1.92 Catalogue list: product families with fold-out variants, tabs, chips, kept-in-stock mark, needs ordering */
+body #screen-products .cl-page { display: grid; gap: 14px; }
+body #screen-products .cl-head { display: flex; flex-wrap: wrap; align-items: flex-end; justify-content: space-between; gap: 12px; }
+body #screen-products .cl-head h2 { margin: 0; font-size: 1.85rem; letter-spacing: -.02em; }
+body #screen-products .cl-head p { margin: 2px 0 0; color: var(--color-text-secondary); }
+body #screen-products .cl-head-actions { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
+body #screen-products .cl-card { overflow: hidden; border-radius: 14px; background: var(--color-surface-default); box-shadow: 0 1px 2px var(--card-ring), 0 0 0 1px var(--card-ring); }
+body #screen-products .cl-tabs { display: flex; flex-wrap: wrap; gap: 2px; padding: 6px 10px 0; border-bottom: 1px solid var(--color-border-subtle); }
+body #screen-products .cl-card .cl-tabs button { appearance: none !important; border: 0 !important; border-bottom: 2px solid transparent !important; background: none !important; padding: 10px 12px !important; color: var(--color-text-secondary) !important; font: inherit !important; font-size: .93rem !important; cursor: pointer !important; }
+body #screen-products .cl-card .cl-tabs button.on { color: var(--color-text-primary) !important; font-weight: 600 !important; border-bottom-color: var(--color-action-primary) !important; }
+body #screen-products .cl-tabs em { margin-left: 6px; padding: 0 7px; border-radius: 999px; background: var(--color-surface-subtle); color: var(--color-text-secondary); font-style: normal; font-size: .86rem; }
+body #screen-products .cl-bar { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; padding: 10px 12px; border-bottom: 1px solid var(--color-border-subtle); }
+body #screen-products .cl-search { flex: 1 1 280px; min-width: 200px; }
+body #screen-products .cl-chip { position: relative; display: inline-flex; align-items: center; }
+body #screen-products .cl-card .cl-bar .cl-chip select.cl-chip-select { appearance: none; padding: 6px 12px !important; min-height: 32px !important; border-radius: 999px !important; border: 1px dashed var(--color-border-strong) !important; background: var(--color-surface-default) !important; color: var(--color-text-secondary) !important; font-size: .86rem !important; cursor: pointer; }
+body #screen-products .cl-card .cl-bar .cl-chip.on select.cl-chip-select { border-style: solid !important; border-color: var(--color-action-line) !important; background: var(--color-action-soft) !important; color: var(--color-action-ink) !important; padding-right: 28px !important; }
+body #screen-products .cl-chip-x { position: absolute; right: 6px; appearance: none; border: 0; background: none; color: var(--color-action-ink); font-size: .86rem; cursor: pointer; padding: 2px; }
+body #screen-products .cl-bulk { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; padding: 8px 12px; background: var(--color-action-soft); border-bottom: 1px solid var(--color-action-line); }
+body #screen-products .cl-table-wrap { overflow-x: auto; }
+body #screen-products .cl-table { width: 100%; border-collapse: collapse; font-size: .93rem; }
+body #screen-products .cl-table th { padding: 9px 10px; text-align: left; font-weight: 500; font-size: .86rem; color: var(--color-text-secondary); background: var(--color-surface-subtle); border-bottom: 1px solid var(--color-border-subtle); white-space: nowrap; }
+body #screen-products .cl-table td { padding: 8px 10px; border-bottom: 1px solid var(--color-border-subtle); vertical-align: middle; }
+body #screen-products .cl-table .num { text-align: right; font-variant-numeric: tabular-nums; white-space: nowrap; }
+body #screen-products .cl-table .cl-check { width: 34px; }
+body #screen-products .cl-var td { background: var(--color-surface-subtle); }
+body #screen-products .cl-sort { appearance: none; border: 0; background: none; padding: 0; font: inherit; color: inherit; cursor: pointer; }
+body #screen-products .cl-sort.on { color: var(--color-text-primary); }
+body #screen-products .cl-name { appearance: none; display: flex; align-items: center; gap: 10px; border: 0; background: none; padding: 0; font: inherit; color: inherit; text-align: left; cursor: pointer; min-width: 0; }
+body #screen-products .cl-name:hover .cl-title b, body #screen-products .cl-var-name:hover { color: var(--color-action-ink); }
+body #screen-products .cl-var-name { padding-left: 74px; }
+body #screen-products .cl-var-name small { color: var(--color-text-secondary); margin-left: 4px; }
+body #screen-products .cl-caret { width: 12px; color: var(--color-text-secondary); flex: 0 0 auto; }
+body #screen-products .cl-thumb { flex: 0 0 38px; width: 38px; height: 38px; border-radius: 10px; object-fit: cover; background: var(--color-surface-subtle); }
+body #screen-products .cl-thumb-text { display: grid; place-items: center; background: linear-gradient(145deg, var(--color-action-soft), var(--color-accent-secondary-soft)); color: var(--color-action-ink); font-size: .86rem; font-weight: 700; }
+body #screen-products .cl-title { display: grid; min-width: 0; }
+body #screen-products .cl-title b { font-weight: 600; color: var(--color-text-primary); }
+body #screen-products .cl-title small { color: var(--color-text-secondary); font-size: .86rem; }
+body #screen-products .cl-keep { display: inline-grid; place-items: center; width: 18px; height: 18px; margin-left: 6px; border-radius: 5px; vertical-align: 1px; background: linear-gradient(145deg, var(--brand-grad-start), var(--color-action-primary)); color: var(--color-text-inverse); font-size: .86rem; line-height: 1; }
+body #screen-products .cl-pill { display: inline-block; padding: 2px 9px; border-radius: 999px; font-size: .86rem; font-weight: 500; white-space: nowrap; }
+body #screen-products .cl-pill.good { background: var(--color-status-success-bg); color: var(--color-status-success-text); }
+body #screen-products .cl-pill.muted { background: var(--color-surface-subtle); color: var(--color-text-secondary); }
+body #screen-products .cl-stock { display: inline-block; min-width: 28px; padding: 1px 8px; border-radius: 999px; text-align: center; font-weight: 600; }
+body #screen-products .cl-stock.good { background: var(--color-status-success-bg); color: var(--color-status-success-text); }
+body #screen-products .cl-stock.warn { background: var(--color-status-attention-bg); color: var(--color-status-attention-text); }
+body #screen-products .cl-stock.bad { background: var(--color-status-danger-bg); color: var(--color-status-danger-text); }
+body #screen-products .cl-need { display: inline-block; padding: 2px 9px; border-radius: 999px; font-size: .86rem; font-weight: 600; white-space: nowrap; background: var(--color-status-attention-bg); color: var(--color-status-attention-text); box-shadow: inset 0 0 0 1px var(--color-status-attention-line); }
+body #screen-products .cl-dim { color: var(--color-text-secondary); font-size: .86rem; }
+body #screen-products .cl-pager { display: flex; justify-content: flex-end; align-items: center; gap: 8px; padding: 10px 12px; color: var(--color-text-secondary); font-size: .93rem; }
+body #screen-products .cl-legend { margin: 0; padding: 10px 12px; border-top: 1px solid var(--color-border-subtle); color: var(--color-text-secondary); font-size: .86rem; }
+body #screen-products .cl-empty { display: grid; gap: 4px; padding: 28px 16px; text-align: center; color: var(--color-text-secondary); }
+body #screen-products .cl-empty strong { color: var(--color-text-primary); }
+body #screen-products .cl-order-head { display: flex; flex-wrap: wrap; justify-content: space-between; align-items: center; gap: 10px; padding: 12px 14px; border-bottom: 1px solid var(--color-border-subtle); }
+body #screen-products .cl-order-head > div:first-child { display: grid; gap: 2px; }
+body #screen-products .cl-order-head small { color: var(--color-text-secondary); }
+body #screen-products .cl-sup { border-bottom: 1px solid var(--color-border-subtle); }
+body #screen-products .cl-sup header { display: flex; flex-wrap: wrap; align-items: center; gap: 10px; padding: 12px 14px 8px; }
+body #screen-products .cl-sup header b { font-size: 1.07rem; }
+body #screen-products .cl-sup header small { color: var(--color-text-secondary); }
+body #screen-products .cl-sup-total { margin-left: auto; color: var(--color-text-secondary); font-size: .93rem; }
+body #screen-products .cl-qty { width: 76px !important; text-align: right; }
+
+body #screen-products .cl-card .cl-bar .cl-chip select.cl-chip-select { width: auto !important; max-width: 220px; }
+body #screen-products .cl-card .cl-bar .cl-search { min-height: 36px !important; }
+body #screen-products .cl-card .cl-table .cl-name { white-space: normal !important; width: auto !important; max-width: 100%; height: auto !important; min-height: 0 !important; }
+body #screen-products .cl-card .cl-table td:nth-child(2) { min-width: 280px; max-width: 520px; }
+body #screen-products .cl-card .cl-title b { display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+
+
 /* ===== MODULE: system/68-pool-shed-kit.css ===== */
 /* Pool Shed design kit (v1.69 pilot) — module 68, loaded last.
    v1.77: rules start .ps-kit-scope:not(#ps-kit-none) — the :not(#id) gives the same id-level strength the old

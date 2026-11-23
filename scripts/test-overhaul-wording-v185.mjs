@@ -27,5 +27,5 @@ for (let k = rules.length - 1; k >= 0; k--) { const r = rules[k], ds = r.body.sp
   ds.forEach(d => { const key = r.ctx + '\0' + r.sel + '\0' + d.prop, later = seen.get(key), safe = !/-webkit-|-moz-|-ms-|\b[dsl]v[hw]\b|cq[whib]|color-mix|oklch|:has\(|anchor/i.test(d.val) && !/^-/.test(d.prop);
     seen.set(key, later ? { imp: later.imp || d.imp, safe: later.safe && safe } : { imp: d.imp, safe }); }); }
 assert.ok(dead <= 5, 'always-overridden declarations crept back (' + dead + '): ' + ex.join(' / '));
-const size = fs.statSync('public/assets/css/app.css').size; assert.ok(size < 1095000, 'app.css ' + size + ' bytes (was 1,103,884 before the trim; v1.91 premium shell added about 6 KB)');
+const size = fs.statSync('public/assets/css/app.css').size; assert.ok(size < 1110000, 'app.css ' + size + ' bytes (was 1,103,884 before the trim; v1.91 premium shell and v1.92 catalogue added about 13 KB)');
 console.log('Overhaul 5 v1.85: plain English on every page, always-overridden styles removed (app.css ' + size + ' bytes).');
