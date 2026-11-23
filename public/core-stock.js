@@ -1,4 +1,4 @@
-/* Pool Shed v1.86.0 — Core stock (blueprint step 6).
+/* Pool Shed v1.87.0 — Core stock (blueprint step 6).
    Pool Bros buys most things to order and keeps a smaller range on the shelf. This page is where that range is chosen:
    for each product, "keep in stock" with a reorder point and an order-up-to level, singly or in bulk, with suggested
    levels from what has actually sold. Only kept lines appear on the reorder list (Product Hub → Replenishment), which

@@ -238,6 +238,17 @@ Owner approved the blueprint 21 Nov 2026 (eight areas; Pool Audits under My Work
 
 ---
 
+## A tidier customer box on sales orders · v1.87.0 · branch `customer-box`
+
+Owner feedback on v1.86 (screenshot): the customer box on a sales order did not look user friendly. The picker had been built for a wide page and was now inside the small customer card: a repeated "Customer" heading, a squashed search field with a misleading "⌘K" badge, a "currently linked" line repeating the card, and a results list clipped by the card.
+
+| # | Change | Status | Evidence |
+|---|---|---|---|
+| CB1 | One search line ("Change customer…" and "+ New customer") under the customer's name; repeated heading, badge and linked line removed, with their unused styles | **Fixed · Tested in a real browser on staging** | Screenshot of SO card; no old parts in the page |
+| CB2 | Results drop down over the page (the card was clipping them) and are wide enough to read; plainer wording; Esc closes | **Fixed · Tested in a real browser on staging** | Typing "th" listed 3 customers over the order lines; a nonsense name showed "No customer found" with "+ Add customer" |
+| CB3 | Release test | **New · Unit tested** | `test-customer-box-v187` |
+| QA5 | v1.86 app release (PR #85) | **Deployed** 23 Nov 2026 | Merged; this release follows it |
+
 ## Add a customer or supplier from the order · v1.86.0 · branch `quick-add`
 
 Owner: improve adding the customer and supplier when setting up a sales order or purchase order. Finding: a search-as-you-type customer picker with "+ Add customer", a short side panel and a duplicate check already existed, but had silently stopped appearing when the order's customer card was redesigned (it looked for the old card's markup), so orders showed a plain list; purchase orders had a plain supplier list with no way to add one.

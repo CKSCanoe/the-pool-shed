@@ -79,6 +79,7 @@ run_node_stage "workspace and sales safety" \
   test-overhaul-flows-v184.mjs \
   test-overhaul-wording-v185.mjs \
   test-quick-add-v186.mjs \
+  test-customer-box-v187.mjs \
   test-workspace-audit-v1451.mjs \
   test-commercial-audits-v146.mjs \
   test-audit-device-recovery.mjs \
