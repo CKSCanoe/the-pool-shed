@@ -238,6 +238,20 @@ Owner approved the blueprint 21 Nov 2026 (eight areas; Pool Audits under My Work
 
 ---
 
+## Overhaul phase 3: record pages · v1.83.0 · branch `overhaul-3`
+
+Finding: the sales order already had the target pattern (progress line and one next-step button, v1.53); the purchase order had status, health and summary cards but no progress line or next step; line thumbnails existed on both but showed "PB" letters even where a picture existed (purchase orders could not show secure pictures at all); the six record headers each had their own look, the supplier's a dark banner.
+
+| # | Change | Status | Evidence |
+|---|---|---|---|
+| OR1 | Purchase order progress line and next step (`purchase-order-flow.js`), using the existing status picker, Email / Print, Book delivery and Cost & payments; statuses that do not exist are never set | **New · Tested in a real browser on staging** | PO-1052: Drafted done, Approved current; "Approve order" set Ready to Order and the next step became "Send to supplier"; status put back afterwards |
+| OR2 | Line pictures on sales and purchase orders through the shared picture helper (secure pictures included); icon fallback: box, tool for custom lines, van for delivery | **New · Tested in a real browser on staging** | Custom lines on PO-1052 show the tool icon |
+| OR3 | One light header card (same border, corners, padding and title size) for sales orders, purchase orders, customers, products, projects and suppliers; supplier banner no longer dark | **New · Tested in a real browser on staging** | All six opened in light and dark mode: no unreadable text (flags were a checker limitation with newer colour formats; inspected by hand) |
+| OR4 | Sales order flow bar colours from the palette (it had fixed teal, orange and dark-mode overrides) | **Changed · Unit tested** | `test-overhaul-records-v183` |
+| OR5 | Stylesheet budget raised 1,100,000 → 1,150,000 bytes for the overhaul styles; trimming the old compatibility file is planned for phase 5 | **Changed** | `test-css-hygiene-v177` |
+| OR6 | Staging only: removed an empty test order (SO-2068) created during earlier staging checks | **Housekeeping** | Live untouched |
+| OR7 | Release log for v1.82 (PR #81) | **Deployed · verified on live** | Live cache `pool-shed-v1.82.0-overhaul2-r1`; data unchanged |
+
 ## Overhaul phase 2: lists · v1.82.0 · branch `overhaul-2`
 
 | # | Change | Status | Evidence |

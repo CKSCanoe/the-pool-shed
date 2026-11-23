@@ -487,17 +487,18 @@
     return Math.max(2,rows);
   }
 
+  // v1.83: the product's own picture (stored or secure), else an icon: a box for products, a tool for one-off custom lines
   function so5ProductThumb(p) {
-    if (!p || !p.id || String(p.id).indexOf('CUSTOM-')===0) return '<span class="so5-line-thumb"><span aria-hidden="true">PB</span></span>';
-    let url='';
-    try {
-      if (window.PoolShedProductImages) {
-        url=window.PoolShedProductImages.variantImageUrl(p) || window.PoolShedProductImages.parentImageUrl(p) || '';
-      }
-    } catch (_) {}
-    if (!url) url=p.variantImageUrl || p.variant_image_url || p.imageUrl || p.image_url || '';
-    return '<span class="so5-line-thumb">' + (url ? '<img src="' + escapeHtml(url) + '" alt="" loading="lazy" decoding="async">' : '<span aria-hidden="true">PB</span>') + '</span>';
+    const icon=function(n){ return window.PoolShedIcon ? window.PoolShedIcon(n, { size: 18 }) : ''; };
+    if (!p || !p.id || /^(CUSTOM|SHIP)-/i.test(String(p.id)) || p.virtual) return '<span class="so5-line-thumb is-icon">' + icon(/^SHIP/i.test(String(p && p.id || '')) ? 'truck' : 'tool') + '</span>';
+    const PI=window.PoolShedProductImages;let source='';
+    try { if (PI) source=PI.variantImageUrl(p) || PI.parentImageUrl(p) || ''; } catch (_) {}
+    if (!source) source=p.variantImageUrl || p.variant_image_url || p.imageUrl || p.image_url || '';
+    if (!source) return '<span class="so5-line-thumb is-icon">' + icon('package') + '</span>';
+    if (PI && PI.markup) return '<span class="so5-line-thumb">' + PI.markup(p, { mode: 'variant', className: 'line-thumb-img', size: 'sm', alt: '' }) + '</span>';
+    return '<span class="so5-line-thumb"><img src="' + escapeHtml(source) + '" alt="" loading="lazy" decoding="async"></span>';
   }
+
 
   function so2LineRows(order) {
     return order.lines.map(function(line) {

@@ -68,12 +68,17 @@
     return 'Paid';
   }
 
+  // v1.83: same pictures as the sales order lines: the product's own (stored or secure), else a box icon
   function poProductThumb(p) {
-    const image=p&&(p.image||p.imageUrl||p.thumbnail||p.photo);
-    return image
-      ? '<span class="po-line-thumb has-image" style="background-image:url(&quot;' + poEsc(image) + '&quot;)"></span>'
-      : '<span class="po-line-thumb">PB</span>';
+    const icon=function(n){ return globalThis.PoolShedIcon ? globalThis.PoolShedIcon(n, { size: 18 }) : ''; };
+    const PI=globalThis.PoolShedProductImages;let source='';
+    try { if (PI&&p) source=PI.variantImageUrl(p) || PI.parentImageUrl(p) || ''; } catch (_) {}
+    if (!source) source=p&&(p.image||p.imageUrl||p.thumbnail||p.photo)||'';
+    if (!source) return '<span class="po-line-thumb is-icon">' + icon('package') + '</span>';
+    if (PI && PI.markup) return '<span class="po-line-thumb has-image">' + PI.markup(p, { mode: 'variant', className: 'line-thumb-img', size: 'sm', alt: '' }) + '</span>';
+    return '<span class="po-line-thumb has-image" style="background-image:url(&quot;' + poEsc(source) + '&quot;)"></span>';
   }
+
 
   function poLineVat(line,p,net) {
     if(typeof vatAmount==='function') return Number(vatAmount(net,{taxCode:line.taxCode||p.taxCode||'20% VAT'})||0);
@@ -699,7 +704,7 @@
       const correction=!check.allowed&&!completedCorrection.allowed ? poReceivedLineCorrectionAssessment(po,line) : {allowed:false,reason:''};
       const menuId='po-line-menu-' + String(po.id+'-'+index).replace(/[^a-z0-9_-]/gi,'-');
       const custom=poIsCustomPurchaseLine(line);
-      return '<tr class="po-line-row' + (custom?' po-custom-line-row':'') + '"><td class="po-product-cell"><div class="po-line-product">' + (custom?'<span class="po-line-thumb po-custom-thumb">PO</span>':poProductThumb(p)) + '<div><strong>' + poEsc(p.name || p.sku || 'Product') + '</strong><small>' + (custom?'<span class="po-custom-line-badge">CUSTOM PO LINE</span> · '+poEsc(line.uom||'each')+(line.description?' · '+poEsc(line.description):''):poEsc(p.sku || line.productId || '')) + '</small></div></div></td>' +
+      return '<tr class="po-line-row' + (custom?' po-custom-line-row':'') + '"><td class="po-product-cell"><div class="po-line-product">' + (custom?'<span class="po-line-thumb po-custom-thumb is-icon">'+(globalThis.PoolShedIcon?globalThis.PoolShedIcon('tool',{size:18}):'')+'</span>':poProductThumb(p)) + '<div><strong>' + poEsc(p.name || p.sku || 'Product') + '</strong><small>' + (custom?'<span class="po-custom-line-badge">CUSTOM PO LINE</span> · '+poEsc(line.uom||'each')+(line.description?' · '+poEsc(line.description):''):poEsc(p.sku || line.productId || '')) + '</small></div></div></td>' +
         '<td><strong>' + poEsc(line.supplierSku || p.supplierSku || '—') + '</strong><small>' + poEsc(custom?(line.purchaseCategory||'Custom purchase'):(p.brand || p.category || 'Supplier item')) + (custom&&line.internalNote?'<br>'+poEsc(line.internalNote):'') + '</small></td>' +
         '<td><button type="button" class="link-button" data-po-command-tab="connections|' + poEsc(po.id) + '">' + poEsc(demand) + '</button></td>' +
         '<td><div class="po-receiving-cell"><strong>' + Number(line.received || 0) + ' / ' + qty + '</strong><small>' + pending + ' outstanding' + (custom?' · non-stock':'') + '</small></div></td>' +
