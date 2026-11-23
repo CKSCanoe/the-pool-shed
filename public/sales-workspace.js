@@ -675,15 +675,20 @@
     if(typeof render==='function')render();
   }
 
-  function so2RemoveSalesOrderLine(order,line,assessment) {
-    const p=product(line.productId)||{},label=line.description||line.customProductName||p.name||line.productId,reason=String(prompt('Reason for removing “'+label+'” from '+order.id+' (required)')||'').trim();
-    if(!reason){ if(typeof toast==='function')toast('A removal reason is required.'); return; }
-    let warning='Undo “'+label+'” from '+order.id+'?';
+  // v1.84: one dialog (what will happen + the reason) instead of a browser prompt followed by a browser confirm
+  function so2AskRemoval(title,warning){
+    if(typeof window!=='undefined'&&window.PoolShedDialog)return window.PoolShedDialog.ask({title:title,message:warning,fields:[{name:'reason',label:'Reason (kept in the history)',type:'textarea',required:true,rows:2}],confirmLabel:'Remove',danger:true}).then(function(v){return v?String(v.reason).trim():'';});
+    const reason=String(prompt(title+' — reason (required)')||'').trim();return Promise.resolve(reason&&confirm(warning)?reason:'');
+  }
+  async function so2RemoveSalesOrderLine(order,line,assessment) {
+    const p=product(line.productId)||{},label=line.description||line.customProductName||p.name||line.productId;
+    let warning='“'+label+'” will be removed from '+order.id+'.';
     if(!isNonStockSalesLine(line)&&Number(line.allocated||0)>0)warning+=' Allocated stock will be released.';
     if((assessment.linkedGoodsNotes||[]).length)warning+=' Open pick/pack activity will be removed.';
     if(assessment.linkedPoLines.length)warning+=' '+assessment.linkedPoLines.length+' unreceived linked PO line'+(assessment.linkedPoLines.length===1?'':'s')+' will also be removed and retained in PO history.';
     warning+=' The original entry and the reason for undoing it will remain in the audit history.';
-    if(!confirm(warning))return;
+    const reason=await so2AskRemoval('Remove line',warning);
+    if(!reason)return;
     const removed=so2ApplySalesOrderLineRemoval(order,line,assessment,reason);
     so2FinishSalesOrderLineRemoval(order,[removed]);
   }
@@ -710,7 +715,7 @@
     });
   }
 
-  function so2RemoveSelectedSalesOrderLines(orderId) {
+  async function so2RemoveSelectedSalesOrderLines(orderId) {
     const order=(data.salesOrders||[]).find(function(row){return String(row.id)===String(orderId);}),selected=so2SelectedSalesOrderLines(orderId);
     if(!order||!selected.length){if(typeof toast==='function')toast('Tick one or more order lines first.');return;}
     const checks=selected.map(function(line){return {line:line,assessment:so2SalesLineDeleteAssessment(order,line)};});
@@ -720,17 +725,16 @@
       if(typeof toast==='function')toast('Cannot delete selected lines: '+label+'. '+blocked[0].assessment.reason);
       return;
     }
-    const reason=String(prompt('Reason for deleting '+selected.length+' selected line'+(selected.length===1?'':'s')+' from '+order.id+' (required)')||'').trim();
-    if(!reason){if(typeof toast==='function')toast('A removal reason is required.');return;}
     const allocationCount=selected.filter(function(line){return !isNonStockSalesLine(line)&&Number(line.allocated||0)>0;}).length;
     const fulfilmentCount=checks.filter(function(row){return (row.assessment.linkedGoodsNotes||[]).length>0;}).length;
     const poCount=checks.reduce(function(total,row){return total+row.assessment.linkedPoLines.length;},0);
-    let warning='Delete '+selected.length+' selected line'+(selected.length===1?'':'s')+' from '+order.id+'?';
+    let warning=selected.length+' selected line'+(selected.length===1?'':'s')+' will be removed from '+order.id+'.';
     if(allocationCount)warning+=' Allocated stock will be released.';
     if(fulfilmentCount)warning+=' Open pick/pack activity will be reset.';
     if(poCount)warning+=' '+poCount+' unreceived linked PO line'+(poCount===1?'':'s')+' will be removed.';
     warning+=' The original entries and your reason will remain in the audit history.';
-    if(!confirm(warning))return;
+    const reason=await so2AskRemoval('Remove '+selected.length+' line'+(selected.length===1?'':'s'),warning);
+    if(!reason)return;
     const labels=checks.map(function(row){return so2ApplySalesOrderLineRemoval(order,row.line,row.assessment,reason);});
     so2FinishSalesOrderLineRemoval(order,labels);
   }

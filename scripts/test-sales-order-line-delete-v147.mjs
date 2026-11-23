@@ -45,7 +45,7 @@ function makeApi(data,behaviour={}){
   assert.equal(assessment.allowed,true,'allocated/picked/packed line should be undoable before shipment or invoice');
   assert.equal(assessment.linkedPoLines.length,1);
   assert.equal(assessment.linkedGoodsNotes.length,1);
-  api.so2RemoveSalesOrderLine(order,line,assessment);
+  await api.so2RemoveSalesOrderLine(order,line,assessment);
   assert.equal(released,2,'allocation must be unwound');
   assert.equal(order.lines.length,0,'Sales Order line must be removed');
   assert.equal(data.goodsNotes.length,0,'empty pre-shipment goods note must be removed');
@@ -64,7 +64,7 @@ function makeApi(data,behaviour={}){
   const api=makeApi(data);
   const assessment=api.so2SalesLineDeleteAssessment(order,order.lines[0]);
   assert.equal(assessment.allowed,true,'pick/pack workflow alone must not lock a mistaken line');
-  api.so2RemoveSalesOrderLine(order,order.lines[0],assessment);
+  await api.so2RemoveSalesOrderLine(order,order.lines[0],assessment);
   assert.equal(data.goodsNotes.length,1);
   assert.deepEqual(data.goodsNotes[0].lines.map(x=>x.productId),['Q'],'remaining goods note lines must stay intact');
   assert.equal(data.goodsNotes[0].picked,true);
