@@ -1,4 +1,4 @@
-/* Pool Shed v1.82.0 — sales order flow (blueprint step 2).
+/* Pool Shed v1.83.0 — sales order flow (blueprint step 2).
    Adds to the existing order page, without replacing it:
    - a status rail showing where the order is: Ordered → Allocated → Picked & packed → Delivered → Invoiced → Paid;
    - one highlighted next-step button that runs the existing action (allocate, fulfil, mark delivered, invoice, payment);
@@ -116,15 +116,15 @@
   if (typeof document !== 'undefined' && document.head && !document.getElementById('sof-styles')) {
     var st = document.createElement('style'); st.id = 'sof-styles';
     st.textContent =
-      '.sof-bar{margin:12px 0 4px;padding:14px 16px;border:1px solid rgba(15,76,87,.16);border-radius:14px;background:rgba(15,76,87,.035)}' +
-      '.sof-rail{display:flex;gap:4px;list-style:none;margin:0 0 12px;padding:0;flex-wrap:wrap}.sof-rail li{flex:1 1 100px;text-align:center;font-size:13px;font-weight:700;padding:8px 4px;border-radius:8px;background:rgba(15,76,87,.06);color:#5a6f75}' +
-      '.sof-rail li.done{background:rgba(52,182,200,.2);color:#0f4c57}.sof-rail li.na{background:rgba(15,76,87,.04);color:#8a9ba0}.sof-rail li.now{background:#f2553d;color:#fff}.sof-rail small{font-weight:500}' +
+      '.sof-bar{margin:12px 0 4px;padding:14px 16px;border:1px solid var(--color-border-default);border-radius:12px;background:var(--color-surface-default)}' +
+      '.sof-rail{display:flex;gap:4px;list-style:none;margin:0 0 12px;padding:0;flex-wrap:wrap}.sof-rail li{flex:1 1 100px;text-align:center;font-size:13px;font-weight:700;padding:8px 4px;border-radius:8px;background:var(--color-surface-subtle);color:var(--color-text-secondary)}' +
+      '.sof-rail li.done{background:var(--color-status-success-bg);color:var(--color-status-success-text)}.sof-rail li.na{background:var(--color-surface-subtle);color:var(--color-text-muted)}.sof-rail li.now{background:var(--color-action-primary);color:var(--color-action-contrast)}.sof-rail small{font-weight:500}' +
       '.sof-row{display:flex;flex-wrap:wrap;gap:12px 20px;align-items:center}.sof-next-wrap{min-width:200px}.sof-next{font-size:15px!important;padding:10px 18px!important}' +
-      '.sof-note,.sof-done{font-weight:600;opacity:.8}.sof-done{color:#1d7a4c;opacity:1}' +
-      '.sof-money{display:flex;flex-wrap:wrap;gap:6px 22px;margin:0;flex:1}.sof-money div{min-width:84px}.sof-money dt{font-size:12.5px;opacity:.7}.sof-money dd{margin:0;font-weight:700;font-size:16px;white-space:nowrap;font-variant-numeric:tabular-nums}.sof-money dd.owed{color:#b9474f}.sof-money dd.low{color:#a86200}' +
+      '.sof-note,.sof-done{font-weight:600;opacity:.8}.sof-done{color:var(--color-status-success-text);opacity:1}' +
+      '.sof-money{display:flex;flex-wrap:wrap;gap:6px 22px;margin:0;flex:1}.sof-money div{min-width:84px}.sof-money dt{font-size:12.5px;opacity:.7}.sof-money dd{margin:0;font-weight:700;font-size:16px;white-space:nowrap;font-variant-numeric:tabular-nums}.sof-money dd.owed{color:var(--color-status-danger-text)}.sof-money dd.low{color:var(--color-status-attention-text)}' +
       '.sof-copy{margin-left:auto}.sof-quiet{opacity:.7}' +
-      '.sof-quick{display:flex;flex-wrap:wrap;gap:6px;align-items:center;margin-top:12px;padding-top:10px;border-top:1px dashed rgba(15,76,87,.2)}.sof-quick>span{font-size:13px;font-weight:700;opacity:.75;margin-right:4px}.sof-chip{border:1px solid rgba(15,76,87,.25);background:transparent;border-radius:999px;padding:5px 11px;font-size:13px;cursor:pointer;min-height:32px;color:inherit}.sof-chip:hover{border-color:#0f4c57}' +
-      '[data-theme="dark"] .sof-rail li.done,.dark .sof-rail li.done{color:#bdeff5}';
+      '.sof-quick{display:flex;flex-wrap:wrap;gap:6px;align-items:center;margin-top:12px;padding-top:10px;border-top:1px dashed var(--color-border-default)}.sof-quick>span{font-size:13px;font-weight:700;opacity:.75;margin-right:4px}.sof-chip{border:1px solid var(--color-border-default);background:transparent;border-radius:999px;padding:5px 11px;font-size:13px;cursor:pointer;min-height:32px;color:inherit}.sof-chip:hover{border-color:var(--color-action-ink)}' +
+      '';
     document.head.appendChild(st);
   }
   global.PoolShedOrderFlow = { flow: flow, bar: bar };

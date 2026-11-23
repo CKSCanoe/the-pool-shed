@@ -1,0 +1,22 @@
+/* Overhaul phase 3 (from v1.83): record pages. Purchase order flow bar, line pictures, one header card for every record. */
+.pof-bar{margin:12px 0 6px;padding:14px 16px;border:1px solid var(--color-border-default);border-radius:12px;background:var(--color-surface-default)}
+.pof-rail{display:flex;gap:4px;list-style:none;margin:0 0 12px;padding:0;flex-wrap:wrap}
+.pof-rail li{flex:1 1 90px;text-align:center;font-size:13px;font-weight:600;padding:8px 4px;border-radius:8px;background:var(--color-surface-subtle);color:var(--color-text-secondary)}
+.pof-rail li.done{background:var(--color-status-success-bg);color:var(--color-status-success-text)}
+.pof-rail li.now{background:var(--color-action-primary);color:var(--color-action-contrast)}
+.pof-row{display:flex;align-items:center;gap:14px;flex-wrap:wrap}
+.pof-next{font-size:14px !important;padding:9px 16px !important}
+.pof-alt{appearance:none;border:0;background:none;color:var(--color-action-ink);font:inherit;font-size:13px;text-decoration:underline;cursor:pointer;padding:0}
+.pof-note{font-weight:600;color:var(--color-text-secondary)}.pof-done{font-weight:600;color:var(--color-status-success-text)}
+/* Line pictures: the product's picture, or an icon */
+:is(.so5-line-thumb,.po-line-thumb).is-icon{display:inline-grid !important;place-items:center;background:var(--color-surface-subtle) !important;color:var(--color-text-secondary) !important;font-size:0 !important}
+:is(.so5-line-thumb,.po-line-thumb) .line-thumb-img{width:100%;height:100%;display:block;border-radius:inherit;overflow:hidden}
+:is(.so5-line-thumb,.po-line-thumb) .line-thumb-img img{width:100%;height:100%;object-fit:cover}
+:is(.so5-line-thumb,.po-line-thumb) .line-thumb-img .pb-product-image-fallback{display:none}
+/* One header card for every record page (with the new look) */
+.ps-kit-scope:not(#ps-kit-none):not(:has(> .qs-studio-root)) :is(.so3-command-header,.po-command-head,.crm-hero,.ph-product-hero,.pl-heading,.sc-profile-hero){background:var(--color-surface-default) !important;background-image:none !important;border:1px solid var(--color-border-default) !important;border-radius:12px !important;box-shadow:none !important;padding:16px 18px !important;color:var(--color-text-primary) !important}
+.ps-kit-scope:not(#ps-kit-none):not(:has(> .qs-studio-root)) :is(.so3-command-header,.po-command-head,.crm-hero,.ph-product-hero,.pl-heading,.sc-profile-hero) :is(h1,h2){color:var(--color-text-primary) !important;font-size:22px !important;font-weight:650 !important;letter-spacing:-.01em !important;margin:0 !important}
+.ps-kit-scope:not(#ps-kit-none):not(:has(> .qs-studio-root)) .sc-profile-hero :is(p,.sc-eyebrow,small,span:not(.ps-av):not([class*="pill"])){color:var(--color-text-secondary) !important}
+.ps-kit-scope:not(#ps-kit-none):not(:has(> .qs-studio-root)) .sc-profile-hero .sc-profile-avatar{border-color:var(--color-border-default) !important;box-shadow:none !important}
+.ps-kit-scope:not(#ps-kit-none):not(:has(> .qs-studio-root)) .sc-profile-hero-actions .primary{background:var(--color-action-primary) !important;border-color:var(--color-action-primary) !important;color:var(--color-action-contrast) !important}
+.ps-kit-scope:not(#ps-kit-none):not(:has(> .qs-studio-root)) .sc-profile-hero-actions .secondary{background:var(--color-surface-default) !important;border-color:var(--color-border-default) !important;color:var(--color-text-primary) !important}

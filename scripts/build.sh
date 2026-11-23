@@ -75,6 +75,7 @@ run_node_stage "workspace and sales safety" \
   test-payment-reminders-v180.mjs \
   test-overhaul-foundations-v181.mjs \
   test-overhaul-lists-v182.mjs \
+  test-overhaul-records-v183.mjs \
   test-workspace-audit-v1451.mjs \
   test-commercial-audits-v146.mjs \
   test-audit-device-recovery.mjs \
