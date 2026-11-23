@@ -251,6 +251,7 @@ Owner: catalogue looked horrendous; wanted best of Shopify and Brightpearl, easy
 | CL5 | Bulk changes: category, supplier, prices by %, keep in stock with levels, archive or restore, export | **New · Checked on staging** | Bulk bar and dialogs open; logic unit tested |
 | CL6 | Style budget raised to 1.12 MB (hygiene) and 1.11 MB (v1.85 ceiling) for the new shell and catalogue; the old catalogue table is retired with the product editor in the next release | **Updated** | Both tests pass |
 | CL7 | Release test | **New · Unit tested** | `test-catalogue-list-v192` |
+| CL8 | App release (PR #91) | **Deployed · verified on live** 23 Nov 2026 (Vercel check green; live cache `pool-shed-v1.92.0-catalogue-r1`; `catalogue-list.js` served) | Data unchanged since 21:27: 33 orders, 17 units of stock, 6,837 products, 26 purchase orders. v1.89 clean-up confirmed on live at 21:25 (108 non-stock allocations cleared; only those 28 orders saved) |
 
 ## A more premium look across the app · v1.91.0 · branch `premium-look`
 
