@@ -248,6 +248,7 @@ Owner: on a sales order's product catalogue panel, add star favourites that come
 | FV2 | Quick add moved under the product search: favourites first, then the most often sold, with the SKU shown where two names match; removed from the order header and the hidden "Try:" row | **Tested in a real browser on staging** | A favourite button added one line to a test order; line removed afterwards |
 | FV3 | Results list anchored under the search box (an older script placed it against the window, so the page frame pushed it off to the right) | **Fixed · Tested in a real browser on staging** | List now starts at the search box's left edge, stars visible |
 | FV4 | Release test | **New · Unit tested** | `test-favourites-v188` (ranking: favourites first, exact SKU still first, empty search lists favourites) |
+| FV5 | App release (PR #87) | **Deployed · verified on live** 23 Nov 2026 (Vercel check green; live cache `pool-shed-v1.88.0-favourites-r1`; new search file served) | Last save before the release was normal staff use (19:46, release live 20:04); no product starred yet |
 
 ## A tidier customer box on sales orders · v1.87.0 · branch `customer-box`
 
