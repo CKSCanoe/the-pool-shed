@@ -133,6 +133,10 @@
     });
     var form = drawer.querySelector('[data-so-customer-create-form]');
     form.addEventListener('input', function () { updateDuplicateWarning(form); });
+    // v1.86: the price list follows the customer type (Trade → trade, Wholesale → wholesale, Retail → RRP) until you pick one yourself
+    form.elements.priceList.addEventListener('change', function () { form.dataset.priceListChosen = '1'; });
+    form.elements.customerType.addEventListener('change', function () { if (form.dataset.priceListChosen === '1') return; var t = form.elements.customerType.value, want = t === 'Trade' ? 'trade' : t === 'Wholesale' ? 'wholesale' : 'rrp';
+      if ([].some.call(form.elements.priceList.options, function (o) { return o.value === want; })) form.elements.priceList.value = want; });
     form.addEventListener('submit', function (event) {
       event.preventDefault();
       createAndAttachCustomer(form);
@@ -145,6 +149,7 @@
     var drawer = ensureDrawer();
     var form = drawer.querySelector('[data-so-customer-create-form]');
     form.reset();
+    delete form.dataset.priceListChosen;
     form.elements.country.value = 'United Kingdom';
     form.elements.customerType.value = 'Retail';
     form.elements.priceList.value = 'rrp';
@@ -327,6 +332,17 @@
     if (event.key === 'Escape' && document.body.classList.contains('so-customer-drawer-open')) closeDrawer();
   });
 
+  // v1.86: the picker markup on its own, so the current sales order customer card can use it
+  function pickerMarkup(order, c) {
+    var linkedName = escapeHtml(customerDisplayName(c));
+    var linkedMeta = escapeHtml([c.email, c.phone || c.mobile, c.code].filter(Boolean).join(' · '));
+    return '<div class="so-customer-picker" data-order-id="' + escapeHtml(order.id) + '">' +
+        '<div class="so-customer-picker-head"><div><span>Customer</span><strong>Find or create a CRM customer</strong></div><span class="so-customer-linked-chip">✓ ' + escapeHtml(c.code || c.id) + '</span></div>' +
+        '<div class="so-customer-search-row"><div class="so-customer-search-field"><span class="so-customer-search-icon">⌕</span><input type="search" autocomplete="off" data-so-customer-search="' + escapeHtml(order.id) + '" placeholder="Search name, company, email, phone or customer code"><kbd>⌘K</kbd></div><button type="button" class="so-new-customer-button" data-so-new-customer="' + escapeHtml(order.id) + '">+ New customer</button></div>' +
+        '<div class="so-customer-current"><span class="so-current-avatar">' + escapeHtml(((c.firstName || c.name || 'C').charAt(0) + (c.lastName || '').charAt(0)).toUpperCase()) + '</span><div><span>Currently linked</span><strong>' + linkedName + '</strong><small>' + linkedMeta + '</small></div></div>' +
+        '<div class="so-customer-results" data-so-customer-results></div>' +
+      '</div>';
+  }
   if (typeof customerProfileCard === 'function') {
     var originalCustomerProfileCard = customerProfileCard;
     customerProfileCard = function (order, c, activePriceList, costSummary, activeTab) {
@@ -334,12 +350,7 @@
       var oldPicker = /<div class="smart-customer-select">[\s\S]*?<\/div><datalist id="salesOrderCustomerOptions">[\s\S]*?<\/datalist>/;
       var linkedName = escapeHtml(customerDisplayName(c));
       var linkedMeta = escapeHtml([c.email, c.phone || c.mobile, c.code].filter(Boolean).join(' · '));
-      var replacement = '<div class="so-customer-picker" data-order-id="' + escapeHtml(order.id) + '">' +
-        '<div class="so-customer-picker-head"><div><span>Customer</span><strong>Find or create a CRM customer</strong></div><span class="so-customer-linked-chip">✓ ' + escapeHtml(c.code || c.id) + '</span></div>' +
-        '<div class="so-customer-search-row"><div class="so-customer-search-field"><span class="so-customer-search-icon">⌕</span><input type="search" autocomplete="off" data-so-customer-search="' + escapeHtml(order.id) + '" placeholder="Search name, company, email, phone or customer code"><kbd>⌘K</kbd></div><button type="button" class="so-new-customer-button" data-so-new-customer="' + escapeHtml(order.id) + '">+ New customer</button></div>' +
-        '<div class="so-customer-current"><span class="so-current-avatar">' + escapeHtml(((c.firstName || c.name || 'C').charAt(0) + (c.lastName || '').charAt(0)).toUpperCase()) + '</span><div><span>Currently linked</span><strong>' + linkedName + '</strong><small>' + linkedMeta + '</small></div></div>' +
-        '<div class="so-customer-results" data-so-customer-results></div>' +
-      '</div>';
+      var replacement = pickerMarkup(order, c);
       if (oldPicker.test(markup)) markup = markup.replace(oldPicker, replacement);
       return markup;
     };
@@ -355,8 +366,13 @@
   }
 
   setTimeout(function () { enhanceExistingPicker(document); }, 0);
+  // v1.86: the sales order page is redrawn by newer code that does not call bindSales, so the picker is wired whenever
+  // one appears on the page (each search box only once).
+  var pickerTimer = 0;
+  if (typeof MutationObserver === 'function') new MutationObserver(function () { clearTimeout(pickerTimer); pickerTimer = setTimeout(function () { if (document.querySelector('.so-customer-picker [data-so-customer-search]:not([data-customer-picker-bound])')) enhanceExistingPicker(document); }, 30); }).observe(document.documentElement, { childList: true, subtree: true });
 
   window.PoolShedCustomerPicker = {
+    markup: pickerMarkup,
     search: searchCustomers,
     openCreate: openDrawer,
     closeCreate: closeDrawer,
