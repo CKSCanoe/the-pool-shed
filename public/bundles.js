@@ -72,6 +72,21 @@ function partStatus(order, head){
   var g = groupOf(order, head.bundleInstanceId), ready = g.parts.filter(function(l){ return num(l.allocated) + num(l.shipped) >= num(l.qty) && num(l.qty) > 0; }).length;
   return { total: g.parts.length, ready: ready, parts: g.parts };
 }
+// A part reserves stock on its own line. (Older allocation finds the first line for a product, so a part that shares a
+// product with another line on the same order would never be reached.)
+var HOLDS = ['L-QUARANTINE', 'L-RECEIVING', 'L-RETURNS-HOLD'];
+function allocatePart(order, line){
+  var shippedQ = num(line.shipped), need = Math.max(0, num(line.qty) - shippedQ - num(line.allocated)); if (!need) return 0;
+  var rows = (typeof allocationRowsForSalesOrder === 'function' ? allocationRowsForSalesOrder(line.productId, order.id) : (D().stock || []).filter(function(r){ return r.productId === line.productId; })) || [];
+  var got = 0;
+  rows.filter(function(r){ return HOLDS.indexOf(r.locationId) < 0; }).sort(function(a, b){ return (num(b.qty) - num(b.allocated)) - (num(a.qty) - num(a.allocated)); }).forEach(function(r){
+    if (got >= need) return; var take = Math.min(need - got, Math.max(0, num(r.qty) - num(r.allocated))); if (!take) return;
+    r.allocated = num(r.allocated) + take; line.allocated = num(line.allocated) + take; got += take;
+    if (typeof addMovement === 'function') addMovement('Allocation', line.productId, take, r.locationId, order.id, order.id, 'Office');
+  });
+  return got;
+}
+function allocateParts(order){ var n = 0; (order.lines || []).forEach(function(l){ if (l.bundleRole === 'component') n += allocatePart(order, l); }); return n; }
 // Parts left behind when their bundle line was removed are tidied away (only if nothing has happened to them yet).
 function tidyOrphans(){
   var changed = 0;
@@ -93,7 +108,7 @@ if (typeof addProductToSalesOrder === 'function') {
     var order = typeof salesOrder === 'function' ? salesOrder(orderId) : null; if (!order) return;
     var qtyEl = document.getElementById('salesOrderProductQty'), res = addToOrder(order, p, qtyEl ? qtyEl.value : 1);
     if (!res.ok) { if (typeof toast === 'function') toast(res.error); return; }
-    try { if (global.PoolShedStockFlow) global.PoolShedStockFlow.autoAllocate(order); } catch (_) {}
+    try { if (global.PoolShedStockFlow) global.PoolShedStockFlow.autoAllocate(order); allocateParts(order); } catch (_) {}
     if (typeof saveAppData === 'function') saveAppData();
     if (typeof toast === 'function') toast((p.sku || p.name) + (res.merged ? ' bundle quantity increased.' : ' bundle added with its ' + parts(p).length + ' parts.'));
     if (typeof render === 'function') render();
@@ -106,7 +121,7 @@ if (typeof updateSalesOrderLineNumber === 'function') {
     var order = typeof salesOrder === 'function' ? salesOrder(orderId) : null, head = order && field === 'qty' ? (order.lines || []).find(function(l){ return l.productId === productId && l.bundleRole === 'head'; }) : null;
     if (!head) return baseQty.apply(this, arguments);
     setQty(order, head, value);
-    try { if (global.PoolShedStockFlow) global.PoolShedStockFlow.autoAllocate(order); } catch (_) {}
+    try { if (global.PoolShedStockFlow) global.PoolShedStockFlow.autoAllocate(order); allocateParts(order); } catch (_) {}
     order.updatedAt = new Date().toISOString();
     if (typeof saveAppData === 'function') saveAppData();
     if (typeof toast === 'function') toast('Bundle quantity changed: the parts follow.');
@@ -114,6 +129,14 @@ if (typeof updateSalesOrderLineNumber === 'function') {
   };
   global.updateSalesOrderLineNumber = updateSalesOrderLineNumber;
 }
+if (global.PoolShedStockFlow && global.PoolShedStockFlow.autoAllocate) { var baseAuto = global.PoolShedStockFlow.autoAllocate; global.PoolShedStockFlow.autoAllocate = function(order){ var n = baseAuto.apply(this, arguments) || 0; try { if (order && ['Invoiced', 'Completed', 'Cancelled'].indexOf(String(order.status)) < 0) n += allocateParts(order); } catch (_) {} return n; }; }
+if (typeof document !== 'undefined' && document.addEventListener) document.addEventListener('click', function(e){
+  var b = e.target.closest && e.target.closest('[data-bx-allocate]'); if (!b) return; e.preventDefault(); e.stopImmediatePropagation();
+  var p = b.dataset.bxAllocate.split('|'), order = typeof salesOrder === 'function' ? salesOrder(p[0]) : null; if (!order) return;
+  var line = (order.lines || []).find(function(l){ return l.bundleRole === 'component' && l.bundleInstanceId === p[1] && l.productId === p.slice(2).join('|'); }); if (!line) return;
+  var got = allocatePart(order, line); if (typeof saveAppData === 'function') saveAppData();
+  if (typeof toast === 'function') toast(got ? got + ' reserved for this bundle.' : 'No free stock for this part: it shows in To order.'); if (typeof render === 'function') render();
+}, true);
 // Older bundle code asks PoolShedBundles; it now gets the same answers as everything else.
 if (global.PoolShedBundles) { global.PoolShedBundles.isBundle = isBundle; global.PoolShedBundles.items = function(p){ return parts(p).map(function(x){ return { productId: x.productId, qty: x.qty }; }); }; }
 var tidyTimer = 0;
@@ -122,5 +145,5 @@ if (typeof render === 'function') {
   render = function(){ var r = baseRender.apply(this, arguments); clearTimeout(tidyTimer); tidyTimer = setTimeout(function(){ try { if (tidyOrphans() && typeof saveAppData === 'function') saveAppData(); } catch (_) {} }, 700); return r; };
   global.render = render;
 }
-global.PoolShedBundleEngine = { isBundle: isBundle, parts: parts, partsTotal: partsTotal, partsCost: partsCost, canMake: canMake, price: price, refresh: refresh, addToOrder: addToOrder, setQty: setQty, partStatus: partStatus, groupOf: groupOf, tidyOrphans: tidyOrphans, LISTS: LISTS };
+global.PoolShedBundleEngine = { allocatePart: allocatePart, allocateParts: allocateParts, isBundle: isBundle, parts: parts, partsTotal: partsTotal, partsCost: partsCost, canMake: canMake, price: price, refresh: refresh, addToOrder: addToOrder, setQty: setQty, partStatus: partStatus, groupOf: groupOf, tidyOrphans: tidyOrphans, LISTS: LISTS };
 })(typeof window !== 'undefined' ? window : globalThis);

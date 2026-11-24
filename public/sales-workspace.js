@@ -485,6 +485,7 @@
 
   function so2CustomVariant(line,p) {
     if (line && line.lineType === 'shipping') return String(line.description || line.shippingMethod || 'Shipping charge').trim();
+    if (line && line.bundleRole === 'head') return 'Bundle';
     const explicit = String((line && (line.customVariant || line.variantDescription || line.variant)) || '').trim();
     if (explicit) return explicit;
     if (line && line.customProductName && line.description && String(line.description).trim() !== String(line.customProductName).trim()) return String(line.description).trim();
@@ -550,7 +551,7 @@
     return '<tr class="so2-line-row bx-part"><td class="so2-check"></td><td colspan="2"><span class="bx-part-name">' + Number(line.qty||0) + ' × ' + escapeHtml(p.name || line.description || line.productId) + '</span> <small>' + escapeHtml(p.sku || '') + '</small></td>' +
       '<td class="so2-stock-cell"><small>' + coverage.free + ' free</small></td><td></td>' +
       '<td class="so2-allocated"><span class="bx-pill ' + (done ? 'good' : 'warn') + '">' + (Number(line.shipped||0) >= Number(line.qty||0) && Number(line.qty||0) > 0 ? 'Shipped' : done ? 'Reserved' : 'Short ' + shortBy) + '</span></td>' +
-      '<td></td><td></td><td></td><td class="so2-actions-cell">' + (done ? '' : '<button type="button" class="secondary bx-mini" data-allocate-line="' + order.id + '|' + line.productId + '">Allocate</button>') + '</td></tr>';
+      '<td></td><td></td><td></td><td class="so2-actions-cell">' + (done ? '' : '<button type="button" class="secondary bx-mini" data-bx-allocate="' + escapeHtml(order.id + '|' + line.bundleInstanceId + '|' + line.productId) + '">Allocate</button>') + '</td></tr>';
   }
   function so2LineRows(order) {
     const BE = window.PoolShedBundleEngine;

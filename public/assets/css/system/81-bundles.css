@@ -19,3 +19,7 @@ body #screen-products .pe-modes { display: inline-flex; gap: 6px; margin-bottom:
 body #screen-products .pe-card .pe-modes button { min-height: 32px !important; padding: 4px 12px !important; border-radius: 999px !important; border: 1px solid var(--color-border-default) !important; background: var(--color-surface-default) !important; color: var(--color-text-secondary) !important; font: inherit !important; font-size: .86rem !important; box-shadow: none !important; }
 body #screen-products .pe-card .pe-modes button.on { background: var(--color-text-primary) !important; color: var(--color-surface-default) !important; border-color: var(--color-text-primary) !important; }
 body #screen-products .pe-card .pe-pct { max-width: 120px; }
+body #screen-products .pe-grid td small { display: block; color: var(--color-text-secondary); font-size: .86rem; }
+body #screen-products .pe-card .pe-grid td.num .pe-grid-in { max-width: 96px; margin-left: auto; }
+body #screen-products .pe-grid td:last-child { white-space: nowrap; }
+body #screen-products .pe-card .pe-grid td .pe-link { white-space: nowrap !important; word-break: normal !important; overflow-wrap: normal !important; width: auto !important; min-width: 0 !important; }

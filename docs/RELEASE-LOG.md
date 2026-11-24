@@ -245,10 +245,11 @@ Owner: rebuild the bundle engine (audit recommendation 3). Concept approved. Fin
 | # | Change | Status | Evidence |
 |---|---|---|---|
 | BX1 | `bundles.js`: one definition, parts, parts cost and price per price list, can make (and the limiting part), add to order, quantities that follow (spare reservations released), tidy orphan parts | **New · Unit tested** | `test-bundles-v196` |
-| BX2 | Product editor: "Sell as a bundle", parts list with search, can make, price per price list or parts total less %, margins | **New · Unit tested; browser check started on staging** | Editor opened for a staging test bundle ("Can make 3") before the staging sign-in expired; full browser check to finish once staging is signed in again |
-| BX3 | Sales order lines: one bundle line with badge and "x of y parts reserved", parts folded underneath with their status | **New · Unit tested** | Browser check pending (staging sign-in) |
+| BX2 | Product editor: "Sell as a bundle", parts list with search, can make, price per price list or parts total less %, margins | **New · Checked in a real browser on staging** | Test bundle: part search added Calc-Chlor Pods; "Can make 3" with Pool Starter Kit limiting it; RRP £99 saves £40.35 (29%), margin 46%; trade £84 margin 36%; saved with parts cost £53.57 |
+| BX3 | Sales order lines: one bundle line with badge and "x of y parts reserved", parts folded underneath with their status; parts reserve on their own line (found on staging: older allocation picks the first line for a product, so parts sharing a product with another line were never reserved) | **New · Fixed during the check · Checked on staging** | SO-2067: bundle at £99 × 2, quantity 1 → 2 moved the parts, then "3 of 3 parts reserved"; test bundle, order lines and test stock removed afterwards |
 | BX4 | Catalogue badge and can make; To order "Part of … for SO-…" | **New · Unit tested** | |
 | BX5 | One money rule: bundle line carries price and cost; quotes' parts no longer carry cost; monthly pack counts the bundle once | **Fixed** | |
+| BX7 | Staging note: the v1.95 receiving test had saved to the staging database, and the attempted put-back was refused (receipt history is permanent by design), which left one browser unable to save. Staging reloaded from its database; the £0 replacement line removed and test return PR-00002 cancelled; PO-1053 on staging keeps the test delivery (23 of 25). Live was never affected | **Resolved** | |
 | BX6 | Retired the switched-off bundle intelligence layer (file, script, cache entry, its styles); its two tests now check the new engine | **Removed** | |
 
 ## Receive deliveries on the PO, and one "To order" list · v1.95.0 · branch `po-receiving`

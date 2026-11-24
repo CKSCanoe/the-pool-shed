@@ -54,4 +54,12 @@ assert.equal(B.addToOrder(order, products.OLD, 1).ok, false, 'a bundle with no p
 order.lines = order.lines.filter(l => l.bundleRole !== 'head');
 assert.equal(B.tidyOrphans(), 2, 'parts left behind by a removed bundle are tidied (the reserved one is kept)');
 assert.deepEqual(order.lines.map(l => l.productId), ['B'], 'the part with stock reserved stays until someone deals with it');
+// a part reserves stock on its own line, even when another line on the order has the same product
+const o2 = { id: 'SO-2', status: 'Needs Review', lines: [{ productId: 'A', qty: 1, allocated: 1 }] };
+ctx.data.stock = [{ productId: 'A', locationId: 'L-WH-A1', qty: 5, allocated: 1 }, { productId: 'A', locationId: 'L-QUARANTINE', qty: 9, allocated: 0 }];
+ctx.allocationRowsForSalesOrder = pid => ctx.data.stock.filter(r => r.productId === pid);
+B.addToOrder(o2, products.KIT, 2);
+const partA = o2.lines.find(l => l.bundleRole === 'component' && l.productId === 'A');
+assert.equal(B.allocatePart(o2, partA), 2, 'bundle part reserved on its own line');
+assert.deepEqual([o2.lines[0].allocated, partA.allocated, ctx.data.stock[0].allocated, ctx.data.stock[1].allocated], [1, 2, 3, 0], 'the other line is untouched and quarantine is never used');
 console.log('Bundles v1.96: one definition, parts cost and price lists, can make, one line on orders, quantities follow, orphans tidied.');
