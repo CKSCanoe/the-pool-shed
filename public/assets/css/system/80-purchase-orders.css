@@ -1,0 +1,57 @@
+/* v1.94 Purchase orders: aligned list with tabs and chips; tidy items area on the PO page */
+body #screen-purchase .pl-page { display: grid; gap: 14px; }
+body #screen-purchase .pl-head { display: flex; flex-wrap: wrap; justify-content: space-between; align-items: flex-end; gap: 12px; }
+body #screen-purchase .pl-head h2 { margin: 0; font-size: 1.85rem; letter-spacing: -.02em; }
+body #screen-purchase .pl-head p { margin: 2px 0 0; color: var(--color-text-secondary); }
+body #screen-purchase .pl-card { overflow: hidden; border-radius: 14px; background: var(--color-surface-default); box-shadow: 0 1px 2px var(--card-ring), 0 0 0 1px var(--card-ring); }
+body #screen-purchase .pl-card .pl-tabs { display: flex; flex-wrap: wrap; gap: 2px; padding: 6px 10px 0; border-bottom: 1px solid var(--color-border-subtle); }
+body #screen-purchase .pl-card .pl-tabs button { appearance: none !important; border: 0 !important; border-bottom: 2px solid transparent !important; border-radius: 0 !important; background: none !important; padding: 10px 12px !important; min-height: 0 !important; color: var(--color-text-secondary) !important; font: inherit !important; font-size: .93rem !important; box-shadow: none !important; cursor: pointer; }
+body #screen-purchase .pl-card .pl-tabs button.on { color: var(--color-text-primary) !important; font-weight: 600 !important; border-bottom-color: var(--color-action-primary) !important; }
+body #screen-purchase .pl-tabs em { margin-left: 6px; padding: 0 7px; border-radius: 999px; background: var(--color-surface-subtle); color: var(--color-text-secondary); font-style: normal; font-size: .86rem; }
+body #screen-purchase .pl-bar-row { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; padding: 10px 12px; border-bottom: 1px solid var(--color-border-subtle); }
+body #screen-purchase .pl-card .pl-search { flex: 1 1 280px; min-width: 200px; }
+body #screen-purchase .pl-card .pl-chip select.pl-chip-select { appearance: none; width: auto !important; max-width: 220px; padding: 6px 12px !important; min-height: 32px !important; border-radius: 999px !important; border: 1px dashed var(--color-border-strong) !important; background: var(--color-surface-default) !important; color: var(--color-text-secondary) !important; font-size: .86rem !important; cursor: pointer; }
+body #screen-purchase .pl-card .pl-chip.on select.pl-chip-select { border-style: solid !important; border-color: var(--color-action-line) !important; background: var(--color-action-soft) !important; color: var(--color-action-ink) !important; }
+body #screen-purchase .pl-table { width: 100%; border-collapse: collapse; font-size: .93rem; }
+body #screen-purchase .pl-table th { padding: 9px 12px; text-align: left; font-weight: 500; font-size: .86rem; color: var(--color-text-secondary); background: var(--color-surface-subtle); border-bottom: 1px solid var(--color-border-subtle); white-space: nowrap; }
+body #screen-purchase .pl-table td { padding: 10px 12px; border-bottom: 1px solid var(--color-border-subtle); vertical-align: middle; }
+body #screen-purchase .pl-table .right { text-align: right; }
+body #screen-purchase .pl-table small { display: block; color: var(--color-text-secondary); font-size: .86rem; }
+body #screen-purchase .pl-po { white-space: nowrap; }
+body #screen-purchase .pl-card .pl-link { appearance: none !important; border: 0 !important; background: none !important; padding: 0 !important; min-height: 0 !important; box-shadow: none !important; font: inherit !important; font-weight: 600 !important; color: var(--color-text-primary) !important; cursor: pointer; white-space: nowrap; }
+body #screen-purchase .pl-card .pl-link:hover { color: var(--color-action-ink) !important; text-decoration: underline; }
+body #screen-purchase .pl-sup { display: flex; align-items: center; gap: 10px; min-width: 0; }
+body #screen-purchase .pl-sup strong { font-weight: 600; }
+body #screen-purchase .pl-pill { display: inline-block; padding: 2px 9px; border-radius: 999px; font-size: .86rem; font-weight: 500; white-space: nowrap; }
+body #screen-purchase .pl-pill.good { background: var(--color-status-success-bg); color: var(--color-status-success-text); }
+body #screen-purchase .pl-pill.warn { background: var(--color-status-attention-bg); color: var(--color-status-attention-text); }
+body #screen-purchase .pl-pill.bad { background: var(--color-status-danger-bg); color: var(--color-status-danger-text); }
+body #screen-purchase .pl-pill.info { background: var(--color-status-info-bg); color: var(--color-status-info-text); }
+body #screen-purchase .pl-pill.muted { background: var(--color-surface-subtle); color: var(--color-text-secondary); }
+body #screen-purchase .pl-recv, body #screen-purchase .pi-recv { display: flex; align-items: center; gap: 8px; white-space: nowrap; font-variant-numeric: tabular-nums; }
+body #screen-purchase .pl-bar { display: inline-block; flex: 0 0 80px; width: 80px; height: 6px; border-radius: 999px; overflow: hidden; background: var(--color-surface-subtle); }
+body #screen-purchase .pl-bar i { display: block; height: 100%; background: linear-gradient(90deg, var(--brand-grad-start), var(--brand-grad-end)); }
+body #screen-purchase .pl-due { white-space: nowrap; }
+body #screen-purchase .pl-late { display: inline !important; margin-left: 4px; color: var(--color-status-danger-text) !important; }
+body #screen-purchase .pl-dim { color: var(--color-text-secondary); }
+body #screen-purchase .pl-total { white-space: nowrap; font-variant-numeric: tabular-nums; }
+body #screen-purchase .pl-actions { width: 44px; position: relative; text-align: right; }
+body #screen-purchase .pl-card .pl-dots { width: 32px !important; min-width: 32px !important; height: 32px !important; min-height: 32px !important; padding: 0 !important; border-radius: 8px !important; }
+body #screen-purchase .pl-foot { margin: 0; padding: 10px 12px; color: var(--color-text-secondary); font-size: .86rem; }
+body #screen-purchase .pi-head { display: flex; justify-content: space-between; align-items: baseline; gap: 10px; padding: 14px 16px 6px; }
+body #screen-purchase .pi-head strong { font-size: 1.07rem; margin-right: 8px; }
+body #screen-purchase .pi-head small { color: var(--color-text-secondary); }
+body #screen-purchase .pi-add { padding: 8px 16px 12px; border-bottom: 1px solid var(--color-border-subtle); }
+body #screen-purchase .pi-card .pi-add-row { display: flex !important; gap: 8px; align-items: center; position: relative; }
+body #screen-purchase .pi-card .pi-add-row #poProductSearch { flex: 1 1 auto; }
+body #screen-purchase .pi-card .pi-add-row #poProductQty { flex: 0 0 80px; width: 80px !important; }
+body #screen-purchase .pi-card .pi-custom { margin: 6px 0 0; border: 0 !important; background: none !important; padding: 0 !important; box-shadow: none !important; }
+body #screen-purchase .pi-card .pi-custom > summary { display: inline-block; cursor: pointer; color: var(--color-action-ink); text-decoration: underline; text-underline-offset: 2px; font-size: .93rem; list-style: none; padding: 0 !important; }
+body #screen-purchase .pi-card .pi-custom > summary small { color: var(--color-text-secondary); text-decoration: none; }
+body #screen-purchase .pi-card .pi-custom[open] > summary { margin-bottom: 8px; }
+body #screen-purchase .pi-card .pi-for { appearance: none !important; border: 0 !important; padding: 2px 9px !important; min-height: 0 !important; border-radius: 999px !important; background: var(--color-surface-subtle) !important; color: var(--color-text-secondary) !important; font: inherit !important; font-size: .86rem !important; box-shadow: none !important; cursor: pointer; white-space: nowrap; }
+body #screen-purchase .pl-late.muted { color: var(--color-text-secondary) !important; }
+body #screen-purchase.ps-kit-scope .pi-card .pi-table td .pi-for { appearance: none !important; border: 0 !important; padding: 2px 9px !important; min-height: 0 !important; height: auto !important; border-radius: 999px !important; background: var(--color-surface-subtle) !important; color: var(--color-text-secondary) !important; font-size: .86rem !important; box-shadow: none !important; }
+body #screen-purchase.ps-kit-scope .pi-card .pi-add details.pi-custom > summary { display: inline !important; background: none !important; border: 0 !important; padding: 0 !important; min-height: 0 !important; box-shadow: none !important; }
+body #screen-purchase.ps-kit-scope .pi-card .pi-add details.pi-custom > summary small { display: inline !important; margin-left: 4px; font-size: .86rem; }
+body #screen-purchase.ps-kit-scope .pi-card .pi-add details.pi-custom > summary::-webkit-details-marker { display: none; }

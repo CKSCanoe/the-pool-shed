@@ -6,7 +6,7 @@
    v2.1.0 */
 (function () {
   let purchaseCommandTab = 'items';
-  const poListFilters={search:'',supplier:'all',status:'all',payment:'all',receiving:'all',health:'all',expected:'all',link:'all'};
+  const poListFilters={search:'',supplier:'all',status:'all',payment:'all',receiving:'all',health:'all',expected:'all',link:'all',tab:'all'};
   // v1.55: the status chips above the list set the status filter (key '' = all, '__late' = waiting too long).
   if(typeof window!=='undefined')window.PoolShedPurchaseFilter=function(key){poListFilters.status=!key?'all':(key==='__late'?'__late':((window.PoolShedStatusAuthority&&window.PoolShedStatusAuthority.purchaseDisplay)?window.PoolShedStatusAuthority.purchaseDisplay(key):key));if(typeof render==='function')render();};
   const legacyPurchaseOrderDetailPage = typeof purchaseOrderDetailPage === 'function' ? purchaseOrderDetailPage : null;
@@ -421,7 +421,7 @@
   }
 
   function poCustomLineComposer(po) {
-    return '<details class="po-custom-line-composer"><summary><span><strong>+ Add custom PO line</strong><small>Building materials, consumables, one-off supplier items and project costs that do not need a Sales Order.</small></span><span class="po-custom-summary-pill">PO-only purchase</span></summary>' +
+    return '<details class="po-custom-line-composer pi-custom"><summary>or add a custom item <small>(materials, one-off supplier items or costs not in the catalogue)</small></summary>' +
       '<div class="po-custom-line-form" data-po-custom-line-form="' + poEsc(po.id) + '">' +
         '<label class="span-2">Item / service<input data-po-custom-name maxlength="180" placeholder="e.g. MOT Type 1, cement, timber, fixings, plant consumables"></label>' +
         '<label class="span-2">Detailed description<textarea data-po-custom-description rows="2" maxlength="1000" placeholder="What exactly are we buying? Include size, grade, specification or other supplier detail."></textarea></label>' +
@@ -737,10 +737,12 @@
       const correction=!check.allowed&&!completedCorrection.allowed ? poReceivedLineCorrectionAssessment(po,line) : {allowed:false,reason:''};
       const menuId='po-line-menu-' + String(po.id+'-'+index).replace(/[^a-z0-9_-]/gi,'-');
       const custom=poIsCustomPurchaseLine(line);
-      return '<tr class="po-line-row' + (custom?' po-custom-line-row':'') + '"><td class="po-product-cell"><div class="po-line-product">' + (custom?'<span class="po-line-thumb po-custom-thumb is-icon">'+(globalThis.PoolShedIcon?globalThis.PoolShedIcon('tool',{size:18}):'')+'</span>':poProductThumb(p)) + '<div><strong>' + poEsc(p.name || p.sku || 'Product') + '</strong><small>' + (custom?'<span class="po-custom-line-badge">CUSTOM PO LINE</span> · '+poEsc(line.uom||'each')+(line.description?' · '+poEsc(line.description):''):poEsc(p.sku || line.productId || '')) + '</small></div></div></td>' +
-        '<td><strong>' + poEsc(line.supplierSku || p.supplierSku || '—') + '</strong><small>' + poEsc(custom?(line.purchaseCategory||'Custom purchase'):(p.brand || p.category || 'Supplier item')) + (custom&&line.internalNote?'<br>'+poEsc(line.internalNote):'') + '</small></td>' +
-        '<td><button type="button" class="link-button" data-po-command-tab="connections|' + poEsc(po.id) + '">' + poEsc(demand) + '</button></td>' +
-        '<td><div class="po-receiving-cell"><strong>' + Number(line.received || 0) + ' / ' + qty + '</strong><small>' + pending + ' outstanding' + (custom?' · non-stock':'') + '</small></div></td>' +
+      return '<tr class="po-line-row' + (custom?' po-custom-line-row':'') + '"><td class="po-product-cell"><div class="po-line-product">' + (custom?'<span class="po-line-thumb po-custom-thumb is-icon">'+(globalThis.PoolShedIcon?globalThis.PoolShedIcon('tool',{size:18}):'')+'</span>':poProductThumb(p)) + '<div><strong>' + poEsc(p.name || p.sku || 'Product') + '</strong><small>' + (function(){ const code=String(p.sku||line.productId||''),sup=String(line.supplierSku||p.supplierSku||''),isCustomCode=/^CUSTOM/i.test(code);
+          const bits=custom?['Custom item',line.purchaseCategory||'',line.uom&&line.uom!=='each'?line.uom:'']:[isCustomCode?'Custom item':code];
+          if(sup&&sup!==code&&!/^CUSTOM/i.test(sup))bits.push('supplier code '+sup);if(custom&&line.description)bits.push(line.description);
+          return poEsc(bits.filter(Boolean).join(' · ')); })() + '</small></div></div></td>' +
+        '<td><button type="button" class="pi-for" data-po-command-tab="connections|' + poEsc(po.id) + '">' + poEsc(demand) + '</button></td>' +
+        '<td><div class="pi-recv"><span class="pl-bar"><i style="width:' + (qty>0?Math.round(Math.min(1,Number(line.received||0)/qty)*100):0) + '%"></i></span><span>' + Number(line.received || 0) + ' / ' + qty + (pending<=0&&qty>0?' ✓':'') + '</span></div></td>' +
         '<td><input class="po-qty" data-po-line-qty="' + poEsc(po.id) + '|' + poEsc(line.productId) + '" type="number" min="' + Number(line.received || 0) + '" step="' + (custom?'0.01':'1') + '" value="' + qty + '"><small>' + poEsc(custom?(line.uom||'each'):'units') + '</small></td>' +
         '<td class="right"><input class="po-cost-input" type="number" step="0.01" min="0" data-po-line-cost="' + poEsc(po.id) + '|' + index + '" value="' + cost.toFixed(2) + '"><small>net unit</small></td>' +
         '<td class="po-vat">' + vatPct + '%</td>' +
@@ -754,9 +756,10 @@
                 ? '<button type="button" role="menuitem" class="danger-button" data-po-correct-received-line="' + poEsc(po.id) + '|' + index + '">Undo receipt & delete line</button><small>Superadmin correction: reverses this receipt safely and keeps an audit record.</small>'
                 : '<button type="button" role="menuitem" data-po-line-credit="' + poEsc(po.id) + '|' + index + '">Return / credit</button><small>' + poEsc(correction.reason || completedCorrection.reason || 'Receiving history is protected.') + '</small>') +
         '</div></td></tr>';
-    }).join('') || '<tr><td colspan="9" class="po-empty">No supplier lines yet. Select a supplier and add products.</td></tr>';
-    return '<section class="po-work-card po-items-card"><div class="po-items-toolbar"><div><span>ORDER LINES</span><strong>' + (po.lines||[]).length + ' lines · ' + units + ' units</strong><small>' + receivedUnits + ' received</small></div><div class="po-line-add"><input id="poProductSearch" data-po-id="' + poEsc(po.id) + '" placeholder="Search supplier product, Pool Shed SKU, supplier SKU or barcode"><input id="poProductQty" type="number" min="1" value="1"><button type="button" class="primary" data-add-po-selected="' + poEsc(po.id) + '">Add line</button><div id="poProductResults" class="po-product-results" hidden></div></div></div>' +
-      poCustomLineComposer(po) + '<div class="po-table-wrap"><table class="po-command-table po-items-table"><thead><tr><th>Product</th><th>Supplier item</th><th>Demand / link</th><th>Receiving</th><th>Qty</th><th class="right">Unit net</th><th>VAT</th><th class="right">Line total</th><th></th></tr></thead><tbody>' + rows + '</tbody></table></div>' +
+    }).join('') || '<tr><td colspan="8" class="po-empty">No items yet. Add a product above, or a custom item.</td></tr>';
+    return '<section class="po-work-card po-items-card pi-card"><div class="pi-head"><div><strong>Items</strong><small>' + (po.lines||[]).length + ' line' + ((po.lines||[]).length===1?'':'s') + ' · ' + units + ' units · ' + receivedUnits + ' received</small></div></div>' +
+      '<div class="pi-add"><div class="po-line-add pi-add-row"><input id="poProductSearch" data-po-id="' + poEsc(po.id) + '" placeholder="Add a product: name, SKU, supplier code or barcode" aria-label="Add a product"><input id="poProductQty" type="number" min="1" value="1" aria-label="Quantity"><button type="button" class="primary" data-add-po-selected="' + poEsc(po.id) + '">Add</button><div id="poProductResults" class="po-product-results" hidden></div></div>' + poCustomLineComposer(po) + '</div>' +
+      '<div class="po-table-wrap"><table class="po-command-table po-items-table pi-table"><thead><tr><th>Item</th><th>For</th><th>Received</th><th>Qty</th><th class="right">Unit cost</th><th>VAT</th><th class="right">Total</th><th></th></tr></thead><tbody>' + rows + '</tbody></table></div>' +
       '<div class="po-items-lower-grid"><section class="po-items-commercial-card"><div><span>SUPPLIER ORDER CONTROL</span><strong>Commercial record</strong><p>Keep supplier cost, receiving and payment status connected to this PO. The PO remains the cost authority for linked Sales Orders and Projects.</p></div><div class="po-financial-strip"><div><span>Subtotal net</span><strong>' + poMoney(financials.net) + '</strong></div><div><span>VAT</span><strong>' + poMoney(financials.vat) + '</strong></div><div class="grand"><span>Total inc VAT</span><strong>' + poMoney(financials.gross) + '</strong></div></div><div class="po-line-rule"><strong>Clean-up rule:</strong> unreceived lines can be deleted with a reason. Once stock has been received, the line remains permanent and must use the return / credit process.</div></section>' + poLiveTotalsCard(po) + '</div></section>';
   }
 
@@ -1132,7 +1135,7 @@
     if (!po) return legacyPurchaseOrderListPage ? legacyPurchaseOrderListPage() : '<div class="po-empty">No Purchase Order selected.</div>';
     const supplier=poSupplier(po.supplier),summary=poSummarySafe(po),health=purchaseOrderHealth(po),financials=poFinancialsSafe(po),paymentState=poPaymentState(po);
     const headerStatus=typeof purchaseOrderStatusPicker==='function'?purchaseOrderStatusPicker(po,'header'):poStatusPill(po);
-    return '<div class="purchase-command-page po-sales-parity"><header class="po-command-head"><div class="po-command-title"><button type="button" class="secondary" data-back-po-list="true">← Purchase Orders</button><div class="po-command-identity"><div class="po-command-kicker">PURCHASE ORDER</div><div class="po-order-title"><h1>' + poEsc(po.id) + '</h1>' + headerStatus + '</div><p>' + poEsc(po.supplier || 'Supplier to confirm') + ' · Expected ' + poEsc(po.due || 'not set') + ' · ' + summary.pending + ' units outstanding</p></div></div><div class="po-command-actions"><button type="button" class="secondary" data-po-save-action="email|' + poEsc(po.id) + '">Email / Print</button><button type="button" class="secondary" data-po-open-receiving="' + poEsc(po.id) + '">Book delivery</button><button type="button" class="danger-button" data-delete-po="' + poEsc(po.id) + '">Delete PO</button><button type="button" class="primary" data-po-save-action="save|' + poEsc(po.id) + '">Save PO</button></div></header>' +
+    return '<div class="purchase-command-page po-sales-parity"><header class="po-command-head"><div class="po-command-title"><button type="button" class="secondary" data-back-po-list="true">← Purchase Orders</button><div class="po-command-identity"><div class="po-command-kicker">PURCHASE ORDER</div><div class="po-order-title"><h1>' + poEsc(po.id) + '</h1>' + headerStatus + '</div><p>' + poEsc(po.supplier || 'Supplier to confirm') + ' · Expected ' + poEsc(po.due || 'not set') + ' · ' + summary.pending + ' units outstanding</p></div></div><div class="po-command-actions"><button type="button" class="secondary" data-po-save-action="email|' + poEsc(po.id) + '">Email / Print</button><button type="button" class="secondary" data-po-open-receiving="' + poEsc(po.id) + '">Receive delivery</button><button type="button" class="danger-button" data-delete-po="' + poEsc(po.id) + '">Delete PO</button><button type="button" class="primary" data-po-save-action="save|' + poEsc(po.id) + '">Save PO</button></div></header>' +
       '<section class="po-health-bar"><div><span>PO health</span><strong>' + poEsc(health.label) + '</strong><small>' + poEsc(health.detail) + '</small></div><div><span>Ordered</span><strong>' + summary.ordered + '</strong><small>' + poMoney(financials.net) + ' net</small></div><div><span>Received</span><strong>' + summary.received + '</strong><small>' + summary.pending + ' pending</small></div><div><span>Supplier payment</span><strong>' + poEsc(paymentState) + '</strong><small>' + poMoney(financials.paid) + ' paid</small></div><div><span>Balance due</span><strong>' + poMoney(Math.max(0,financials.balance)) + '</strong><small>' + poMoney(financials.gross) + ' inc VAT</small></div></section>' +
       '<section class="po-command-summary">' + poSupplierCard(po,supplier) + poDetailsCard(po) + poInboundCard(po) + '</section>' + poCommandTabs(po) + '<main class="po-command-body">' + poTabContent(po) + '</main></div>';
   };
@@ -1192,7 +1195,7 @@
     return '<option value="all">'+poEsc(label)+'</option>'+items.map(function(value){return '<option value="'+poEsc(value)+'"'+(value===selected?' selected':'')+'>'+poEsc(value)+'</option>';}).join('');
   }
   function poListFiltersActive(){
-    return Object.keys(poListFilters).some(function(key){return key==='search'?Boolean(String(poListFilters[key]||'').trim()):poListFilters[key]!=='all';});
+    return Object.keys(poListFilters).some(function(key){if(key==='tab')return false;return key==='search'?Boolean(String(poListFilters[key]||'').trim()):poListFilters[key]!=='all';});
   }
   function poListFilterBar(all,filtered){
     const suppliers=Array.from(new Set(all.map(function(po){return po.supplier||'Supplier to confirm';}))).sort();
@@ -1216,21 +1219,92 @@
       '</div></section>';
   }
 
+  // v1.94: where a PO really is, worked out from what has happened to it (receipts, payments, status), so a PO with
+  // goods booked in reads "Part received" even if nobody moved its status on.
+  function poStage(po){
+    const st=String(po&&po.status||'Draft - Review'),sum=poSummarySafe(po),fin=poFinancialsSafe(po),paid=poPaymentState(po);
+    if(st==='Cancelled')return {key:'cancelled',label:'Cancelled',tone:'muted'};
+    if(st==='On Hold')return {key:'hold',label:'On hold',tone:'warn'};
+    if(sum.ordered>0&&sum.pending<=0)return (paid==='Paid'||paid==='Overpaid')?{key:'closed',label:'Closed',tone:'muted'}:{key:'received',label:'Received',tone:'good'};
+    if(sum.received>0)return {key:'part',label:'Part received',tone:'warn'};
+    if(st==='Supplier Confirmed')return {key:'confirmed',label:'Confirmed',tone:'good'};
+    if(st==='Sent')return {key:'sent',label:'Sent',tone:'good'};
+    if(st==='Ready to Order'||st==='Ready To Email')return {key:'approved',label:'Approved',tone:'info'};
+    return {key:'draft',label:'Draft',tone:'muted'};
+  }
+  // Keep the stored status in step with deliveries, so Goods in and reports see the same thing.
+  function poSyncStatuses(){
+    let changed=0;
+    (data.purchaseOrders||[]).forEach(function(po){
+      const st=String(po.status||''),sum=poSummarySafe(po);if(['Cancelled','On Hold'].includes(st)||!sum.ordered)return;
+      const want=sum.pending<=0?'Received':sum.received>0?'Part Received':'';
+      if(want&&st!==want&&!(want==='Part Received'&&st==='Received')){po.status=want;po.statusUpdatedAt=new Date().toISOString();changed++;}
+    });
+    return changed;
+  }
+  const PO_TABS=[['all','All'],['draft','Drafts'],['sent','Sent'],['arriving','Arriving'],['part','Part received'],['topay','To pay'],['closed','Closed']];
+  function poInTab(po,tab){
+    const stg=poStage(po).key,sum=poSummarySafe(po),fin=poFinancialsSafe(po),pay=poPaymentState(po),done=['closed','cancelled'].includes(stg);
+    if(tab==='closed')return done;
+    if(done)return false;
+    if(tab==='draft')return stg==='draft'||stg==='approved';
+    if(tab==='sent')return stg==='sent'||stg==='confirmed';
+    if(tab==='arriving'){const dist=poFilterDateDistance(po.due);return sum.pending>0&&!['draft','approved'].includes(stg)&&(dist===null||dist<=7);}
+    if(tab==='part')return stg==='part';
+    if(tab==='topay')return sum.received>0&&!['Paid','Overpaid','Unvalued'].includes(pay)&&Number(fin.balance||0)>0.005;
+    return true;
+  }
+  function poDueText(po){
+    if(!po.due)return '<span class="pl-dim">No date</span>';
+    const d=new Date(po.due+'T00:00:00'),txt=isNaN(d)?poEsc(po.due):d.toLocaleDateString('en-GB',{day:'numeric',month:'short',year:d.getFullYear()===new Date().getFullYear()?undefined:'numeric'});
+    const dist=poFilterDateDistance(po.due),sum=poSummarySafe(po);
+    const unsent=['draft','approved'].includes(poStage(po).key);
+    return txt+(sum.pending>0&&dist!==null&&dist<0?(unsent?'<small class="pl-late muted">date passed</small>':'<small class="pl-late">'+Math.abs(dist)+' day'+(Math.abs(dist)===1?'':'s')+' late</small>'):'');
+  }
   purchaseOrderListPage = function () {
-    const all=(data.purchaseOrders||[]).slice();
-    const filtered=all.filter(poMatchesListFilters);
-    const sorted=filtered.slice().sort(function(a,b){const ha=purchaseOrderHealth(a),hb=purchaseOrderHealth(b);const rank={bad:0,warn:1,info:2,good:3};return rank[ha.tone]-rank[hb.tone] || String(a.due||'9999').localeCompare(String(b.due||'9999'));});
-    const rows=sorted.map(function(po){const summary=poSummarySafe(po),health=purchaseOrderHealth(po),financials=poFinancialsSafe(po),paymentState=poPaymentState(po),deleteState=typeof purchaseOrderDeleteAssessment==='function'?purchaseOrderDeleteAssessment(po):{allowed:summary.received===0};return '<tr><td><button class="link-button" data-open-po-detail="' + poEsc(po.id) + '"><strong>' + poEsc(po.id) + '</strong></button><small>' + poEsc(po.source||'Manual PO') + '</small></td><td class="ps-av-cell">' + (globalThis.PoolShedAvatar?globalThis.PoolShedAvatar(po.supplier||'?'):'') + '<div><strong>' + poEsc(po.supplier||'Supplier to confirm') + '</strong><small>' + poEsc((poSupplier(po.supplier).ordersEmail||poSupplier(po.supplier).email||'')) + '</small></div></td><td>' + poPill(health.label,health.tone) + '<small>' + poEsc(health.detail) + '</small></td><td>' + poStatusPill(po) + '</td><td>' + summary.received + '/' + summary.ordered + '<small>' + summary.pending + ' outstanding</small></td><td>' + poEsc(po.due||'Not set') + '</td><td>' + poPill(paymentState,paymentState==='Paid'?'good':paymentState==='Part Paid'?'warn':paymentState==='Overpaid'?'info':'bad') + '<small>' + poMoney(Math.max(0,financials.balance)) + ' due</small></td><td class="right"><strong>' + poMoney(financials.gross) + '</strong><small>' + poMoney(financials.net) + ' net</small></td><td><div class="po-list-actions"><button type="button" class="primary" data-open-po-detail="' + poEsc(po.id) + '">Open</button>' + (deleteState.allowed?'<button type="button" class="danger-button" data-delete-po="' + poEsc(po.id) + '">Delete</button>':'') + '</div></td></tr>';}).join('') || '<tr><td colspan="9" class="po-empty">'+(poListFiltersActive()?'No Purchase Orders match these filters. Clear or change a filter to see more orders.':'No Purchase Orders yet.')+'</td></tr>';
-    const open=filtered.filter(function(po){return !['Received','Cancelled'].includes(po.status);});
-    const pending=open.reduce(function(n,po){return n+poSummarySafe(po).pending;},0);
-    const risks=open.filter(function(po){return ['bad','warn'].includes(purchaseOrderHealth(po).tone);}).length;
-    const outstanding=open.reduce(function(n,po){return n+Math.max(0,poFinancialsSafe(po).balance);},0);
-    const supplierCount=new Set(filtered.map(function(po){return po.supplier||'Supplier to confirm';})).size;
-    return '<div class="purchase-command-page purchase-command-list po-sales-parity"><header class="po-command-head"><div><div class="po-command-kicker">PURCHASING</div><h1>Purchase Orders</h1><p>Supplier orders, commitments, receipts, payments, credits and invoice matching in one workflow.</p></div><div class="po-command-actions"><button type="button" class="primary" data-create-po-draft="true">New Purchase Order</button></div></header>'+
-      '<section class="po-health-bar"><div><span>Open POs</span><strong>' + open.length + '</strong><small>in this view</small></div><div><span>Inbound units</span><strong>' + pending + '</strong><small>still expected</small></div><div><span>Needs attention</span><strong>' + risks + '</strong><small>in this view</small></div><div><span>Outstanding to suppliers</span><strong>' + poMoney(outstanding) + '</strong><small>filtered open balances</small></div><div><span>Suppliers</span><strong>' + supplierCount + '</strong><small>'+filtered.length+' of '+all.length+' POs shown</small></div></section>'+
-      poListFilterBar(all,filtered)+
-      '<section class="po-work-card"><div class="po-work-card-head"><div><h3>Purchase Orders</h3><p>Showing '+filtered.length+' of '+all.length+' Purchase Orders. Open an order for receiving, payment, credits and supplier control.</p></div></div><div class="po-table-wrap"><table class="po-command-table"><thead><tr><th>PO</th><th>Supplier</th><th>Health</th><th>Status</th><th>Receiving</th><th>Expected</th><th>Payment</th><th class="right">Total</th><th></th></tr></thead><tbody>' + rows + '</tbody></table></div></section></div>';
+    try{ if(poSyncStatuses()&&typeof saveAppData==='function')setTimeout(saveAppData,0); }catch(_){}
+    const all=(data.purchaseOrders||[]).slice(),tab=poListFilters.tab||'all';
+    const filtered=all.filter(function(po){return poInTab(po,tab)&&poMatchesListFilters(po);});
+    const sorted=filtered.slice().sort(function(a,b){const ra={part:0,sent:1,confirmed:1,approved:2,draft:3,received:4,closed:5,cancelled:6,hold:2};return (ra[poStage(a).key]-ra[poStage(b).key])||String(a.due||'9999').localeCompare(String(b.due||'9999'))||String(b.id).localeCompare(String(a.id));});
+    const counts={};PO_TABS.forEach(function(t){counts[t[0]]=all.filter(function(po){return poInTab(po,t[0]);}).length;});
+    const open=all.filter(function(po){return !['closed','cancelled'].includes(poStage(po).key);});
+    const pending=open.reduce(function(n,po){return n+poSummarySafe(po).pending;},0),outstanding=open.reduce(function(n,po){return n+Math.max(0,poFinancialsSafe(po).balance);},0);
+    const rows=sorted.map(function(po){
+      const sum=poSummarySafe(po),fin=poFinancialsSafe(po),pay=poPaymentState(po),stg=poStage(po),pct=sum.ordered?Math.round(Math.min(1,sum.received/sum.ordered)*100):0;
+      const del=typeof purchaseOrderDeleteAssessment==='function'?purchaseOrderDeleteAssessment(po):{allowed:sum.received===0};
+      const links=Array.from(new Set((po.lines||[]).map(function(l){return l.salesOrderId;}).filter(Boolean))),proj=po.projectId||po.jobId||'';
+      const sub=links.length?'For '+links.slice(0,2).join(', ')+(links.length>2?' +'+(links.length-2):''):(proj?'Project '+proj:(po.source||'Manual'));
+      const sup=poSupplier(po.supplier)||{},email=sup.ordersEmail||sup.email||'';
+      const payTone=pay==='Paid'||pay==='Overpaid'?'good':pay==='Part Paid'?'warn':pay==='Unvalued'?'muted':'bad';
+      const menuId='pl-menu-'+String(po.id).replace(/[^a-z0-9_-]/gi,'-');
+      return '<tr class="pl-row"><td class="pl-po"><button type="button" class="pl-link" data-open-po-detail="'+poEsc(po.id)+'">'+poEsc(po.id)+'</button><small>'+poEsc(sub)+'</small></td>'+
+        '<td><div class="pl-sup">'+(globalThis.PoolShedAvatar?globalThis.PoolShedAvatar(po.supplier||'?'):'')+'<div><strong>'+poEsc(po.supplier||'Supplier to confirm')+'</strong><small>'+poEsc(email)+'</small></div></div></td>'+
+        '<td><span class="pl-pill '+stg.tone+'">'+stg.label+'</span></td>'+
+        '<td><div class="pl-recv"><span class="pl-bar"><i style="width:'+pct+'%"></i></span><span>'+sum.received+' / '+sum.ordered+'</span></div></td>'+
+        '<td class="pl-due">'+poDueText(po)+'</td>'+
+        '<td><span class="pl-pill '+payTone+'">'+poEsc(pay==='Part Paid'?'Part paid':pay)+'</span></td>'+
+        '<td class="right pl-total"><strong>'+poMoney(fin.gross)+'</strong><small>'+poMoney(fin.net)+' net</small></td>'+
+        '<td class="pl-actions"><button type="button" class="pl-dots" data-po-line-menu="'+menuId+'" aria-haspopup="menu" aria-expanded="false" aria-label="More for '+poEsc(po.id)+'">⋯</button><div id="'+menuId+'" class="po-line-menu" role="menu" hidden>'+
+          '<button type="button" role="menuitem" data-open-po-detail="'+poEsc(po.id)+'">Open</button>'+
+          (sum.pending>0&&!['draft','approved'].includes(stg.key)?'<button type="button" role="menuitem" data-po-open-receiving="'+poEsc(po.id)+'">Receive delivery</button>':'')+
+          '<button type="button" role="menuitem" data-po-save-action="email|'+poEsc(po.id)+'">Email / print</button>'+
+          (del&&del.allowed?'<button type="button" role="menuitem" class="danger-button" data-delete-po="'+poEsc(po.id)+'">Delete</button>':'')+
+        '</div></td></tr>';
+    }).join('')||'<tr><td colspan="8" class="po-empty">No purchase orders match. Try another tab or clear the filters.</td></tr>';
+    const tabs='<nav class="pl-tabs" aria-label="Purchase order views">'+PO_TABS.map(function(t){return '<button type="button" class="'+(tab===t[0]?'on':'')+'" data-po-tab="'+t[0]+'">'+t[1]+'<em>'+counts[t[0]]+'</em></button>';}).join('')+'</nav>';
+    const suppliers=Array.from(new Set(all.map(function(po){return po.supplier||'Supplier to confirm';}))).sort();
+    const chip=function(key,label,opts){const cur=poListFilters[key]||'all';return '<label class="pl-chip'+(cur!=='all'?' on':'')+'"><span class="sr-only">'+label+'</span><select class="pl-chip-select" data-po-list-filter="'+key+'"><option value="all">'+(cur!=='all'?label+': any':'+ '+label)+'</option>'+opts.map(function(o){return '<option value="'+poEsc(o[0])+'"'+(o[0]===cur?' selected':'')+'>'+poEsc(o[1])+'</option>';}).join('')+'</select></label>';};
+    const bar='<div class="pl-bar-row"><input id="poListFilterSearch" class="pl-search" type="search" value="'+poEsc(poListFilters.search)+'" placeholder="Search PO, supplier, reference, sales order or product…" aria-label="Search purchase orders">'+
+      chip('supplier','Supplier',suppliers.map(function(x){return [x,x];}))+chip('expected','Expected',[['overdue','Late'],['today','Due today'],['7-days','Next 7 days'],['30-days','Next 30 days'],['no-date','No date']])+
+      chip('payment','Payment',[['Unpaid','Unpaid'],['Part Paid','Part paid'],['Paid','Paid']])+chip('link','Linked to',[['sales-order','A sales order'],['project','A project'],['custom','Custom items'],['unlinked','Stock (not linked)']])+
+      (poListFiltersActive()?'<button type="button" class="link pl-clear" data-po-clear-filters="true">Clear</button>':'')+'</div>';
+    return '<div class="purchase-command-page purchase-command-list pl-page"><header class="pl-head"><div><h2>Purchase orders</h2><p>'+open.length+' open · '+poMoney(outstanding)+' outstanding to suppliers · '+pending+' unit'+(pending===1?'':'s')+' still to come</p></div><div class="pl-head-actions"><button type="button" class="primary" data-create-po-draft="true">New purchase order</button></div></header>'+
+      '<section class="pl-card">'+tabs+bar+'<div class="po-list-table-wrap"><table class="pl-table"><thead><tr><th>PO</th><th>Supplier</th><th>Status</th><th>Received</th><th>Expected</th><th>Payment</th><th class="right">Total</th><th></th></tr></thead><tbody>'+rows+'</tbody></table></div><p class="pl-foot">'+filtered.length+' of '+all.length+' purchase orders</p></section></div>';
   };
+  let poSearchTimer=0;
+  if(typeof document!=='undefined'&&document.addEventListener)document.addEventListener('input',function(e){const t=e.target&&e.target.id==='poListFilterSearch'?e.target:null;if(!t)return;clearTimeout(poSearchTimer);poSearchTimer=setTimeout(function(){poListFilters.search=t.value;const pos=t.selectionStart;if(typeof render==='function')render();const n=document.getElementById('poListFilterSearch');if(n){n.focus();try{n.setSelectionRange(pos,pos);}catch(_){}}},220);});
+  if(typeof document!=='undefined'&&document.addEventListener)document.addEventListener('click',function(e){const t=e.target.closest&&e.target.closest('[data-po-tab]');if(!t)return;e.preventDefault();poListFilters.tab=t.dataset.poTab;if(typeof render==='function')render();},true);
+  if(typeof window!=='undefined')window.PoolShedPoList={stage:poStage,inTab:poInTab,sync:poSyncStatuses};
   function saveLineField(datasetValue, fieldName, value) {
     const parts=String(datasetValue||'').split('|');
     const po=typeof purchaseOrderById==='function'?purchaseOrderById(parts[0]):(data.purchaseOrders||[]).find(function(row){return row.id===parts[0];});

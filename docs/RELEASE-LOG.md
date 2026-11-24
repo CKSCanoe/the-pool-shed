@@ -238,6 +238,20 @@ Owner approved the blueprint 21 Nov 2026 (eight areas; Pool Audits under My Work
 
 ---
 
+## Purchase orders lined up, and a tidier PO page · v1.94.0 · branch `po-list`
+
+Owner (screenshot): the purchase order list needs to align better; inside a PO the custom add looks randomly placed; make it like sales orders, best of Shopify and Brightpearl, with a top receiving process, damage handling, and knowing exactly what to order. Concept approved; release 1 of 2. Live finding: all 26 POs still "Draft - Review" although 17 units are booked in (so Goods in said nothing was waiting); no PO line linked to a sales order.
+
+| # | Change | Status | Evidence |
+|---|---|---|---|
+| PO1 | List: one line per PO, aligned columns, received bar, expected date with late or date passed, payment, total, ⋯ menu (Open, Receive delivery, Email / print, Delete only when safe) | **New · Checked in a real browser on staging** | Screenshot; saved views bar and bulk export still attach |
+| PO2 | Tabs (All, Drafts, Sent, Arriving, Part received, To pay, Closed), search as you type, chips for supplier, expected, payment, linked to | **New · Checked on staging** | Counts: Drafts 25, Part received 1 |
+| PO3 | Status from facts, and the stored status brought into step when goods are booked in (never for cancelled or on hold; drafts with nothing received stay drafts) | **New · Checked on staging** | PO-1053 moved from Draft - Review to Part Received on its own. On live this changes only POs with goods booked in |
+| PO4 | PO page items: one add bar with "or add a custom item" beside it; supplier code under the item name (CUSTOM codes no longer repeated); For pill; received bar | **New · Checked on staging** | Custom form opens under the bar |
+| PO5 | "Delete PO" styled as a quiet red-text button, never the main action | **Fixed** | Kit rule excludes it |
+| PO6 | Old styles for the replaced parts removed; release test | **New · Unit tested** | `test-po-list-v194` |
+| PO7 | Older tests updated: `test-purchase-order-filters-v152` checks the new list (tab plus filters; headline totals over every open PO); `test-overhaul-wording-v185` size line moved to the 1.12 MB hygiene budget | **Updated** | Both pass |
+
 ## One-page product editor · v1.93.0 · branch `product-editor`
 
 Owner-approved concept, release 3 of 3: Shopify-style one-page product editing with Brightpearl's stock and supplier detail.
