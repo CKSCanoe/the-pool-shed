@@ -238,6 +238,19 @@ Owner approved the blueprint 21 Nov 2026 (eight areas; Pool Audits under My Work
 
 ---
 
+## Receive deliveries on the PO, and one "To order" list · v1.95.0 · branch `po-receiving`
+
+Release 2 of 2 of the approved purchasing concept: top-end receiving with damage handling, and knowing exactly what to order.
+
+| # | Change | Status | Evidence |
+|---|---|---|---|
+| RX1 | Receive delivery panel on the PO: still-to-come filled in; arrived, damaged, wrong item; "goes to" per line; books in through the existing `warehouseBookDelivery` (accepted to the shelf with FIFO reservation, damaged to Quarantine, wrong item recorded) | **New · Checked in a real browser on staging** | PO-1053: 1 damaged and 1 line not delivered: 5 booked in, 2 reserved for a waiting order, 1 to Quarantine, received 17 → 23 of 25 |
+| RX2 | Damage decisions: replacement (£0 line, still to come, keeps the sales order link), credit (Quarantine to Returns Hold, supplier return raised), write off | **New · Checked on staging** | Credit raised PR-00002 for £344.16; replacement added a £0 line; staging put back afterwards |
+| RX3 | Purchasing › To order: kept stock below reorder point, customer orders short after free and on-order stock, custom items not on a PO; supplier groups, editable quantities, supplier picker and "Not bought in" for custom items, Create PO (linked to the sales order), Export report | **New · Checked on staging** | 29 lines (1 reorder, 5 customer orders, 23 custom items); first draft listed 126 because old invoiced orders never recorded shipping, so invoiced and ready-to-invoice orders are now treated as delivered |
+| RX4 | "Book delivery" wording now "Receive delivery" everywhere on the PO | **Updated** | |
+| RX5 | Release test | **New · Unit tested** | `test-po-receiving-v195` |
+| RX6 | Menu: Purchasing shows To order first; the old Reorder list entry points to To order; `test-navigation-v166` updated for that | **Checked on staging** | Purchasing › To order opens and is highlighted |
+
 ## Purchase orders lined up, and a tidier PO page · v1.94.0 · branch `po-list`
 
 Owner (screenshot): the purchase order list needs to align better; inside a PO the custom add looks randomly placed; make it like sales orders, best of Shopify and Brightpearl, with a top receiving process, damage handling, and knowing exactly what to order. Concept approved; release 1 of 2. Live finding: all 26 POs still "Draft - Review" although 17 units are booked in (so Goods in said nothing was waiting); no PO line linked to a sales order.
@@ -251,6 +264,7 @@ Owner (screenshot): the purchase order list needs to align better; inside a PO t
 | PO5 | "Delete PO" styled as a quiet red-text button, never the main action | **Fixed** | Kit rule excludes it |
 | PO6 | Old styles for the replaced parts removed; release test | **New · Unit tested** | `test-po-list-v194` |
 | PO7 | Older tests updated: `test-purchase-order-filters-v152` checks the new list (tab plus filters; headline totals over every open PO); `test-overhaul-wording-v185` size line moved to the 1.12 MB hygiene budget | **Updated** | Both pass |
+| PO8 | App release (PR #93) | **Deployed · verified on live** 24 Nov 2026 (Vercel check green; live cache `pool-shed-v1.94.0-polist-r1`; new list code served) | Data unchanged apart from owner activity on 23 Nov (P-1374 set to keep in stock at 22:04; PO-1079 created and deleted at 22:05). PO statuses move when the list is first opened on the new version |
 
 ## One-page product editor · v1.93.0 · branch `product-editor`
 
