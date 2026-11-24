@@ -251,6 +251,7 @@ Owner (screenshot): the purchase order list needs to align better; inside a PO t
 | PO5 | "Delete PO" styled as a quiet red-text button, never the main action | **Fixed** | Kit rule excludes it |
 | PO6 | Old styles for the replaced parts removed; release test | **New · Unit tested** | `test-po-list-v194` |
 | PO7 | Older tests updated: `test-purchase-order-filters-v152` checks the new list (tab plus filters; headline totals over every open PO); `test-overhaul-wording-v185` size line moved to the 1.12 MB hygiene budget | **Updated** | Both pass |
+| PO8 | App release (PR #93) | **Deployed · verified on live** 24 Nov 2026 (Vercel check green; live cache `pool-shed-v1.94.0-polist-r1`; new list code served) | Data unchanged apart from owner activity on 23 Nov (P-1374 set to keep in stock at 22:04; PO-1079 created and deleted at 22:05). PO statuses move when the list is first opened on the new version |
 
 ## One-page product editor · v1.93.0 · branch `product-editor`
 
