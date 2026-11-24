@@ -48,11 +48,7 @@
 .purchase-command-page.po-sales-parity .po-command-body>.po-work-card:first-child,
 .purchase-command-page.po-sales-parity .po-command-body>.po-tab-stack>.po-work-card:first-child,
 .purchase-command-page.po-sales-parity .po-command-body>.po-dual-tab>.po-work-card:first-child{border-radius:0 0 8px 8px}
-.purchase-command-page .po-items-toolbar{display:flex;align-items:center;justify-content:space-between;gap:14px;padding:12px 14px;background:var(--color-surface-subtle);border-bottom:1px solid var(--color-border-default)}
-.purchase-command-page .po-items-toolbar>div:first-child{display:flex;align-items:baseline;gap:8px;min-width:0;flex-wrap:wrap}
-.purchase-command-page .po-items-toolbar>div:first-child span{font-size:12px;font-weight:850;letter-spacing:.06em;color:var(--color-text-secondary)}
-.purchase-command-page .po-items-toolbar>div:first-child strong{font-size:13px;color:var(--color-text-primary)}
-.purchase-command-page .po-items-toolbar>div:first-child small{font-size:12px;color:var(--color-text-secondary)}
+
 .purchase-command-page .po-items-table{min-width:1160px}
 .purchase-command-page .po-items-table th{padding:10px 12px;font-size:12px}
 .purchase-command-page .po-items-table td{padding:11px 12px;font-size:12px}
@@ -63,10 +59,8 @@
 .purchase-command-page .po-line-product small{margin-top:3px;font-size:12px;color:var(--color-text-secondary)}
 .purchase-command-page .po-line-thumb{display:grid;place-items:center;width:44px;height:44px;border:1px solid var(--color-border-default);border-radius:7px;background:var(--color-surface-default);color:var(--color-text-secondary);font-size:12px;font-weight:900;background-position:center;background-size:cover;background-repeat:no-repeat}
 .purchase-command-page .po-line-thumb.has-image{font-size:0}
-.purchase-command-page .po-receiving-cell strong,.purchase-command-page .po-receiving-cell small,
-.purchase-command-page .po-line-total strong,.purchase-command-page .po-line-total small,
-.purchase-command-page .po-cost-input+small{display:block}
-.purchase-command-page .po-receiving-cell small,.purchase-command-page .po-line-total small,.purchase-command-page .po-cost-input+small{margin-top:3px;color:var(--color-text-secondary);font-size:12px}
+.purchase-command-page .po-line-total strong, .purchase-command-page .po-line-total small, .purchase-command-page .po-cost-input+small {display:block}
+.purchase-command-page .po-line-total small, .purchase-command-page .po-cost-input+small {margin-top:3px;color:var(--color-text-secondary);font-size:12px}
 .purchase-command-page .po-vat{white-space:nowrap;color:var(--color-text-secondary)}
 .purchase-command-page .po-line-actions{position:relative;width:56px}
 .purchase-command-page .po-line-menu-button{min-width:38px;height:32px;padding:0 8px}
@@ -89,7 +83,7 @@
 .purchase-command-page .po-address-summary strong{display:block;color:var(--color-text-primary);font-size:14px}
 .purchase-command-page .po-address-summary p{margin:6px 0;color:var(--color-text-secondary);font-size:12px;line-height:1.5;white-space:pre-line}
 .purchase-command-page .po-address-summary small{color:var(--color-text-secondary);font-size:12px}
-.purchase-command-page .po-list-actions{display:flex;align-items:center;gap:5px}
+
 .purchase-command-page .po-activity>div.payment>span{background:var(--color-status-success)}
 .purchase-command-page .po-activity>div.correction>span{background:var(--color-status-danger)}
 .purchase-command-page .po-activity>div.receipt>span{background:var(--color-status-info)}
@@ -99,7 +93,7 @@
   .purchase-command-page .po-dual-tab{grid-template-columns:1fr}
 }
 @media(max-width:760px){
-  .purchase-command-page .po-items-toolbar{align-items:stretch;flex-direction:column}
+  
   .purchase-command-page .po-financial-strip,.purchase-command-page.po-sales-parity .po-health-bar{grid-template-columns:1fr 1fr}
   .purchase-command-page .po-tabs-shell .po-command-tabs button{min-height:44px;padding:0 12px}
 }
@@ -205,19 +199,7 @@
 #screen-purchase .po-custom-line-composer>summary small{display:block}
 #screen-purchase .po-custom-line-composer>summary strong{color:var(--color-text-primary);font-size:12px}
 #screen-purchase .po-custom-line-composer>summary small{margin-top:2px;color:var(--color-text-secondary);font-size:12px;line-height:1.4}
-#screen-purchase .po-custom-summary-pill,
-#screen-purchase .po-custom-line-badge{
-  display:inline-flex;
-  align-items:center;
-  padding:4px 7px;
-  border-radius:999px;
-  background:var(--color-action-soft);
-  color:var(--color-action-ink);
-  font-size:12px;
-  font-weight:900;
-  letter-spacing:.05em;
-  white-space:nowrap;
-}
+
 #screen-purchase .po-custom-line-form{
   display:grid;
   grid-template-columns:repeat(4,minmax(0,1fr));

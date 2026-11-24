@@ -12202,11 +12202,7 @@ body #salesOrderProductResults button.good:hover, body #salesOrderProductResults
 .purchase-command-page.po-sales-parity .po-command-body>.po-work-card:first-child,
 .purchase-command-page.po-sales-parity .po-command-body>.po-tab-stack>.po-work-card:first-child,
 .purchase-command-page.po-sales-parity .po-command-body>.po-dual-tab>.po-work-card:first-child{border-radius:0 0 8px 8px}
-.purchase-command-page .po-items-toolbar{display:flex;align-items:center;justify-content:space-between;gap:14px;padding:12px 14px;background:var(--color-surface-subtle);border-bottom:1px solid var(--color-border-default)}
-.purchase-command-page .po-items-toolbar>div:first-child{display:flex;align-items:baseline;gap:8px;min-width:0;flex-wrap:wrap}
-.purchase-command-page .po-items-toolbar>div:first-child span{font-size:12px;font-weight:850;letter-spacing:.06em;color:var(--color-text-secondary)}
-.purchase-command-page .po-items-toolbar>div:first-child strong{font-size:13px;color:var(--color-text-primary)}
-.purchase-command-page .po-items-toolbar>div:first-child small{font-size:12px;color:var(--color-text-secondary)}
+
 .purchase-command-page .po-items-table{min-width:1160px}
 .purchase-command-page .po-items-table th{padding:10px 12px;font-size:12px}
 .purchase-command-page .po-items-table td{padding:11px 12px;font-size:12px}
@@ -12217,10 +12213,8 @@ body #salesOrderProductResults button.good:hover, body #salesOrderProductResults
 .purchase-command-page .po-line-product small{margin-top:3px;font-size:12px;color:var(--color-text-secondary)}
 .purchase-command-page .po-line-thumb{display:grid;place-items:center;width:44px;height:44px;border:1px solid var(--color-border-default);border-radius:7px;background:var(--color-surface-default);color:var(--color-text-secondary);font-size:12px;font-weight:900;background-position:center;background-size:cover;background-repeat:no-repeat}
 .purchase-command-page .po-line-thumb.has-image{font-size:0}
-.purchase-command-page .po-receiving-cell strong,.purchase-command-page .po-receiving-cell small,
-.purchase-command-page .po-line-total strong,.purchase-command-page .po-line-total small,
-.purchase-command-page .po-cost-input+small{display:block}
-.purchase-command-page .po-receiving-cell small,.purchase-command-page .po-line-total small,.purchase-command-page .po-cost-input+small{margin-top:3px;color:var(--color-text-secondary);font-size:12px}
+.purchase-command-page .po-line-total strong, .purchase-command-page .po-line-total small, .purchase-command-page .po-cost-input+small {display:block}
+.purchase-command-page .po-line-total small, .purchase-command-page .po-cost-input+small {margin-top:3px;color:var(--color-text-secondary);font-size:12px}
 .purchase-command-page .po-vat{white-space:nowrap;color:var(--color-text-secondary)}
 .purchase-command-page .po-line-actions{position:relative;width:56px}
 .purchase-command-page .po-line-menu-button{min-width:38px;height:32px;padding:0 8px}
@@ -12243,7 +12237,7 @@ body #salesOrderProductResults button.good:hover, body #salesOrderProductResults
 .purchase-command-page .po-address-summary strong{display:block;color:var(--color-text-primary);font-size:14px}
 .purchase-command-page .po-address-summary p{margin:6px 0;color:var(--color-text-secondary);font-size:12px;line-height:1.5;white-space:pre-line}
 .purchase-command-page .po-address-summary small{color:var(--color-text-secondary);font-size:12px}
-.purchase-command-page .po-list-actions{display:flex;align-items:center;gap:5px}
+
 .purchase-command-page .po-activity>div.payment>span{background:var(--color-status-success)}
 .purchase-command-page .po-activity>div.correction>span{background:var(--color-status-danger)}
 .purchase-command-page .po-activity>div.receipt>span{background:var(--color-status-info)}
@@ -12253,7 +12247,7 @@ body #salesOrderProductResults button.good:hover, body #salesOrderProductResults
   .purchase-command-page .po-dual-tab{grid-template-columns:1fr}
 }
 @media(max-width:760px){
-  .purchase-command-page .po-items-toolbar{align-items:stretch;flex-direction:column}
+  
   .purchase-command-page .po-financial-strip,.purchase-command-page.po-sales-parity .po-health-bar{grid-template-columns:1fr 1fr}
   .purchase-command-page .po-tabs-shell .po-command-tabs button{min-height:44px;padding:0 12px}
 }
@@ -12359,19 +12353,7 @@ body #salesOrderProductResults button.good:hover, body #salesOrderProductResults
 #screen-purchase .po-custom-line-composer>summary small{display:block}
 #screen-purchase .po-custom-line-composer>summary strong{color:var(--color-text-primary);font-size:12px}
 #screen-purchase .po-custom-line-composer>summary small{margin-top:2px;color:var(--color-text-secondary);font-size:12px;line-height:1.4}
-#screen-purchase .po-custom-summary-pill,
-#screen-purchase .po-custom-line-badge{
-  display:inline-flex;
-  align-items:center;
-  padding:4px 7px;
-  border-radius:999px;
-  background:var(--color-action-soft);
-  color:var(--color-action-ink);
-  font-size:12px;
-  font-weight:900;
-  letter-spacing:.05em;
-  white-space:nowrap;
-}
+
 #screen-purchase .po-custom-line-form{
   display:grid;
   grid-template-columns:repeat(4,minmax(0,1fr));
@@ -15648,6 +15630,66 @@ body #screen-products .pe-grid td:nth-child(2) { min-width: 170px; }
 body #screen-products .pe-grid td:nth-child(1) { min-width: 110px; }
 
 
+/* ===== MODULE: system/80-purchase-orders.css ===== */
+/* v1.94 Purchase orders: aligned list with tabs and chips; tidy items area on the PO page */
+body #screen-purchase .pl-page { display: grid; gap: 14px; }
+body #screen-purchase .pl-head { display: flex; flex-wrap: wrap; justify-content: space-between; align-items: flex-end; gap: 12px; }
+body #screen-purchase .pl-head h2 { margin: 0; font-size: 1.85rem; letter-spacing: -.02em; }
+body #screen-purchase .pl-head p { margin: 2px 0 0; color: var(--color-text-secondary); }
+body #screen-purchase .pl-card { overflow: hidden; border-radius: 14px; background: var(--color-surface-default); box-shadow: 0 1px 2px var(--card-ring), 0 0 0 1px var(--card-ring); }
+body #screen-purchase .pl-card .pl-tabs { display: flex; flex-wrap: wrap; gap: 2px; padding: 6px 10px 0; border-bottom: 1px solid var(--color-border-subtle); }
+body #screen-purchase .pl-card .pl-tabs button { appearance: none !important; border: 0 !important; border-bottom: 2px solid transparent !important; border-radius: 0 !important; background: none !important; padding: 10px 12px !important; min-height: 0 !important; color: var(--color-text-secondary) !important; font: inherit !important; font-size: .93rem !important; box-shadow: none !important; cursor: pointer; }
+body #screen-purchase .pl-card .pl-tabs button.on { color: var(--color-text-primary) !important; font-weight: 600 !important; border-bottom-color: var(--color-action-primary) !important; }
+body #screen-purchase .pl-tabs em { margin-left: 6px; padding: 0 7px; border-radius: 999px; background: var(--color-surface-subtle); color: var(--color-text-secondary); font-style: normal; font-size: .86rem; }
+body #screen-purchase .pl-bar-row { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; padding: 10px 12px; border-bottom: 1px solid var(--color-border-subtle); }
+body #screen-purchase .pl-card .pl-search { flex: 1 1 280px; min-width: 200px; }
+body #screen-purchase .pl-card .pl-chip select.pl-chip-select { appearance: none; width: auto !important; max-width: 220px; padding: 6px 12px !important; min-height: 32px !important; border-radius: 999px !important; border: 1px dashed var(--color-border-strong) !important; background: var(--color-surface-default) !important; color: var(--color-text-secondary) !important; font-size: .86rem !important; cursor: pointer; }
+body #screen-purchase .pl-card .pl-chip.on select.pl-chip-select { border-style: solid !important; border-color: var(--color-action-line) !important; background: var(--color-action-soft) !important; color: var(--color-action-ink) !important; }
+body #screen-purchase .pl-table { width: 100%; border-collapse: collapse; font-size: .93rem; }
+body #screen-purchase .pl-table th { padding: 9px 12px; text-align: left; font-weight: 500; font-size: .86rem; color: var(--color-text-secondary); background: var(--color-surface-subtle); border-bottom: 1px solid var(--color-border-subtle); white-space: nowrap; }
+body #screen-purchase .pl-table td { padding: 10px 12px; border-bottom: 1px solid var(--color-border-subtle); vertical-align: middle; }
+body #screen-purchase .pl-table .right { text-align: right; }
+body #screen-purchase .pl-table small { display: block; color: var(--color-text-secondary); font-size: .86rem; }
+body #screen-purchase .pl-po { white-space: nowrap; }
+body #screen-purchase .pl-card .pl-link { appearance: none !important; border: 0 !important; background: none !important; padding: 0 !important; min-height: 0 !important; box-shadow: none !important; font: inherit !important; font-weight: 600 !important; color: var(--color-text-primary) !important; cursor: pointer; white-space: nowrap; }
+body #screen-purchase .pl-card .pl-link:hover { color: var(--color-action-ink) !important; text-decoration: underline; }
+body #screen-purchase .pl-sup { display: flex; align-items: center; gap: 10px; min-width: 0; }
+body #screen-purchase .pl-sup strong { font-weight: 600; }
+body #screen-purchase .pl-pill { display: inline-block; padding: 2px 9px; border-radius: 999px; font-size: .86rem; font-weight: 500; white-space: nowrap; }
+body #screen-purchase .pl-pill.good { background: var(--color-status-success-bg); color: var(--color-status-success-text); }
+body #screen-purchase .pl-pill.warn { background: var(--color-status-attention-bg); color: var(--color-status-attention-text); }
+body #screen-purchase .pl-pill.bad { background: var(--color-status-danger-bg); color: var(--color-status-danger-text); }
+body #screen-purchase .pl-pill.info { background: var(--color-status-info-bg); color: var(--color-status-info-text); }
+body #screen-purchase .pl-pill.muted { background: var(--color-surface-subtle); color: var(--color-text-secondary); }
+body #screen-purchase .pl-recv, body #screen-purchase .pi-recv { display: flex; align-items: center; gap: 8px; white-space: nowrap; font-variant-numeric: tabular-nums; }
+body #screen-purchase .pl-bar { display: inline-block; flex: 0 0 80px; width: 80px; height: 6px; border-radius: 999px; overflow: hidden; background: var(--color-surface-subtle); }
+body #screen-purchase .pl-bar i { display: block; height: 100%; background: linear-gradient(90deg, var(--brand-grad-start), var(--brand-grad-end)); }
+body #screen-purchase .pl-due { white-space: nowrap; }
+body #screen-purchase .pl-late { display: inline !important; margin-left: 4px; color: var(--color-status-danger-text) !important; }
+body #screen-purchase .pl-dim { color: var(--color-text-secondary); }
+body #screen-purchase .pl-total { white-space: nowrap; font-variant-numeric: tabular-nums; }
+body #screen-purchase .pl-actions { width: 44px; position: relative; text-align: right; }
+body #screen-purchase .pl-card .pl-dots { width: 32px !important; min-width: 32px !important; height: 32px !important; min-height: 32px !important; padding: 0 !important; border-radius: 8px !important; }
+body #screen-purchase .pl-foot { margin: 0; padding: 10px 12px; color: var(--color-text-secondary); font-size: .86rem; }
+body #screen-purchase .pi-head { display: flex; justify-content: space-between; align-items: baseline; gap: 10px; padding: 14px 16px 6px; }
+body #screen-purchase .pi-head strong { font-size: 1.07rem; margin-right: 8px; }
+body #screen-purchase .pi-head small { color: var(--color-text-secondary); }
+body #screen-purchase .pi-add { padding: 8px 16px 12px; border-bottom: 1px solid var(--color-border-subtle); }
+body #screen-purchase .pi-card .pi-add-row { display: flex !important; gap: 8px; align-items: center; position: relative; }
+body #screen-purchase .pi-card .pi-add-row #poProductSearch { flex: 1 1 auto; }
+body #screen-purchase .pi-card .pi-add-row #poProductQty { flex: 0 0 80px; width: 80px !important; }
+body #screen-purchase .pi-card .pi-custom { margin: 6px 0 0; border: 0 !important; background: none !important; padding: 0 !important; box-shadow: none !important; }
+body #screen-purchase .pi-card .pi-custom > summary { display: inline-block; cursor: pointer; color: var(--color-action-ink); text-decoration: underline; text-underline-offset: 2px; font-size: .93rem; list-style: none; padding: 0 !important; }
+body #screen-purchase .pi-card .pi-custom > summary small { color: var(--color-text-secondary); text-decoration: none; }
+body #screen-purchase .pi-card .pi-custom[open] > summary { margin-bottom: 8px; }
+body #screen-purchase .pi-card .pi-for { appearance: none !important; border: 0 !important; padding: 2px 9px !important; min-height: 0 !important; border-radius: 999px !important; background: var(--color-surface-subtle) !important; color: var(--color-text-secondary) !important; font: inherit !important; font-size: .86rem !important; box-shadow: none !important; cursor: pointer; white-space: nowrap; }
+body #screen-purchase .pl-late.muted { color: var(--color-text-secondary) !important; }
+body #screen-purchase.ps-kit-scope .pi-card .pi-table td .pi-for { appearance: none !important; border: 0 !important; padding: 2px 9px !important; min-height: 0 !important; height: auto !important; border-radius: 999px !important; background: var(--color-surface-subtle) !important; color: var(--color-text-secondary) !important; font-size: .86rem !important; box-shadow: none !important; }
+body #screen-purchase.ps-kit-scope .pi-card .pi-add details.pi-custom > summary { display: inline !important; background: none !important; border: 0 !important; padding: 0 !important; min-height: 0 !important; box-shadow: none !important; }
+body #screen-purchase.ps-kit-scope .pi-card .pi-add details.pi-custom > summary small { display: inline !important; margin-left: 4px; font-size: .86rem; }
+body #screen-purchase.ps-kit-scope .pi-card .pi-add details.pi-custom > summary::-webkit-details-marker { display: none; }
+
+
 /* ===== MODULE: system/68-pool-shed-kit.css ===== */
 /* Pool Shed design kit (v1.69 pilot) — module 68, loaded last.
    v1.77: rules start .ps-kit-scope:not(#ps-kit-none) — the :not(#id) gives the same id-level strength the old
@@ -15900,6 +15942,9 @@ body.ps-kit:has(#screen-quotes.ps-kit-scope:not(.hidden) > .qs-root:not(.qs-stud
 .ps-kit-scope:not(#ps-kit-none):not(:has(> .qs-studio-root)) .import-history { grid-template-columns: minmax(0, 1fr) !important; }
 .ps-kit-scope:not(#ps-kit-none):not(:has(> .qs-studio-root)) .import-history-card, .ps-kit-scope:not(#ps-kit-none):not(:has(> .qs-studio-root)) .import-history-top, .ps-kit-scope:not(#ps-kit-none):not(:has(> .qs-studio-root)) .import-history-meta { min-width: 0 !important; max-width: 100% !important; flex-wrap: wrap !important; }
 /* v1.91: the main action button carries the brand gradient, as in the menu bar */
-.ps-kit-scope:not(#ps-kit-none):not(:has(> .qs-studio-root)) :is(button.primary, button.primary-action, .ph-head-actions > button:not(.secondary), .po-command-actions > button:not(.secondary)) {
+.ps-kit-scope:not(#ps-kit-none):not(:has(> .qs-studio-root)) :is(button.primary, button.primary-action, .ph-head-actions > button:not(.secondary), .po-command-actions > button:not(.secondary):not(.danger-button)) {
   background: linear-gradient(135deg, var(--k-brand), var(--brand-grad-end)) !important; border-color: transparent !important; color: var(--k-brand-ink) !important; box-shadow: 0 4px 12px var(--brand-glow) !important; }
 .ps-kit-scope:not(#ps-kit-none):not(:has(> .qs-studio-root)) :is(button.primary, button.primary-action):hover { filter: brightness(1.06); }
+/* v1.94: delete is never styled as the main action */
+.ps-kit-scope:not(#ps-kit-none):not(:has(> .qs-studio-root)) .po-command-actions > button.danger-button { background: var(--k-surface) !important; color: var(--color-status-danger-text) !important; border: 1px solid var(--k-line) !important; box-shadow: none !important; }
+.ps-kit-scope:not(#ps-kit-none):not(:has(> .qs-studio-root)) .po-command-actions > button.danger-button:hover { border-color: var(--color-status-danger) !important; background: var(--color-status-danger-bg) !important; }

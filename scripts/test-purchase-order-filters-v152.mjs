@@ -4,9 +4,9 @@ for(const token of ['poListFilters','poMatchesListFilters','poListFilterBar','da
   assert(js.includes(token),'Purchase Order filter missing '+token);
 for(const label of ['All suppliers','All statuses','All payments','All receiving','All health','Any expected date','Sales Order','Project','Custom PO lines','General / unlinked'])
   assert(js.includes(label),'Purchase Order filter option missing '+label);
-assert.match(js,/const filtered=all\.filter\(poMatchesListFilters\)/,'PO rows must be filtered from source data');
-assert.match(js,/const open=filtered\.filter/,'PO KPI calculations must reflect the filtered view');
-assert(js.includes("filtered.length+' of '+all.length+' Purchase Orders"),'Filtered result count must be visible');
+assert.match(js,/const filtered=all\.filter\(function\(po\)\{return poInTab\(po,tab\)&&poMatchesListFilters\(po\);\}\)/,'PO rows must be filtered from source data (v1.94: tab plus filters)');
+assert.match(js,/const open=all\.filter/,'v1.94: headline totals cover every open PO; the tabs and filters narrow the list');
+assert(js.includes("filtered.length+' of '+all.length+' purchase orders"),'Filtered result count must be visible');
 assert(css.includes('Purchase Order list filters'),'PO filter styling missing');
 assert(build.includes('test-purchase-order-filters-v152.mjs'),'PO filter regression test must run in production build');
 console.log('PASS Purchase Order list filters supplier/status/payment/receiving/health/date/link/search and filtered KPIs');

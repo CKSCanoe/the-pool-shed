@@ -1,4 +1,4 @@
-/* Pool Shed v1.93.0 — customer page: "Account" tab (blueprint step 5).
+/* Pool Shed v1.94.0 — customer page: "Account" tab (blueprint step 5).
    Adds to the existing customer profile, without replacing it, one place for the customer's money from the ledger:
    balance and how late, terms and credit limit, every invoice, credit note, payment and refund, a statement for any
    period (view, PDF), and the next actions (take a payment, open an invoice). Finance roles only: Admin,

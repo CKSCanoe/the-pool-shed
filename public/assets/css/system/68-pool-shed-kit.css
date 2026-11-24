@@ -249,6 +249,9 @@ body.ps-kit:has(#screen-quotes.ps-kit-scope:not(.hidden) > .qs-root:not(.qs-stud
 .ps-kit-scope:not(#ps-kit-none):not(:has(> .qs-studio-root)) .import-history { grid-template-columns: minmax(0, 1fr) !important; }
 .ps-kit-scope:not(#ps-kit-none):not(:has(> .qs-studio-root)) .import-history-card, .ps-kit-scope:not(#ps-kit-none):not(:has(> .qs-studio-root)) .import-history-top, .ps-kit-scope:not(#ps-kit-none):not(:has(> .qs-studio-root)) .import-history-meta { min-width: 0 !important; max-width: 100% !important; flex-wrap: wrap !important; }
 /* v1.91: the main action button carries the brand gradient, as in the menu bar */
-.ps-kit-scope:not(#ps-kit-none):not(:has(> .qs-studio-root)) :is(button.primary, button.primary-action, .ph-head-actions > button:not(.secondary), .po-command-actions > button:not(.secondary)) {
+.ps-kit-scope:not(#ps-kit-none):not(:has(> .qs-studio-root)) :is(button.primary, button.primary-action, .ph-head-actions > button:not(.secondary), .po-command-actions > button:not(.secondary):not(.danger-button)) {
   background: linear-gradient(135deg, var(--k-brand), var(--brand-grad-end)) !important; border-color: transparent !important; color: var(--k-brand-ink) !important; box-shadow: 0 4px 12px var(--brand-glow) !important; }
 .ps-kit-scope:not(#ps-kit-none):not(:has(> .qs-studio-root)) :is(button.primary, button.primary-action):hover { filter: brightness(1.06); }
+/* v1.94: delete is never styled as the main action */
+.ps-kit-scope:not(#ps-kit-none):not(:has(> .qs-studio-root)) .po-command-actions > button.danger-button { background: var(--k-surface) !important; color: var(--color-status-danger-text) !important; border: 1px solid var(--k-line) !important; box-shadow: none !important; }
+.ps-kit-scope:not(#ps-kit-none):not(:has(> .qs-studio-root)) .po-command-actions > button.danger-button:hover { border-color: var(--color-status-danger) !important; background: var(--color-status-danger-bg) !important; }
