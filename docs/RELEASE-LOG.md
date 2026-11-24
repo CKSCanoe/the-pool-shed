@@ -250,6 +250,7 @@ Owner: rebuild the bundle engine (audit recommendation 3). Concept approved. Fin
 | BX4 | Catalogue badge and can make; To order "Part of … for SO-…" | **New · Unit tested** | |
 | BX5 | One money rule: bundle line carries price and cost; quotes' parts no longer carry cost; monthly pack counts the bundle once | **Fixed** | |
 | BX7 | Staging note: the v1.95 receiving test had saved to the staging database, and the attempted put-back was refused (receipt history is permanent by design), which left one browser unable to save. Staging reloaded from its database; the £0 replacement line removed and test return PR-00002 cancelled; PO-1053 on staging keeps the test delivery (23 of 25). Live was never affected | **Resolved** | |
+| BX8 | App release (PR #95) | **Deployed · verified on live** 24 Nov 2026 (Vercel check green; live cache `pool-shed-v1.96.0-bundles-r1`; `bundles.js` served; retired intelligence file 404) | Data unchanged apart from owner activity: at 09:11 three of the empty orders created on 23 Nov (SO-2065, SO-2066, SO-2067, no lines) were deleted; 30 orders, 17 units of stock, 6,837 products, 26 POs |
 | BX6 | Retired the switched-off bundle intelligence layer (file, script, cache entry, its styles); its two tests now check the new engine | **Removed** | |
 
 ## Receive deliveries on the PO, and one "To order" list · v1.95.0 · branch `po-receiving`
