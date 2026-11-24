@@ -14,7 +14,7 @@ var esc = function(v){ return String(v == null ? '' : v).replace(/[&<>"']/g, fun
 var gbp = function(v){ return typeof money === 'function' ? money(num(v)) : '£' + num(v).toFixed(2); };
 var ed = global.poolShedEditorState || { draft: {}, focus: '', allFields: {} };
 global.poolShedEditorState = ed;
-var NUMS = ['rrp', 'trade', 'wholesale', 'special', 'cost', 'reorderPoint', 'targetStock', 'leadTimeDays', 'minimumOrderQuantity', 'orderMultiple'];
+var NUMS = ['rrp', 'trade', 'wholesale', 'special', 'cost', 'reorderPoint', 'targetStock', 'leadTimeDays', 'minimumOrderQuantity', 'orderMultiple', 'bundleDiscountPct'];
 function D(){ return typeof global.__POOL_SHED_GET_DATA__ === 'function' ? global.__POOL_SHED_GET_DATA__() : (typeof data !== 'undefined' ? data : {}); }
 function toast2(m){ try { (global.toast || console.log)(m); } catch (_) {} }
 function current(){ try { return typeof selectedProductId !== 'undefined' ? hub.productById(selectedProductId) : null; } catch (_) { return null; } }
@@ -73,6 +73,30 @@ function variantsGrid(fam, p){
   }).join('');
   return card(fam.length > 1 ? 'Variants' : 'Price and code', '<div class="pe-grid-wrap"><table class="pe-grid"><thead><tr>' + head + '</tr></thead><tbody>' + rows + '</tbody></table></div><p class="pe-hint">Tab moves across · paste a column from Excel into the first cell and it fills down · margins update as you type</p>');
 }
+// ---------- bundles (v1.96, rules in bundles.js) ----------
+function BE(){ return global.PoolShedBundleEngine || null; }
+function isBundleDraft(p){ var d = ed.draft[p.id]; if (d && 'bundleEnabled' in d) return !!d.bundleEnabled; return !!(BE() && BE().isBundle(p)); }
+function draftParts(p){ var d = ed.draft[p.id]; var list = d && d.bundleItems ? d.bundleItems : (Array.isArray(p.bundleItems) ? p.bundleItems : []); return list.filter(function(x){ return x && x.productId; }).map(function(x){ return { productId: x.productId, qty: Math.max(1, Math.floor(num(x.qty) || 1)), product: hub.productById(x.productId) }; }); }
+function setParts(p, list){ setDraft(p.id, 'bundleItems', list.map(function(x){ return { productId: x.productId, qty: x.qty }; })); }
+function bundleCards(p){
+  var be = BE(); if (!be) return '';
+  var items = draftParts(p), cm = be.canMake(p, items), cost = be.partsCost(p, items);
+  var rows = items.map(function(x, i){ var c = x.product || {}, free = hub.isStocked(c) ? hub.stockSummary(c.id).available : null, n = free == null ? null : Math.floor(free / x.qty);
+    return '<tr><td><strong>' + esc(c.name || x.productId) + '</strong><small>' + esc(c.sku || '') + '</small></td><td class="num"><input class="pe-in pe-grid-in" type="number" min="1" step="1" data-pe-part="' + esc(p.id + '|' + i) + '" value="' + x.qty + '" aria-label="Quantity in bundle"></td>' +
+      '<td class="num">' + gbp(num(c.cost) * x.qty) + '</td><td class="num">' + gbp(num(c.rrp) * x.qty) + '</td><td class="num">' + (free == null ? '<span class="pe-dim">Not stocked</span>' : free) + '</td><td class="num">' + (n == null ? '—' : n + (cm.limit && cm.limit.productId === x.productId ? ' <span class="pe-low">limits it</span>' : '')) + '</td>' +
+      '<td><button type="button" class="link pe-link" data-pe-part-remove="' + esc(p.id + '|' + i) + '" aria-label="Remove part">Remove</button></td></tr>'; }).join('');
+  var parts = card('Parts', '<div class="pe-part-add"><input class="pe-in" data-pe-part-search="' + esc(p.id) + '" placeholder="Add a part: name or SKU" autocomplete="off" aria-label="Add a part"><div class="pe-part-results" data-pe-part-results hidden></div></div>' +
+    (items.length ? '<div class="pe-grid-wrap"><table class="pe-grid"><thead><tr><th>Part</th><th class="num">Qty in bundle</th><th class="num">Cost</th><th class="num">RRP</th><th class="num">Free stock</th><th class="num">Can make</th><th></th></tr></thead><tbody>' + rows +
+      '<tr class="pe-total"><td><strong>Total</strong></td><td></td><td class="num"><strong>' + gbp(cost) + '</strong></td><td class="num"><strong>' + gbp(be.partsTotal(p, 'rrp', items)) + '</strong></td><td></td><td class="num"><strong>' + (cm.stocked ? cm.qty : '—') + '</strong></td><td></td></tr></tbody></table></div>' : '<p class="pe-hint">No parts yet. Search above to add the products this bundle is made of.</p>'),
+    cm.stocked ? '<span class="pe-can">Can make ' + cm.qty + '</span>' : '');
+  var mode = (ed.draft[p.id] && ed.draft[p.id].bundlePriceMode) || p.bundlePriceMode || 'fixed', pct = num(val(p, 'bundleDiscountPct'));
+  var prows = be.LISTS.map(function(l){ var would = be.partsTotal(p, l[0], items), priceV = mode === 'discount' ? Math.round(would * (1 - Math.min(90, Math.max(0, pct)) / 100) * 100) / 100 : num(val(p, l[0])), save = would - priceV, m = priceV > 0 ? Math.round((priceV - cost) / priceV * 100) : null;
+    return '<tr><td>' + l[1] + '</td><td class="num">' + gbp(would) + '</td><td class="num">' + (mode === 'discount' ? gbp(priceV) : input(p, l[0], { cls: 'pe-grid-in', label: l[1] + ' bundle price' })) + '</td><td class="num">' + (priceV > 0 ? gbp(save) + (would > 0 ? ' (' + Math.round(save / would * 100) + '%)' : '') : '—') + '</td><td class="num' + (m != null && m < 25 ? ' pe-low' : '') + '">' + (m == null ? '—' : m + '%') + '</td></tr>'; }).join('');
+  var price = card('Bundle price', '<div class="pe-modes"><button type="button" class="' + (mode === 'fixed' ? 'on' : '') + '" data-pe-bmode="' + esc(p.id) + '|fixed">Set the price</button><button type="button" class="' + (mode === 'discount' ? 'on' : '') + '" data-pe-bmode="' + esc(p.id) + '|discount">Parts total less a %</button></div>' +
+    (mode === 'discount' ? fieldRow('Discount on the parts total (%)', input(p, 'bundleDiscountPct', { cls: 'pe-pct', ph: '10' })) : '') +
+    '<div class="pe-grid-wrap"><table class="pe-grid"><thead><tr><th>Price list</th><th class="num">Parts would be</th><th class="num">Bundle price</th><th class="num">Customer saves</th><th class="num">Margin</th></tr></thead><tbody>' + prows + '</tbody></table></div><p class="pe-hint">Cost is always the live total of the parts (' + gbp(cost) + ').</p>');
+  return parts + price;
+}
 function editorHtml(p){
   var fam = familyOf(p), multi = fam.length > 1, title = multi ? (val(p, 'parentName') || p.name) : val(p, 'name');
   var dirty = dirtyCount(), s = hub.isStocked(p) ? hub.stockSummary(p.id) : null, keep = val(p, 'keep'), sg = suggest(p), sold = sold90(fam.map(function(v){ return v.id; }));
@@ -82,13 +106,16 @@ function editorHtml(p){
   var statusHint = { active: 'Can be added to orders, quotes and the web shop.', draft: 'Kept back for review: shows as Draft in the catalogue.', archived: 'Hidden when adding items; stays on past orders and reports.' }[val(p, 'status')];
   var left = card('Title and description', fieldRow(multi ? 'Product name (all ' + fam.length + ' variants)' : 'Product name', '<input class="pe-in pe-title" data-pe="' + esc(p.id + '|' + (multi ? 'parentName' : 'name')) + '" value="' + esc(title) + '">') +
       fieldRow('Description', '<textarea class="pe-in" rows="4" data-pe="' + esc(p.id + '|description') + '">' + esc(val(p, 'description')) + '</textarea>')) +
-    card('Image', imageHtml(p)) + variantsGrid(fam, p) +
-    card('Pricing' + (multi ? ': ' + (p.variantValue || p.sku) : ''), '<div class="pe-g4">' + fieldRow('RRP', input(p, 'rrp'), marginAt(p, 'rrp') + ' margin') + fieldRow('Trade', input(p, 'trade'), marginAt(p, 'trade') + ' margin') + fieldRow('Wholesale', input(p, 'wholesale'), marginAt(p, 'wholesale') + ' margin') + fieldRow('Cost', input(p, 'cost'), 'ex VAT') + '</div>' +
-      '<div class="pe-g4">' + fieldRow('Special price', input(p, 'special', { ph: 'none' })) + fieldRow('Barcode', input(p, 'barcode')) + fieldRow('Manufacturer code', input(p, 'mpn')) + fieldRow('Unit', input(p, 'unit', { ph: 'Each' })) + '</div>');
+    card('Image', imageHtml(p)) + (isBundleDraft(p) ? bundleCards(p) + card('Codes', '<div class="pe-g4">' + fieldRow('SKU', input(p, 'sku')) + fieldRow('Barcode', input(p, 'barcode')) + fieldRow('Unit', input(p, 'unit', { ph: 'Each' })) + '</div>') + '<!--bx-->' : variantsGrid(fam, p)) +
+    (isBundleDraft(p) ? '' : card('Pricing' + (multi ? ': ' + (p.variantValue || p.sku) : ''), '<div class="pe-g4">' + fieldRow('RRP', input(p, 'rrp'), marginAt(p, 'rrp') + ' margin') + fieldRow('Trade', input(p, 'trade'), marginAt(p, 'trade') + ' margin') + fieldRow('Wholesale', input(p, 'wholesale'), marginAt(p, 'wholesale') + ' margin') + fieldRow('Cost', input(p, 'cost'), 'ex VAT') + '</div>' +
+      '<div class="pe-g4">' + fieldRow('Special price', input(p, 'special', { ph: 'none' })) + fieldRow('Barcode', input(p, 'barcode')) + fieldRow('Manufacturer code', input(p, 'mpn')) + fieldRow('Unit', input(p, 'unit', { ph: 'Each' })) + '</div>'));
+  var bcm = isBundleDraft(p) && BE() ? BE().canMake(p, draftParts(p)) : null;
   var right = card('Status', statusSel + '<p class="pe-hint">' + statusHint + '</p>') +
     card('Organisation', fieldRow('Category', input(p, 'category', { list: 'pe-cats' })) + fieldRow('Brand', input(p, 'brand', { list: 'pe-brands' })) + fieldRow('Product type', input(p, 'productType', { ph: 'Stocked Product' }))) +
     card('Supplier', fieldRow('Supplier', supSel) + fieldRow('Supplier code', input(p, 'supplierSku')) + '<div class="pe-g2">' + fieldRow('Lead time (days)', input(p, 'leadTimeDays')) + fieldRow('Minimum order', input(p, 'minimumOrderQuantity')) + '</div>') +
-    (hub.isStocked(p) ? card('Stock and reordering', '<label class="pe-switch"><input type="checkbox" data-pe="' + esc(p.id + '|keep') + '"' + (keep ? ' checked' : '') + '><span class="pe-keep">◆</span> Keep in stock</label>' +
+    card('Bundle', '<label class="pe-switch"><input type="checkbox" data-pe="' + esc(p.id + '|bundleEnabled') + '"' + (isBundleDraft(p) ? ' checked' : '') + '> Sell as a bundle</label><p class="pe-hint">' + (isBundleDraft(p) ? 'Made of other products. Sells as one line at the customer’s price list; the parts are reserved, picked, shipped and reordered automatically.' : 'Turn this on to make it from other products (a kit or pack).') + '</p>') +
+    (bcm ? card('Stock', '<p class="pe-hint">' + (bcm.stocked ? '<strong class="pe-can">Can make ' + bcm.qty + '</strong> from the free stock of its parts' + (bcm.limit && bcm.limit.product ? '; ' + esc(bcm.limit.product.name) + ' limits it.' : '.') : 'Its parts are not stock-controlled.') + '</p>') :
+    hub.isStocked(p) ? card('Stock and reordering', '<label class="pe-switch"><input type="checkbox" data-pe="' + esc(p.id + '|keep') + '"' + (keep ? ' checked' : '') + '><span class="pe-keep">◆</span> Keep in stock</label>' +
       (keep ? '<div class="pe-g2">' + fieldRow('Reorder at', input(p, 'reorderPoint')) + fieldRow('Order up to', input(p, 'targetStock')) + '</div>' + (sg ? '<p class="pe-hint">From the last 90 days (' + sg.sold + ' sold): ' + sg.at + ' / ' + sg.to + ' <button type="button" class="link pe-link" data-pe-suggest="' + esc(p.id + '|' + sg.at + '|' + sg.to) + '">Use these</button></p>' : '<p class="pe-hint">No sales in the last 90 days to suggest levels from.</p>') : '<p class="pe-hint">Ordered when sold. Switch on to reorder it automatically from Needs ordering.</p>') +
       '<dl class="pe-stock"><div><dt>On hand</dt><dd>' + s.onHand + '</dd></div><div><dt>Allocated</dt><dd>' + s.allocated + '</dd></div><div><dt>Free</dt><dd>' + s.available + '</dd></div><div><dt>On order</dt><dd>' + onOrder(p.id) + '</dd></div></dl>') : card('Stock', '<p class="pe-hint">Not stock-controlled: no stock to count or reorder.</p>')) +
     card('Insights', '<p class="pe-hint">' + sold + ' sold in the last 90 days' + (multi ? ' across all variants' : '') + ' · last edited ' + esc(String(p.updatedAt || '').slice(0, 10) || 'not recorded') + '</p>');
@@ -107,6 +134,10 @@ function apply(){
     Object.keys(ch).forEach(function(k){
       var v = ch[k]; n++;
       if (k === 'keep') { p.replenishmentEnabled = !!v; return; }
+      if (k === 'bundleEnabled') { p.bundleEnabled = !!v; if (v && !/bundle/i.test(String(p.productType || ''))) p.productType = 'Bundle'; if (!v && /^bundle/i.test(String(p.productType || ''))) p.productType = 'Stocked Product'; return; }
+      if (k === 'bundleItems') { p.bundleItems = v.map(function(x){ return { productId: x.productId, qty: Math.max(1, Math.floor(num(x.qty) || 1)) }; }); return; }
+      if (k === 'bundlePriceMode') { p.bundlePriceMode = v; return; }
+      if (k === 'bundleDiscountPct') { p.bundleDiscountPct = Math.min(90, Math.max(0, num(v))); return; }
       if (k === 'status') { if (v === 'archived') p.archived = true; else { delete p.archived; if (p.active === false) p.active = true; p.status = v === 'draft' ? 'Needs review' : (String(p.status || '').toLowerCase() === 'needs review' || String(p.status || '').toLowerCase() === 'archived' ? '' : p.status || ''); } return; }
       if (k === 'parentName') { familyOf(p).forEach(function(x){ x.parentName = v; if (x.productGroup) x.productGroup = v; x.updatedAt = now; }); return; }
       if (NUMS.indexOf(k) >= 0) v = v === '' ? (k === 'special' ? '' : 0) : Math.max(0, num(v));
@@ -115,6 +146,7 @@ function apply(){
       p[k] = typeof v === 'string' ? v.trim() : v;
     });
     p.updatedAt = now;
+    try { if (BE() && BE().isBundle(p)) BE().refresh(p); } catch (_) {}
     // keep the supplier's price record in step, as the full record does
     var supplier = p.preferredSupplier || p.supplier;
     if (supplier && ['supplier', 'supplierSku', 'cost', 'leadTimeDays', 'minimumOrderQuantity'].some(function(k){ return k in ch; })) {
@@ -164,7 +196,7 @@ if (typeof document !== 'undefined') {
   document.addEventListener('input', function(e){
     var t = e.target.closest && e.target.closest('[data-pe]'); if (!t || t.type === 'checkbox' || t.tagName === 'SELECT') return;
     var parts = t.dataset.pe.split('|'); setDraft(parts[0], parts[1], t.value); refreshBar();
-    if (['rrp', 'trade', 'wholesale', 'cost'].indexOf(parts[1]) >= 0) { clearTimeout(marginTimer); marginTimer = setTimeout(refreshMargins, 600); }
+    if (['rrp', 'trade', 'wholesale', 'cost', 'bundleDiscountPct'].indexOf(parts[1]) >= 0) { clearTimeout(marginTimer); marginTimer = setTimeout(refreshMargins, 600); }
   });
   document.addEventListener('change', function(e){
     var t = e.target.closest && e.target.closest('[data-pe]'); if (!t || (t.type !== 'checkbox' && t.tagName !== 'SELECT')) return;
@@ -179,6 +211,23 @@ if (typeof document !== 'undefined') {
     var col = t.dataset.peCol, start = Number(t.dataset.peRow), cells = Array.prototype.slice.call(document.querySelectorAll('[data-pe-col="' + col + '"]'));
     values.forEach(function(v, i){ var c = cells[start + i]; if (!c) return; var parts = c.dataset.pe.split('|'); if (NUMS.indexOf(col) >= 0) v = String(v).replace(/[£,\s]/g, ''); setDraft(parts[0], parts[1], v); });
     renderProducts(); toast2(Math.min(values.length, cells.length - start) + ' cells filled from the clipboard.');
+  });
+  document.addEventListener('click', function(e){
+    var b = e.target.closest && e.target.closest('[data-pe-part-add],[data-pe-part-remove],[data-pe-bmode]'); if (!b) return;
+    e.preventDefault(); e.stopImmediatePropagation();
+    var p0 = current(); if (!p0) return;
+    if (b.dataset.pePartAdd) { var list = draftParts(p0); var ex = list.find(function(x){ return x.productId === b.dataset.pePartAdd; }); if (ex) ex.qty++; else list.push({ productId: b.dataset.pePartAdd, qty: 1 }); setParts(p0, list); return renderProducts(); }
+    if (b.dataset.pePartRemove) { var l2 = draftParts(p0); l2.splice(Number(b.dataset.pePartRemove.split('|')[1]), 1); setParts(p0, l2); return renderProducts(); }
+    if (b.dataset.peBmode) { setDraft(p0.id, 'bundlePriceMode', b.dataset.peBmode.split('|')[1]); return renderProducts(); }
+  }, true);
+  var partTimer = 0;
+  document.addEventListener('input', function(e){
+    var q = e.target.closest && e.target.closest('[data-pe-part-search]');
+    if (q) { clearTimeout(partTimer); partTimer = setTimeout(function(){ var box = document.querySelector('[data-pe-part-results]'); if (!box) return; var text = String(q.value || '').trim().toLowerCase(); if (text.length < 2) { box.hidden = true; return; }
+      var p0 = current(), words = text.split(/\s+/), found = (D().products || []).filter(function(x){ if (!x || x.deleted || x.id === (p0 && p0.id) || (BE() && BE().isBundle(x))) return false; var h = [x.name, x.sku, x.supplierSku, x.barcode].join(' ').toLowerCase(); return words.every(function(w){ return h.indexOf(w) >= 0; }); }).slice(0, 8);
+      box.innerHTML = found.length ? found.map(function(x){ return '<button type="button" data-pe-part-add="' + esc(x.id) + '"><strong>' + esc(x.name) + '</strong><small>' + esc([x.sku, gbp(x.cost) + ' cost', gbp(x.rrp) + ' RRP'].filter(Boolean).join(' · ')) + '</small></button>'; }).join('') : '<p class="pe-hint">No product matches.</p>'; box.hidden = false; }, 150); return; }
+    var pq = e.target.closest && e.target.closest('[data-pe-part]');
+    if (pq) { var p1 = current(); if (!p1) return; var l3 = draftParts(p1), i = Number(pq.dataset.pePart.split('|')[1]); if (l3[i]) { l3[i].qty = Math.max(1, Math.floor(num(pq.value) || 1)); setParts(p1, l3); refreshBar(); clearTimeout(marginTimer); marginTimer = setTimeout(refreshMargins, 600); } }
   });
   document.addEventListener('click', function(e){
     var t = e.target.closest && e.target.closest('[data-pe-save],[data-pe-discard],[data-pe-back],[data-pe-all],[data-pe-suggest]'); if (!t) return;

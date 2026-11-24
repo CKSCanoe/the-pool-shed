@@ -148,7 +148,7 @@ function toOrderRows(){
         if (cover[l.productId] == null) cover[l.productId] = freeFor(l.productId) + onOrderFor(l.productId, '');
         var use = Math.min(need, cover[l.productId]); cover[l.productId] -= use; need -= use; if (!need) return;
         var p = prod(l.productId);
-        out.push({ key: 's|' + o.id + '|' + l.productId, productId: l.productId, name: p.name || l.productId, sku: p.sku, supplier: p.preferredSupplier || p.supplier || '', why: damagedCase(l.productId) ? 'damage' : 'customer', label: (damagedCase(l.productId) ? 'Replacing damaged · ' : 'Customer order ') + o.id, soId: o.id, free: freeFor(l.productId), onOrder: onOrderFor(l.productId), needed: need, qty: need, cost: num(p.cost) });
+        out.push({ key: 's|' + o.id + '|' + l.productId, productId: l.productId, name: p.name || l.productId, sku: p.sku, supplier: p.preferredSupplier || p.supplier || '', why: damagedCase(l.productId) ? 'damage' : 'customer', label: (damagedCase(l.productId) ? 'Replacing damaged · ' : l.bundleRole === 'component' ? 'Part of ' + (l.bundleParentName || 'a bundle') + ' for ' : 'Customer order ') + o.id, soId: o.id, free: freeFor(l.productId), onOrder: onOrderFor(l.productId), needed: need, qty: need, cost: num(p.cost) });
       } else if (l.lineType === 'custom' && !l.noPurchaseNeeded) {
         // 3. custom items sold on an order that are not on any PO yet
         var bought = (D().purchaseOrders || []).filter(function(po){ return String(po.status) !== 'Cancelled'; }).reduce(function(t, po){ return t + (po.lines || []).filter(function(x){ return x.productId === l.productId; }).reduce(function(s, x){ return s + num(x.qty); }, 0); }, 0);

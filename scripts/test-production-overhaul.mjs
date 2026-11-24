@@ -3,13 +3,12 @@ const index=fs.readFileSync('public/index.html','utf8');
 const css=fs.readFileSync('public/assets/css/system/23-platform-feature-overrides.css','utf8');
 const js=fs.readFileSync('public/pool-shed-overhaul.js','utf8');
 const engine=fs.readFileSync('public/bundle-engine.js','utf8');
-const intelligence=fs.readFileSync('public/bundle-sales-intelligence.js','utf8');
 const legacy=fs.readFileSync('public/assets/js/01-legacy-01.js','utf8');
 const sw=fs.readFileSync('public/service-worker.js','utf8');
 const checks=[
  ['overhaul assets linked', (index.includes('pool-shed-overhaul.css')||index.includes('assets/css/app.css'))&&index.includes('pool-shed-overhaul.js')],
  ['clean boot shell enabled', index.includes('class="ps-booting"')&&index.includes('psBootScreen')],
- ['large bundle intelligence panel disabled', intelligence.includes('large legacy panel is intentionally not mounted')],
+ ['large bundle intelligence panel retired (v1.96)', !fs.existsSync('public/bundle-sales-intelligence.js')&&!index.includes('bundle-sales-intelligence.js')],
  ['bundle components carry zero sales-order cost', engine.includes('unitPrice:0,unitCost:0')],
  ['bundle save preserves master product cost', engine.includes('p.bundleComponentCost=totals.cost')&&!engine.includes('p.cost=totals.cost')],
  ['cost tab respects bundle component zero cost', legacy.includes('line.bundleRole === "component" ? 0')],

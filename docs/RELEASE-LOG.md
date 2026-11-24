@@ -238,6 +238,20 @@ Owner approved the blueprint 21 Nov 2026 (eight areas; Pool Audits under My Work
 
 ---
 
+## Bundles: one engine, built in the product editor · v1.96.0 · branch `bundles`
+
+Owner: rebuild the bundle engine (audit recommendation 3). Concept approved. Findings: six files handled bundles with different rules; one (bundle-sales-intelligence) was switched off and unreachable; parts showed on orders as separate £0 lines; orders from quotes put cost on the bundle line and the parts; bundles priced at RRP only; catalogue showed "Not stocked"; no bundles on live yet.
+
+| # | Change | Status | Evidence |
+|---|---|---|---|
+| BX1 | `bundles.js`: one definition, parts, parts cost and price per price list, can make (and the limiting part), add to order, quantities that follow (spare reservations released), tidy orphan parts | **New · Unit tested** | `test-bundles-v196` |
+| BX2 | Product editor: "Sell as a bundle", parts list with search, can make, price per price list or parts total less %, margins | **New · Checked in a real browser on staging** | Test bundle: part search added Calc-Chlor Pods; "Can make 3" with Pool Starter Kit limiting it; RRP £99 saves £40.35 (29%), margin 46%; trade £84 margin 36%; saved with parts cost £53.57 |
+| BX3 | Sales order lines: one bundle line with badge and "x of y parts reserved", parts folded underneath with their status; parts reserve on their own line (found on staging: older allocation picks the first line for a product, so parts sharing a product with another line were never reserved) | **New · Fixed during the check · Checked on staging** | SO-2067: bundle at £99 × 2, quantity 1 → 2 moved the parts, then "3 of 3 parts reserved"; test bundle, order lines and test stock removed afterwards |
+| BX4 | Catalogue badge and can make; To order "Part of … for SO-…" | **New · Unit tested** | |
+| BX5 | One money rule: bundle line carries price and cost; quotes' parts no longer carry cost; monthly pack counts the bundle once | **Fixed** | |
+| BX7 | Staging note: the v1.95 receiving test had saved to the staging database, and the attempted put-back was refused (receipt history is permanent by design), which left one browser unable to save. Staging reloaded from its database; the £0 replacement line removed and test return PR-00002 cancelled; PO-1053 on staging keeps the test delivery (23 of 25). Live was never affected | **Resolved** | |
+| BX6 | Retired the switched-off bundle intelligence layer (file, script, cache entry, its styles); its two tests now check the new engine | **Removed** | |
+
 ## Receive deliveries on the PO, and one "To order" list · v1.95.0 · branch `po-receiving`
 
 Release 2 of 2 of the approved purchasing concept: top-end receiving with damage handling, and knowing exactly what to order.
@@ -250,6 +264,7 @@ Release 2 of 2 of the approved purchasing concept: top-end receiving with damage
 | RX4 | "Book delivery" wording now "Receive delivery" everywhere on the PO | **Updated** | |
 | RX5 | Release test | **New · Unit tested** | `test-po-receiving-v195` |
 | RX6 | Menu: Purchasing shows To order first; the old Reorder list entry points to To order; `test-navigation-v166` updated for that | **Checked on staging** | Purchasing › To order opens and is highlighted |
+| RX7 | App release (PR #94) | **Deployed · verified on live** 24 Nov 2026 (Vercel check green; live cache `pool-shed-v1.95.0-receiving-r1`; `po-receive.js` served) | No saves since 23 Nov 22:05: 33 orders, 17 units of stock, 6,837 products, 26 POs (all still Draft - Review until the list is opened on v1.94 or later), 1 supplier return |
 
 ## Purchase orders lined up, and a tidier PO page · v1.94.0 · branch `po-list`
 

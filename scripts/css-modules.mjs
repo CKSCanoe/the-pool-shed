@@ -59,5 +59,6 @@ export const CSS_MODULES = Object.freeze([
   "system/78-catalogue.css",
   "system/79-product-editor.css",
   "system/80-purchase-orders.css",
+  "system/81-bundles.css",
   "system/68-pool-shed-kit.css",
 ]);
