@@ -247,6 +247,7 @@ Owner: get real stock counts in from a spreadsheet (audit recommendation). Findi
 | SI1 | `stock-import.js`: paste (tab-separated) or CSV; headings recognised; match by SKU, barcode, supplier code (product or supplier price list), name; duplicates added together; held locations (Quarantine, Receiving, Returns Hold) never targeted | **New · Unit tested** | `test-stock-import-v197` |
 | SI2 | Preview with now / after / change, flagged rows that stay at the reserved quantity, rows not imported (downloadable); set or add; confirm dialog | **New · Checked in a real browser on staging** | 6 pasted rows: 2 products matched (one on two rows added together), 1 not found, 1 service skipped |
 | SI3 | Apply records one stock movement per change with the import reference; undo only when the stock has not moved since; undo is itself recorded (history kept) | **New · Checked on staging** | SI-20261124-QZTH: 0 → 1 for two products, then undone back to 0; four movements kept; saved for team after a reload |
+| SI4 | App release (PR #96) | **Deployed · verified on live** 24 Nov 2026 (Vercel check green; live cache `pool-shed-v1.97.0-stock-import-r1`; `stock-import.js` served) | Data unchanged: 6,837 products, 30 orders, 26 POs, 37 stock rows; no imports run on live yet |
 
 ---
 
