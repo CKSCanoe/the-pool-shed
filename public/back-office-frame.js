@@ -1,4 +1,4 @@
-/* Pool Shed v1.94.0 — back-office frame (blueprint step 1).
+/* Pool Shed v1.95.0 — back-office frame (blueprint step 1).
    1. The menu grouped into eight areas (plus Reports and Settings). Every existing page stays where it was, under its area;
       a "Classic menu" switch brings back the old flat menu for anyone who prefers it.
    2. Home queues: what needs doing today, by role, each opening the list to act on.
@@ -39,7 +39,7 @@
     { id: 'sales', label: 'Sales', pages: [['salesorders', 'Sales Orders', 'Orders'], ['quotes', 'Quotes', 'Quotes'], ['salesorders', 'Contracts', 'Contracts'], ['salesorders', 'Web Orders', 'Web orders'], ['salesorders', 'Sales Credits', 'Returns & credits']] },
     { id: 'customers', label: 'Customers', pages: [['crm', 'All Customers', 'Customers']] },
     { id: 'projects', label: 'Projects', pages: [['jobs', 'Projects', 'Projects'], ['jobs', 'Tool Register', 'Tool register']] },
-    { id: 'purchasing', label: 'Purchasing', pages: [['purchase', 'Purchase Orders', 'Purchase orders'], ['purchase', 'Reorder List', 'Reorder list'], ['purchase', 'Suppliers', 'Suppliers'], ['purchase', 'Supplier Returns & Credits', 'Supplier returns']] },
+    { id: 'purchasing', label: 'Purchasing', pages: [['purchase', 'To Order', 'To order'], ['purchase', 'Purchase Orders', 'Purchase orders'], ['purchase', 'Suppliers', 'Suppliers'], ['purchase', 'Supplier Returns & Credits', 'Supplier returns']] },
     { id: 'stock', label: 'Stock', pages: [['products', 'Product Command', 'Products'], ['locations', 'Stock', 'Stock levels'], ['products', 'Core Stock', 'Core stock'], ['locations', 'Cycle Counts', 'Counts'], ['locations', 'Transfers & Top-Ups', 'Transfers'], ['locations', 'Stock Movements', 'Movements']] },
     { id: 'warehouse', label: 'Warehouse', pages: [['warehouse', 'Work Queue', 'Today’s work'], ['warehouse', 'Inbound', 'Goods in'], ['fulfilment', 'Pick Queue', 'Pick & pack'], ['fulfilment', 'Dispatch', 'Dispatch & collections'], ['warehouse', 'Returns & Quarantine', 'Returns & quarantine'], ['fulfilment', 'Delivery Exceptions', 'Problems']] },
     { id: 'team', label: 'Team & vans', pages: [['fleet', '', 'Vans'], ['locations', 'Engineer Vans', 'Van stock']] },
@@ -54,11 +54,11 @@
   var EXTRA = { accounting: ['Month End', 'Customer Accounts', 'Credits & Returns', 'Record a Purchase', 'Payables', 'Supplier Accounts', 'Three-Way Match', 'Xero Sync', 'Reconciliation', 'Reports'],
     analytics: ['Business Performance', 'Operations', 'Purchasing & Suppliers', 'Finance', 'Customers', 'Products', 'Metric Library'] };
   // Duplicates and actions that are not pages: kept working, not listed twice.
-  var SKIP = { 'products|Replenishment': 1, 'crm|Suppliers': 1, 'crm|Create Customer': 1, 'salesorders|Invoices': 1, 'salesorders|Customer Orders': 1, 'warehouse|Counts': 1, 'warehouse|Transfers': 1, 'fulfilment|Collections': 1 };
+  var SKIP = { 'products|Replenishment': 1, 'purchase|Reorder List': 1, 'crm|Suppliers': 1, 'crm|Create Customer': 1, 'salesorders|Invoices': 1, 'salesorders|Customer Orders': 1, 'warehouse|Counts': 1, 'warehouse|Transfers': 1, 'fulfilment|Collections': 1 };
   var moreOpen = {};
   function pageKey(tab, sub){ return tab + '|' + (sub || ''); }
   // Pages that open another screen under a different name (Purchasing → Reorder list shows the stock replenishment screen).
-  var ALIAS = { 'products|Replenishment': ['purchase', 'Reorder List'] };
+  var ALIAS = { 'products|Replenishment': ['purchase', 'To Order'], 'purchase|Reorder List': ['purchase', 'To Order'] };   // v1.95: reordering lives in To order
   function findPage(active, sub){
     var al = ALIAS[active + '|' + sub]; if (al) { active = al[0]; sub = al[1]; }
     for (var i = 0; i < MENU.length; i++) for (var j = 0; j < MENU[i].pages.length; j++) { var p = MENU[i].pages[j]; if (p[0] === active && (!p[1] || p[1] === sub)) return { area: MENU[i], page: p }; }

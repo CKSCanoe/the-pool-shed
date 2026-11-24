@@ -25,7 +25,7 @@ assert(F.MENU.every(m => !m.pages.length || moreHtml.includes('data-nav-more="' 
 // Every existing page is either a main page or under More (More is listed when opened: simulate by opening a More page).
 for (const [tab, subs] of Object.entries(SUBS)) for (const s of subs) {
   const html = F.navHtml(tabs, tab, { [tab]: s }, id => SUBS[id] || [], () => '');
-  const skip = ['crm|Suppliers', 'crm|Create Customer', 'salesorders|Invoices', 'warehouse|Counts', 'warehouse|Transfers', 'fulfilment|Collections', 'products|Replenishment'].includes(tab + '|' + s);
+  const skip = ['crm|Suppliers', 'crm|Create Customer', 'salesorders|Invoices', 'warehouse|Counts', 'warehouse|Transfers', 'fulfilment|Collections', 'products|Replenishment', 'purchase|Reorder List'].includes(tab + '|' + s);   // v1.95: Reorder list is part of To order
   if (!skip) assert(html.includes('data-nav-page="' + (tab + '|' + s).replace(/&/g, '&amp;') + '"'), 'reachable: ' + tab + ' / ' + s);
 }
 for (const t of ['accounting|Month End', 'accounting|Xero Sync', 'accounting|Record a Purchase', 'analytics|Metric Library']) { const [a, b] = t.split('|'); assert(F.navHtml(tabs, a, { [a]: b }, id => SUBS[id] || [], () => '').includes('data-nav-page="' + t + '"'), 'reachable: ' + t); }
@@ -34,6 +34,7 @@ assert(F.navHtml(tabs.concat([{ id: 'brandnew', label: 'Brand new' }]), 'dashboa
 assert(!F.navHtml(tabs.filter(t => t.id !== 'accounting'), 'dashboard', {}, () => [], () => '').includes('>Accounts</button>'), 'areas follow permissions');
 // Aliases and current place.
 assert.equal(F.findPage('products', 'Replenishment').area.id, 'purchasing', 'Reorder list highlights Purchasing');
+assert.equal(F.findPage('purchase', 'Reorder List').page[1], 'To Order', 'v1.95: the old Reorder list points to To order');
 assert.equal(F.findPage('accounting', 'Order Profit').area.id, 'reports', 'Profit sits in Reports');
 // Wiring and tidy-up rules.
 const src = fs.readFileSync('public/back-office-frame.js', 'utf8');

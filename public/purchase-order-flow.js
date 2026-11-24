@@ -29,8 +29,8 @@
     if (cur === 'drafted') return '<span class="pof-note">Add items to start the order.</span>';
     if (cur === 'approved') return '<button type="button" class="primary pof-next" title="Ctrl+Enter" data-pof-status="' + id + '|Ready to Order">Approve order</button>';
     if (cur === 'sent') return '<button type="button" class="primary pof-next" title="Ctrl+Enter" data-pof-email="' + id + '">Send to supplier</button><button type="button" class="link pof-alt" data-pof-status="' + id + '|Sent">Already sent? Mark as sent</button>';
-    if (cur === 'confirmed') return '<button type="button" class="primary pof-next" title="Ctrl+Enter" data-pof-status="' + id + '|Supplier Confirmed">Supplier confirmed</button><button type="button" class="link pof-alt" data-pof-receive="' + id + '">Goods arrived? Book delivery</button>';
-    if (cur === 'received') return '<button type="button" class="primary pof-next" title="Ctrl+Enter" data-pof-receive="' + id + '">Book delivery' + (f.units.received ? ' (' + (f.units.ordered - f.units.received) + ' still to come)' : '') + '</button>';
+    if (cur === 'confirmed') return '<button type="button" class="primary pof-next" title="Ctrl+Enter" data-pof-status="' + id + '|Supplier Confirmed">Supplier confirmed</button><button type="button" class="link pof-alt" data-pof-receive="' + id + '">Goods arrived? Receive delivery</button>';
+    if (cur === 'received') return '<button type="button" class="primary pof-next" title="Ctrl+Enter" data-pof-receive="' + id + '">Receive delivery' + (f.units.received ? ' (' + (f.units.ordered - f.units.received) + ' still to come)' : '') + '</button>';
     if (cur === 'paid') return '<button type="button" class="primary pof-next" title="Ctrl+Enter" data-pof-pay="' + id + '">Record payment</button>';
     return '';
   }

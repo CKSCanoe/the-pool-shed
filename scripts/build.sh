@@ -87,6 +87,7 @@ run_node_stage "workspace and sales safety" \
   test-catalogue-list-v192.mjs \
   test-product-editor-v193.mjs \
   test-po-list-v194.mjs \
+  test-po-receiving-v195.mjs \
   test-workspace-audit-v1451.mjs \
   test-commercial-audits-v146.mjs \
   test-audit-device-recovery.mjs \

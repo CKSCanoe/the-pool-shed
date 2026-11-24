@@ -55,3 +55,42 @@ body #screen-purchase.ps-kit-scope .pi-card .pi-table td .pi-for { appearance: n
 body #screen-purchase.ps-kit-scope .pi-card .pi-add details.pi-custom > summary { display: inline !important; background: none !important; border: 0 !important; padding: 0 !important; min-height: 0 !important; box-shadow: none !important; }
 body #screen-purchase.ps-kit-scope .pi-card .pi-add details.pi-custom > summary small { display: inline !important; margin-left: 4px; font-size: .86rem; }
 body #screen-purchase.ps-kit-scope .pi-card .pi-add details.pi-custom > summary::-webkit-details-marker { display: none; }
+/* v1.95 Receive delivery on the PO, damage decisions, and the To order list */
+body #screen-purchase .rx-card { margin: 12px 0; padding: 16px 18px; border-radius: 14px; background: var(--color-surface-default); box-shadow: 0 1px 2px var(--card-ring), 0 0 0 1px var(--color-action-line); }
+body #screen-purchase .rx-card > header { display: flex; flex-wrap: wrap; justify-content: space-between; align-items: flex-start; gap: 12px; margin-bottom: 10px; }
+body #screen-purchase .rx-card h3 { margin: 0; font-size: 1.07rem; }
+body #screen-purchase .rx-card header p { margin: 2px 0 0; color: var(--color-text-secondary); font-size: .93rem; }
+body #screen-purchase .rx-meta { display: flex; gap: 8px; flex-wrap: wrap; }
+body #screen-purchase .rx-card .rx-ref { width: 220px !important; }
+body #screen-purchase .rx-wrap, body #screen-purchase .to-wrap { overflow-x: auto; }
+body #screen-purchase .rx-table, body #screen-purchase .to-table { width: 100%; border-collapse: collapse; font-size: .93rem; }
+body #screen-purchase .rx-table th, body #screen-purchase .to-table th { padding: 8px 10px; text-align: left; font-weight: 500; font-size: .86rem; color: var(--color-text-secondary); background: var(--color-surface-subtle); border-bottom: 1px solid var(--color-border-subtle); white-space: nowrap; }
+body #screen-purchase .rx-table td, body #screen-purchase .to-table td { padding: 8px 10px; border-bottom: 1px solid var(--color-border-subtle); vertical-align: middle; }
+body #screen-purchase .rx-table .num, body #screen-purchase .to-table .num { text-align: right; font-variant-numeric: tabular-nums; }
+body #screen-purchase .rx-table small, body #screen-purchase .to-table small { display: block; color: var(--color-text-secondary); font-size: .86rem; }
+body #screen-purchase .rx-card .rx-in, body #screen-purchase .pl-card .to-qty { width: 76px !important; text-align: right; }
+body #screen-purchase .rx-check { display: inline-flex; align-items: center; gap: 6px; white-space: nowrap; color: var(--color-text-secondary); }
+body #screen-purchase .rx-goes { color: var(--color-text-secondary); font-size: .86rem; }
+body #screen-purchase .rx-table tr.rx-dmg td { background: var(--color-status-danger-bg); }
+body #screen-purchase .rx-table tr.rx-wrong td { background: var(--color-status-attention-bg); }
+body #screen-purchase .rx-card > footer { display: flex; justify-content: flex-end; gap: 8px; margin-top: 12px; }
+body #screen-purchase .rx-damage { box-shadow: 0 0 0 1px var(--color-status-attention-line); background: var(--color-status-attention-bg); }
+body #screen-purchase .rx-dmg-row { display: flex; flex-wrap: wrap; justify-content: space-between; align-items: center; gap: 10px; padding: 10px 0; border-top: 1px solid var(--color-status-attention-line); }
+body #screen-purchase .rx-dmg-row small { display: block; color: var(--color-status-attention-text); }
+body #screen-purchase .rx-dmg-actions { display: flex; flex-wrap: wrap; gap: 8px; }
+body #screen-purchase .to-page { display: grid; gap: 14px; }
+body #screen-purchase .to-sup { border-bottom: 1px solid var(--color-border-subtle); }
+body #screen-purchase .to-sup > header { display: flex; flex-wrap: wrap; align-items: center; gap: 10px; padding: 12px 14px 8px; }
+body #screen-purchase .to-sup > header b { font-size: 1.07rem; }
+body #screen-purchase .to-sup > header small { color: var(--color-text-secondary); }
+body #screen-purchase .to-total { margin-left: auto; color: var(--color-text-secondary); font-size: .93rem; }
+body #screen-purchase .to-why { display: inline-block; padding: 2px 9px; border-radius: 999px; font-size: .86rem; font-weight: 500; white-space: nowrap; }
+body #screen-purchase .to-s1 { background: var(--color-status-info-bg); color: var(--color-status-info-text); }
+body #screen-purchase .to-s2 { background: var(--color-action-soft); color: var(--color-action-ink); }
+body #screen-purchase .to-s3 { background: var(--color-status-danger-bg); color: var(--color-status-danger-text); }
+body #screen-purchase .to-s4 { background: var(--color-surface-subtle); color: var(--color-text-secondary); }
+body #screen-purchase .pl-card .to-sel { width: auto !important; min-width: 150px; }
+body #screen-purchase .pl-card .to-link { appearance: none !important; border: 0 !important; background: none !important; padding: 0 !important; min-height: 0 !important; box-shadow: none !important; color: var(--color-action-ink) !important; text-decoration: underline; font: inherit !important; font-size: .86rem !important; white-space: nowrap; cursor: pointer; }
+body #screen-purchase .to-empty { display: grid; gap: 4px; padding: 28px 16px; text-align: center; color: var(--color-text-secondary); }
+body #screen-purchase .to-empty strong { color: var(--color-text-primary); }
+body #screen-purchase .to-table td:last-child { width: 1%; white-space: nowrap; }
