@@ -29,7 +29,8 @@ function familyKey(p){ try { if (global.PoolShedProductImages && global.PoolShed
 function margin(p){ return num(p.rrp) > 0 ? (num(p.rrp) - num(p.cost)) / num(p.rrp) * 100 : null; }
 function facts(p){
   var stocked = hub.isStocked(p), s = stocked ? hub.stockSummary(p.id) : { available: 0, onHand: 0, allocated: 0 }, k = kept(p), r = k ? hub.replenishmentRow(p) : null;
-  return { p: p, stocked: stocked, available: num(s.available), kept: k, row: r, needs: !!(r && r.needsOrder), status: statusOf(p), margin: margin(p), attention: num(p.rrp) <= 0 || num(p.cost) <= 0 };
+  var BE = global.PoolShedBundleEngine, bundle = !!(BE && BE.isBundle(p)), cm = bundle ? BE.canMake(p) : null;
+  return { p: p, stocked: stocked, available: num(s.available), kept: k, row: r, needs: !!(r && r.needsOrder), status: statusOf(p), margin: bundle && num(p.rrp) > 0 ? (num(p.rrp) - BE.partsCost(p)) / num(p.rrp) * 100 : margin(p), attention: num(p.rrp) <= 0 || (!bundle && num(p.cost) <= 0), bundle: bundle, canMake: cm };
 }
 function products(){ return (D().products || []).filter(function(p){ return p && !p.deleted && !p.hiddenFromCatalogue && !(hub.isOrderLineOnly && hub.isOrderLineOnly(p)); }); }
 function families(){
@@ -95,11 +96,12 @@ function price(f){ return f.min === f.max ? gbp(f.min) : gbp(f.min) + ' – ' + 
 function pct(v){ return v == null ? '—' : Math.round(v) + '%'; }
 function famRow(f){
   var open = !!st.open[f.key], ids = f.items.map(function(x){ return x.p.id; }), all = ids.every(function(id){ return st.sel[id]; });
-  var stockHtml = f.stocked ? '<span class="cl-stock ' + (f.available <= 0 ? 'bad' : f.needs ? 'warn' : 'good') + '">' + f.available + '</span>' : '<span class="cl-dim">Not stocked</span>';
-  var reorder = !f.stocked ? '<span class="cl-dim">—</span>' : f.needs ? '<span class="cl-need">Needs ordering' + (f.multi && f.needs > 1 ? ' (' + f.needs + ')' : '') + '</span>' : f.kept ? (f.multi ? '<span class="cl-dim">Kept in stock</span>' : reorderCell(f.items[0])) : '<span class="cl-dim">Not kept in stock</span>';
+  var b0 = !f.multi && f.items[0].bundle ? f.items[0] : null;
+  var stockHtml = b0 ? (b0.canMake && b0.canMake.stocked ? '<span class="cl-can">Can make ' + b0.canMake.qty + '</span>' : '<span class="cl-dim">No stocked parts</span>') : f.stocked ? '<span class="cl-stock ' + (f.available <= 0 ? 'bad' : f.needs ? 'warn' : 'good') + '">' + f.available + '</span>' : '<span class="cl-dim">Not stocked</span>';
+  var reorder = b0 ? '<span class="cl-dim">Parts reorder themselves</span>' : !f.stocked ? '<span class="cl-dim">—</span>' : f.needs ? '<span class="cl-need">Needs ordering' + (f.multi && f.needs > 1 ? ' (' + f.needs + ')' : '') + '</span>' : f.kept ? (f.multi ? '<span class="cl-dim">Kept in stock</span>' : reorderCell(f.items[0])) : '<span class="cl-dim">Not kept in stock</span>';
   var name = f.multi ? '<button type="button" class="cl-name" data-cl-toggle="' + esc(f.key) + '" aria-expanded="' + open + '"><span class="cl-caret">' + (open ? '▾' : '▸') + '</span>' : '<button type="button" class="cl-name" data-cl-open="' + esc(f.items[0].p.id) + '"><span class="cl-caret"></span>';
   return '<tr class="cl-fam' + (open ? ' open' : '') + '"><td class="cl-check"><input type="checkbox" data-cl-select-fam="' + esc(f.key) + '"' + (all ? ' checked' : '') + ' aria-label="Select ' + esc(f.name) + '"></td>' +
-    '<td>' + name + thumb(f.items[0].p, f.name) + '<span class="cl-title"><b>' + esc(f.name) + (f.kept ? KEEP : '') + '</b><small>' + (f.multi ? f.items.length + ' variants · ' : '') + esc(f.code || '') + '</small></span></button></td>' +
+    '<td>' + name + thumb(f.items[0].p, f.name) + '<span class="cl-title"><b>' + esc(f.name) + (f.kept ? KEEP : '') + (b0 ? ' <span class="cl-bundle">BUNDLE</span>' : '') + '</b><small>' + (f.multi ? f.items.length + ' variants · ' : b0 ? global.PoolShedBundleEngine.parts(b0.p).length + ' parts · ' : '') + esc(f.code || '') + '</small></span></button></td>' +
     '<td>' + statusPill(f.status) + '</td><td class="num">' + stockHtml + '</td><td>' + reorder + '</td><td class="num">' + price(f) + '</td><td class="num">' + pct(f.margin) + '</td><td>' + esc(f.supplier) + '</td><td>' + esc(f.category) + '</td></tr>' +
     (f.multi && open ? f.items.map(varRow).join('') : '');
 }

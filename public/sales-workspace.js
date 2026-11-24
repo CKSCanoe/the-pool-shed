@@ -533,8 +533,29 @@
   }
 
 
+  // v1.96: a bundle's parts fold underneath their bundle line (bundles.js); other lines keep their order
+  function so2OrderedLines(order) {
+    const lines = order.lines || [], out = [], placed = new Set();
+    lines.forEach(function(line){
+      if (line.bundleRole === 'component' && lines.some(function(h){ return h.bundleRole === 'head' && h.bundleInstanceId === line.bundleInstanceId; })) return;
+      out.push(line); placed.add(line);
+      if (line.bundleRole === 'head') lines.forEach(function(c){ if (c.bundleRole === 'component' && c.bundleInstanceId === line.bundleInstanceId && !placed.has(c)) { out.push(c); placed.add(c); } });
+    });
+    return out;
+  }
+  function so2BundlePartRow(order, line) {
+    const p = product(line.productId) || { name: line.description || line.productId, sku: line.skuSnapshot || '' };
+    const coverage = salesLineCoverage(line, order.id), done = Number(line.allocated||0) + Number(line.shipped||0) >= Number(line.qty||0);
+    const shortBy = Math.max(0, Number(line.qty||0) - Number(line.allocated||0) - Number(line.shipped||0));
+    return '<tr class="so2-line-row bx-part"><td class="so2-check"></td><td colspan="2"><span class="bx-part-name">' + Number(line.qty||0) + ' × ' + escapeHtml(p.name || line.description || line.productId) + '</span> <small>' + escapeHtml(p.sku || '') + '</small></td>' +
+      '<td class="so2-stock-cell"><small>' + coverage.free + ' free</small></td><td></td>' +
+      '<td class="so2-allocated"><span class="bx-pill ' + (done ? 'good' : 'warn') + '">' + (Number(line.shipped||0) >= Number(line.qty||0) && Number(line.qty||0) > 0 ? 'Shipped' : done ? 'Reserved' : 'Short ' + shortBy) + '</span></td>' +
+      '<td></td><td></td><td></td><td class="so2-actions-cell">' + (done ? '' : '<button type="button" class="secondary bx-mini" data-allocate-line="' + order.id + '|' + line.productId + '">Allocate</button>') + '</td></tr>';
+  }
   function so2LineRows(order) {
-    return order.lines.map(function(line) {
+    const BE = window.PoolShedBundleEngine;
+    return so2OrderedLines(order).map(function(line) {
+      if (line.bundleRole === 'component' && BE) return so2BundlePartRow(order, line);
       const p = product(line.productId) || { id:line.productId, sku:'CUSTOM', name:line.description || 'Custom sales line', category:'Non-stock' };
       const nonStock = isNonStockSalesLine(line);
       const coverage = salesLineCoverage(line, order.id);
@@ -554,13 +575,15 @@
       const deleteCheck = so2SalesLineDeleteAssessment(order,line);
       const removable = deleteCheck.allowed;
       const menuId = 'so2-menu-' + String(order.id + '-' + line.productId).replace(/[^a-z0-9_-]/gi,'-');
-      return '<tr class="so2-line-row ' + health.className + '">' +
+      const bundleHead = line.bundleRole === 'head' && BE ? BE.partStatus(order, line) : null;
+      return '<tr class="so2-line-row ' + health.className + (bundleHead ? ' bx-head' : '') + '">' +
         '<td class="so2-check"><input type="checkbox" data-sales-line-select="' + order.id + '|' + line.productId + '" aria-label="Select ' + escapeHtml(p.sku || p.name) + '"></td>' +
-        '<td class="so2-product-cell"><div class="so5-line-product">' + so5ProductThumb(p) + '<div class="so5-line-product-copy"><textarea class="so2-xero-description" readonly spellcheck="false" rows="' + xeroRows + '" aria-label="Product description. Select and copy this text into Xero." title="Select and copy into Xero">' + escapeHtml(xeroDescription) + '</textarea><small>' + escapeHtml(nonStock ? (line.lineType === 'shipping' ? 'Non-stock delivery charge' : 'Custom / non-stock') : (p.name || p.brand || p.category || 'Catalogue product')) + '</small>' + (!nonStock ? '<button type="button" class="link-button" data-open-product="' + escapeHtml(p.id) + '">View product</button>' : '') + '</div></div></td>' +
+        '<td class="so2-product-cell"><div class="so5-line-product">' + so5ProductThumb(p) + '<div class="so5-line-product-copy"><textarea class="so2-xero-description" readonly spellcheck="false" rows="' + xeroRows + '" aria-label="Product description. Select and copy this text into Xero." title="Select and copy into Xero">' + escapeHtml(xeroDescription) + '</textarea><small>' + escapeHtml(bundleHead ? 'Bundle · ' + bundleHead.total + ' parts listed below' : nonStock ? (line.lineType === 'shipping' ? 'Non-stock delivery charge' : 'Custom / non-stock') : (p.name || p.brand || p.category || 'Catalogue product')) + '</small>' + (!nonStock ? '<button type="button" class="link-button" data-open-product="' + escapeHtml(p.id) + '">View product</button>' : '') + '</div></div></td>' +
         '<td class="so2-variant-cell">' + so2VariantSelect(order,line,p,locked) + '</td>' +
-        '<td class="so2-stock-cell">' + (nonStock ? '<span class="muted">Not stock controlled</span>' : '<strong class="' + (coverage.free > 0 ? 'so2-stock-good' : 'so2-stock-warn') + '">' + coverage.free + ' free</strong><small>' + escapeHtml(stockInfo ? stockInfo.location : allocationSourceLabel(order.id)) + ' · ' + (stockInfo ? stockInfo.onHand : 0) + ' physical' + (coverage.onPo ? ' · ' + coverage.onPo + ' on PO' : '') + '</small>') + '</td>' +
+        '<td class="so2-stock-cell">' + (bundleHead ? '<span class="bx-badge">BUNDLE</span><small>' + bundleHead.total + ' part' + (bundleHead.total===1?'':'s') + '</small>' : nonStock ? '<span class="muted">Not stock controlled</span>' : '<strong class="' + (coverage.free > 0 ? 'so2-stock-good' : 'so2-stock-warn') + '">' + coverage.free + ' free</strong><small>' + escapeHtml(stockInfo ? stockInfo.location : allocationSourceLabel(order.id)) + ' · ' + (stockInfo ? stockInfo.onHand : 0) + ' physical' + (coverage.onPo ? ' · ' + coverage.onPo + ' on PO' : '') + '</small>') + '</td>' +
         '<td class="so2-qty-cell"><label class="so2-qty-editor"><span class="sr-only">Quantity for ' + escapeHtml(family) + '</span><input class="qty-input so2-qty" data-line-field="' + order.id + '|' + line.productId + '|qty" type="number" min="0" step="1" inputmode="numeric" value="' + Number(line.qty||0) + '"><small>' + (Number(line.qty||0) === 1 ? 'unit' : 'units') + '</small></label></td>' +
-        '<td class="so2-allocated"><strong>' + (nonStock ? '—' : Number(line.allocated||0) + ' / ' + Number(line.qty||0)) + '</strong><small>' + (nonStock ? 'Not required' : (Number(line.allocated||0) ? 'allocated' : 'not allocated')) + '</small></td>' +
+        (bundleHead ? '<td class="so2-allocated"><span class="bx-pill ' + (bundleHead.ready >= bundleHead.total ? 'good' : 'warn') + '">' + bundleHead.ready + ' of ' + bundleHead.total + ' parts reserved</span></td>' :
+        '<td class="so2-allocated"><strong>' + (nonStock ? '—' : Number(line.allocated||0) + ' / ' + Number(line.qty||0)) + '</strong><small>' + (nonStock ? 'Not required' : (Number(line.allocated||0) ? 'allocated' : 'not allocated')) + '</small></td>') +
         '<td class="right so2-money so2-unit-net"><strong>' + so2Money(unitNet) + '</strong><small>' + (lineDiscountRate > 0 ? (so2Money(baseUnitNet) + ' before · ' + Number(lineDiscountRate).toFixed(lineDiscountRate % 1 ? 1 : 0) + '% CRM') : 'net each') + '</small></td>' +
         '<td class="so2-vat"><strong>' + Math.round(vatRate*100) + '%</strong><small>VAT</small></td>' +
         '<td class="right so2-money so5-line-total"><strong>' + so2Money(lineGross) + '</strong><small>' + so2Money(lineNet) + ' net</small></td>' +

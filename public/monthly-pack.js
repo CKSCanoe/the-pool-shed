@@ -1,4 +1,4 @@
-/* Pool Shed v1.95.0 — Monthly management pack (Reports → Monthly Pack).
+/* Pool Shed v1.96.0 — Monthly management pack (Reports → Monthly Pack).
    One page per month to read, print or save as PDF: sales and profit (against last month and the same month last
    year), the six-month trend, best customers and products, money owed to us and by us, stock value (warehouse and
    each van), purchasing, quotes, projects and contracts, and a short list of things to look at.
@@ -36,7 +36,7 @@
   function linePrice(l){ var p = (DATA().products || []).find(function(x){ return x.id === l.productId; }) || {}; return l.specialPrice != null && l.specialPrice !== '' ? num(l.specialPrice) : l.unitPrice != null ? num(l.unitPrice) : num(p.rrp); }
   function topProducts(rows){
     var d = DATA(), byId = new Map((d.salesOrders || []).map(function(o){ return [o.id, o]; })), agg = {};
-    rows.forEach(function(x){ var o = byId.get(x.id); (o && o.lines || []).forEach(function(l){ if (l.lineType === 'shipping' || l.bundleRole === 'head') return;
+    rows.forEach(function(x){ var o = byId.get(x.id); (o && o.lines || []).forEach(function(l){ if (l.lineType === 'shipping' || l.bundleRole === 'component') return;   // v1.96: a bundle counts once, as the bundle (its parts are priced at nothing)
       var p = (d.products || []).find(function(q){ return q.id === l.productId; }) || {}, k = l.lineType === 'custom' ? 'custom:' + (l.customProductName || l.description) : l.productId;
       var a = agg[k] || (agg[k] = { name: l.lineType === 'custom' ? (l.customProductName || l.description || 'Custom line') : (p.name || l.productId), sku: l.lineType === 'custom' ? '' : (p.sku || ''), qty: 0, sales: 0 });
       a.qty += num(l.qty); a.sales += num(l.qty) * linePrice(l); }); });

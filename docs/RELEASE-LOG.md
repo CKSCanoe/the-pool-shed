@@ -238,6 +238,19 @@ Owner approved the blueprint 21 Nov 2026 (eight areas; Pool Audits under My Work
 
 ---
 
+## Bundles: one engine, built in the product editor · v1.96.0 · branch `bundles`
+
+Owner: rebuild the bundle engine (audit recommendation 3). Concept approved. Findings: six files handled bundles with different rules; one (bundle-sales-intelligence) was switched off and unreachable; parts showed on orders as separate £0 lines; orders from quotes put cost on the bundle line and the parts; bundles priced at RRP only; catalogue showed "Not stocked"; no bundles on live yet.
+
+| # | Change | Status | Evidence |
+|---|---|---|---|
+| BX1 | `bundles.js`: one definition, parts, parts cost and price per price list, can make (and the limiting part), add to order, quantities that follow (spare reservations released), tidy orphan parts | **New · Unit tested** | `test-bundles-v196` |
+| BX2 | Product editor: "Sell as a bundle", parts list with search, can make, price per price list or parts total less %, margins | **New · Unit tested; browser check started on staging** | Editor opened for a staging test bundle ("Can make 3") before the staging sign-in expired; full browser check to finish once staging is signed in again |
+| BX3 | Sales order lines: one bundle line with badge and "x of y parts reserved", parts folded underneath with their status | **New · Unit tested** | Browser check pending (staging sign-in) |
+| BX4 | Catalogue badge and can make; To order "Part of … for SO-…" | **New · Unit tested** | |
+| BX5 | One money rule: bundle line carries price and cost; quotes' parts no longer carry cost; monthly pack counts the bundle once | **Fixed** | |
+| BX6 | Retired the switched-off bundle intelligence layer (file, script, cache entry, its styles); its two tests now check the new engine | **Removed** | |
+
 ## Receive deliveries on the PO, and one "To order" list · v1.95.0 · branch `po-receiving`
 
 Release 2 of 2 of the approved purchasing concept: top-end receiving with damage handling, and knowing exactly what to order.

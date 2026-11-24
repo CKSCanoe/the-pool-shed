@@ -1,10 +1,10 @@
+// v1.96: the separate bundle "intelligence" layer was never shown (its panel was switched off) and duplicated the stock,
+// transfer and purchasing rules. It is retired; bundles.js is the one bundle engine and its parts go through the normal
+// allocation, fulfilment, ship-with-invoice and To order processes.
 import fs from 'node:fs';
-const js=fs.readFileSync('public/bundle-sales-intelligence.js','utf8');
-const html=fs.readFileSync('public/index.html','utf8');
-const engine=fs.readFileSync('public/bundle-engine.js','utf8');
-const required=['Allocate available stock','Transfer internal stock','Create missing-item POs','bundleInstanceId','originalSalesOrderId','Bundle component shortage','PoolShedBundleIntelligence'];
-for(const token of required){if(!js.includes(token))throw new Error('Missing intelligence feature: '+token)}
-if(!html.includes('bundle-sales-intelligence.js')||!(html.includes('bundle-sales-intelligence.css')||html.includes('assets/css/app.css')))throw new Error('Intelligence assets are not linked');
-if(!engine.includes('bundleComponentSnapshot'))throw new Error('Component history snapshot missing');
-if(!engine.includes('api.allocate(order,group)'))throw new Error('Automatic component allocation missing');
-console.log('Bundle sales intelligence tests: Passed');
+const html = fs.readFileSync('public/index.html', 'utf8');
+if (fs.existsSync('public/bundle-sales-intelligence.js') || html.includes('bundle-sales-intelligence.js')) throw new Error('Retired bundle intelligence layer is still linked');
+const engine = fs.readFileSync('public/bundles.js', 'utf8');
+for (const token of ['bundleInstanceId', 'bundleComponentSnapshot', 'function canMake', 'function setQty', 'PoolShedBundleEngine']) if (!engine.includes(token)) throw new Error('Bundle engine missing ' + token);
+if (!fs.readFileSync('public/po-receive.js', 'utf8').includes("'Part of ' + (l.bundleParentName")) throw new Error('Short bundle parts must show in To order');
+console.log('Bundle sales intelligence tests: Passed (retired in v1.96; one bundle engine)');
