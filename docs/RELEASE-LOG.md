@@ -250,6 +250,7 @@ Release 2 of 2 of the approved purchasing concept: top-end receiving with damage
 | RX4 | "Book delivery" wording now "Receive delivery" everywhere on the PO | **Updated** | |
 | RX5 | Release test | **New · Unit tested** | `test-po-receiving-v195` |
 | RX6 | Menu: Purchasing shows To order first; the old Reorder list entry points to To order; `test-navigation-v166` updated for that | **Checked on staging** | Purchasing › To order opens and is highlighted |
+| RX7 | App release (PR #94) | **Deployed · verified on live** 24 Nov 2026 (Vercel check green; live cache `pool-shed-v1.95.0-receiving-r1`; `po-receive.js` served) | No saves since 23 Nov 22:05: 33 orders, 17 units of stock, 6,837 products, 26 POs (all still Draft - Review until the list is opened on v1.94 or later), 1 supplier return |
 
 ## Purchase orders lined up, and a tidier PO page · v1.94.0 · branch `po-list`
 
