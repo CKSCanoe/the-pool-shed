@@ -157,7 +157,7 @@ if (typeof document !== 'undefined' && document.addEventListener) {
   document.addEventListener('click', function(e){
     var t = e.target.closest && e.target.closest('[data-si-open],[data-si-close],[data-si-preview],[data-si-apply],[data-si-undo],[data-si-unmatched]'); if (!t) return;
     e.preventDefault(); var ds = t.dataset;
-    if (ds.siOpen !== undefined) { si.open = true; si.plan = null; return redraw(); }
+    if (ds.siOpen !== undefined) { si.open = true; if (global.poolShedProductData) global.poolShedProductData.open = false; si.plan = null; return redraw(); }
     if (ds.siClose !== undefined) { si.open = false; si.plan = null; return redraw(); }
     if (ds.siPreview !== undefined) { si.plan = buildPlan(); redraw(); var c = document.querySelector('.si-sum'); if (c && c.scrollIntoView) c.scrollIntoView({ block: 'center', behavior: 'smooth' }); return; }
     if (ds.siUnmatched !== undefined && si.plan) { download('stock-import-not-matched.csv', [['Row', 'Contents']].concat(si.plan.unmatched.map(function(u){ return [u.row, u.text]; }))); return; }
@@ -178,5 +178,5 @@ if (typeof document !== 'undefined' && document.addEventListener) {
     if (t.hasAttribute('data-si-file') && t.files && t.files[0]) { var f = t.files[0]; if (/\.xlsx?$/i.test(f.name)) { toast2('Save the sheet as CSV first, or copy the cells and paste them in.'); return; } f.text().then(function(txt){ si.text = txt; si.plan = buildPlan(); redraw(); }); }
   });
 }
-global.PoolShedStockImport = { splitRows: splitRows, columns: columns, buildPlan: buildPlan, apply: apply, undo: undo, page: page, state: si };
+global.PoolShedStockImport = { splitRows: splitRows, indexProducts: indexProducts, key: key, columns: columns, buildPlan: buildPlan, apply: apply, undo: undo, page: page, state: si };
 })(typeof window !== 'undefined' ? window : globalThis);

@@ -1,0 +1,29 @@
+/* v1.98 Fill the gaps: by hand, supplier price list, images by file name */
+body #screen-products .pd-modes { display: flex; gap: 6px; padding: 12px 16px 0; }
+body #screen-products .cl-card .pd-modes button { min-height: 34px !important; padding: 6px 14px !important; border-radius: 999px !important; border: 1px solid var(--color-border-default) !important; background: var(--color-surface-default) !important; color: var(--color-text-secondary) !important; font: inherit !important; font-size: .92rem !important; box-shadow: none !important; cursor: pointer; }
+body #screen-products .cl-card .pd-modes button.on { background: var(--color-text-primary) !important; color: var(--color-surface-default) !important; border-color: var(--color-text-primary) !important; }
+body #screen-products .pd-body { padding: 12px 0 0; }
+body #screen-products .pd-imp, body #screen-products .pd-drop { margin: 4px 16px 16px; }
+body #screen-products .pd-bar { display: flex; flex-wrap: wrap; gap: 10px; align-items: center; padding: 12px 16px; border-bottom: 1px solid var(--color-border-subtle); }
+body #screen-products .pd-bar input[type=search] { min-width: 240px; flex: 0 1 300px; }
+body #screen-products .pd-bar select { max-width: 240px; }
+body #screen-products .pd-pfc { display: inline-flex; gap: 6px; align-items: center; font-size: .9rem; color: var(--color-text-secondary); }
+body #screen-products .pd-pfc input { width: 64px !important; min-height: 32px !important; }
+body #screen-products .pd-save { margin-left: auto; display: inline-flex; gap: 10px; align-items: center; }
+body #screen-products .pd-save small { color: var(--color-text-secondary); }
+body #screen-products .pd-table td { vertical-align: top; }
+body #screen-products .pd-table input.pd-in { width: 100%; min-width: 74px; min-height: 32px !important; padding: 4px 8px !important; border-radius: 8px !important; text-align: right; font-variant-numeric: tabular-nums; }
+body #screen-products .pd-table td:last-child input.pd-in { text-align: left; min-width: 140px; }
+body #screen-products .pd-table input.pd-miss { background: var(--color-status-attention-bg) !important; }
+body #screen-products .pd-table input.pd-dirty { border-color: var(--color-action-line) !important; background: var(--color-action-soft) !important; }
+body #screen-products .pd-table .pd-name { background: none !important; border: 0 !important; box-shadow: none !important; padding: 0 !important; min-height: 0 !important; color: var(--color-text-primary) !important; font-weight: 600; text-align: left; cursor: pointer; }
+body #screen-products .pd-pager { display: flex; justify-content: center; align-items: center; gap: 12px; padding: 12px; }
+body #screen-products .pd-empty { padding: 18px 16px; color: var(--color-text-secondary); }
+body #screen-products .pd-ch { display: block; font-size: .92rem; }
+body #screen-products .pd-ch i { color: var(--color-text-secondary); }
+body #screen-products .pd-drop { display: grid; gap: 8px; justify-items: center; text-align: center; padding: 28px 16px; border: 2px dashed var(--color-border-strong); border-radius: 14px; color: var(--color-text-secondary); }
+body #screen-products .pd-drop.on { border-color: var(--color-action-line); background: var(--color-action-soft); }
+body #screen-products .pd-drop strong { color: var(--color-text-primary); font-size: 1.05rem; }
+body #screen-products .pd-pick { display: inline-flex; align-items: center; padding: 8px 16px; border-radius: 10px; border: 1px solid var(--color-border-default); background: var(--color-surface-default); color: var(--color-text-primary); cursor: pointer; }
+body #screen-products .pd-oneoff { display: inline-flex; gap: 6px; align-items: center; font-size: .9rem; color: var(--color-text-secondary); cursor: pointer; }
+body #screen-products .cl-table td .pd-ch small { display: inline; }

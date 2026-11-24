@@ -238,6 +238,19 @@ Owner approved the blueprint 21 Nov 2026 (eight areas; Pool Audits under My Work
 
 ---
 
+## Fill the gaps in product data · v1.98.0 · branch `product-data`
+
+Owner: fill in missing prices, costs, barcodes and images (audit recommendation). Finding on staging (a copy of live): 6,839 products; 185 are one-off custom items from orders; of the rest 259 have no RRP, 305 no cost, and none have a barcode or an image.
+
+| # | Change | Status | Evidence |
+|---|---|---|---|
+| PD1 | `product-data.js` Fill gaps page: counts per gap (one-off custom items left out unless included); spreadsheet editing with paste fill-down, live margin, barcode check digit and duplicate check, RRP from cost at a chosen margin | **New · Checked in a real browser on staging** | 50 per page of 259 missing RRP; "Fill these RRPs" at 40% filled 13; three costs pasted down a column, saved, then undone back to empty |
+| PD2 | Supplier price list: paste or CSV, matched by supplier code (that supplier's own first), SKU or barcode; fill gaps or update; supplier offer cost follows; preview flags 20%+ price changes and margins under 15% | **New · Unit tested · Preview checked on staging** | `test-product-data-v198`; staging preview: 3 of 4 rows matched, RRP £55.00 → £12.99 flagged (-76%) |
+| PD3 | Images by file name (SKU, barcode or supplier code, -2 for extras), main image or gallery, uses the existing secure product media upload | **New · Matching checked on staging · Upload not testable on the local staging copy (no upload server)** | 4 files: 2 matched (main and gallery), an unknown name and a PDF listed; upload failed cleanly with nothing changed |
+| PD4 | Every save is recorded in Recent changes with undo while the values are unchanged since | **New · Unit tested · Checked on staging** | |
+
+---
+
 ## Stock count import from a spreadsheet · v1.97.0 · branch `stock-import`
 
 Owner: get real stock counts in from a spreadsheet (audit recommendation). Finding: live holds only 17 units of stock across 6,837 products; the existing count process works one location at a time by hand.
