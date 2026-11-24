@@ -15756,6 +15756,36 @@ body #screen-products .pe-grid td:last-child { white-space: nowrap; }
 body #screen-products .pe-card .pe-grid td .pe-link { white-space: nowrap !important; word-break: normal !important; overflow-wrap: normal !important; width: auto !important; min-width: 0 !important; }
 
 
+/* ===== MODULE: system/82-stock-import.css ===== */
+/* v1.97 Stock count import: paste or CSV, preview, apply, undo */
+body #screen-products .si-page { display: grid; gap: 16px; }
+body #screen-products .si-card { padding: 18px; }
+body #screen-products .si-grid { display: grid; grid-template-columns: minmax(0, 1.6fr) minmax(240px, 1fr); gap: 20px; align-items: start; }
+@media (max-width: 860px) { body #screen-products .si-grid { grid-template-columns: 1fr; } }
+body #screen-products .si-field { display: grid; gap: 6px; margin: 0; border: 0; padding: 0; min-width: 0; }
+body #screen-products .si-field > span { font-weight: 600; color: var(--color-text-primary); }
+body #screen-products .si-field small { color: var(--color-text-secondary); }
+body #screen-products .si-field textarea { width: 100%; min-height: 180px; font-family: var(--font-mono, ui-monospace, monospace) !important; font-size: .9rem !important; border-radius: 10px !important; resize: vertical; }
+body #screen-products .si-side { display: grid; gap: 16px; }
+body #screen-products .si-mode label { display: flex; gap: 8px; align-items: center; font-weight: 400; color: var(--color-text-primary); cursor: pointer; }
+body #screen-products .si-file { color: var(--color-action-ink); text-decoration: underline; cursor: pointer; }
+body #screen-products .si-sum { display: flex; justify-content: space-between; align-items: center; gap: 12px; padding: 14px 18px; border-bottom: 1px solid var(--color-border-subtle); }
+body #screen-products .si-sum > div { display: grid; gap: 2px; }
+body #screen-products .si-sum small { color: var(--color-text-secondary); }
+body #screen-products .si-warn { color: var(--color-status-attention-text); }
+body #screen-products .si-note, body #screen-products .si-msg { margin: 0; padding: 12px 18px; background: var(--color-status-attention-bg); color: var(--color-status-attention-text); }
+body #screen-products .si-up { color: var(--color-status-success-text); font-weight: 600; }
+body #screen-products .si-down { color: var(--color-status-danger-text, var(--color-status-attention-text)); font-weight: 600; }
+body #screen-products .cl-table tr.si-flag td { background: var(--color-status-attention-bg); }
+body #screen-products .cl-table td small { display: block; color: var(--color-text-secondary); }
+body #screen-products .si-issues { padding: 12px 18px; border-top: 1px solid var(--color-border-subtle); }
+body #screen-products .si-issues summary { cursor: pointer; font-weight: 600; }
+body #screen-products .si-issues ul, body #screen-products .si-hist ul { margin: 8px 0; padding-left: 18px; display: grid; gap: 4px; font-size: .92rem; }
+body #screen-products .si-hist ul { list-style: none; padding: 8px 18px 14px; }
+body #screen-products .si-hist li { display: flex; justify-content: space-between; gap: 12px; align-items: center; }
+body #screen-products .cl-card .si-link { background: none !important; border: 0 !important; box-shadow: none !important; color: var(--color-action-ink) !important; padding: 0 !important; min-height: 0 !important; text-decoration: underline; cursor: pointer; }
+
+
 /* ===== MODULE: system/68-pool-shed-kit.css ===== */
 /* Pool Shed design kit (v1.69 pilot) — module 68, loaded last.
    v1.77: rules start .ps-kit-scope:not(#ps-kit-none) — the :not(#id) gives the same id-level strength the old

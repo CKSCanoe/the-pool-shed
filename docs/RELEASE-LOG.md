@@ -238,6 +238,18 @@ Owner approved the blueprint 21 Nov 2026 (eight areas; Pool Audits under My Work
 
 ---
 
+## Stock count import from a spreadsheet · v1.97.0 · branch `stock-import`
+
+Owner: get real stock counts in from a spreadsheet (audit recommendation). Finding: live holds only 17 units of stock across 6,837 products; the existing count process works one location at a time by hand.
+
+| # | Change | Status | Evidence |
+|---|---|---|---|
+| SI1 | `stock-import.js`: paste (tab-separated) or CSV; headings recognised; match by SKU, barcode, supplier code (product or supplier price list), name; duplicates added together; held locations (Quarantine, Receiving, Returns Hold) never targeted | **New · Unit tested** | `test-stock-import-v197` |
+| SI2 | Preview with now / after / change, flagged rows that stay at the reserved quantity, rows not imported (downloadable); set or add; confirm dialog | **New · Checked in a real browser on staging** | 6 pasted rows: 2 products matched (one on two rows added together), 1 not found, 1 service skipped |
+| SI3 | Apply records one stock movement per change with the import reference; undo only when the stock has not moved since; undo is itself recorded (history kept) | **New · Checked on staging** | SI-20261124-QZTH: 0 → 1 for two products, then undone back to 0; four movements kept; saved for team after a reload |
+
+---
+
 ## Bundles: one engine, built in the product editor · v1.96.0 · branch `bundles`
 
 Owner: rebuild the bundle engine (audit recommendation 3). Concept approved. Findings: six files handled bundles with different rules; one (bundle-sales-intelligence) was switched off and unreachable; parts showed on orders as separate £0 lines; orders from quotes put cost on the bundle line and the parts; bundles priced at RRP only; catalogue showed "Not stocked"; no bundles on live yet.
@@ -250,6 +262,7 @@ Owner: rebuild the bundle engine (audit recommendation 3). Concept approved. Fin
 | BX4 | Catalogue badge and can make; To order "Part of … for SO-…" | **New · Unit tested** | |
 | BX5 | One money rule: bundle line carries price and cost; quotes' parts no longer carry cost; monthly pack counts the bundle once | **Fixed** | |
 | BX7 | Staging note: the v1.95 receiving test had saved to the staging database, and the attempted put-back was refused (receipt history is permanent by design), which left one browser unable to save. Staging reloaded from its database; the £0 replacement line removed and test return PR-00002 cancelled; PO-1053 on staging keeps the test delivery (23 of 25). Live was never affected | **Resolved** | |
+| BX8 | App release (PR #95) | **Deployed · verified on live** 24 Nov 2026 (Vercel check green; live cache `pool-shed-v1.96.0-bundles-r1`; `bundles.js` served; retired intelligence file 404) | Data unchanged apart from owner activity: at 09:11 three of the empty orders created on 23 Nov (SO-2065, SO-2066, SO-2067, no lines) were deleted; 30 orders, 17 units of stock, 6,837 products, 26 POs |
 | BX6 | Retired the switched-off bundle intelligence layer (file, script, cache entry, its styles); its two tests now check the new engine | **Removed** | |
 
 ## Receive deliveries on the PO, and one "To order" list · v1.95.0 · branch `po-receiving`
